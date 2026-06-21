@@ -1,0 +1,131 @@
+// ── Wrapper ───────────────────────────────────────────────────────────────────
+.tr-wrapper { padding: 0; }
+
+// ── Split row layout ──────────────────────────────────────────────────────────
+// Default: single column (no chart)
+.tr-split { display: block; }
+
+.tr-split--with-chart {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+
+  .tr-split__table,
+  .tr-split__chart {
+    flex: 0 0 calc(50% - 0.5rem);
+    max-width: calc(50% - 0.5rem);
+    min-width: 0;
+  }
+}
+
+.tr-split__table { width: 100%; min-width: 0; }
+
+// ── Chart panel ───────────────────────────────────────────────────────────────
+.tr-split__chart {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 2px 12px rgba(30, 91, 168, .06);
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+// Column selector inside chart panel
+.tr-chart-col-select {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+.tr-chart-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #64748b;
+  margin: 0;
+}
+.tr-chart-select {
+  height: 2.1rem;
+  min-width: 10rem;
+  padding: 0 .65rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: .82rem;
+  color: #1e293b;
+  background: #fff;
+  appearance: auto;
+  cursor: pointer;
+  &:focus { outline: none; border-color: #0284c7; }
+}
+
+.tr-chart-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  canvas { width: 100% !important; height: 100% !important; }
+
+}
+
+.tr-chart-note {
+  font-size: .73rem;
+  color: #94a3b8;
+  margin: 0;
+  i { margin-right: .3rem; }
+}
+
+// ── Record count in table header ──────────────────────────────────────────────
+.tr-count {
+  font-size: .78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+// ── Sortable column headers ───────────────────────────────────────────────────
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  &:hover { background: linear-gradient(135deg, #1557a0, #5b70d4); }
+}
+
+// ── Totals footer row ─────────────────────────────────────────────────────────
+.tr-totals-row {
+  background: #f0f9ff !important;
+  td { border-top: 2px solid #bae6fd; font-size: .82rem; }
+}
+
+// ── stat-label inside gradient stat-card (white) ──────────────────────────────
+.stat-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  opacity: .88;
+  margin-bottom: .15rem;
+}
+
+// ── Badge colours (status / type / gender columns) ────────────────────────────
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: .72rem;
+  font-weight: 700;
+
+  &.b-g { background: #d1fae5; color: #065f46; }
+  &.b-y { background: #fef3c7; color: #92400e; }
+  &.b-r { background: #fee2e2; color: #991b1b; }
+  &.b-b { background: #dbeafe; color: #1e40af; }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .tr-split--with-chart {
+    flex-direction: column;
+    .tr-split__table,
+    .tr-split__chart { flex: none; max-width: 100%; width: 100%; }
+  }
+  .tr-chart-canvas-wrap { min-height: 240px; }
+}

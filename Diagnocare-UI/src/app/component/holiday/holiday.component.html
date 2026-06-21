@@ -1,0 +1,350 @@
+<div class="page-container">
+
+  <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Holiday Calendar</h1>
+      <p class="subtitle">
+        {{ selectedYear }} · {{ holidays.length }} holiday{{ holidays.length !== 1 ? 's' : '' }} recorded
+      </p>
+    </div>
+    <div class="header-actions" *ngIf="isAdmin">
+      <button class="btn btn-primary" (click)="openBulkAdd()">
+        <i class="fa fa-plus"></i> Bulk Add
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">
+        <i class="fa fa-plus"></i> Add Holiday
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Controls bar ────────────────────────────────────────────────────── -->
+  <div class="controls-bar">
+
+    <div class="year-nav">
+      <button class="nav-btn" (click)="prevYear()" [disabled]="isLoading" title="Previous year">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+      <span class="year-label">{{ selectedYear }}</span>
+      <button class="nav-btn" (click)="nextYear()" [disabled]="isLoading" title="Next year">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <div class="view-toggle">
+      <button class="toggle-btn" [class.active]="viewMode === 'calendar'" (click)="viewMode = 'calendar'">
+        <i class="fa fa-calendar"></i> Calendar
+      </button>
+      <button class="toggle-btn" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">
+        <i class="fa fa-list"></i> List
+      </button>
+    </div>
+
+    <div class="count-chip" *ngIf="!isLoading">
+      <i class="fa fa-star"></i>
+      {{ holidays.length }} Holiday{{ holidays.length !== 1 ? 's' : '' }}
+    </div>
+  </div>
+
+  <!-- ── Content ──────────────────────────────────────────────────────────── -->
+  <div class="content-container">
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading holidays…</p>
+    </div>
+
+    <!-- ════════ CALENDAR VIEW ════════ -->
+    <div class="year-calendar" *ngIf="!isLoading && viewMode === 'calendar'">
+
+      <div class="admin-hint" *ngIf="isAdmin">
+        <i class="fa fa-info-circle"></i>
+        Click any date to add · Click a highlighted date to edit.
+      </div>
+
+      <div class="month-grid-row">
+        <div class="month-card card" *ngFor="let mg of monthGrids; trackBy: trackByMonth">
+
+          <div class="month-header">
+            <span class="month-name">{{ mg.name }}</span>
+            <span class="month-count" *ngIf="countForMonth(mg) > 0">{{ countForMonth(mg) }}</span>
+          </div>
+
+          <div class="cal-row cal-dow-row">
+            <div class="cal-cell cal-dow" *ngFor="let d of ['Su','Mo','Tu','We','Th','Fr','Sa']">{{ d }}</div>
+          </div>
+
+          <div class="cal-row" *ngFor="let week of mg.weeks">
+            <div
+              *ngFor="let cell of week"
+              class="cal-cell"
+              [class.out-of-month]="!cell.inMonth"
+              [class.is-holiday]="cell.inMonth && cell.holiday"
+              [class.is-weekend]="cell.inMonth && isWeekend(cell.date)"
+              [class.is-today]="cell.inMonth && isToday(cell.date)"
+              [class.clickable]="cell.inMonth && isAdmin"
+              (click)="onCalendarCellClick(cell)"
+              [title]="cell.holiday ? cell.holiday.holidayName : (isAdmin && cell.inMonth ? 'Click to add holiday' : '')"
+            >
+              <span class="day-num">{{ cell.inMonth ? cell.date.getDate() : '' }}</span>
+              <span class="holiday-dot" *ngIf="cell.inMonth && cell.holiday"
+                    [title]="cell.holiday.holidayName"></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- /CALENDAR VIEW -->
+
+    <!-- ════════ LIST VIEW ════════ -->
+    <div class="list-view" *ngIf="!isLoading && viewMode === 'list'">
+
+      <div class="empty-state" *ngIf="holidays.length === 0">
+        <div class="empty-icon"><i class="fa fa-calendar-times"></i></div>
+        <h3>No Holidays Recorded</h3>
+        <p>
+          No holidays have been added for {{ selectedYear }}.
+          <ng-container *ngIf="isAdmin">
+            Click <strong>Add Holiday</strong> or <strong>Bulk Add</strong> to get started.
+          </ng-container>
+        </p>
+      </div>
+
+      <div class="card table-container" *ngIf="holidays.length > 0">
+        <table class="data-table holiday-table">
+          <thead>
+            <tr>
+              <th class="col-date">Date</th>
+              <th class="col-day">Day</th>
+              <th class="col-reason">Holiday Name</th>
+              <th class="col-remark">Remark</th>
+              <th class="col-action" *ngIf="isAdmin">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of sortedHolidays; trackBy: trackByHoliday">
+              <td class="col-date">
+                <span class="date-badge">{{ formatDate(h.holidayDate) }}</span>
+              </td>
+              <td class="col-day">
+                <span class="day-badge"
+                      [class.day-weekend]="h.dayOfWeek === 'Sunday' || h.dayOfWeek === 'Saturday'">
+                  {{ h.dayOfWeek }}
+                </span>
+              </td>
+              <td class="col-reason">
+                <div class="reason-cell">
+                  <i class="fa fa-star reason-icon"></i> {{ h.holidayName }}
+                </div>
+              </td>
+              <td class="col-remark">
+                <span class="remark-text" *ngIf="h.remark">{{ h.remark }}</span>
+                <span class="text-muted"  *ngIf="!h.remark">—</span>
+              </td>
+              <td class="col-action action-buttons" *ngIf="isAdmin">
+                <app-action-btn type="edit"   title="Edit Holiday"   (clicked)="openEdit(h)"></app-action-btn>
+                <app-action-btn type="delete" title="Delete Holiday" (clicked)="deleteHoliday(h)"></app-action-btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- /LIST VIEW -->
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SINGLE ADD / EDIT MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" [class.open]="showModal" (click)="closeModal()"></div>
+
+<div class="modal-panel" [class.open]="showModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+  <div class="modal-header">
+    <h3 class="modal-title" id="modal-title">
+      <i class="fa" [class.fa-plus-circle]="!isEditMode" [class.fa-edit]="isEditMode"></i>
+      {{ isEditMode ? 'Edit Holiday' : 'Add Holiday' }}
+    </h3>
+    <button class="modal-close-btn" (click)="closeModal()" title="Close">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+
+  <div class="modal-body">
+
+    <div class="form-group">
+      <label class="form-label required">Date</label>
+      <app-date-picker [(ngModel)]="draft.holidayDate"
+                       inputClass="form-control"
+                       [min]="minDate" [max]="maxDate"
+                       placeholder="Select date"></app-date-picker>
+      <div class="day-preview" *ngIf="draftDayOfWeek">
+        <i class="fa fa-calendar-day"></i>
+        <span>{{ draftDayOfWeek }}</span>
+        <span class="weekend-tag"
+              *ngIf="draftDayOfWeek === 'Saturday' || draftDayOfWeek === 'Sunday'">Weekend</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label required">Holiday Name</label>
+      <input type="text" class="form-control"
+             [(ngModel)]="draft.holidayName"
+             placeholder="e.g. Diwali, Republic Day, Christmas"
+             maxlength="200" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Remark <span class="optional">(optional)</span></label>
+      <textarea class="form-control"
+                [(ngModel)]="draft.remark"
+                rows="2"
+                placeholder="Any additional notes…"
+                maxlength="500"></textarea>
+    </div>
+
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn btn-back" (click)="closeModal()" [disabled]="isSaving">
+      <i class="fa fa-times"></i> Cancel
+    </button>
+    <button class="btn btn-primary" (click)="saveHoliday()"
+            [disabled]="isSaving || !draft.holidayDate || !draft.holidayName.trim()">
+      <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
+      <span *ngIf="!isSaving">
+        <i class="fa fa-save"></i> {{ isEditMode ? 'Update' : 'Add' }} Holiday
+      </span>
+    </button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     BULK ADD MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" [class.open]="showBulkModal" (click)="closeBulkModal()"></div>
+
+<div class="modal-panel modal-panel-wide" [class.open]="showBulkModal"
+     role="dialog" aria-modal="true" aria-labelledby="bulk-modal-title">
+
+  <div class="modal-header">
+    <h3 class="modal-title" id="bulk-modal-title">
+      <i class="fa fa-layer-group"></i> Bulk Add Holidays
+    </h3>
+    <button class="modal-close-btn" (click)="closeBulkModal()" title="Close">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+
+  <div class="modal-body bulk-modal-body">
+
+    <!-- Column headers -->
+    <div class="bulk-header-row">
+      <span class="bulk-col-num">#</span>
+      <span class="bulk-col-date">Date <span class="required-star">*</span></span>
+      <span class="bulk-col-day">Day</span>
+      <span class="bulk-col-reason">Holiday Name <span class="required-star">*</span></span>
+      <span class="bulk-col-remark">Remark <span class="optional">(optional)</span></span>
+      <span class="bulk-col-action"></span>
+    </div>
+
+    <!-- Rows -->
+    <div class="bulk-rows">
+      <div
+        *ngFor="let row of bulkDrafts; let i = index; trackBy: trackByIndex"
+        class="bulk-row"
+        [class.bulk-row-invalid]="bulkSubmitted && !isBulkRowValid(row)"
+        [class.bulk-row-duplicate]="bulkSubmitted && isBulkDateDuplicate(row, i)"
+      >
+        <span class="bulk-col-num bulk-row-num">{{ i + 1 }}</span>
+
+        <!-- Date -->
+        <div class="bulk-col-date">
+          <app-date-picker [(ngModel)]="row.holidayDate"
+                           inputClass="form-control"
+                           [class.is-invalid]="bulkSubmitted && !row.holidayDate"
+                           [min]="minDate" [max]="maxDate"
+                           placeholder="Select date"></app-date-picker>
+          <div class="bulk-day-preview" *ngIf="bulkDayOfWeek(row.holidayDate)">
+            <span [class.bulk-weekend]="bulkDayOfWeek(row.holidayDate) === 'Saturday'
+                                     || bulkDayOfWeek(row.holidayDate) === 'Sunday'">
+              {{ bulkDayOfWeek(row.holidayDate) }}
+            </span>
+            <span class="bulk-duplicate-warn"
+                  *ngIf="bulkSubmitted && isBulkDateDuplicate(row, i)">
+              <i class="fa fa-exclamation-triangle"></i> Duplicate
+            </span>
+          </div>
+        </div>
+
+        <!-- Day label -->
+        <span class="bulk-col-day bulk-day-label"
+              [class.is-weekend-label]="bulkDayOfWeek(row.holidayDate) === 'Saturday'
+                                      || bulkDayOfWeek(row.holidayDate) === 'Sunday'">
+          {{ bulkDayOfWeek(row.holidayDate) | slice:0:3 }}
+        </span>
+
+        <!-- Holiday Name -->
+        <div class="bulk-col-reason">
+          <input type="text" class="form-control"
+                 [class.is-invalid]="bulkSubmitted && !row.holidayName.trim()"
+                 [(ngModel)]="row.holidayName"
+                 placeholder="Holiday name…"
+                 maxlength="200" />
+        </div>
+
+        <!-- Remark -->
+        <div class="bulk-col-remark">
+          <input type="text" class="form-control"
+                 [(ngModel)]="row.remark"
+                 placeholder="Notes… (optional)"
+                 maxlength="500" />
+        </div>
+
+        <!-- Remove -->
+        <div class="bulk-col-action">
+          <button class="bulk-remove-btn" type="button"
+                  [disabled]="bulkDrafts.length === 1"
+                  (click)="removeBulkRow(i)"
+                  title="Remove row">
+            <i class="fa fa-times-circle"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <button class="bulk-add-row-btn" type="button"
+            (click)="addBulkRow()" [disabled]="isBulkSaving">
+      <i class="fa fa-plus-circle"></i> Add Another Row
+    </button>
+
+  </div>
+
+  <div class="modal-footer">
+    <div class="bulk-summary">
+      <span class="bulk-count-chip">
+        <i class="fa fa-list-ol"></i>
+        {{ bulkDrafts.length }} row{{ bulkDrafts.length !== 1 ? 's' : '' }}
+      </span>
+    </div>
+    <button class="btn btn-back" (click)="closeBulkModal()" [disabled]="isBulkSaving">
+      <i class="fa fa-times"></i> Cancel
+    </button>
+    <button class="btn btn-success" (click)="saveBulkHolidays()" [disabled]="isBulkSaving">
+      <span *ngIf="isBulkSaving"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
+      <span *ngIf="!isBulkSaving">
+        <i class="fa fa-save"></i>
+        Save {{ bulkDrafts.length }} Holiday{{ bulkDrafts.length !== 1 ? 's' : '' }}
+      </span>
+    </button>
+  </div>
+
+</div>
+
+<app-confirm-modal></app-confirm-modal>

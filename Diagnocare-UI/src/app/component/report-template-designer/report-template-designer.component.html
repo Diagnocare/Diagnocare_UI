@@ -1,0 +1,197 @@
+<app-loading-spinner [isLoading]="isLoading" message="Loading template..."></app-loading-spinner>
+
+<div class="page-container">
+
+  <!-- ── Page Header ────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Template Designer</h1>
+      <p class="subtitle">Design your report HTML &amp; CSS, preview live, then save to the database</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-back" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container designer-root">
+
+    <!-- ── Top meta-bar ────────────────────────────────────────────── -->
+    <div class="meta-bar card">
+
+      <!-- Load existing template -->
+      <div class="meta-group">
+        <label class="meta-label">Load Existing Template</label>
+        <div class="meta-row">
+          <select class="form-select meta-select" [(ngModel)]="selectedLoadId" [disabled]="loadingTemplates">
+            <option [ngValue]="null" disabled>-- select to load --</option>
+            <option *ngFor="let t of existingTemplates" [ngValue]="t.templateId">
+              {{ t.templateName }}
+            </option>
+          </select>
+          <button class="btn btn-secondary btn-sm" (click)="onLoadSelected()" [disabled]="!selectedLoadId || loadingTemplates">
+            <i class="fa fa-download"></i> Load
+          </button>
+        </div>
+      </div>
+
+      <div class="meta-divider"></div>
+
+      <!-- Template name / description / category -->
+      <div class="meta-group meta-group--info">
+        <div class="meta-field">
+          <label class="meta-label">Template Name <span class="req">*</span></label>
+          <input class="form-control meta-input" [(ngModel)]="templateName" (ngModelChange)="onContentChange()"
+                 placeholder="e.g. CBC Standard Report" />
+        </div>
+        <div class="meta-field">
+          <label class="meta-label">Category</label>
+          <input class="form-control meta-input" [(ngModel)]="category" (ngModelChange)="onContentChange()"
+                 placeholder="e.g. Haematology" />
+        </div>
+        <div class="meta-field meta-field--wide">
+          <label class="meta-label">Description</label>
+          <input class="form-control meta-input" [(ngModel)]="description" (ngModelChange)="onContentChange()"
+                 placeholder="Short description (optional)" />
+        </div>
+      </div>
+
+      <div class="meta-divider"></div>
+
+      <!-- Save actions -->
+      <div class="meta-group meta-group--actions">
+        <button class="btn btn-primary" (click)="refreshPreview()" title="Refresh live preview">
+          <i class="fa fa-refresh"></i> Preview
+        </button>
+        <button class="btn btn-success" (click)="save()" [disabled]="isSaving || !isDirty">
+          <span *ngIf="!isSaving"><i class="fa fa-save"></i> {{ templateId ? 'Update' : 'Save' }}</span>
+          <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
+        </button>
+        <span class="saved-badge" *ngIf="isSaved && !isDirty">
+          <i class="fa fa-check-circle"></i> Saved
+        </span>
+        <span class="dirty-badge" *ngIf="isDirty">
+          <i class="fa fa-circle"></i> Unsaved changes
+        </span>
+      </div>
+    </div>
+
+    <!-- ── Main split pane ──────────────────────────────────────────── -->
+    <div class="designer-split">
+
+      <!-- ── Left: Editor pane ──────────────────────────────────────── -->
+      <div class="editor-pane card">
+
+        <!-- Editor tabs -->
+        <div class="editor-tabs">
+          <button class="editor-tab" [class.active]="activeTab === 'html'" (click)="activeTab = 'html'">
+            <i class="fa fa-code"></i> HTML
+          </button>
+          <button class="editor-tab" [class.active]="activeTab === 'css'" (click)="activeTab = 'css'">
+            <i class="fa fa-paint-brush"></i> CSS
+          </button>
+
+          <!-- Placeholder toggle -->
+          <button class="editor-tab placeholder-toggle" [class.active]="showPlaceholders"
+                  (click)="showPlaceholders = !showPlaceholders" title="Insert placeholder tokens">
+            <i class="fa fa-tags"></i> Placeholders
+          </button>
+        </div>
+
+        <!-- Placeholder panel -->
+        <div class="placeholder-panel" *ngIf="showPlaceholders">
+          <p class="placeholder-hint">Click a token to append it to the active editor (HTML or CSS).</p>
+          <div *ngFor="let cat of placeholderCategories" class="placeholder-category">
+            <div class="placeholder-category-label">{{ cat }}</div>
+            <div class="placeholder-chips">
+              <button *ngFor="let ph of placeholdersByCategory(cat)"
+                      class="placeholder-chip"
+                      [title]="ph.description"
+                      (click)="insertPlaceholder(ph.token)">
+                {{ ph.token }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- HTML editor -->
+        <div class="editor-body" *ngIf="activeTab === 'html'">
+          <textarea
+            #htmlTextarea
+            class="code-editor"
+            [(ngModel)]="htmlBody"
+            (ngModelChange)="onContentChange()"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            placeholder="Paste or type your HTML report template here…">
+          </textarea>
+        </div>
+
+        <!-- CSS editor -->
+        <div class="editor-body" *ngIf="activeTab === 'css'">
+          <textarea
+            #cssTextarea
+            class="code-editor"
+            [(ngModel)]="cssStyles"
+            (ngModelChange)="onContentChange()"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            placeholder="Write your CSS styles here…">
+          </textarea>
+        </div>
+      </div><!-- /editor-pane -->
+
+      <!-- ── Right: Preview pane ────────────────────────────────────── -->
+      <div class="preview-pane card">
+        <div class="preview-pane-header">
+          <span class="preview-label"><i class="fa fa-eye"></i> Preview</span>
+          <div class="preview-header-actions">
+            <!-- Auto-preview toggle -->
+            <label class="auto-preview-toggle" title="Toggle live auto-refresh">
+              <input type="checkbox" [(ngModel)]="autoPreview" />
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">{{ autoPreview ? 'Live' : 'Manual' }}</span>
+            </label>
+            <button class="btn btn-secondary btn-sm" (click)="refreshPreview()">
+              <i class="fa fa-refresh"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div class="preview-frame-wrap">
+          <iframe
+            #previewFrame
+            class="preview-frame"
+            title="Template Preview"
+            sandbox="allow-same-origin">
+          </iframe>
+        </div>
+      </div><!-- /preview-pane -->
+
+    </div><!-- /designer-split -->
+
+    <!-- ── Placeholder reference table (collapsed) ──────────────────── -->
+    <div class="ref-card card" *ngIf="showPlaceholders">
+      <div class="ref-header">
+        <h3><i class="fa fa-table"></i> Placeholder Reference</h3>
+      </div>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Category</th><th>Token</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ph of placeholders">
+            <td><span class="ref-category">{{ ph.category }}</span></td>
+            <td><code class="ref-token">{{ ph.token }}</code></td>
+            <td>{{ ph.description }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /content-container -->
+</div><!-- /page-container -->

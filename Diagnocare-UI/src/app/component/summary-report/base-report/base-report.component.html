@@ -1,0 +1,116 @@
+<div class="report-wrapper">
+
+  <!-- ── Shared filter bar ───────────────────────────────────────────────────── -->
+  <app-report-filter-bar
+    [reportTitle]="reportConfig.label"
+    [reportIcon]="reportConfig.icon"
+    [availableYears]="availableYears"
+    [selectedYear]="selectedYear"
+    [selectedPeriod]="selectedPeriodType"
+    [periodOptions]="periodTypeOptions"
+    [chartOptions]="chartOptions"
+    [selectedChartType]="selectedChartType"
+    [isLoading]="isLoading"
+    [hasData]="hasData"
+    [showChartToggle]="false"
+    (yearChange)="onYearChange($event)"
+    (periodChange)="onPeriodChange($event)"
+    (chartTypeChange)="onChartTypeChange($event)"
+    (csvExport)="onCsvExport()">
+  </app-report-filter-bar>
+
+  <!-- ── Loading spinner ────────────────────────────────────────────────────── -->
+  <app-loading-spinner [isLoading]="isLoading" [message]="'Loading report data...'"></app-loading-spinner>
+
+  <!-- ── Side-by-side: table (left) + chart (right) ─────────────────────────── -->
+  <div class="split-row row" *ngIf="!isLoading">
+
+    <div class="col-md-6">
+
+      <!-- Multi-year comparison table when 'All' is selected -->
+      <div class="table-container" *ngIf="multiYearSeries && multiYearSeries.length > 0">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{{ selectedPeriodType | titlecase }}</th>
+                <th *ngFor="let s of multiYearSeries">{{ s.label }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lbl of multiLabels">
+                <td>{{ lbl }}</td>
+                <td *ngFor="let s of multiYearSeries">{{ getMultiCount(s, lbl) | number:countDigitInfo }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Single year table -->
+      <div class="table-container" *ngIf="!multiYearSeries || multiYearSeries.length === 0">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{{ selectedPeriodType | titlecase }}</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of currentYearData">
+                <td>{{ row.period }}</td>
+                <td>{{ row.count | number:countDigitInfo }}</td>
+              </tr>
+              <tr *ngIf="currentYearData.length === 0">
+                <td colspan="2">
+                  <div class="no-data">
+                    <i class="fa fa-inbox"></i>
+                    <p>No data available</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Previous year table (legacy path) -->
+      <div class="table-container" *ngIf="previousYearData.length > 0">
+        <div class="card-header"><h3>Previous Year</h3></div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{{ selectedPeriodType | titlecase }}</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of previousYearData">
+                <td>{{ row.period }}</td>
+                <td>{{ row.count | number:countDigitInfo }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col-md-6">
+      <div class="chart-container card">
+        <div class="chart-wrapper"
+             *ngIf="currentYearData.length > 0 || (multiYearSeries && multiYearSeries.length > 0)">
+          <canvas #chartCanvas></canvas>
+        </div>
+        <div class="no-data"
+             *ngIf="currentYearData.length === 0 && (!multiYearSeries || multiYearSeries.length === 0)">
+          <i class="fa fa-chart-bar"></i>
+          <p>No data available to display chart</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

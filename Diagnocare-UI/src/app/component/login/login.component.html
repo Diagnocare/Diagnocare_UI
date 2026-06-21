@@ -1,0 +1,243 @@
+<div class="lp-root">
+
+  <!-- ── Left panel ─────────────────────────────────────────────── -->
+  <div class="lp-left">
+    <div class="lp-left-bg-circles">
+      <span class="lp-circle lp-c1"></span>
+      <span class="lp-circle lp-c2"></span>
+      <span class="lp-circle lp-c3"></span>
+    </div>
+
+    <div class="lp-left-content">
+
+      <!-- Brand -->
+      <div class="lp-brand">
+        <div class="lp-brand-icon"><i class="fa fa-heartbeat"></i></div>
+        <span class="lp-brand-name">Diagno<span class="lp-brand-accent">care</span></span>
+      </div>
+
+      <!-- Hero text -->
+      <h1 class="lp-hero-title">Welcome back,<br>Lab Professional.</h1>
+      <p class="lp-hero-sub">
+        Sign in to access your pathology dashboard — patients, tests, reports, and analytics, all in one place.
+      </p>
+
+      <!-- Feature highlights -->
+      <ul class="lp-features">
+        <li>
+          <span class="lp-feat-icon"><i class="fa fa-users"></i></span>
+          <div>
+            <strong>Patient Management</strong>
+            <span>Register, search, and track patients instantly.</span>
+          </div>
+        </li>
+        <li>
+          <span class="lp-feat-icon"><i class="fa fa-file-text-o"></i></span>
+          <div>
+            <strong>One-Click Reports</strong>
+            <span>Generate signed PDF reports in seconds.</span>
+          </div>
+        </li>
+        <li>
+          <span class="lp-feat-icon"><i class="fa fa-bar-chart"></i></span>
+          <div>
+            <strong>Smart Analytics</strong>
+            <span>Visual dashboards for collections &amp; billing.</span>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Decorative stat pills -->
+      <div class="lp-stat-pills">
+        <div class="lp-pill">
+          <i class="fa fa-flask"></i>
+          <span>500+ Tests</span>
+        </div>
+        <div class="lp-pill">
+          <i class="fa fa-clock-o"></i>
+          <span>24/7 Access</span>
+        </div>
+        <div class="lp-pill">
+          <i class="fa fa-shield"></i>
+          <span>Secure OTP</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Right panel ────────────────────────────────────────────── -->
+  <div class="lp-right">
+    <div class="lp-card">
+
+      <!-- Card header -->
+      <div class="lp-card-header">
+        <div class="lp-card-logo">
+          <i class="fa fa-heartbeat"></i>
+        </div>
+        <h2 class="lp-card-title">Sign in to Diagnocare</h2>
+        <p class="lp-card-sub">Enter your credentials to continue</p>
+      </div>
+
+      <!-- Session terminated banner -->
+      <div class="lp-session-ended-banner" *ngIf="sessionTerminatedBanner">
+        <div class="lp-se-icon"><i class="fa fa-exclamation-circle"></i></div>
+        <div class="lp-se-text">
+          <strong>Session ended</strong>
+          <span>Your account was signed in from another browser or tab. Please log in again.</span>
+        </div>
+        <button class="lp-se-close" (click)="sessionTerminatedBanner = false" title="Dismiss">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Error banner -->
+      <div class="lp-error-banner" *ngIf="errors.length > 0">
+        <i class="fa fa-exclamation-circle"></i>
+        <span>{{ errors[0] }}</span>
+      </div>
+
+      <!-- Login form -->
+      <form [formGroup]="loginForm" (ngSubmit)="Login()" autocomplete="off">
+
+        <div class="lp-field">
+          <label class="lp-label">User Name</label>
+          <div class="lp-input-wrap">
+            <span class="lp-input-icon"><i class="fa fa-user"></i></span>
+            <input
+              type="text"
+              class="lp-input"
+              formControlName="userId"
+              placeholder="Enter your user name"
+              autocomplete="username"
+            />
+          </div>
+        </div>
+
+        <div class="lp-field">
+          <label class="lp-label">Password</label>
+          <div class="lp-input-wrap">
+            <span class="lp-input-icon"><i class="fa fa-lock"></i></span>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="lp-input lp-input-pw"
+              formControlName="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="lp-pw-toggle"
+              (click)="showPassword = !showPassword"
+              [title]="showPassword ? 'Hide password' : 'Show password'"
+            >
+              <i class="fa" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="lp-forgot-row">
+          <a class="lp-forgot-link" (click)="redictedToForgotPassword()">
+            <i class="fa fa-question-circle"></i> Forgot password?
+          </a>
+        </div>
+
+        <button
+          type="submit"
+          class="lp-submit-btn"
+          [disabled]="isSubmitting || !initialCleanupDone"
+        >
+          <ng-container *ngIf="!initialCleanupDone">
+            <span class="lp-spinner"></span> Loading…
+          </ng-container>
+          <ng-container *ngIf="initialCleanupDone && !isSubmitting">
+            <i class="fa fa-sign-in"></i> Generate OTP &amp; Continue
+          </ng-container>
+          <ng-container *ngIf="initialCleanupDone && isSubmitting">
+            <span class="lp-spinner"></span> Verifying credentials…
+          </ng-container>
+        </button>
+
+      </form>
+
+      <!-- Back to home -->
+      <div class="lp-back-home">
+        <a routerLink="/home">
+          <i class="fa fa-arrow-left"></i> Back to Home
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Session conflict dialog ────────────────────────────────────────────── -->
+<div class="sc-overlay" *ngIf="showSessionConflictDialog" (click)="keepExistingSession()">
+  <div class="sc-dialog" (click)="$event.stopPropagation()">
+
+    <div class="sc-header">
+      <span class="sc-icon"><i class="fa fa-exclamation-triangle"></i></span>
+      <h3 class="sc-title">Account already signed in</h3>
+    </div>
+
+    <p class="sc-body">
+      Your account is currently active in another session.
+    </p>
+
+    <div class="sc-device-card" *ngIf="conflictDeviceInfo">
+      <i class="fa fa-desktop sc-device-icon"></i>
+      <div class="sc-device-info">
+        <span class="sc-device-label">Active session</span>
+        <span class="sc-device-name">{{ conflictDeviceInfo }}</span>
+        <span class="sc-device-time" *ngIf="conflictLoginTime">
+          Signed in {{ conflictLoginTime | date:'MMM d, y, h:mm a' }}
+        </span>
+      </div>
+    </div>
+
+    <p class="sc-body sc-body-sm">
+      Choose what to do:
+    </p>
+
+    <div class="sc-actions">
+      <button
+        class="sc-btn sc-btn-primary"
+        (click)="forceLogin()"
+        [disabled]="isForcingLogin"
+      >
+        <ng-container *ngIf="!isForcingLogin">
+          <i class="fa fa-sign-in"></i> Log in here, end other session
+        </ng-container>
+        <ng-container *ngIf="isClearingSession">
+          <span class="lp-spinner"></span> Ending other session…
+        </ng-container>
+        <ng-container *ngIf="isForcingLogin && !isClearingSession">
+          <span class="lp-spinner"></span> Preparing login…
+        </ng-container>
+      </button>
+
+      <button class="sc-btn sc-btn-secondary" (click)="keepExistingSession()" [disabled]="isForcingLogin">
+        <i class="fa fa-times"></i> Cancel — keep my other session
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- OTP / MFA dialog — rendered outside the split layout, full-screen -->
+<app-otp-mfa-dialog
+  *ngIf="showOtpDialog"
+  [maskedContactNumber]="maskedContactNumber"
+  [maskedEmail]="maskedEmail"
+  [showMethodSelect]="!isTotpMode"
+  [isSubmitting]="isSubmitting || isVerifyingOtp"
+  [selectedMethod]="selectedMethod"
+  [showOtpInput]="showOtpInput"
+  [isTotpMode]="isTotpMode"
+  [hasMfa]="hasMfa"
+  [userId]="loginForm.get('userId')?.value"
+  [id]="id"
+  (verify)="onOtpVerify($event)"
+  (channelChange)="onChannelChange($event)"
+></app-otp-mfa-dialog>

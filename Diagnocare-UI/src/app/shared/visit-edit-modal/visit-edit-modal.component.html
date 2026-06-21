@@ -1,0 +1,72 @@
+<div class="vem-backdrop" (click)="cancel()"></div>
+
+<div class="vem-modal" role="dialog" aria-modal="true" [formGroup]="form">
+
+  <!-- Header -->
+  <div class="vem-header">
+    <div class="vem-header-left">
+      <span class="vem-icon">✏️</span>
+      <div>
+        <div class="vem-title">Edit Visit</div>
+        <div class="vem-subtitle">{{ visit.contactName }}</div>
+      </div>
+    </div>
+    <button class="vem-close" type="button" (click)="cancel()">✕</button>
+  </div>
+
+  <!-- Body -->
+  <div class="vem-body">
+
+    <!-- Member -->
+    <div class="vem-field">
+      <label class="vem-label"><i class="fa fa-user"></i> Member</label>
+
+      <!-- Role filter chips -->
+      <div class="vem-chips">
+        <button type="button" class="vem-chip" [class.active]="memberTypeFilter === null"
+                (click)="memberTypeFilter = null">All</button>
+        <button type="button" class="vem-chip"
+                *ngFor="let t of memberTypeOptions"
+                [class.active]="memberTypeFilter === t.value"
+                (click)="memberTypeFilter = t.value">{{ t.label }}</button>
+      </div>
+
+      <select class="vem-select" formControlName="assignedMemberId"
+              [class.is-invalid]="isInvalid('assignedMemberId')">
+        <option [ngValue]="null" disabled>-- Select member --</option>
+        <option *ngFor="let m of displayMembers" [ngValue]="m.id">
+          {{ m.first_Name }} {{ m.last_Name }}
+        </option>
+      </select>
+      <small class="vem-error" *ngIf="isInvalid('assignedMemberId')">Member is required.</small>
+    </div>
+
+    <!-- Date + Time row -->
+    <div class="vem-row">
+      <div class="vem-field">
+        <label class="vem-label"><i class="fa fa-calendar"></i> Visit Date</label>
+        <app-date-picker formControlName="visitDate" inputClass="vem-input"
+                         [class.is-invalid]="isInvalid('visitDate')"
+                         placeholder="Select visit date"></app-date-picker>
+        <small class="vem-error" *ngIf="isInvalid('visitDate')">Date is required.</small>
+      </div>
+      <div class="vem-field">
+        <label class="vem-label"><i class="fa fa-clock"></i> Visit Time</label>
+        <input type="time" class="vem-input" formControlName="visitTime"
+               [class.is-invalid]="isInvalid('visitTime')" />
+        <small class="vem-error" *ngIf="isInvalid('visitTime')">Valid time is required.</small>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="vem-footer">
+    <button class="vem-btn vem-btn-cancel" type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button class="vem-btn vem-btn-save"   type="button" (click)="save()"   [disabled]="saving">
+      <i class="fa" [class.fa-save]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
+      {{ saving ? 'Saving…' : 'Save Changes' }}
+    </button>
+  </div>
+
+</div>

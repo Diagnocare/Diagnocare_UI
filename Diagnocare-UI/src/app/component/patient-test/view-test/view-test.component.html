@@ -1,0 +1,31 @@
+<div class="page-container pathology-theme">
+  <!-- Loading Spinner -->
+  <app-loading-spinner [isLoading]="isLoading" message="Loading test details..."></app-loading-spinner>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Patient Test Details</h2>
+      <p class="subtitle">View test information for patient</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-back" (click)="clickBack()">
+        <i class="fa fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container">
+    <div class="card">
+      <div class="card-header">
+        <h3>Test Information</h3>
+      </div>
+      <div class="card-body">
+        <div class="no-data" *ngIf="!isLoading">
+          <i class="fa fa-flask"></i>
+          <p>Test details for Patient ID: {{patientId}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,340 @@
+<!-- ── Licence Expired Banner ──────────────────────────────────────────── -->
+<div class="dc-licence-banner dc-licence-expired" *ngIf="isLicenceExpired">
+  <i class="fa fa-lock"></i>
+  <span>
+    Your pathology licence <strong>expired on {{ formattedExpiryDate }}</strong>.
+    All modules are disabled. Please contact your administrator to renew.
+  </span>
+  <a class="dc-licence-banner-link" (click)="redirectionToModule({route:'pathology'})">View Details</a>
+</div>
+
+<!-- ── Licence Expiring Soon Banner ───────────────────────────────────── -->
+<div class="dc-licence-banner dc-licence-warning" *ngIf="isLicenceExpiringSoon && !isLicenceExpired">
+  <i class="fa fa-exclamation-triangle"></i>
+  <span>
+    Your pathology licence expires on <strong>{{ formattedExpiryDate }}</strong>
+    (<strong>{{ licenceDaysLeft }} day{{ licenceDaysLeft !== 1 ? 's' : '' }}</strong> remaining).
+    Please contact your administrator to renew.
+  </span>
+</div>
+
+<header class="dc-header" [class.dc-header-expired]="isLicenceExpired">
+
+  <!-- ── Brand ── -->
+  <div class="dc-brand" (click)="navigateToHome()" role="button" tabindex="0" title="Go to home">
+    <div class="dc-brand-icon">
+      <i class="fa fa-heartbeat"></i>
+    </div>
+    <div class="dc-brand-text">
+      Diagno<span class="dc-brand-accent">care</span>
+    </div>
+  </div>
+
+  <!-- ── Nav links (centre) ── -->
+  <nav class="dc-nav" id="dcNav">
+
+    <!-- Home — full-access roles only -->
+    <a *ngIf="access.home" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'pathology'}); $event.preventDefault()">
+      <i class="fa fa-home"></i><span>Home</span>
+    </a>
+
+    <!-- Patients link — Collection Boy direct access -->
+    <a *ngIf="access.patientsLink" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'patients'}); $event.preventDefault()">
+      <i class="fa fa-users"></i><span>Patients</span>
+    </a>
+
+    <!-- Patient Tests link — Doctor direct access -->
+    <a *ngIf="access.patientTestsLink" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'patient-tests'}); $event.preventDefault()">
+      <i class="fa fa-flask"></i><span>Patient Reports</span>
+    </a>
+
+    <!-- Lab Operations dropdown — disabled when licence expired -->
+    <div *ngIf="access.labOps" class="dc-nav-item dc-dropdown-host" [class.dc-nav-disabled]="isLicenceExpired">
+      <button class="dc-nav-link dc-dropdown-trigger" type="button"
+              [disabled]="isLicenceExpired"
+              [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
+        <i class="fa fa-flask"></i><span>Lab Operations</span>
+        <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
+        <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
+      </button>
+      <div class="dc-dropdown" *ngIf="!isLicenceExpired">
+        <div class="dc-dropdown-header"><i class="fa fa-flask"></i> Laboratory Operations</div>
+        <a *ngFor="let item of labOperationMenu"
+           class="dc-dropdown-item dc-dropdown-item--iconic"
+           [id]="item.id"
+           (click)="redirectionToModule(item)">
+          <i class="fas {{ item.icon }} dc-item-icon"></i> {{ item.label }}
+        </a>
+      </div>
+    </div>
+
+    <!-- Summary Report dropdown — disabled when licence expired -->
+    <div *ngIf="access.summaryReports" class="dc-nav-item dc-dropdown-host" [class.dc-nav-disabled]="isLicenceExpired">
+      <button class="dc-nav-link dc-dropdown-trigger" type="button"
+              [disabled]="isLicenceExpired"
+              [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
+        <i class="fa fa-file-alt"></i><span>Reports</span>
+        <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
+        <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
+      </button>
+      <div class="dc-dropdown dc-dropdown-wide" *ngIf="!isLicenceExpired">
+        <div class="dc-dropdown-header"><i class="fa fa-chart-bar"></i> Report Categories</div>
+        <div class="dc-dropdown-grid">
+          <a *ngFor="let item of summaryReportMenu"
+             class="dc-dropdown-item"
+             [id]="item.id"
+             (click)="redirectionToSummaryReport(item)">
+            <i class="fas {{ item.icon }}"></i> {{ item.label }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lab Setup dropdown — disabled when licence expired -->
+    <div *ngIf="access.labSetup" class="dc-nav-item dc-dropdown-host" [class.dc-nav-disabled]="isLicenceExpired">
+      <button class="dc-nav-link dc-dropdown-trigger" type="button"
+              [disabled]="isLicenceExpired"
+              [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
+        <i class="fa fa-tools"></i><span>Lab Setup</span>
+        <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
+        <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
+      </button>
+      <div class="dc-dropdown" *ngIf="!isLicenceExpired">
+        <div class="dc-dropdown-header"><i class="fa fa-tools"></i> Lab Setup</div>
+        <a *ngFor="let item of labSetupMenu"
+           class="dc-dropdown-item dc-dropdown-item--rich"
+           [id]="item.id"
+           (click)="redirectionToModule(item)">
+          <i class="fas {{ item.icon }} dc-item-icon"></i>
+          <span class="dc-item-body">
+            <span class="dc-item-label">{{ item.label }}</span>
+            <span class="dc-item-desc">{{ item.description }}</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Address — disabled when licence expired -->
+    <!-- <a class="dc-nav-link" [class.dc-nav-disabled]="isLicenceExpired" href="#"
+       [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''"
+       (click)="navigateToAddressManager(); $event.preventDefault()">
+      <i class="fa fa-map-marker-alt"></i><span>Address</span>
+      <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
+    </a> -->
+
+    <!-- My Visits — for members who receive field-visit assignments -->
+    <a *ngIf="access.myVisits" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'my-visits'}); $event.preventDefault()">
+      <i class="fa fa-route"></i><span>My Visits</span>
+    </a>
+
+    <!-- Admin Panel dropdown — disabled when licence expired -->
+    <div class="dc-nav-item dc-dropdown-host"
+         *ngIf="access.adminPanel"
+         [class.dc-nav-disabled]="isLicenceExpired">
+      <button class="dc-nav-link dc-dropdown-trigger" type="button"
+              [disabled]="isLicenceExpired"
+              [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
+        <i class="fa fa-cog"></i><span>Admin Panel</span>
+        <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
+        <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
+      </button>
+      <div class="dc-dropdown" *ngIf="!isLicenceExpired">
+        <div class="dc-dropdown-header"><i class="fa fa-shield-alt"></i> Admin Panel</div>
+        <ng-container *ngFor="let item of adminOptions">
+          <a *ngIf="!item.superAdminOnly || isSuperAdmin"
+             class="dc-dropdown-item dc-dropdown-item--iconic"
+             [id]="item.id"
+             (click)="redirectionToModule(item)">
+            <i class="fas {{ item.icon }} dc-item-icon"></i> {{ item.label }}
+          </a>
+        </ng-container>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- ── Right section: user chip + profile dropdown ── -->
+  <div class="dc-user-section">
+
+    <!-- Username pill -->
+    <div class="dc-username-chip">
+      <i class="fa fa-user-circle"></i>
+      <span class="dc-username-text">{{ userName || 'User' }}</span>
+    </div>
+
+    <!-- Profile dropdown -->
+    <div class="dc-dropdown-host dc-profile-host">
+      <button class="dc-avatar-btn" type="button" title="Account">
+        <!-- Real photo when available -->
+        <img
+          *ngIf="profilePhotoUrl && profilePhotoUrl !== '/assets/defaultPic.jpg'"
+          [src]="profilePhotoUrl"
+          alt="Profile"
+          class="dc-avatar-img"
+        />
+        <!-- Logo avatar when no photo -->
+        <div
+          *ngIf="!profilePhotoUrl || profilePhotoUrl === '/assets/defaultPic.jpg'"
+          class="dc-avatar-logo"
+        >
+          <i class="fa fa-heartbeat"></i>
+        </div>
+      </button>
+
+      <div class="dc-dropdown dc-profile-dropdown">
+        <!-- Profile header -->
+        <div class="dc-profile-header">
+          <div class="dc-profile-avatar-wrap">
+            <img
+              *ngIf="profilePhotoUrl && profilePhotoUrl !== '/assets/defaultPic.jpg'"
+              [src]="profilePhotoUrl"
+              alt="Profile"
+              class="dc-profile-avatar-img"
+            />
+            <div
+              *ngIf="!profilePhotoUrl || profilePhotoUrl === '/assets/defaultPic.jpg'"
+              class="dc-profile-avatar-logo"
+            >
+              <i class="fa fa-heartbeat"></i>
+              <span class="dc-profile-brand-text">Diagno<span>care</span></span>
+            </div>
+          </div>
+          <div class="dc-profile-info">
+            <div class="dc-profile-name">{{ userName || 'User' }}</div>
+            <div class="dc-profile-role" *ngIf="roleLabel">
+              <i class="fa fa-user-tag"></i> {{ roleLabel }}
+            </div>
+            <div class="dc-profile-id" *ngIf="pathologyId">
+              <i class="fa fa-id-badge"></i> {{ pathologyId }}
+            </div>
+          </div>
+        </div>
+
+        <div class="dc-dropdown-divider"></div>
+
+        <a *ngFor="let item of profileMenu"
+           class="dc-dropdown-item"
+           href="#"
+           (click)="onProfileMenuClick(item, $event)">
+          <i class="fas fa-{{ item.icon }}"></i> {{ item.label }}
+        </a>
+
+        <div class="dc-dropdown-divider"></div>
+
+        <a class="dc-dropdown-item dc-logout-item" href="#" (click)="logout($event)">
+          <i class="fa fa-sign-out-alt"></i> Logout
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mobile toggler -->
+  <button class="dc-hamburger" type="button" (click)="toggleMobileNav()" [class.dc-hamburger-open]="mobileNavOpen">
+    <span></span><span></span><span></span>
+  </button>
+
+</header>
+
+<!-- Mobile nav drawer -->
+<div class="dc-mobile-nav" [class.dc-mobile-nav-open]="mobileNavOpen">
+  <!-- Home -->
+  <a *ngIf="access.home" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'pathology'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-home"></i> Home
+  </a>
+
+  <!-- Patients link (Collection Boy) -->
+  <a *ngIf="access.patientsLink" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'patients'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-users"></i> Patients
+  </a>
+
+  <!-- Patient Reports link (Doctor) -->
+  <a *ngIf="access.patientTestsLink" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'patient-tests'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-flask"></i> Patient Reports
+  </a>
+
+  <!-- My Visits (mobile) -->
+  <a *ngIf="access.myVisits" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'my-visits'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-route"></i> My Visits
+  </a>
+
+  <!-- Licence-expired notice in mobile drawer -->
+  <div class="dc-mobile-expired-notice" *ngIf="isLicenceExpired">
+    <i class="fa fa-lock"></i>
+    Licence expired — modules disabled
+  </div>
+
+  <div *ngIf="access.labOps" class="dc-mobile-group" [class.dc-mobile-group-disabled]="isLicenceExpired">
+    <div class="dc-mobile-group-label">
+      Lab Operations
+      <i class="fa fa-lock dc-expired-icon-sm" *ngIf="isLicenceExpired"></i>
+    </div>
+    <ng-container *ngIf="!isLicenceExpired">
+      <a *ngFor="let item of labOperationMenu" class="dc-mobile-item dc-mobile-sub"
+         (click)="redirectionToModule(item); mobileNavOpen=false">
+        <i class="fa {{ item.icon }}"></i> {{ item.label }}
+      </a>
+    </ng-container>
+  </div>
+
+  <div *ngIf="access.summaryReports" class="dc-mobile-group" [class.dc-mobile-group-disabled]="isLicenceExpired">
+    <div class="dc-mobile-group-label">
+      Reports
+      <i class="fa fa-lock dc-expired-icon-sm" *ngIf="isLicenceExpired"></i>
+    </div>
+    <ng-container *ngIf="!isLicenceExpired">
+      <a *ngFor="let item of summaryReportMenu" class="dc-mobile-item dc-mobile-sub"
+         (click)="redirectionToSummaryReport(item); mobileNavOpen=false">
+        {{ item.label }}
+      </a>
+    </ng-container>
+  </div>
+
+  <div *ngIf="access.labSetup" class="dc-mobile-group" [class.dc-mobile-group-disabled]="isLicenceExpired">
+    <div class="dc-mobile-group-label">
+      Lab Setup
+      <i class="fa fa-lock dc-expired-icon-sm" *ngIf="isLicenceExpired"></i>
+    </div>
+    <ng-container *ngIf="!isLicenceExpired">
+      <a *ngFor="let item of labSetupMenu" class="dc-mobile-item dc-mobile-sub"
+         (click)="redirectionToModule(item); mobileNavOpen=false">
+        {{ item.label }}
+      </a>
+    </ng-container>
+  </div>
+
+  <div class="dc-mobile-group" *ngIf="access.adminPanel" [class.dc-mobile-group-disabled]="isLicenceExpired">
+    <div class="dc-mobile-group-label">
+      Admin Panel
+      <i class="fa fa-lock dc-expired-icon-sm" *ngIf="isLicenceExpired"></i>
+    </div>
+    <ng-container *ngIf="!isLicenceExpired">
+      <ng-container *ngFor="let item of adminOptions">
+        <a *ngIf="!item.superAdminOnly || isSuperAdmin"
+           class="dc-mobile-item dc-mobile-sub"
+           (click)="redirectionToModule(item); mobileNavOpen=false">
+          <i class="fa {{ item.icon }}"></i> {{ item.label }}
+        </a>
+      </ng-container>
+    </ng-container>
+  </div>
+
+  <div class="dc-mobile-divider"></div>
+  <a *ngFor="let item of profileMenu" class="dc-mobile-item"
+     href="#" (click)="onProfileMenuClick(item, $event); mobileNavOpen=false">
+    <i class="fas fa-{{ item.icon }}"></i> {{ item.label }}
+  </a>
+  <a class="dc-mobile-item dc-logout-item" href="#" (click)="logout($event)">
+    <i class="fas fa-sign-out-alt"></i> Logout
+  </a>
+</div>
+
+<app-confirm-modal></app-confirm-modal>

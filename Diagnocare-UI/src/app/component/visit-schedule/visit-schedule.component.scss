@@ -1,0 +1,537 @@
+// ── Layout ───────────────────────────────────────────────────────────────────
+.vs-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+// ── Calendar panel ────────────────────────────────────────────────────────────
+.vs-calendar-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(30,91,168,.08);
+  padding: 1.25rem;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.cal-nav-btn {
+  background: none;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  &:hover { background: #f1f5f9; }
+}
+.cal-month-label {
+  font-size: .97rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+// ── Calendar table (replaces CSS grid — immune to parent grid interference) ───
+.cal-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.cal-dow {
+  text-align: center;
+  font-size: .69rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  padding: 4px 0 6px;
+}
+
+.cal-cell {
+  text-align: center;
+  padding: 3px;
+  cursor: pointer;
+  vertical-align: top;
+
+  &:hover { background: #f1f5f9; border-radius: 6px; }
+
+  &.other-month {
+    opacity: .3;
+    cursor: default;
+    &:hover { background: none; }
+  }
+
+  &.today .cal-day-num {
+    background: #0891b2;
+    color: #fff;
+    border-radius: 50%;
+  }
+
+  &.selected {
+    background: #e0f2fe;
+    border-radius: 6px;
+    outline: 2px solid #0891b2;
+    outline-offset: -1px;
+  }
+}
+
+.cal-day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #1e293b;
+  border-radius: 50%;
+}
+
+.cal-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  background: #fbbf24;
+  color: #78350f;
+  border-radius: 10px;
+  padding: 1px 5px;
+  min-width: 18px;
+  text-align: center;
+  margin-left: 1em;
+
+  &--all-done {
+    background: #d1fae5;
+    color: #065f46;
+  }
+}
+
+.cal-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: .75rem;
+  font-size: .72rem;
+  color: #64748b;
+  justify-content: center;
+}
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  &--pending  { background: #fbbf24; }
+  &--done     { background: #6ee7b7; }
+  &--today    { background: #0891b2; }
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────────
+.vs-detail-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(30,91,168,.08);
+  padding: 1.25rem;
+  min-height: 400px;
+
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  color: #94a3b8;
+  i { font-size: 3rem; margin-bottom: .75rem; }
+  p { font-size: .9rem; }
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.detail-title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  i { color: #0891b2; }
+}
+
+// ── Assignment form box ───────────────────────────────────────────────────────
+.assign-form-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+.form-box-title {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #0891b2;
+  margin: 0 0 .75rem;
+}
+
+// ── Member type filter chips ──────────────────────────────────────────────────
+.member-type-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-bottom: .45rem;
+}
+
+.type-chip {
+  padding: .22rem .7rem;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover {
+    border-color: #0891b2;
+    color: #0891b2;
+    background: #e0f2fe;
+  }
+
+  &.active {
+    border-color: #0891b2;
+    background: #0891b2;
+    color: #fff;
+  }
+}
+
+// ── Contact autocomplete ──────────────────────────────────────────────────────
+.contact-autocomplete-wrap {
+  position: relative;
+}
+
+.contact-suggestions {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, .12);
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.contact-suggestion-item {
+  padding: .55rem .85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .12s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #e0f2fe; }
+
+  .suggestion-name {
+    font-size: .88rem;
+    font-weight: 600;
+    color: #1e293b;
+    flex: 1;
+  }
+
+  .suggestion-meta {
+    font-size: .75rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    i { font-size: .7rem; }
+  }
+}
+
+.new-contact-hint {
+  display: block;
+  margin-top: .3rem;
+  font-size: .78rem;
+  color: #0891b2;
+  i { margin-right: 4px; }
+  strong { font-weight: 700; }
+}
+
+// ── Contact type badge in visit card ─────────────────────────────────────────
+.vc-type-badge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-left: .4rem;
+  vertical-align: middle;
+}
+
+// ── Status filter chips ───────────────────────────────────────────────────────
+.vc-status-filter {
+  display: flex;
+  gap: .4rem;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+}
+
+.vc-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .28rem .7rem;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover { border-color: #0891b2; color: #0891b2; }
+
+  &.active {
+    background: #0891b2; border-color: #0891b2; color: #fff;
+    .vc-filter-count { background: rgba(255,255,255,.25); color: #fff; }
+  }
+
+  &--pending.active { background: #f59e0b; border-color: #f59e0b; }
+  &--done.active    { background: #059669; border-color: #059669; }
+}
+
+.vc-filter-count {
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: .7rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+
+// ── Edit / info button ────────────────────────────────────────────────────────
+.btn-outline {
+  background: #fff;
+  color: #0891b2;
+  border: 1.5px solid #0891b2;
+  &:hover { background: #e0f2fe; }
+}
+
+.btn-info {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1.5px solid #ddd6fe;
+  &:hover { background: #ddd6fe; }
+}
+
+// ── Visit card grid — 2 per row ───────────────────────────────────────────────
+.visit-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
+}
+
+// ── Visit card ────────────────────────────────────────────────────────────────
+.no-visits {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem 0;
+  i { font-size: 2.5rem; margin-bottom: .5rem; }
+  p { margin-bottom: .75rem; }
+}
+
+.visit-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: .7rem .85rem;
+  transition: box-shadow .15s;
+  &:hover { box-shadow: 0 2px 10px rgba(30,91,168,.09); }
+}
+.vc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .35rem;
+}
+.vc-time {
+  font-size: .82rem;
+  font-weight: 700;
+  color: #0891b2;
+  i { margin-right: 4px; }
+}
+.vc-status {
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  white-space: nowrap;
+
+  &--done      { background: #d1fae5; color: #065f46; }
+  &--cancelled { background: #fee2e2; color: #991b1b; }
+}
+.vc-contact { margin-bottom: .3rem; }
+.vc-name {
+  font-weight: 700;
+  font-size: .82rem;
+  color: #1e293b;
+  margin-bottom: 2px;
+  // prevent long names from blowing card width
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vc-meta, .vc-member, .vc-purpose, .vc-notes {
+  font-size: .74rem;
+  color: #64748b;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  i { width: 13px; margin-right: 3px; }
+}
+.vc-member { font-size: .76rem; color: #374151; margin-bottom: .3rem; }
+.vc-purpose { font-weight: 500; }
+
+// ── Completion evidence in visit card ────────────────────────────────────────
+.vc-evidence {
+  margin-top: .4rem;
+  padding-top: .4rem;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.vc-evidence-row {
+  font-size: .73rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  i { color: #0891b2; font-size: .7rem; }
+  a { color: #0891b2; text-decoration: none; &:hover { text-decoration: underline; } }
+}
+
+.vc-evidence-photo {
+  margin-top: .35rem;
+  img {
+    max-width: 100%;
+    max-height: 120px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.vc-actions {
+  display: flex;
+  gap: .35rem;
+  margin-top: .45rem;
+  flex-wrap: wrap;
+}
+
+.btn-xs {
+  padding: .22rem .55rem;
+  font-size: .72rem;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+
+// Wrapper padding (layout sits directly inside page-container)
+.vs-layout {
+  padding: 1.25rem 1.25rem 2rem;
+}
+
+/* iPad / tablet → stack panels ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .vs-layout {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .vs-calendar-panel {
+    // Calendar stays full-width; constrain so it doesn't stretch too wide
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .vs-detail-panel {
+    min-height: 320px;
+  }
+}
+
+/* Mobile (≤ 600px) ─────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .vs-layout { padding: .75rem .75rem 2rem; }
+
+  // Calendar cells get slightly smaller touch targets
+  .cal-cell { padding: 2px; }
+  .cal-day-num { width: 24px; height: 24px; font-size: .75rem; }
+  .cal-dow  { font-size: .62rem; padding-bottom: 4px; }
+  .cal-badge { font-size: .6rem; padding: 1px 4px; }
+
+  // Visit cards: 1 per row on phones
+  .visit-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  // Form row (date + time) stacks
+  .assign-form-box {
+    padding: .75rem;
+  }
+
+  // Detail header: wrap on small screens
+  .detail-header {
+    flex-wrap: wrap;
+    gap: .5rem;
+
+    > button { width: 100%; justify-content: center; }
+  }
+
+  // Status filter chips scroll horizontally
+  .vc-status-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: .25rem;
+  }
+
+  // Visit card action buttons: wrap to avoid overflow
+  .vc-actions { flex-wrap: wrap; }
+}
+
+/* Small mobile (≤ 400px) ─────────────────────────────────────────────── */
+@media (max-width: 400px) {
+  .cal-day-num { width: 20px; height: 20px; font-size: .7rem; }
+  .cal-month-label { font-size: .88rem; }
+}
+
+/* Large monitor / Mac (≥ 1440px) ──────────────────────────────────────── */
+@media (min-width: 1440px) {
+  .vs-layout {
+    grid-template-columns: 380px 1fr;
+    padding: 1.5rem 2rem 2.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}

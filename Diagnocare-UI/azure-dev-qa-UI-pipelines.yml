@@ -1,0 +1,79 @@
+# ============================================================
+#  azure-UI-pipelines.yml  –  Diagnocare UI
+#
+#  ✏️  EDIT ONLY THE SECTION BELOW  ✏️
+#  Everything else is handled by the shared template:
+#    templates/build-deploy-stage.yml
+#
+#  Stage flow (automatic unless marked ← manual):
+#    Build_DEV → Deploy_DEV
+#              → Build_QA   ← manual  → Deploy_QA
+#
+#  Manual-gate setup (one-time, in Azure DevOps portal):
+#    Pipelines → Environments → open each env below →
+#    Approvals and Checks → + Approval
+#      • Build-QA
+# ============================================================
+
+trigger:
+  branches:
+    include:
+      - master_UI      # ← change / add branches here
+  paths:
+    exclude:
+      - "*.md"
+      - "docs/**"
+
+pool:
+  vmImage: ubuntu-latest
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║           PROJECT-SPECIFIC VARIABLES  (edit me)         ║
+# ╚══════════════════════════════════════════════════════════╝
+variables:
+
+  # ── Node / Angular ────────────────────────────────────────
+  nodeVersion:  '22.x'
+  workingDir:   '.'            # folder that holds package.json
+  artifactPath: './dist/diagnocareUI-app'  # relative to workingDir; this is what gets copied to IIS
+  baseHref:     '/diagnocareUi/'
+
+  # ── SSH / IIS ─────────────────────────────────────────────
+  sshEndpoint:      'Diagnocare-SSH'   # Azure DevOps SSH service connection
+
+  # ── Deploy target paths (Windows IIS roots) ───────────────
+  devTargetPath:  'C:\inetpub\wwwroot\DiagnocareDevUI'
+  qaTargetPath:   'C:\inetpub\wwwroot\DiagnocareQAUI'
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║                     STAGE CHAIN                         ║
+# ║  Each template call = 1 Build stage + 1 Deploy stage    ║
+# ╚══════════════════════════════════════════════════════════╝
+stages:
+
+# ── 1 & 2 · DEV  (fully automatic) ───────────────────────────
+  - template: .azure-pipelines\templates\build-deploy-stage.yml
+    parameters:
+      envLabel:        DEV
+      buildConfiguration:     development
+      artifactName:    drop-dev
+      targetPath:      $(devTargetPath)
+      requireApproval: false
+      stageIndexBuild: 1
+      stageIndexDeploy: 2
+      # ↑ inherits nodeVersion / workingDir / artifactPath /
+      #   sshEndpoint / deploySubfolder from variables above
+
+# ── 3 & 4 · QA  (manual gate) ────────────────────────────────
+  - template: .azure-pipelines\templates\build-deploy-stage.yml
+    parameters:
+      envLabel:        QA
+      buildConfiguration:     qa
+      artifactName:    drop-qa
+      targetPath:      $(qaTargetPath)
+      dependsOnStage:  Deploy_DEV
+      requireApproval: true
+      environmentName: Build-QA        # Azure DevOps Environment name
+      stageIndexBuild: 3
+      stageIndexDeploy: 4
+

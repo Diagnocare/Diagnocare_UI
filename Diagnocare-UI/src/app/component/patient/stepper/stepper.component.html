@@ -1,0 +1,38 @@
+<div class="stepper-container pathology-theme">
+  <div class="stepper">
+    <ng-container *ngFor="let step of steps; let i = index">
+      <div class="stepper-step">
+        <!-- Circle -->
+        <div class="stepper-circle"
+          [ngClass]="{
+            'active': currentStep >= step.id,
+            'completed': currentStep > step.id
+          }">
+          <ng-container *ngIf="currentStep > step.id; else notCompleted">
+            <i class="fa fa-check"></i>
+          </ng-container>
+          <ng-template #notCompleted>
+            {{ step.id }}
+          </ng-template>
+        </div>
+
+        <!-- Title + Description -->
+        <div class="stepper-content">
+          <p class="stepper-title"
+            [ngClass]="{ 'active': currentStep >= step.id }">
+            {{ step.title }}
+          </p>
+          <p *ngIf="step.description" class="stepper-description">
+            {{ step.description }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Line between steps -->
+      <div *ngIf="i !== steps.length - 1"
+        class="stepper-line"
+        [ngClass]="{ 'active': currentStep > step.id }">
+      </div>
+    </ng-container>
+  </div>
+</div>

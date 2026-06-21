@@ -1,0 +1,141 @@
+/* ── Card Header ──────────────────────────────────────────────────────────── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+
+  h3 {
+    margin: 0;
+    flex: 1 1 auto;
+    font-size: 1.1rem;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    .btn {
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+  }
+}
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  /* Column widths */
+  .col-name   { width: 35%; min-width: 10rem; }
+  .col-unit   { width: 20%; min-width: 9rem; }
+  .col-range  { width: 15%; min-width: 6.5rem; }
+  .col-action { width: 8%;  min-width: 3.5rem; text-align: center; }
+
+  thead th {
+    white-space: nowrap;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  tbody td {
+    vertical-align: middle;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .form-control,
+  .form-select {
+    margin: 0;
+    min-width: 0;       /* prevent flex/grid overflow */
+    font-size: 0.9rem;
+  }
+}
+
+/* ── Empty row ────────────────────────────────────────────────────────────── */
+.empty-row {
+  text-align: center;
+  padding: 2rem !important;
+  color: #9ca3af;
+  font-size: 0.95rem;
+
+  i { margin-right: 0.4rem; }
+}
+
+/* ── Form action buttons (footer) ─────────────────────────────────────────── */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+
+  .btn {
+    min-width: 8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+}
+
+/* ── Responsive: tablet & below (≤ 768px) ────────────────────────────────── */
+@media (max-width: 48rem) {
+  .data-table {
+    min-width: 36rem;   /* scroll rather than squash */
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .header-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+}
+
+/* ── Responsive: phone (≤ 480px) ─────────────────────────────────────────── */
+@media (max-width: 30rem) {
+  .card-header {
+    .header-actions {
+      flex-wrap: wrap;
+      justify-content: stretch;
+
+      .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+    }
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Hide text labels on very small screens — keep icons only */
+  .btn-label {
+    display: none;
+  }
+}

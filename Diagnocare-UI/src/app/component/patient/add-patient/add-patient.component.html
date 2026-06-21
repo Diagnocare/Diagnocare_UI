@@ -1,0 +1,776 @@
+<div class="page-container pathology-theme">
+  <app-loading-spinner [isLoading]="isLoading" message="Registering patient..."></app-loading-spinner>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>New Patient Registration</h1>
+      <p class="subtitle">Complete all steps to register a new patient</p>
+    </div>
+  </div>
+
+  <div class="content-container">
+
+    <!-- Stepper -->
+    <app-stepper [steps]="steps" [currentStep]="currentStep"></app-stepper>
+
+    <div class="registration-card">
+      <form [formGroup]="patientForm" (ngSubmit)="registerPatient()">
+
+        <!-- ═══════════════════════════════════════════════════════ STEP 1 -->
+        <div *ngIf="currentStep === 1">
+          <div class="step-header step-header--1">
+            <div class="step-badge">1</div>
+            <div>
+              <h3>Basic Info</h3>
+              <p>System-generated registration identifiers</p>
+            </div>
+          </div>
+
+          <div class="step-body">
+            <div class="info-banner">
+              <i class="fa fa-info-circle"></i>
+              These fields are automatically populated by the system.
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Registration Date</label>
+                <app-date-picker formControlName="patient_Reg_Date" inputClass="form-control" [max]="todayIso"></app-date-picker>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Serial Number</label>
+                <input class="form-control" formControlName="serial_Number" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Patient ID</label>
+                <input class="form-control" formControlName="patient_Id" readonly />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ STEP 2 -->
+        <div *ngIf="currentStep === 2">
+          <div class="step-header step-header--2">
+            <div class="step-badge">2</div>
+            <div>
+              <h3>Personal Details</h3>
+              <p>Patient demographics and contact information</p>
+            </div>
+          </div>
+
+          <div class="step-body">
+            <!-- Name -->
+            <div class="form-section-label">Identity</div>
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label class="form-label required">Patient Name</label>
+                <div class="input-combo" [class.is-invalid]="isFieldInvalid('patient_Name')">
+                  <select formControlName="patient_Salutation" class="combo-prefix" [attr.tabindex]="getTabIndex('patient_Salutation')">
+                    <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
+                  </select>
+                      <input class="combo-input" formControlName="patient_Name" placeholder="Full Name"
+                        [class.is-invalid]="isFieldInvalid('patient_Name')" [attr.tabindex]="getTabIndex('patient_Name')" />
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Name')">
+                  {{ getFieldError('patient_Name') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- DOB / Age -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">Date of Birth</label>
+                <div class="dob-input-wrap" [class.is-invalid]="isFieldInvalid('patient_DOB')">
+                  <!-- Masked text entry (dd/mm/yyyy) -->
+                  <input
+                    type="text"
+                    class="form-control dob-text"
+                    formControlName="patient_DOB"
+                    placeholder="dd/mm/yyyy"
+                    maxlength="10"
+                    (input)="onDateInput($event)"
+                    (keyup)="onDateKeyUp($event)"
+                    (blur)="calculateAge()"
+                    autocomplete="off"
+                    [class.is-invalid]="isFieldInvalid('patient_DOB')"
+                    [attr.tabindex]="getTabIndex('patient_DOB')"
+                  />
+                  <!-- Calendar picker (no formControlName — bridges via dateChange event) -->
+                  <app-date-picker
+                    [max]="todayIso"
+                    (dateChange)="onDobPickerChange($event)"
+                    placeholder="Pick from calendar"
+                    class="dob-cal-picker"
+                    tabindex="-1">
+                  </app-date-picker>
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('patient_DOB')">
+                  {{ getFieldError('patient_DOB') }}
+                </span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Age</label>
+                  <input type="text" class="form-control" formControlName="patient_Age"
+                    placeholder="Auto-calculated" readonly [attr.tabindex]="getTabIndex('patient_Age')" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Age Group</label>
+                <select formControlName="patient_Age_Group" class="form-select"
+                  [class.is-invalid]="isFieldInvalid('patient_Age_Group')" [attr.tabindex]="getTabIndex('patient_Age_Group')">
+                  <option value="">-- Select --</option>
+                  <option *ngFor="let entry of ageRange" [value]="entry">{{ entry }}</option>
+                </select>
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Age_Group')">
+                  {{ getFieldError('patient_Age_Group') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Gender / Marital -->
+            <div class="form-section-label">Demographics</div>
+            <div class="form-row">
+              <div class="form-group">
+
+                <label class="form-label required">Gender</label>
+                <div class="radio-pill-group" [class.is-invalid]="isFieldInvalid('patient_Gender')">
+                  <label class="radio-pill" *ngFor="let entry of gender; let i = index">
+                    <input type="radio" formControlName="patient_Gender" [value]="entry" [attr.tabindex]="getTabIndex('patient_Gender') + i"
+                      (focus)="onGenderRadioFocus()" (blur)="onGenderRadioBlur()" />
+                    <span>{{ entry }}</span>
+                  </label>
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Gender')">
+                  {{ getFieldError('patient_Gender') }}
+                </span>
+              </div>
+
+              <div class="form-group">
+
+                <label class="form-label required">Marital Status</label>
+                <div class="radio-pill-group" [class.is-invalid]="isFieldInvalid('patient_Marital_Status')">
+                  <label class="radio-pill" *ngFor="let entry of maritalStatus; let i = index">
+                    <input type="radio" formControlName="patient_Marital_Status" [value]="entry" [attr.tabindex]="getTabIndex('patient_Marital_Status') + i"
+                      (focus)="onMaritalRadioFocus()" (blur)="onMaritalRadioBlur()" />
+                    <span>{{ entry }}</span>
+                  </label>
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Marital_Status')">
+                  {{ getFieldError('patient_Marital_Status') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Relation / Relative -->
+            <div class="form-section-label">Guardian / Relative</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">Relation</label>
+                <select formControlName="relation" class="form-select"
+                  [class.is-invalid]="isFieldInvalid('relation')" [attr.tabindex]="getTabIndex('relation')">
+                  <option value="">-- Select --</option>
+                  <option *ngFor="let r of relations" [value]="r">{{ r }}</option>
+                </select>
+                <span class="field-error" *ngIf="isFieldInvalid('relation')">
+                  {{ getFieldError('relation') }}
+                </span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Relative Name</label>
+                  <input type="text" class="form-control" formControlName="relative_Name"
+                    placeholder="Relative's full name"
+                    [class.is-invalid]="isFieldInvalid('relative_Name')" [attr.tabindex]="getTabIndex('relative_Name')" />
+                <span class="field-error" *ngIf="isFieldInvalid('relative_Name')">
+                  {{ getFieldError('relative_Name') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="form-section-label">Contact</div>
+            <div class="form-row">
+
+              <div class="form-group">
+                <label class="form-label required">Mobile Number</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
+                    <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
+                  </select>
+                  <input type="number" class="form-control" formControlName="patient_Contact"
+                    placeholder="10-digit mobile number"
+                    [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Contact')">
+                  {{ getFieldError('patient_Contact') }}
+                </span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Email</label>
+                  <input type="text" class="form-control" formControlName="patient_Email"
+                    placeholder="patient@example.com"
+                    [class.is-invalid]="isFieldInvalid('patient_Email')" [attr.tabindex]="getTabIndex('patient_Email')" />
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Email')">
+                  {{ getFieldError('patient_Email') }}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label class="form-label required">Address</label>
+                  <input type="text" class="form-control" formControlName="patient_Address"
+                    placeholder="Full address"
+                    [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
+                <span class="field-error" *ngIf="isFieldInvalid('patient_Address')">
+                  {{ getFieldError('patient_Address') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ STEP 3 -->
+        <div *ngIf="currentStep === 3">
+          <div class="step-header step-header--3">
+            <div class="step-badge">3</div>
+            <div>
+              <h3>Test &amp; Lab</h3>
+              <p>Select tests and specify lab preferences</p>
+            </div>
+          </div>
+          <div class="step-body" *ngIf="showOtherTestDetails">
+            <div class="form-section-label">Test Selection</div>
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label class="form-label required">Test Name(s)</label>
+                <div class="test-input-wrap">
+                      <input type="text" class="form-control" formControlName="test_Name"
+                        placeholder="Click to browse and select tests..."
+                        (click)="openTestForm($event)" readonly
+                        [class.is-invalid]="isFieldInvalid('test_Name')" [attr.tabindex]="getTabIndex('test_Name')" />
+                  <i class="fa fa-search test-browse-icon"></i>
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('test_Name')">
+                  {{ getFieldError('test_Name') }}
+                </span>
+              </div>
+
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Urgent Report</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="urgentReport" [attr.tabindex]="getTabIndex('urgent_Report')" />
+                  <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">Test Amount (₹)</label>
+                  <input type="text" class="form-control" formControlName="test_Amount"
+                    placeholder="Auto-filled from test selection" readonly
+                    [class.is-invalid]="isFieldInvalid('test_Amount')" [attr.tabindex]="getTabIndex('test_Amount')" />
+                <span class="field-error" *ngIf="isFieldInvalid('test_Amount')">
+                  {{ getFieldError('test_Amount') }}
+                </span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Referred By</label>
+                <div class="input-combo" [class.is-invalid]="isFieldInvalid('referred_By')">
+                    <select formControlName="referred_By_Type" class="combo-prefix combo-prefix--md"
+                      (change)="onReferredByTypeChange()" [attr.tabindex]="getTabIndex('referred_By_Type')">
+                    <option *ngFor="let entry of referredByTypeOptions" [value]="entry">{{ entry }}</option>
+                  </select>
+                  <div class="referred-by-input-wrap combo-input-wrap">
+                    <input
+                      type="text"
+                      class="combo-input"
+                      formControlName="referred_By"
+                      autocomplete="off"
+                      placeholder="Name / source"
+                      appAutocompleteInput
+                      (input)="onReferredByInput($event)"
+                      (focus)="onReferredByFocus()"
+                      (blur)="onReferredByBlur()"
+                      [attr.tabindex]="getTabIndex('referred_By')" />
+                    <ul class="referred-by-suggestions" *ngIf="showReferredBySuggestions">
+                      <li *ngFor="let item of filteredReferredByOptions" (mousedown)="selectReferredBy(item)">
+                        {{ item }}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <span class="field-error" *ngIf="isFieldInvalid('referred_By')">
+                  {{ getFieldError('referred_By') }}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-section-label">Sample Collection</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Sampling Done At</label>
+                <select formControlName="sampling_Done" class="form-select" [attr.tabindex]="getTabIndex('sampling_Done')">
+                  <option *ngFor="let entry of samplingDoneAt" [value]="entry">{{ entry }}</option>
+                </select>
+              </div>
+
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Collected Outside</label>
+                <div class="toggle-wrap">
+                      <input type="checkbox" class="form-check-input" id="collectedOutside"
+                        formControlName="collected_Outside"
+                        (change)="onCollectedOutsideClick($event)" [attr.tabindex]="getTabIndex('collected_Outside')" />
+                  <label for="collectedOutside" class="toggle-label">Outside Collection</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label class="form-label">Remark</label>
+                <textarea class="form-control" formControlName="remark"
+                          rows="2" placeholder="Optional notes or remarks..." [attr.tabindex]="getTabIndex('remark')"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ STEP 4 -->
+        <div *ngIf="currentStep === 4">
+          <div class="step-header step-header--4">
+            <div class="step-badge">4</div>
+            <div>
+              <h3>Payment</h3>
+              <p>Review amounts and complete billing</p>
+            </div>
+          </div>
+
+          <div class="step-body">
+            <!-- Amount Summary -->
+            <div class="amount-summary">
+              <div class="amount-card amount-card--test">
+                <span class="amount-label">Test Amount</span>
+                <span class="amount-value">₹{{ patientForm.get('test_Amount')?.value || 0 }}</span>
+              </div>
+              <div class="amount-card amount-card--discount">
+                <span class="amount-label">Discount</span>
+                <span class="amount-value">{{ patientForm.get('discount')?.value || 0 }}%</span>
+              </div>
+              <div class="amount-card amount-card--net">
+                <span class="amount-label">Net Amount</span>
+                <span class="amount-value">₹{{ patientForm.get('net_Amount')?.value || 0 }}</span>
+              </div>
+            </div>
+
+            <div class="form-section-label">Amount Breakdown</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Test Amount (₹)</label>
+                <input type="text" class="form-control" formControlName="test_Amount" readonly [attr.tabindex]="getTabIndex('test_Amount')" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Discount (%)</label>
+                  <input type="text" class="form-control" formControlName="discount"
+                    (change)="calculateNetAmount()" placeholder="0" [attr.tabindex]="getTabIndex('discount')" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">Net Amount (₹)</label>
+                  <input type="text" class="form-control" formControlName="net_Amount"
+                    (change)="calculateDiscount()"
+                    [class.is-invalid]="isFieldInvalid('net_Amount')" [attr.tabindex]="getTabIndex('net_Amount')" />
+                <span class="field-error" *ngIf="isFieldInvalid('net_Amount')">
+                  {{ getFieldError('net_Amount') }}
+                </span>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Payment Type</label>
+                <div class="radio-pill-group">
+                  <label class="radio-pill" *ngFor="let entry of paymentType; let i = index">
+                    <input type="radio" formControlName="payment_Type" [value]="entry"
+                           (change)="onPaymentTypeChange(entry)" [attr.tabindex]="i === 0 ? getTabIndex('payment_Type') : -1" />
+                    <span>{{ entry }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row" *ngIf="patientForm.get('payment_Type')?.value !== 'No Payment'">
+              <div class="form-group">
+                <label class="form-label required">Payment Mode</label>
+                <select formControlName="payment_Mode" class="form-select"
+                  [class.is-invalid]="isFieldInvalid('payment_Mode')" [attr.tabindex]="getTabIndex('payment_Mode')"
+                  (change)="onPaymentModeChange()">
+                  <option *ngFor="let entry of paymentMode" [value]="entry">{{ entry }}</option>
+                </select>
+                <span class="field-error" *ngIf="isFieldInvalid('payment_Mode')">
+                  {{ getFieldError('payment_Mode') }}
+                </span>
+              </div>
+
+              <!-- Amount Paid: locked after partial payment is confirmed, editable (auto) for Full -->
+              <div class="form-group">
+                <label class="form-label required">
+                  Amount Paid (₹)
+                  <span *ngIf="paymentConfirmed" class="payment-lock-icon" title="Confirmed — locked">🔒</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [class.payment-locked-input]="paymentConfirmed"
+                  formControlName="amount_Paid"
+                  [class.is-invalid]="isFieldInvalid('amount_Paid')"
+                  readonly
+                  [attr.tabindex]="getTabIndex('amount_Paid')"
+                />
+                <span class="field-error" *ngIf="isFieldInvalid('amount_Paid')">
+                  {{ getFieldError('amount_Paid') }}
+                </span>
+              </div>
+
+              <!-- Amount Pending: always readonly, locked after confirmation -->
+              <div class="form-group">
+                <label class="form-label required">
+                  Amount Pending (₹)
+                  <span *ngIf="paymentConfirmed" class="payment-lock-icon" title="Confirmed — locked">🔒</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [class.payment-locked-input]="paymentConfirmed"
+                  formControlName="amount_Pending"
+                  [class.is-invalid]="isFieldInvalid('amount_Pending')"
+                  readonly
+                  [attr.tabindex]="getTabIndex('amount_Pending')"
+                />
+              </div>
+            </div>
+
+            <!-- TPA: confirmed banner (shown after user fills the modal) -->
+            <div *ngIf="isTpaMode && tpaDetails" class="payment-confirmed-banner tpa-confirmed-banner">
+              <div class="payment-confirmed-content">
+                <span class="payment-confirmed-icon">🏥</span>
+                <div class="payment-confirmed-text">
+                  <strong>TPA Details Confirmed</strong>
+                  <span>{{ tpaDetails.tpaName }} &nbsp;·&nbsp; Policy: {{ tpaDetails.tpaPolicyNumber }}</span>
+                </div>
+              </div>
+              <button type="button" class="btn-edit-payment" (click)="editTpaDetails()">
+                <i class="fa fa-pencil-alt"></i> Edit
+              </button>
+            </div>
+
+            <!-- TPA: reminder note before details are filled -->
+            <div *ngIf="isTpaMode && !tpaDetails" class="tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              TPA payment selected &mdash; please fill in TPA details to proceed.
+              <button type="button" class="tpa-open-btn" (click)="editTpaDetails()">
+                <i class="fa fa-plus-circle"></i> Enter TPA Details
+              </button>
+            </div>
+
+            <!-- No Payment Info Banner -->
+            <div *ngIf="patientForm.get('payment_Type')?.value === 'No Payment'" class="tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              <strong>No payment collected now.</strong> Full amount of
+              ₹{{ patientForm.get('net_Amount')?.value }} will be collected at report pickup.
+            </div>
+
+            <!-- Partial Payment Confirmed Banner -->
+            <div *ngIf="paymentConfirmed" class="payment-confirmed-banner">
+              <div class="payment-confirmed-content">
+                <span class="payment-confirmed-icon">✅</span>
+                <div class="payment-confirmed-text">
+                  <strong>Partial Payment Confirmed</strong>
+                  <span>
+                    ₹{{ patientForm.get('amount_Paid')?.value }} paid now &nbsp;·&nbsp;
+                    ₹{{ patientForm.get('amount_Pending')?.value }} pending
+                  </span>
+                </div>
+              </div>
+              <button type="button" class="btn-edit-payment" (click)="editPaymentDetails()">
+                <i class="fa fa-pencil-alt"></i> Edit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ STEP ERROR BANNER -->
+        <div class="step-errors" *ngIf="hasStepErrors">
+          <i class="fa fa-exclamation-circle"></i>
+          Please complete all highlighted required fields before continuing.
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ NAV ACTIONS -->
+        <div class="form-actions">
+          <div class="actions-left">
+            <button type="button" class="btn btn-back" (click)="handlePrevious()"
+                    [disabled]="currentStep === 1">
+              <i class="fa fa-arrow-left"></i> Previous
+            </button>
+          </div>
+
+          <div class="step-progress-hint" *ngIf="currentStep < 4">
+            <span class="hint-dot" *ngFor="let s of steps"
+                  [class.hint-dot--active]="s.id === currentStep"
+                  [class.hint-dot--done]="s.id < currentStep"></span>
+          </div>
+
+          <div class="actions-right">
+            <button type="button" class="btn btn-primary" (click)="handleNext()"
+                    *ngIf="currentStep < 4">
+              Next <i class="fa fa-arrow-right"></i>
+            </button>
+            <button type="submit" class="btn btn-success" *ngIf="currentStep === 4">
+              <i class="fa fa-check"></i> Register Patient
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div><!-- /registration-card -->
+  </div><!-- /content-container -->
+</div><!-- /page-container -->
+
+<!-- ════════════════════════════════════════ MODAL: Outside Collection -->
+<div class="modal fade" id="collectionModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fa fa-map-marker-alt"></i> Sample Collected Outside
+        </h5>
+        <button type="button" class="btn-close" (click)="modalCollectionClose()"></button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="patientForm">
+          <div class="form-group mb-3">
+            <label class="form-label">Area</label>
+            <select formControlName="area" class="form-select">
+              <option value="">-- Select Area --</option>
+              <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Collected By</label>
+            <select formControlName="collected_By" class="form-select">
+              <option value="">-- Select Collection Boy --</option>
+              <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+            </select>
+          </div>
+          <div class="modal-footer-actions">
+            <button class="btn btn-cancel" type="button" (click)="clearOutsideCollectionModal()">Cancel</button>
+            <button class="btn btn-primary" type="button" (click)="modalCollectionClose()">Confirm</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ MODAL: Partial Payment -->
+<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fa fa-wallet"></i> Partial Payment Details
+        </h5>
+        <button type="button" class="btn-close" (click)="clearPaymentModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="patientForm">
+
+          <!-- Net Amount — disabled: user cannot change it here -->
+          <div class="form-group mb-3">
+            <label class="form-label">Net Amount (₹)</label>
+            <div class="pm-locked-field">
+              <input type="text" class="form-control pm-disabled-input" formControlName="net_Amount"
+                     readonly tabindex="-1" />
+              <span class="pm-lock-badge">🔒 Fixed</span>
+            </div>
+          </div>
+
+          <!-- Amount Paid — live calculation on every keystroke -->
+          <div class="form-group mb-3">
+            <label class="form-label required">Amount Paid (₹)</label>
+            <input
+              type="number"
+              class="form-control"
+              [class.is-invalid]="!!amountPaidError"
+              formControlName="amount_Paid"
+              placeholder="Enter amount to pay now"
+              min="1"
+              (input)="onAmountPaidInput($event)"
+            />
+            <div class="invalid-feedback" *ngIf="amountPaidError">{{ amountPaidError }}</div>
+          </div>
+
+          <!-- Amount Pending — auto-calculated, read-only -->
+          <div class="form-group mb-3">
+            <label class="form-label">Amount Pending (₹)</label>
+            <input type="text" class="form-control bg-light" formControlName="amount_Pending"
+                   readonly placeholder="Auto-calculated" />
+            <small class="text-muted">Calculated automatically as Net − Paid</small>
+          </div>
+
+          <div class="modal-footer-actions">
+            <button class="btn btn-cancel" type="button" (click)="clearPaymentModal()">Cancel</button>
+            <button class="btn btn-primary" type="button" (click)="confirmPayment()">
+              <i class="fa fa-check"></i> Confirm
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ MODAL: Test Catalog -->
+<div class="modal fade" id="testCatalogModal" tabindex="-1" aria-labelledby="testCatalogLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="testCatalogLabel">🧬 Medical Test Catalog</h5>
+        <button type="button" class="btn-close" (click)="modalTestClose()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="search-section mb-3">
+          <input type="text" class="form-control" placeholder="Search groups, subgroups, or tests..." [(ngModel)]="query" />
+        </div>
+        <div class="row">
+          <!-- Groups -->
+          <div class="col-md-3">
+            <div class="card">
+              <div class="card-header"><span>Groups</span><small>Rs.</small></div>
+              <div class="card-body">
+                <ng-container *ngIf="filteredGroups.length > 0; else noGroups">
+                  <div *ngFor="let g of filteredGroups" (click)="selectGroup(g)"
+                       [class.active]="g.testGroupId === selectedGroupId" class="list-item">
+                    <div class="left">
+                      <div class="code">{{g.testGroupId}}</div>
+                      <div class="name">{{g.name}}</div>
+                    </div>
+                    <div class="right">{{g.price}}</div>
+                  </div>
+                </ng-container>
+                <ng-template #noGroups><div class="no-data"><p>No groups.</p></div></ng-template>
+              </div>
+            </div>
+          </div>
+          <!-- SubGroups -->
+          <div class="col-md-3">
+            <div class="card">
+              <div class="card-header"><span>SubGroups</span><small>Rs.</small></div>
+              <div class="card-body">
+                <ng-container *ngIf="filteredSubGroups.length > 0; else noSubGroups">
+                  <div *ngFor="let s of filteredSubGroups" (click)="selectSubGroup(s)"
+                       [class.active]="s.testGroupId === selectedSubGroupId" class="list-item">
+                    <div class="left">
+                      <div class="code">{{s.testGroupId}}</div>
+                      <div class="name">{{s.name}}</div>
+                    </div>
+                    <div class="right">{{s.price}}</div>
+                  </div>
+                </ng-container>
+                <ng-template #noSubGroups><div class="no-data"><p>No subgroups.</p></div></ng-template>
+              </div>
+            </div>
+          </div>
+          <!-- Tests -->
+          <div class="col-md-3">
+            <div class="card">
+              <div class="card-header"><span>Tests</span><small>Rs.</small></div>
+              <div class="card-body">
+                <ng-container *ngIf="filteredTests.length > 0; else noTests">
+                  <div *ngFor="let t of filteredTests" (click)="toggleTestSelection(t)"
+                       [class.active]="focusedTestId === t.testCode"
+                       [class.test-selected]="selectedTestIds.has(t.testCode)"
+                       class="list-item test-item">
+                    <div class="icon-wrap">
+                      <div class="icon" [class.selected]="selectedTestIds.has(t.testCode)">
+                        <!-- Checkmark — test is selected -->
+                        <svg *ngIf="selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="11" stroke="#16a34a" stroke-width="2" fill="#dcfce7"/>
+                          <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <!-- Empty circle — test is not selected -->
+                        <svg *ngIf="!selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="11" stroke="#cbd5e1" stroke-width="2" fill="#f8fafc"/>
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="left">
+                      <div class="code">{{t.testCode}}</div>
+                      <div class="name">{{t.testName}}</div>
+                    </div>
+                    <div class="right price">₹{{t.price}}</div>
+                  </div>
+                </ng-container>
+                <ng-template #noTests><div class="no-data"><p>No tests.</p></div></ng-template>
+              </div>
+            </div>
+          </div>
+          <!-- Selected Tests -->
+          <div class="col-md-3">
+            <div class="card">
+              <div class="card-header">
+                <span>Selected Tests</span>
+                <div class="total-top">
+                  <div class="total-label">Total</div>
+                  <div class="total-amount">₹{{ totalAmount }}</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <ng-container *ngIf="selectedTests.length > 0; else noSelection">
+                  <div *ngFor="let s of selectedTests; let i = index" class="selected-item">
+                    <div class="left">
+                      <div class="meta">#{{i+1}}</div>
+                      <div class="code">{{s.testCode}}</div>
+                      <div class="name">{{s.testName}}</div>
+                    </div>
+                    <div class="right">
+                      <div class="price">₹{{s.price}}</div>
+                      <button class="btn-action btn-delete" (click)="removeSelected(s.testCode)" title="Remove">
+                        <i class="fa fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="total-summary mt-3">
+                    <div class="summary-left">Total ({{selectedTests.length}} tests)</div>
+                    <div class="summary-right">₹{{ totalAmount }}</div>
+                  </div>
+                </ng-container>
+                <ng-template #noSelection><div class="no-data"><p>No tests selected.</p></div></ng-template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="modalTestClose()">Confirm Selection</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ TPA DETAILS MODAL -->
+<app-tpa-details-modal
+  [visible]="showTpaModal"
+  [initialValues]="tpaDetails"
+  (confirmed)="onTpaConfirmed($event)"
+  (cancelled)="onTpaCancelled()">
+</app-tpa-details-modal>

@@ -1,0 +1,80 @@
+# ============================================================
+#  azure-UI-pipelines.yml  –  Diagnocare UI
+#
+#  ✏️  EDIT ONLY THE SECTION BELOW  ✏️
+#  Everything else is handled by the shared template:
+#    templates/build-deploy-stage.yml
+#
+#  Stage flow (automatic unless marked ← manual):
+#
+#              → Build_UAT  ← manual  → Deploy_UAT
+#              → Build_PROD ← manual  → Deploy_PROD
+#
+#  Manual-gate setup (one-time, in Azure DevOps portal):
+#    Pipelines → Environments → open each env below →
+#    Approvals and Checks → + Approval
+#      • Build-UAT
+#      • Build-Production
+# ============================================================
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - "*.md"
+      - "docs/**"
+
+pool:
+  vmImage: ubuntu-latest
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║           PROJECT-SPECIFIC VARIABLES  (edit me)         ║
+# ╚══════════════════════════════════════════════════════════╝
+variables:
+
+  # ── Node / Angular ────────────────────────────────────────
+  nodeVersion:  '22.x'
+  workingDir:   '.'            # folder that holds package.json
+  artifactPath: './dist/diagnocareUi-app'  # relative to workingDir; this is what gets copied to IIS
+  baseHref:     '/diagnocareUi/'
+
+  # ── SSH / IIS ─────────────────────────────────────────────
+  sshEndpoint:      'Diagnocare-SSH'   # Azure DevOps SSH service connection
+
+  # ── Deploy target paths (Windows IIS roots) ───────────────
+  uatTargetPath:  'C:\inetpub\wwwroot\DiagnocareUATUI'
+  prodTargetPath: 'C:\inetpub\wwwroot\DiagnocareProdUI'
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║                     STAGE CHAIN                         ║
+# ║  Each template call = 1 Build stage + 1 Deploy stage    ║
+# ╚══════════════════════════════════════════════════════════╝
+stages:
+
+# ── 5 & 6 · UAT  (manual gate) ───────────────────────────────
+  - template: .azure-pipelines\templates\build-deploy-stage.yml
+    parameters:
+      envLabel:        UAT
+      buildConfiguration:     uat
+      artifactName:    drop-uat
+      targetPath:      $(uatTargetPath)
+      dependsOnStage:  Deploy_QA
+      requireApproval: true
+      environmentName: Build-UAT       # Azure DevOps Environment name
+      stageIndexBuild: 5
+      stageIndexDeploy: 6
+
+# ── 7 & 8 · PROD  (manual gate) ──────────────────────────────
+  - template: .azure-pipelines\templates\build-deploy-stage.yml
+    parameters:
+      envLabel:        PROD
+      buildConfiguration:     production
+      artifactName:    drop-prod
+      targetPath:      $(prodTargetPath)
+      dependsOnStage:  Deploy_UAT
+      requireApproval: true
+      environmentName: Build-Production  # Azure DevOps Environment name
+      stageIndexBuild: 7
+      stageIndexDeploy: 8

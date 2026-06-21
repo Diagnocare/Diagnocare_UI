@@ -1,0 +1,742 @@
+/* ══════════════════════════════════════════════════════════════════
+   Attendance Component  — high-contrast colour scheme
+   ══════════════════════════════════════════════════════════════════ */
+
+// ── Palette tokens (all in one place for easy tuning) ─────────────
+$clr-present-bg   : #16a34a;   // rich green
+$clr-present-bdr  : #166534;
+$clr-present-light: #dcfce7;
+$clr-present-dark : #14532d;
+
+$clr-absent-bg    : #dc2626;   // strong red
+$clr-absent-bdr   : #991b1b;
+$clr-absent-light : #fee2e2;
+$clr-absent-dark  : #7f1d1d;
+
+$clr-fh-bg        : #ea580c;   // vivid orange
+$clr-fh-bdr       : #9a3412;
+$clr-fh-light     : #ffedd5;
+$clr-fh-dark      : #7c2d12;
+
+$clr-sh-bg        : #2563eb;   // solid blue
+$clr-sh-bdr       : #1e40af;
+$clr-sh-light     : #dbeafe;
+$clr-sh-dark      : #1e3a8a;
+
+$clr-holiday-bg   : #d97706;   // amber
+$clr-holiday-bdr  : #92400e;
+$clr-holiday-light: #fef3c7;
+
+// ── Page subtitle ────────────────────────────────────────────────
+.subtitle {
+  font-size: 0.88em;
+  margin: 0.25em 0 0.4em;
+  color: var(--text-secondary, #666);
+}
+
+// ── Legend bar ───────────────────────────────────────────────────
+.legend-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.1em;
+  margin-top: 0.35em;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.legend-lbl {
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--text-secondary, #555);
+  white-space: nowrap;
+}
+
+// ── Legend chips ─────────────────────────────────────────────────
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 0.35em;
+  font-size: 0.78em;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+
+  &.chip-p  { background: $clr-present-bg; }
+  &.chip-a  { background: $clr-absent-bg; }
+  &.chip-fh { background: $clr-fh-bg; }
+  &.chip-sh { background: $clr-sh-bg; }
+  &.chip-h  { background: $clr-holiday-bg; }
+}
+
+// ── Header actions ───────────────────────────────────────────────
+.btn-danger-outline {
+  border-color: $clr-absent-bg !important;
+  color: $clr-absent-bg !important;
+
+  &:hover:not(:disabled) {
+    background: $clr-absent-bg !important;
+    color: #fff !important;
+  }
+}
+
+.dirty-badge {
+  display: inline-block;
+  padding: 0.3em 0.75em;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 1em;
+  font-size: 0.78em;
+  font-weight: 600;
+}
+
+.save-count {
+  font-size: 0.85em;
+  opacity: 0.85;
+  margin-left: 0.2em;
+}
+
+// ── Controls bar ─────────────────────────────────────────────────
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin: 0.5em;
+  flex-wrap: wrap;
+}
+
+// ── View toggle ───────────────────────────────────────────────────
+.view-toggle {
+  display: flex;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0.5em;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-left: 2em;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.45em 1em;
+  font-size: 0.85em;
+  font-weight: 600;
+  border: none;
+  background: var(--bg-white, #fff);
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  & + & { border-left: 1px solid rgba(0, 0, 0, 0.12); }
+
+  &:hover:not(:disabled):not(.active) {
+    background: #f1f5f9;
+    color: var(--text-primary, #1e293b);
+  }
+
+  &.active {
+    background: var(--primary-color, #1e5ba8);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// ── Period navigator ──────────────────────────────────────────────
+.period-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex: 1;
+  justify-content: center;
+}
+
+.period-label {
+  font-size: 0.97em;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  min-width: 18em;
+  text-align: center;
+}
+
+// ── User filter ───────────────────────────────────────────────────
+.user-filter {
+  display: flex;
+  align-items: center;
+  margin-right: 2em;
+  gap: 0.4em;
+  flex-shrink: 0;
+
+  .filter-icon { color: var(--text-secondary, #64748b); font-size: 0.85em; }
+}
+
+.user-select {
+  padding: 0.42em 2em 0.42em 0.7em;
+  font-size: 0.85em;
+  font-weight: 500;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.4em;
+  background: var(--bg-white, #fff);
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  appearance: auto;
+  min-width: 12em;
+
+  &:focus { outline: 2px solid var(--primary-color, #1e5ba8); outline-offset: 1px; }
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25em;
+  height: 2.25em;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: var(--bg-white, #fff);
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 0.85em;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-color, #1e5ba8);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+// ── Grid wrapper ─────────────────────────────────────────────────
+.grid-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg, 0.75em);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+// ── Table ────────────────────────────────────────────────────────
+.attendance-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88em;
+}
+
+// ── Column widths ────────────────────────────────────────────────
+.col-user    { width: 14em; min-width: 13em; }
+.col-day     { width: 7.5em; min-width: 7em; text-align: center; }
+.col-summary { width: 10em; min-width: 6.5em; text-align: center; }
+
+// ── Sticky user column — must have a solid background ────────────
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+
+  thead &, tfoot & { z-index: 3; }
+}
+
+// ── Header row ───────────────────────────────────────────────────
+.header-row {
+  th {
+    background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+    border-bottom: none;
+    padding: 0.65em 0.4em 0.45em;
+    font-weight: 700;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+
+    &.sticky-col {
+      z-index: 4;
+      background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+    }
+  }
+}
+
+
+.day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+}
+
+.day-name {
+  font-size: 0.82em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.day-date {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: #fff;
+}
+
+// ── Column state tints (header cells — override gradient) ─────────
+.col-future {
+  background: rgba(30, 91, 168, 0.55) !important;
+  .day-name, .day-date { color: rgba(255,255,255,0.45) !important; }
+}
+
+.col-today {
+  background: rgba(255,255,255,0.22) !important;
+  .day-name { color: #fff !important; font-weight: 800 !important; text-decoration: underline; }
+  .day-date { color: #fff !important; font-weight: 800 !important; }
+}
+
+.col-locked {
+  background: rgba(30, 91, 168, 0.5) !important;
+  .day-name, .day-date { color: rgba(255,255,255,0.5) !important; }
+}
+
+.col-holiday {
+  background: rgba(217, 119, 6, 0.75) !important;
+  .day-name { color: #fff !important; }
+  .day-date { color: rgba(255,255,255,0.9) !important; }
+}
+
+.col-lock-icon {
+  font-size: 0.7em;
+  color: #94a3b8;
+  margin-top: 0.15em;
+}
+
+// ── Holiday badge in column header ────────────────────────────────
+.holiday-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: $clr-holiday-bg;
+  color: #fff;
+  font-size: 0.7em;
+  font-weight: 800;
+  margin-top: 0.2em;
+  letter-spacing: 0;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.45);
+}
+
+// User column label
+.user-col-label {
+  font-size: 0.82em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+// ── Column bulk-action buttons ─────────────────────────────────────
+// Light tinted background + dark text = high contrast at small size
+.col-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.2em;
+  margin-top: 0.35em;
+}
+
+.col-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55em;
+  height: 1.55em;
+  font-size: 0.7em;
+  font-weight: 800;
+  border: 1px solid transparent;
+  border-radius: 0.3em;
+  cursor: pointer;
+  transition: filter 0.12s, transform 0.1s;
+
+  &:hover { filter: brightness(0.88); transform: scale(1.1); }
+
+  // Green — dark text on light green
+  &.col-btn-p {
+    background: $clr-present-light;
+    color: $clr-present-dark;
+    border-color: #86efac;
+  }
+
+  // Red — dark text on light red
+  &.col-btn-a {
+    background: $clr-absent-light;
+    color: $clr-absent-dark;
+    border-color: #fca5a5;
+  }
+
+  // Orange — dark text on light orange  (was amber-on-amber — now readable)
+  &.col-btn-fh {
+    background: $clr-fh-light;
+    color: $clr-fh-dark;
+    border-color: #fdba74;
+  }
+
+  // Blue — dark text on light blue  (was dark-on-medium-blue — now readable)
+  &.col-btn-sh {
+    background: $clr-sh-light;
+    color: $clr-sh-dark;
+    border-color: #93c5fd;
+  }
+
+  // Clear
+  &.col-btn-clr {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #94a3b8;
+  }
+}
+
+// ── User rows ─────────────────────────────────────────────────────
+.user-row {
+  border-bottom: 1px solid #e8edf5;
+
+  // Even rows: white
+  td { background: #ffffff; }
+  .sticky-col { background: #ffffff; }
+
+  // Odd rows: clear indigo tint
+  &.row-alt td { background: #eef2ff; }
+  &.row-alt .sticky-col { background: #eef2ff; }
+
+  // Hover — deeper blue on any row
+  &:hover td { background: #dbeafe !important; transition: background 0.12s; }
+  &:hover .sticky-col { background: #dbeafe !important; }
+
+  td {
+    padding: 0.45em 0.4em;
+    vertical-align: middle;
+  }
+}
+
+// User info cell
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  padding: 0 0.3em;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, #3b82f6 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05em;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 0.72em;
+  color: var(--text-secondary, #64748b);
+}
+
+// ── Attendance cells ──────────────────────────────────────────────
+.att-cell-td {
+  text-align: center;
+  padding: 0.35em 0.3em;
+}
+
+.att-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 0.45em;
+  font-size: 0.92em;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+  letter-spacing: 0;
+
+  &:hover:not(:disabled) {
+    transform: scale(1.14);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    filter: brightness(0.93);
+  }
+
+  &:active:not(:disabled) { transform: scale(0.97); }
+
+  // ── Status variants — solid background + white text ──────────────
+  &.cell-present {
+    background: $clr-present-bg;
+    color: #fff;
+    border-color: $clr-present-bdr;
+  }
+
+  &.cell-absent {
+    background: $clr-absent-bg;
+    color: #fff;
+    border-color: $clr-absent-bdr;
+  }
+
+  &.cell-firsthalf {
+    background: $clr-fh-bg;
+    color: #fff;
+    border-color: $clr-fh-bdr;
+  }
+
+  &.cell-secondhalf {
+    background: $clr-sh-bg;
+    color: #fff;
+    border-color: $clr-sh-bdr;
+  }
+
+  // Unmarked — clearly visible dash, better contrast than before
+  &.cell-unmarked {
+    background: #f1f5f9;
+    color: #475569;          // was #94a3b8 — too light to read
+    border-color: #cbd5e1;
+    cursor: pointer;
+  }
+
+  // Future — desaturated, not-allowed
+  &.cell-future {
+    background: #f1f5f9;
+    color: #b0bec5;
+    border-color: #e2e8f0;
+    cursor: not-allowed;
+  }
+
+  // Holiday — amber, fully read-only
+  &.cell-holiday {
+    background: $clr-holiday-light;
+    color: $clr-holiday-bdr;
+    border-color: #fcd34d;
+    cursor: not-allowed;
+    font-weight: 800;
+    pointer-events: none;
+    &:hover { transform: none !important; box-shadow: none !important; filter: none !important; }
+  }
+
+  // Locked — greyed out, read-only
+  &.cell-locked {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    filter: grayscale(0.4);
+    &:hover { transform: none !important; box-shadow: none !important; filter: grayscale(0.4) !important; }
+  }
+
+  // Dirty — amber outline to flag unsaved
+  &.cell-dirty { box-shadow: 0 0 0 2.5px #f59e0b; }
+
+  // Today glow
+  &.today-glow:not(.cell-future) {
+    outline: 2.5px solid var(--primary-color, #1e5ba8);
+    outline-offset: 2px;
+  }
+}
+
+// ── Row summary ───────────────────────────────────────────────────
+.row-summary {
+  display: flex;
+  gap: 0.28em;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+// Pill badges — tinted background + dark text for strong contrast
+.rs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  padding: 0.2em 0.55em;
+  border-radius: 1em;
+  font-size: 0.75em;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.2;
+
+  small {
+    font-size: 0.82em;
+    font-weight: 600;
+  }
+
+  &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
+  &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
+  &.rs-fh { background: $clr-fh-light;      color: $clr-fh-dark;       border: 1px solid #fdba74; }
+  &.rs-sh { background: $clr-sh-light;      color: $clr-sh-dark;       border: 1px solid #93c5fd; }
+}
+
+// ── Totals footer ─────────────────────────────────────────────────
+.totals-row {
+  td {
+    background: linear-gradient(135deg, #1e40af 0%, #3b5fd4 100%);
+    border-top: none;
+    padding: 0.55em 0.4em;
+  }
+
+  .sticky-col {
+    background: linear-gradient(135deg, #1e40af 0%, #3b5fd4 100%);
+  }
+}
+
+.totals-label {
+  font-size: 0.78em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-left: 0.75em !important;
+}
+
+.totals-cell { text-align: center; }
+
+// Footer totals — pill badges matching row summary style
+.tot {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18em 0.5em;
+  border-radius: 1em;
+  font-size: 0.75em;
+  font-weight: 700;
+  margin: 0.1em 0.1em;
+  white-space: nowrap;
+  line-height: 1.2;
+
+  &.tot-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
+  &.tot-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
+  &.tot-fh { background: $clr-fh-light;      color: $clr-fh-dark;       border: 1px solid #fdba74; }
+  &.tot-sh { background: $clr-sh-light;      color: $clr-sh-dark;       border: 1px solid #93c5fd; }
+  &.tot-u  { background: #f1f5f9;            color: #475569;             border: 1px solid #cbd5e1; }
+}
+
+// ── Empty state ───────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5em 2em;
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+
+  .empty-icon { font-size: 3.5em; margin-bottom: 0.5em; opacity: 0.5; }
+  h3 { font-size: 1.2em; font-weight: 700; color: var(--text-primary, #1e293b); margin: 0 0 0.5em; }
+  p  { font-size: 0.9em; max-width: 28em; }
+}
+
+// ── Monthly view overrides ─────────────────────────────────────────
+.monthly-view {
+  .col-day     { width: 3em; min-width: 2.6em; padding: 0.3em 0.1em; }
+  .col-summary { width: 9em; min-width: 8em; }
+
+  .day-header { gap: 0; }
+  .day-name   { font-size: 0.7em; }
+  .day-date   { font-size: 0.82em; font-weight: 700; color: #fff; }
+  .holiday-badge { width: 1.2em; height: 1.2em; font-size: 0.62em; margin-top: 0.1em; }
+
+  .att-cell-td { padding: 0.2em 0.1em; }
+
+  .att-cell {
+    width: 2em;
+    height: 2em;
+    font-size: 0.75em;
+    border-radius: 0.35em;
+    border-width: 1.5px;
+  }
+
+  .user-row td  { padding: 0.3em 0.15em; }
+  .totals-row td { padding: 0.4em 0.15em; }
+}
+
+// ── Fortnight selector toggle ─────────────────────────────────────
+.fn-toggle {
+  border-color: rgba(0, 0, 0, 0.12);
+
+  .toggle-btn {
+    font-size: 0.82em;
+    padding: 0.45em 0.85em;
+    letter-spacing: 0.01em;
+
+    &.active {
+      background: #0e7490;   // teal — distinct from primary blue
+      color: #fff;
+    }
+  }
+}
+
+// ── Fortnight blocks ─────────────────────────────────────────────
+.fortnight-block {
+  margin-bottom: 1.75em;
+  &:last-child { margin-bottom: 0; }
+}
+
+.fortnight-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.55em 1em;
+  margin-bottom: 0.6em;
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  background: #eff6ff;
+  border-left: 4px solid var(--primary-color, #1e5ba8);
+  border-radius: 0 0.45em 0.45em 0;
+
+  i { color: var(--primary-color, #1e5ba8); font-size: 0.92em; }
+
+  .fn-range {
+    margin-left: auto;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--primary-color, #1e5ba8);
+    letter-spacing: 0.02em;
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────
+@media (max-width: 60em) {
+  .col-user    { width: 10em; min-width: 9em; }
+  .col-day     { width: 5.5em; min-width: 5em; }
+  .period-label { min-width: 0; font-size: 0.88em; }
+  .att-cell    { width: 2.2em; height: 2.2em; font-size: 0.82em; }
+
+  .monthly-view .att-cell { width: 1.7em; height: 1.7em; font-size: 0.68em; }
+  .controls-bar { gap: 0.6em; }
+  .period-nav  { justify-content: flex-start; }
+}

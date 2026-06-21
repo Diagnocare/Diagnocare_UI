@@ -1,0 +1,81 @@
+<div class="le-page">
+
+  <!-- Brand bar -->
+  <div class="le-brand-bar">
+    <div class="le-brand-icon"><i class="fa fa-heartbeat"></i></div>
+    <div class="le-brand-text">Diagno<span>care</span></div>
+  </div>
+
+  <!-- Card -->
+  <div class="le-card">
+
+    <!-- Icon -->
+    <div class="le-icon-wrap">
+      <i class="fa fa-lock le-lock-icon"></i>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="le-title">Licence Expired</h1>
+    <p class="le-subtitle">
+      Your Diagnocare pathology licence has expired and access to all modules
+      has been suspended.
+    </p>
+
+    <!-- Expiry date chip -->
+    <div class="le-expiry-chip" *ngIf="formattedExpiry">
+      <i class="fa fa-calendar-times"></i>
+      Expired on &nbsp;<strong>{{ formattedExpiry }}</strong>
+    </div>
+
+    <!-- What you can still do -->
+    <div class="le-info-box">
+      <p class="le-info-title"><i class="fa fa-info-circle"></i> What you can still access</p>
+      <ul class="le-info-list">
+        <li><i class="fa fa-check"></i> Lab / Pathology home page</li>
+        <li><i class="fa fa-check"></i> Your account profile &amp; settings</li>
+        <li><i class="fa fa-check"></i> Change password</li>
+      </ul>
+    </div>
+
+    <!-- Renew call to action — Super Admin sees Extend button; others see contact message -->
+    <div class="le-cta-box">
+
+      <!-- Super Admin: extend licence -->
+      <ng-container *ngIf="isSuperAdmin">
+        <p class="le-cta-text le-cta-admin">
+          <i class="fa fa-shield"></i>
+          As Super Admin you can extend the licence directly from here.
+        </p>
+        <div class="le-actions">
+          <a routerLink="/extend-license" class="le-btn le-btn-extend">
+            <i class="fa fa-calendar-plus"></i> Extend Licence
+          </a>
+          <button class="le-btn le-btn-outline" (click)="logout()">
+            <i class="fa fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- All other users: contact admin message -->
+      <ng-container *ngIf="!isSuperAdmin">
+        <p class="le-cta-text">
+          Please contact your Diagnocare administrator to renew your licence and
+          restore full access.
+        </p>
+        <div class="le-actions">
+          <button class="le-btn le-btn-primary" (click)="goToPathology()">
+            <i class="fa fa-home"></i> Go to Home
+          </button>
+          <button class="le-btn le-btn-outline" (click)="logout()">
+            <i class="fa fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </ng-container>
+
+    </div>
+
+  </div>
+
+  <p class="le-footer">© Diagnocare Pathology Management System</p>
+
+</div>

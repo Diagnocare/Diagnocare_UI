@@ -1,0 +1,32 @@
+{
+  "name": "diagnocare-ui-tests",
+  "version": "1.0.0",
+  "description": "Standalone unit-test project for Diagnocare UI — services and component logic tested with Jest + mocked HTTP",
+  "private": true,
+  "scripts": {
+    "test":          "jest",
+    "test:watch":    "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose":  "jest --verbose"
+  },
+  "devDependencies": {
+    "@angular/animations":        "^20.0.0",
+    "@angular/common":            "^20.0.0",
+    "@angular/compiler":          "^20.0.0",
+    "@angular/core":              "^20.0.0",
+    "@angular/forms":             "^20.0.0",
+    "@angular/platform-browser":  "^20.0.0",
+    "@angular/router":            "^20.0.0",
+    "@auth0/auth0-spa-js":        "^2.11.0",
+    "ngx-toastr":                 "19.1.0",
+    "rxjs":                       "~7.8.0",
+    "zone.js":                    "~0.15.0",
+    "jest":                       "^29.7.0",
+    "jest-environment-jsdom":     "^29.7.0",
+    "jest-preset-angular":        "^14.1.0",
+    "ts-jest":                    "^29.1.0",
+    "typescript":                 "~5.8.0",
+    "@types/jest":                "^29.5.0",
+    "@types/node":                "^20.0.0"
+  }
+}

@@ -1,0 +1,18 @@
+<div class="page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1><i class="fa {{activeReportIcon}}"></i> {{activeReportLabel}}</h1>
+    </div>
+    <div class="header-actions-group">
+      <button class="btn btn-back" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-container">
+    <router-outlet></router-outlet>
+  </div>
+</div>

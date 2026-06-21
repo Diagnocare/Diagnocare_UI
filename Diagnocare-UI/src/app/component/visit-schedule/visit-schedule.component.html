@@ -1,0 +1,328 @@
+<app-loading-spinner [isLoading]="isLoading" message="Loading schedule..."></app-loading-spinner>
+
+<div class="page-container pathology-theme">
+
+  <!-- ── Page header ───────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1><i class="fa fa-calendar-check"></i> Visit Schedule</h1>
+      <p class="subtitle">Assign members to visit contacts and track field visits</p>
+    </div>
+  </div>
+
+  <div class="vs-layout">
+
+    <!-- ════════════════════════════════════════ CALENDAR ═══════════════════ -->
+    <div class="vs-calendar-panel">
+
+      <div class="cal-nav">
+        <button class="cal-nav-btn" (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
+        <span class="cal-month-label">{{ viewLabel }}</span>
+        <button class="cal-nav-btn" (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
+      </div>
+
+      <!-- Table layout — immune to CSS-grid interference from parent vs-layout -->
+      <table class="cal-table">
+        <thead>
+          <tr>
+            <th *ngFor="let d of weekDays" class="cal-dow">{{ d }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let week of calendarWeeks">
+            <td *ngFor="let day of week"
+                class="cal-cell"
+                [class.other-month]="!day.inMonth"
+                [class.today]="day.isToday"
+                [class.selected]="selectedDate === toIsoPublic(day.date) && day.inMonth"
+                [class.has-visits]="day.visitInfo && day.inMonth"
+                (click)="selectDay(day)">
+              <span class="cal-day-num">{{ day.date.getDate() }}</span>
+              <span class="cal-badge" *ngIf="day.visitInfo && day.inMonth"
+                    [class.cal-badge--all-done]="day.visitInfo.pendingCount === 0">
+                {{ day.visitInfo.count }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="cal-legend">
+        <span class="leg-item"><span class="leg-dot leg-dot--pending"></span> Pending</span>
+        <span class="leg-item"><span class="leg-dot leg-dot--done"></span> All Done</span>
+        <span class="leg-item"><span class="leg-dot leg-dot--today"></span> Today</span>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ DETAIL PANEL ════════════════ -->
+    <div class="vs-detail-panel" *ngIf="selectedDate">
+
+      <div class="detail-header">
+        <div class="detail-title">
+          <i class="fa fa-calendar-day"></i>
+          <span>{{ selectedDate | date:'EEEE, d MMMM yyyy' }}</span>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="openForm()">
+          <i class="fa fa-plus"></i> Assign Visit
+        </button>
+      </div>
+
+      <!-- ── Assignment form ─────────────────────────────────────────────── -->
+      <div class="assign-form-box" *ngIf="showForm" [formGroup]="assignForm">
+        <h4 class="form-box-title">New Visit Assignment</h4>
+
+        <!-- Row 1: Member type filter + Member select -->
+        <div class="form-group" style="margin-bottom:.65rem">
+          <label class="form-label required">Member</label>
+
+          <!-- Role filter chips -->
+          <div class="member-type-filter">
+            <button type="button"
+                    class="type-chip"
+                    [class.active]="memberTypeFilter === null"
+                    (click)="memberTypeFilter = null; onMemberTypeFilterChange()">
+              All
+            </button>
+            <button type="button"
+                    class="type-chip"
+                    *ngFor="let t of memberTypeOptions"
+                    [class.active]="memberTypeFilter === t.value"
+                    (click)="memberTypeFilter = t.value; onMemberTypeFilterChange()">
+              {{ t.label }}
+            </button>
+          </div>
+
+          <!-- Member select filtered by chip -->
+          <select class="form-select" formControlName="assignedMemberId"
+                  [class.is-invalid]="isInvalid('assignedMemberId')">
+            <option [ngValue]="null" disabled>-- Select member --</option>
+            <option *ngFor="let m of displayMembers" [ngValue]="m.id">
+              {{ m.first_Name }} {{ m.last_Name }}
+            </option>
+          </select>
+          <small class="form-error" *ngIf="isInvalid('assignedMemberId')">Member is required.</small>
+        </div>
+
+        <!-- Row 2: Contact Type + Contact Name autocomplete -->
+        <div class="form-row">
+
+          <!-- Contact Type DDL -->
+          <div class="form-group">
+            <label class="form-label required">Contact Type</label>
+            <select class="form-select" formControlName="contactType"
+                    [class.is-invalid]="isInvalid('contactType')"
+                    (change)="onContactTypeChange()">
+              <option [ngValue]="null" disabled>-- Select type --</option>
+              <option *ngFor="let t of contactTypeOptions" [ngValue]="t.value">{{ t.label }}</option>
+            </select>
+            <small class="form-error" *ngIf="isInvalid('contactType')">Contact type is required.</small>
+          </div>
+
+          <!-- Contact Name autocomplete -->
+          <div class="form-group">
+            <label class="form-label required">Contact to Visit</label>
+
+            <div class="contact-autocomplete-wrap">
+              <input type="text"
+                     class="form-control"
+                     formControlName="contactName"
+                     [class.is-invalid]="isInvalid('contactName')"
+                     [placeholder]="assignForm.get('contactType')?.value ? 'Search or type a new name…' : 'Select a contact type first'"
+                     [attr.disabled]="assignForm.get('contactType')?.value == null ? true : null"
+                     autocomplete="off"
+                     (input)="onContactNameInput($event)"
+                     (focus)="onContactNameFocus()"
+                     (blur)="onContactNameBlur()" />
+
+              <!-- Suggestion dropdown -->
+              <div class="contact-suggestions" *ngIf="showContactSuggestions">
+                <div class="contact-suggestion-item"
+                     *ngFor="let c of filteredContactSuggestions"
+                     (mousedown)="selectContactSuggestion(c)">
+                  <span class="suggestion-name">{{ c.name }}</span>
+                  <span class="suggestion-meta" *ngIf="c.contactNumber">
+                    <i class="fa fa-phone"></i> {{ c.contactNumber }}
+                  </span>
+                  <span class="suggestion-meta" *ngIf="c.city">
+                    <i class="fa fa-map-marker-alt"></i> {{ c.city }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- New-contact hint -->
+            <small class="new-contact-hint" *ngIf="isNewContact">
+              <i class="fa fa-plus-circle"></i>
+              "{{ assignForm.get('contactName')?.value }}" will be added as a new
+              <strong>{{ selectedContactTypeName }}</strong> on save.
+            </small>
+
+            <small class="form-error" *ngIf="isInvalid('contactName')">Contact name is required.</small>
+          </div>
+        </div>
+
+        <!-- Row 3: Date + Time -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Visit Date</label>
+            <app-date-picker formControlName="visitDate" inputClass="form-control"
+                             [class.is-invalid]="isInvalid('visitDate')"
+                             placeholder="Select visit date"></app-date-picker>
+            <small class="form-error" *ngIf="isInvalid('visitDate')">Date is required.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Visit Time</label>
+            <input type="time" class="form-control" formControlName="visitTime"
+                   [class.is-invalid]="isInvalid('visitTime')" />
+            <small class="form-error" *ngIf="isInvalid('visitTime')">Valid time is required.</small>
+          </div>
+        </div>
+
+        <!-- Purpose + Notes -->
+        <div class="form-group">
+          <label class="form-label">Purpose</label>
+          <input type="text" class="form-control" formControlName="purpose"
+                 placeholder="e.g. Introduce new test packages, follow up on referrals…" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" formControlName="notes" rows="2"
+                    placeholder="Any additional instructions…"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-cancel" type="button" (click)="cancelForm()">Cancel</button>
+          <button class="btn btn-primary" type="button" (click)="saveForm()" [disabled]="savingForm">
+            <i class="fa fa-save"></i> {{ savingForm ? 'Saving…' : 'Assign' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Status filter + Visit list ───────────────────────────────────── -->
+      <app-loading-spinner [isLoading]="loadingDay" message="Loading visits…"></app-loading-spinner>
+
+      <div *ngIf="!loadingDay">
+
+        <!-- Status filter chips (only shown when there are visits) -->
+        <div class="vc-status-filter" *ngIf="dayVisits.length > 0">
+          <button class="vc-filter-chip" [class.active]="statusFilter === 'all'"
+                  (click)="statusFilter = 'all'">
+            All <span class="vc-filter-count">{{ dayVisits.length }}</span>
+          </button>
+          <button class="vc-filter-chip vc-filter-chip--pending"
+                  [class.active]="statusFilter === 'Pending'"
+                  (click)="statusFilter = 'Pending'">
+            Pending <span class="vc-filter-count">{{ pendingCount }}</span>
+          </button>
+          <button class="vc-filter-chip vc-filter-chip--done"
+                  [class.active]="statusFilter === 'Completed'"
+                  (click)="statusFilter = 'Completed'">
+            Completed <span class="vc-filter-count">{{ completedCount }}</span>
+          </button>
+        </div>
+
+        <!-- Empty state (no visits at all) -->
+        <div *ngIf="dayVisits.length === 0 && !showForm" class="no-visits">
+          <i class="fa fa-calendar-times"></i>
+          <p>No visits scheduled for this day.</p>
+          <button class="btn btn-primary btn-sm" (click)="openForm()">
+            <i class="fa fa-plus"></i> Assign First Visit
+          </button>
+        </div>
+
+        <!-- Empty state when filter has no results -->
+        <div *ngIf="dayVisits.length > 0 && filteredDayVisits.length === 0" class="no-visits" style="padding:1rem 0">
+          <i class="fa fa-filter"></i>
+          <p>No {{ statusFilter === 'Pending' ? 'pending' : 'completed' }} visits for this day.</p>
+        </div>
+
+        <div class="visit-card-grid">
+        <div class="visit-card" *ngFor="let v of filteredDayVisits">
+          <div class="vc-header">
+            <span class="vc-time"><i class="fa fa-clock"></i> {{ formatTime(v.visitTime) }}</span>
+            <span class="vc-status"
+                  [class.vc-status--done]="v.status === 'Completed'"
+                  [class.vc-status--cancelled]="v.status === 'Cancelled'">
+              {{ v.status }}
+            </span>
+          </div>
+          <div class="vc-contact">
+            <div class="vc-name"><i class="fa fa-building"></i> {{ v.contactName }}
+              <span class="vc-type-badge" *ngIf="v.contactType">{{ v.contactType }}</span>
+            </div>
+            <div class="vc-meta" *ngIf="v.contactPhone"><i class="fa fa-phone"></i> {{ v.contactPhone }}</div>
+            <div class="vc-meta" *ngIf="v.contactAddress"><i class="fa fa-map-marker-alt"></i> {{ v.contactAddress }}</div>
+          </div>
+          <div class="vc-member"><i class="fa fa-user"></i> <strong>{{ v.memberName }}</strong></div>
+          <div class="vc-purpose" *ngIf="v.purpose"><i class="fa fa-bullseye"></i> {{ v.purpose }}</div>
+          <div class="vc-notes"   *ngIf="v.notes"><i class="fa fa-sticky-note"></i> {{ v.notes }}</div>
+
+          <div class="vc-actions">
+            <!-- Pending: Edit + Complete + Delete -->
+            <ng-container *ngIf="v.status === 'Pending'">
+              <button class="btn btn-outline btn-xs" (click)="openEditModal(v)">
+                <i class="fa fa-pencil-alt"></i> Edit
+              </button>
+              <button class="btn btn-success btn-xs" (click)="openCompleteModal(v)">
+                <i class="fa fa-check"></i> Complete
+              </button>
+            </ng-container>
+
+            <!-- Completed: View Details -->
+            <button class="btn btn-info btn-xs" (click)="openViewDetails(v)"
+                    *ngIf="v.status === 'Completed'">
+              <i class="fa fa-eye"></i> View Details
+            </button>
+
+            <button class="btn btn-danger btn-xs" (click)="deleteVisit(v.id)">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        </div><!-- /visit-card-grid -->
+      </div>
+
+    </div><!-- /detail-panel -->
+
+    <div class="vs-detail-panel vs-detail-panel--empty" *ngIf="!selectedDate">
+      <div class="empty-state">
+        <i class="fa fa-calendar-alt fa-3x"></i>
+        <p>Click a day on the calendar to view or schedule visits.</p>
+      </div>
+    </div>
+
+  </div><!-- /vs-layout -->
+</div>
+
+<!-- ── Mark Complete modal ───────────────────────────────────────────────── -->
+<app-visit-complete-modal
+  *ngIf="completingVisit"
+  [visitName]="completingVisit.contactName"
+  [saving]="savingComplete"
+  (confirmed)="onCompleteConfirmed($event)"
+  (cancelled)="onCompleteCancelled()">
+</app-visit-complete-modal>
+
+<!-- ── View Completion Details modal ────────────────────────────────────── -->
+<app-visit-complete-modal
+  *ngIf="viewingVisit"
+  [viewMode]="true"
+  [visitName]="viewingVisit.contactName"
+  [viewRemark]="viewingVisit.completionRemark ?? null"
+  [viewLocation]="viewingVisit.completionLocation ?? null"
+  [viewPhotoBase64]="viewingVisit.completionPhotoBase64 ?? null"
+  [viewCompletedAt]="viewingVisit.completedAt ?? null"
+  (cancelled)="closeViewDetails()">
+</app-visit-complete-modal>
+
+<!-- ── Edit Visit modal ──────────────────────────────────────────────────── -->
+<app-visit-edit-modal
+  *ngIf="editingVisit"
+  [visit]="editingVisit"
+  [members]="allMembers"
+  [saving]="savingEdit"
+  (saved)="onEditSaved($event)"
+  (cancelled)="cancelEdit()">
+</app-visit-edit-modal>

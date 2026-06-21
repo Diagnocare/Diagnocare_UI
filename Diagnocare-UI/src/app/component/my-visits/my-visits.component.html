@@ -1,0 +1,166 @@
+<app-loading-spinner [isLoading]="isLoading" message="Loading your visits…"></app-loading-spinner>
+
+<div class="page-container pathology-theme">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1><i class="fa fa-route"></i> My Visits</h1>
+      <p class="subtitle">{{ dateLabel }}</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn mv-refresh-btn" (click)="loadVisits()" [disabled]="isLoading">
+        <i class="fa fa-sync-alt" [class.fa-spin]="isLoading"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="mv-body">
+
+    <!-- ── Empty state ──────────────────────────────────────────────────────── -->
+    <div class="mv-empty" *ngIf="!isLoading && visits.length === 0">
+      <div class="mv-empty-icon">
+        <i class="fa fa-calendar-check"></i>
+      </div>
+      <h3>All clear for today!</h3>
+      <p>No visits are scheduled. Enjoy your day or check back later.</p>
+    </div>
+
+    <!-- ── Progress panel ───────────────────────────────────────────────────── -->
+    <div class="mv-panel" *ngIf="visits.length > 0">
+
+      <div class="mv-progress-header">
+        <div class="mv-progress-stats">
+          <span class="mv-stat mv-stat--total">
+            <strong>{{ visits.length }}</strong> Total
+          </span>
+          <span class="mv-stat mv-stat--done">
+            <i class="fa fa-check-circle"></i> {{ doneCount }} Done
+          </span>
+          <span class="mv-stat mv-stat--pending">
+            <i class="fa fa-hourglass-half"></i> {{ pendingCount }} Pending
+          </span>
+        </div>
+        <span class="mv-pct" *ngIf="visits.length > 0">
+          {{ doneCount === visits.length ? '🎉' : '' }}
+          {{ (doneCount / visits.length * 100) | number:'1.0-0' }}%
+        </span>
+      </div>
+
+      <div class="mv-progress-bar-track">
+        <div class="mv-progress-bar-fill"
+             [style.width.%]="doneCount / visits.length * 100">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Visit cards ───────────────────────────────────────────────────────── -->
+    <div class="mv-card"
+         *ngFor="let v of visits; let i = index"
+         [class.mv-card--done]="v.status === 'Completed'"
+         [class.mv-card--cancelled]="v.status === 'Cancelled'">
+
+      <!-- Card top row: time + status badge -->
+      <div class="mvc-topbar">
+        <div class="mvc-time-badge">
+          <i class="fa fa-clock"></i>
+          {{ formatTime(v.visitTime) }}
+        </div>
+        <div class="mvc-seq">#{{ i + 1 }}</div>
+        <span class="mvc-status"
+              [class.mvc-status--done]="v.status === 'Completed'"
+              [class.mvc-status--cancelled]="v.status === 'Cancelled'">
+          <i class="fa"
+             [class.fa-check-circle]="v.status === 'Completed'"
+             [class.fa-times-circle]="v.status === 'Cancelled'"
+             [class.fa-hourglass-half]="v.status === 'Pending'"></i>
+          {{ v.status }}
+        </span>
+      </div>
+
+      <!-- Contact name + type -->
+      <div class="mvc-contact">
+        <div class="mvc-contact-name">
+          <i class="fa fa-building"></i>
+          {{ v.contactName }}
+        </div>
+        <span class="mvc-type-badge">{{ v.contactType }}</span>
+      </div>
+
+      <!-- Detail rows -->
+      <div class="mvc-details">
+
+        <!-- Phone — big CTA -->
+        <a *ngIf="v.contactPhone" [href]="'tel:' + v.contactPhone" class="mvc-call-btn">
+          <i class="fa fa-phone"></i> {{ v.contactPhone }}
+        </a>
+
+        <!-- Address with map button -->
+        <div class="mvc-address-row" *ngIf="v.contactAddress">
+          <i class="fa fa-map-marker-alt"></i>
+          <span class="mvc-address-text">{{ v.contactAddress }}</span>
+          <a [href]="'https://maps.google.com/?q=' + v.contactAddress"
+             target="_blank" rel="noopener" class="mvc-map-btn" title="Open in Maps">
+            <i class="fa fa-directions"></i> Map
+          </a>
+        </div>
+
+        <!-- Purpose -->
+        <div class="mvc-meta-row" *ngIf="v.purpose">
+          <i class="fa fa-bullseye"></i>
+          <span><strong>Purpose:</strong> {{ v.purpose }}</span>
+        </div>
+
+        <!-- Notes -->
+        <div class="mvc-meta-row mvc-notes" *ngIf="v.notes">
+          <i class="fa fa-sticky-note"></i>
+          <span>{{ v.notes }}</span>
+        </div>
+
+      </div>
+
+      <!-- Completion summary — tap to see full details -->
+      <div class="mvc-done-bar" *ngIf="v.status === 'Completed'" (click)="openViewDetails(v)">
+        <span class="mvc-done-bar-label">
+          <i class="fa fa-check-circle"></i>
+          Completed{{ v.completedAt ? ' · ' + (v.completedAt | date:'d MMM, h:mm a') : '' }}
+        </span>
+        <span class="mvc-done-bar-cta">
+          View Details <i class="fa fa-chevron-right"></i>
+        </span>
+      </div>
+
+      <!-- Action footer — pending only -->
+      <div class="mvc-action" *ngIf="v.status === 'Pending'">
+        <button class="mvc-complete-btn" (click)="openCompleteModal(v)">
+          <i class="fa fa-check-circle"></i> Mark as Completed
+        </button>
+      </div>
+
+    </div>
+    <!-- /visit cards -->
+
+  </div><!-- /mv-body -->
+</div>
+
+<!-- ── Mark-Complete modal ───────────────────────────────────────────────────── -->
+<app-visit-complete-modal
+  *ngIf="completingVisit"
+  [visitName]="completingVisit.contactName"
+  [saving]="savingComplete"
+  (confirmed)="onCompleteConfirmed($event)"
+  (cancelled)="onCompleteCancelled()">
+</app-visit-complete-modal>
+
+<!-- ── View Completion Details modal ────────────────────────────────────────── -->
+<app-visit-complete-modal
+  *ngIf="viewingVisit"
+  [viewMode]="true"
+  [visitName]="viewingVisit.contactName"
+  [viewRemark]="viewingVisit.completionRemark ?? null"
+  [viewLocation]="viewingVisit.completionLocation ?? null"
+  [viewPhotoBase64]="viewingVisit.completionPhotoBase64 ?? null"
+  [viewCompletedAt]="viewingVisit.completedAt ?? null"
+  (cancelled)="closeViewDetails()">
+</app-visit-complete-modal>

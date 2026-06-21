@@ -1,0 +1,500 @@
+<app-loading-spinner [isLoading]="isLoading || isSaving" [message]="spinnerMessage"></app-loading-spinner>
+
+<div class="page-container">
+
+  <!-- ── Page header ──────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Attendance</h1>
+      <p class="subtitle">{{ viewMode === 'weekly' ? 'Weekly' : 'Monthly' }} staff attendance — click a cell to cycle status</p>
+
+      <!-- Status legend bar -->
+      <div class="legend-bar">
+        <span class="legend-item" *ngFor="let s of statusList">
+          <span class="legend-chip" [ngClass]="s.chipClass">{{ s.shortLabel }}</span>
+          <span class="legend-lbl">{{ s.label }}</span>
+        </span>
+        <!-- Holiday shown for info only — not a markable status -->
+        <span class="legend-item">
+          <span class="legend-chip chip-h">H</span>
+          <span class="legend-lbl">Holiday</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+
+      <!-- Dirty-change badge -->
+      <span class="dirty-badge" *ngIf="dirtyCount > 0">
+        {{ dirtyCount }} unsaved change{{ dirtyCount !== 1 ? 's' : '' }}
+      </span>
+
+      <!-- Save -->
+      <button class="btn btn-primary" (click)="saveAll()"
+              [disabled]="isLoading || isSaving || dirtyCount === 0">
+        <i class="fa fa-save"></i> Save Changes
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Controls bar: view toggle + period nav + user filter ───────── -->
+  <div class="controls-bar">
+
+    <!-- View toggle -->
+    <div class="view-toggle">
+      <button class="toggle-btn"
+              [class.active]="viewMode === 'weekly'"
+              (click)="switchView('weekly')"
+              [disabled]="isLoading || isSaving"
+              title="Weekly view">
+        <i class="fa fa-calendar-week"></i> Week
+      </button>
+      <button class="toggle-btn"
+              [class.active]="viewMode === 'monthly'"
+              (click)="switchView('monthly')"
+              [disabled]="isLoading || isSaving"
+              title="Monthly view">
+        <i class="fa fa-calendar-alt"></i> Month
+      </button>
+    </div>
+
+    <!-- Fortnight selector — visible in monthly view only -->
+    <div class="view-toggle fn-toggle" *ngIf="viewMode === 'monthly'">
+      <button class="toggle-btn"
+              [class.active]="selectedFortnight === '1'"
+              (click)="selectedFortnight = '1'"
+              [disabled]="isLoading || isSaving"
+              title="First Fortnight — days 1 to 15">
+        1 – 15
+      </button>
+      <button class="toggle-btn"
+              [class.active]="selectedFortnight === '2'"
+              (click)="selectedFortnight = '2'"
+              [disabled]="isLoading || isSaving"
+              [title]="'Second Fortnight — days 16 to ' + lastDayOfMonth">
+        16 – {{ lastDayOfMonth }}
+      </button>
+    </div>
+
+    <!-- Period navigator -->
+    <div class="period-nav">
+      <button class="nav-btn" (click)="prevPeriod()"
+              [disabled]="isLoading || isSaving"
+              [title]="viewMode === 'weekly' ? 'Previous week' : 'Previous month'">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+
+      <span class="period-label">{{ periodLabel }}</span>
+
+      <button class="nav-btn" (click)="nextPeriod()"
+              [disabled]="isLoading || isSaving || isCurrentPeriod"
+              [title]="viewMode === 'weekly' ? 'Next week' : 'Next month'">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Inactive toggle -->
+    <button class="toggle-btn inactive-toggle"
+            [class.active]="showInactive"
+            (click)="toggleInactive()"
+            [disabled]="isLoading || isSaving"
+            title="Show / hide deactivated employees">
+      <i class="fa fa-user-slash"></i> Inactive
+    </button>
+
+    <!-- Role filter tabs -->
+    <div class="view-toggle role-filter-tabs">
+      <button class="toggle-btn" [class.active]="roleFilter === 'other'"
+              (click)="setRoleFilter('other')" title="Users / Assistants / Admins">Users</button>
+      <button class="toggle-btn" [class.active]="roleFilter === 'doctor'"
+              (click)="setRoleFilter('doctor')" title="Doctors only">Doctor</button>
+      <button class="toggle-btn" [class.active]="roleFilter === 'collection-boy'"
+              (click)="setRoleFilter('collection-boy')" title="Collection Boys only">Collection Boy</button>
+    </div>
+
+    <!-- User filter -->
+    <div class="user-filter" *ngIf="displayRows.length > 0">
+      <i class="fa fa-user filter-icon"></i>
+      <select class="user-select"
+              [(ngModel)]="selectedUserId"
+              (ngModelChange)="recalcTotals()"
+              title="Filter by staff member">
+        <option [ngValue]="null">All ({{ roleFilteredRows().length }})</option>
+        <option *ngFor="let u of roleFilteredUserOptions" [ngValue]="u.userId">{{ u.fullName }}</option>
+      </select>
+    </div>
+
+  </div><!-- /controls-bar -->
+
+  <!-- ── Attendance grid ──────────────────────────────────────────────── -->
+  <div class="content-container">
+    <ng-container *ngIf="!isLoading">
+
+      <!-- ════════════════════════════════════════════════════════
+           WEEKLY VIEW — single table, 7 columns
+           ════════════════════════════════════════════════════════ -->
+      <div class="grid-wrapper" *ngIf="viewMode === 'weekly'">
+
+        <div class="empty-state" *ngIf="rows.length === 0">
+          <div class="empty-icon">👤</div>
+          <h3>No Users Found</h3>
+          <p>No registered users to display attendance for.</p>
+        </div>
+
+        <table class="attendance-table" *ngIf="rows.length > 0">
+          <thead>
+            <tr class="header-row">
+              <th class="col-user sticky-col">
+                <span class="user-col-label">Staff Member</span>
+              </th>
+
+              <th
+                class="col-day"
+                *ngFor="let date of columnDates; let i = index"
+                [class.col-today]="date.toDateString() === today.toDateString()"
+                [class.col-future]="date > today"
+                [class.col-locked]="date < editCutoff && date <= today"
+                [class.col-holiday]="isHolidayDate(date)"
+              >
+                <div class="day-header">
+                  <span class="day-name">{{ date | date:'EEE' }}</span>
+                  <span class="day-date">{{ date | date:'dd MMM' }}</span>
+                  <span class="holiday-badge" *ngIf="isHolidayDate(date)" [title]="getHolidayName(date)">H</span>
+                  <i class="fa fa-lock col-lock-icon"
+                     *ngIf="date < editCutoff && date <= today && !isHolidayDate(date)"
+                     title="Locked — only current & previous week can be edited"></i>
+                </div>
+
+                <!-- Bulk column actions — editable non-holiday days only -->
+                <div class="col-actions"
+                     *ngIf="date <= today && date >= editCutoff && !isHolidayDate(date)">
+                  <button
+                    *ngFor="let s of statusList"
+                    class="col-btn"
+                    [ngClass]="'col-btn-' + s.value.toLowerCase()"
+                    (click)="markColumn(i, s.value)"
+                    [title]="'Mark all ' + s.label + ' for ' + (date | date:'EEE')">
+                    {{ s.shortLabel }}
+                  </button>
+                  <button class="col-btn col-btn-clr" (click)="clearColumn(i)"
+                          title="Clear column">✕</button>
+                </div>
+              </th>
+
+              <th class="col-summary">Summary</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                [class.row-alt]="ri % 2 !== 0"
+                [class.row-inactive]="isInactiveRow(row)">
+              <td class="col-user sticky-col">
+                <div class="user-info">
+                  <div class="user-avatar">{{ row.fullName.charAt(0).toUpperCase() }}</div>
+                  <div class="user-details">
+                    <span class="user-name">{{ row.fullName }}</span>
+                    <span class="badge-inactive" *ngIf="isInactiveRow(row)">Inactive</span>
+                    <span class="user-role" *ngIf="roleLabel(row.typeUserId)">{{ roleLabel(row.typeUserId) }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td">
+                <button
+                  class="att-cell"
+                  [ngClass]="cellClass(cell)"
+                  [class.today-glow]="cell.isToday && !cell.isLocked && !cell.isFuture && !cell.isHoliday && !isHolidayDate(columnDates[ci])"
+                  [attr.disabled]="(cell.isFuture || cell.isLocked || cell.isHoliday || isHolidayDate(columnDates[ci])) ? true : null"
+                  (click)="cycleStatus(row, ci)"
+                  [title]="cellTitle(cell)">
+                  {{ cellLabel(cell) }}
+                </button>
+              </td>
+
+              <td class="col-summary">
+                <div class="row-summary">
+                  <ng-container *ngFor="let item of rowSummary(row)">
+                    <span *ngIf="item.count > 0" class="rs"
+                          [ngClass]="'rs-' + item.config.value.toLowerCase()"
+                          [title]="item.config.label">
+                      {{ item.count }}<small>{{ item.config.shortLabel }}</small>
+                    </span>
+                  </ng-container>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+
+          <tfoot>
+            <tr class="totals-row">
+              <td class="col-user sticky-col totals-label">
+                {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
+              </td>
+              <td *ngFor="let t of dayTotals" class="totals-cell">
+                <ng-container *ngFor="let s of statusList">
+                  <span *ngIf="t[s.value] > 0" class="tot"
+                        [ngClass]="'tot-' + s.value.toLowerCase()"
+                        [title]="s.label">{{ t[s.value] }}{{ s.shortLabel }}</span>
+                </ng-container>
+                <span class="tot tot-u"
+                      *ngIf="t['P'] === 0 && t['A'] === 0 && t['FH'] === 0 && t['SH'] === 0"
+                      title="Unmarked">—</span>
+              </td>
+              <td class="col-summary"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div><!-- /weekly grid-wrapper -->
+
+
+      <!-- ════════════════════════════════════════════════════════
+           MONTHLY VIEW — split into two fortnight tables
+           ════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="viewMode === 'monthly'">
+
+        <div class="empty-state" *ngIf="rows.length === 0">
+          <div class="empty-icon">👤</div>
+          <h3>No Users Found</h3>
+          <p>No registered users to display attendance for.</p>
+        </div>
+
+        <ng-container *ngIf="rows.length > 0">
+
+          <!-- ── 1st Fortnight: days 1–15 ──────────────────────── -->
+          <div class="fortnight-block" *ngIf="showFortnight1">
+            <div class="fortnight-title">
+              <i class="fa fa-calendar-day"></i>
+              First Fortnight
+              <span class="fn-range">1 – 15</span>
+            </div>
+
+            <div class="grid-wrapper monthly-view">
+              <table class="attendance-table">
+                <thead>
+                  <tr class="header-row">
+                    <th class="col-user sticky-col"><span class="user-col-label">Staff Member</span></th>
+
+                    <th
+                      class="col-day"
+                      *ngFor="let date of fortnight1Dates; let i = index"
+                      [class.col-today]="date.toDateString() === today.toDateString()"
+                      [class.col-future]="date > today"
+                      [class.col-locked]="date < editCutoff && date <= today"
+                      [class.col-holiday]="isHolidayDate(date)"
+                    >
+                      <div class="day-header">
+                        <span class="day-name">{{ date | date:'EE' }}</span>
+                        <span class="day-date">{{ date | date:'d' }}</span>
+                        <span class="holiday-badge" *ngIf="isHolidayDate(date)" [title]="getHolidayName(date)">H</span>
+                        <i class="fa fa-lock col-lock-icon"
+                           *ngIf="date < editCutoff && date <= today && !isHolidayDate(date)"
+                           title="Locked"></i>
+                      </div>
+
+                      <!-- Bulk column actions — editable non-holiday days only -->
+                      <div class="col-actions"
+                           *ngIf="date <= today && date >= editCutoff && !isHolidayDate(date)">
+                        <button
+                          *ngFor="let s of statusList"
+                          class="col-btn"
+                          [ngClass]="'col-btn-' + s.value.toLowerCase()"
+                          (click)="markColumn(i, s.value)"
+                          [title]="'Mark all ' + s.label + ' for ' + (date | date:'d MMM')">
+                          {{ s.shortLabel }}
+                        </button>
+                        <button class="col-btn col-btn-clr" (click)="clearColumn(i)"
+                                title="Clear column">✕</button>
+                      </div>
+                    </th>
+
+                    <th class="col-summary">Summary</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                      [class.row-alt]="ri % 2 !== 0">
+                    <td class="col-user sticky-col">
+                      <div class="user-info">
+                        <div class="user-avatar">{{ row.fullName.charAt(0).toUpperCase() }}</div>
+                        <div class="user-details">
+                          <span class="user-name">{{ row.fullName }}</span>
+                          <span class="user-role" *ngIf="roleLabel(row.typeUserId)">{{ roleLabel(row.typeUserId) }}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- cells 0–14 → column indices 0–14 -->
+                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td">
+                      <button
+                        class="att-cell"
+                        [ngClass]="cellClass(cell)"
+                        [class.today-glow]="cell.isToday && !cell.isLocked && !cell.isFuture && !cell.isHoliday && !isHolidayDate(fortnight1Dates[ci])"
+                        [attr.disabled]="(cell.isFuture || cell.isLocked || cell.isHoliday || isHolidayDate(fortnight1Dates[ci])) ? true : null"
+                        (click)="cycleStatus(row, ci)"
+                        [title]="cellTitle(cell)">
+                        {{ cellLabel(cell) }}
+                      </button>
+                    </td>
+
+                    <td class="col-summary">
+                      <div class="row-summary">
+                        <ng-container *ngFor="let item of rowSummaryRange(row, 0, 15)">
+                          <span *ngIf="item.count > 0" class="rs"
+                                [ngClass]="'rs-' + item.config.value.toLowerCase()"
+                                [title]="item.config.label">
+                            {{ item.count }}<small>{{ item.config.shortLabel }}</small>
+                          </span>
+                        </ng-container>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+
+                <tfoot>
+                  <tr class="totals-row">
+                    <td class="col-user sticky-col totals-label">
+                      {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
+                    </td>
+                    <td *ngFor="let t of fortnight1Totals" class="totals-cell">
+                      <ng-container *ngFor="let s of statusList">
+                        <span *ngIf="t[s.value] > 0" class="tot"
+                              [ngClass]="'tot-' + s.value.toLowerCase()"
+                              [title]="s.label">{{ t[s.value] }}{{ s.shortLabel }}</span>
+                      </ng-container>
+                      <span class="tot tot-u"
+                            *ngIf="t['P'] === 0 && t['A'] === 0 && t['FH'] === 0 && t['SH'] === 0"
+                            title="Unmarked">—</span>
+                    </td>
+                    <td class="col-summary"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div><!-- /monthly grid-wrapper -->
+          </div><!-- /fortnight-block 1 -->
+
+
+          <!-- ── 2nd Fortnight: days 16–end ────────────────────── -->
+          <div class="fortnight-block" *ngIf="showFortnight2">
+            <div class="fortnight-title">
+              <i class="fa fa-calendar-day"></i>
+              Second Fortnight
+              <span class="fn-range">16 – {{ lastDayOfMonth }}</span>
+            </div>
+
+            <div class="grid-wrapper monthly-view">
+              <table class="attendance-table">
+                <thead>
+                  <tr class="header-row">
+                    <th class="col-user sticky-col"><span class="user-col-label">Staff Member</span></th>
+
+                    <th
+                      class="col-day"
+                      *ngFor="let date of fortnight2Dates; let i = index"
+                      [class.col-today]="date.toDateString() === today.toDateString()"
+                      [class.col-future]="date > today"
+                      [class.col-locked]="date < editCutoff && date <= today"
+                      [class.col-holiday]="isHolidayDate(date)"
+                    >
+                      <div class="day-header">
+                        <span class="day-name">{{ date | date:'EE' }}</span>
+                        <span class="day-date">{{ date | date:'d' }}</span>
+                        <span class="holiday-badge" *ngIf="isHolidayDate(date)" [title]="getHolidayName(date)">H</span>
+                        <i class="fa fa-lock col-lock-icon"
+                           *ngIf="date < editCutoff && date <= today && !isHolidayDate(date)"
+                           title="Locked"></i>
+                      </div>
+
+                      <!-- Bulk column actions — global index = 15 + i -->
+                      <div class="col-actions"
+                           *ngIf="date <= today && date >= editCutoff && !isHolidayDate(date)">
+                        <button
+                          *ngFor="let s of statusList"
+                          class="col-btn"
+                          [ngClass]="'col-btn-' + s.value.toLowerCase()"
+                          (click)="markColumn(15 + i, s.value)"
+                          [title]="'Mark all ' + s.label + ' for ' + (date | date:'d MMM')">
+                          {{ s.shortLabel }}
+                        </button>
+                        <button class="col-btn col-btn-clr" (click)="clearColumn(15 + i)"
+                                title="Clear column">✕</button>
+                      </div>
+                    </th>
+
+                    <th class="col-summary">Summary</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                      [class.row-alt]="ri % 2 !== 0">
+                    <td class="col-user sticky-col">
+                      <div class="user-info">
+                        <div class="user-avatar">{{ row.fullName.charAt(0).toUpperCase() }}</div>
+                        <div class="user-details">
+                          <span class="user-name">{{ row.fullName }}</span>
+                          <span class="user-role" *ngIf="roleLabel(row.typeUserId)">{{ roleLabel(row.typeUserId) }}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- cells 15..end → global column index = 15 + ci -->
+                    <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td">
+                      <button
+                        class="att-cell"
+                        [ngClass]="cellClass(cell)"
+                        [class.today-glow]="cell.isToday && !cell.isLocked && !cell.isFuture && !cell.isHoliday && !isHolidayDate(fortnight2Dates[ci])"
+                        [attr.disabled]="(cell.isFuture || cell.isLocked || cell.isHoliday || isHolidayDate(fortnight2Dates[ci])) ? true : null"
+                        (click)="cycleStatus(row, 15 + ci)"
+                        [title]="cellTitle(cell)">
+                        {{ cellLabel(cell) }}
+                      </button>
+                    </td>
+
+                    <td class="col-summary">
+                      <div class="row-summary">
+                        <ng-container *ngFor="let item of rowSummaryRange(row, 15, row.cells.length)">
+                          <span *ngIf="item.count > 0" class="rs"
+                                [ngClass]="'rs-' + item.config.value.toLowerCase()"
+                                [title]="item.config.label">
+                            {{ item.count }}<small>{{ item.config.shortLabel }}</small>
+                          </span>
+                        </ng-container>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+
+                <tfoot>
+                  <tr class="totals-row">
+                    <td class="col-user sticky-col totals-label">
+                      {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
+                    </td>
+                    <td *ngFor="let t of fortnight2Totals" class="totals-cell">
+                      <ng-container *ngFor="let s of statusList">
+                        <span *ngIf="t[s.value] > 0" class="tot"
+                              [ngClass]="'tot-' + s.value.toLowerCase()"
+                              [title]="s.label">{{ t[s.value] }}{{ s.shortLabel }}</span>
+                      </ng-container>
+                      <span class="tot tot-u"
+                            *ngIf="t['P'] === 0 && t['A'] === 0 && t['FH'] === 0 && t['SH'] === 0"
+                            title="Unmarked">—</span>
+                    </td>
+                    <td class="col-summary"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div><!-- /monthly grid-wrapper -->
+          </div><!-- /fortnight-block 2 -->
+
+        </ng-container>
+      </ng-container><!-- /monthly view -->
+
+    </ng-container>
+  </div><!-- /content-container -->
+
+</div><!-- /page-container -->
+
+<!-- ── Shared unsaved-changes guard modal ──────────────────────────────────── -->
+<app-unsaved-changes-modal [saving]="isSaving"></app-unsaved-changes-modal>

@@ -1,0 +1,52 @@
+/* ── Inline label + input layout handled by global styles.css ──────── */
+/* .form-group grid (130px label + 1fr input) is set globally.          */
+
+/* For signature block: align label to top of tall content */
+.form-group:has(.signature-section) .form-label {
+  align-self: start;
+  padding-top: .5rem;
+}
+
+/* Type selector */
+.type-selector {
+  display: flex;
+  gap: 0;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  margin-bottom: 1.25rem;
+  width: fit-content;
+  box-shadow: var(--shadow-light);
+}
+
+.type-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.type-btn:hover:not(.active) { background: var(--bg-light); color: var(--text-primary); }
+
+.type-btn.active {
+  background: var(--primary-color);
+  color: #fff;
+  box-shadow: var(--shadow-light);
+}
+
+/* Form errors */
+.form-error { color: var(--btn-danger, #dc2626); font-size: 0.78rem; margin-top: 2px; display: block; }
+.is-invalid  { border-color: var(--btn-danger, #dc2626) !important; }
+
+.signature-existing-actions{
+  gap:1em;
+}

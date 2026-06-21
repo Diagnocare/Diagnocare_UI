@@ -1,0 +1,738 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Bill Receipt — Component Styles
+   Base layout & theming come from pathology-theme.css (global).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Header actions ─────────────────────────────────────────────────── */
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+/* ── Patient ID search box ──────────────────────────────────────────── */
+.patient-id-input-section {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5em;
+}
+
+.patient-id-input-section .card {
+  min-width: 320px;
+  padding: 0.875em 1em;
+}
+
+.patient-id-input-section .card-body {
+  display: flex;
+  align-items: center;
+  gap: 0.625em;
+  padding: 0;
+}
+
+.patient-id-input-section h3 {
+  font-size: 1.05em;
+  margin: 0 0.5em 0 0;
+  white-space: nowrap;
+}
+
+.patient-id-input-section input.form-control {
+  width: 160px;
+}
+
+/* ── Error ──────────────────────────────────────────────────────────── */
+.br-error-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5em;
+}
+
+.br-error-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75em;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  border-radius: 12px;
+  padding: 1em 1.5em;
+  max-width: 480px;
+  width: 100%;
+}
+
+.br-error-icon {
+  font-size: 1.4em;
+  color: #dc2626;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.br-error-title {
+  font-size: 0.95em;
+  font-weight: 700;
+  color: #991b1b;
+  margin: 0 0 4px;
+}
+
+.br-error-msg {
+  font-size: 0.85em;
+  color: #7f1d1d;
+  margin: 0;
+}
+
+/* ── Not found ──────────────────────────────────────────────────────── */
+.not-found-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3em 1em;
+}
+
+.not-found-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 3em 2.5em;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.not-found-icon {
+  margin-bottom: 1em;
+}
+
+.not-found-title {
+  font-size: 1.25em;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0 0 0.5em;
+}
+
+.not-found-card p {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  margin: 0 0 1.5em;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Summary Banner
+   ════════════════════════════════════════════════════════════════════ */
+.br-summary-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.1em 1.5em;
+  margin-bottom: 1.5em;
+  box-shadow: 0 2px 12px rgba(30, 91, 168, 0.07);
+}
+
+.br-summary-id {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+}
+
+.br-summary-id-icon {
+  font-size: 2em;
+  color: var(--primary-color);
+  opacity: 0.7;
+}
+
+.br-summary-id-label {
+  display: block;
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.br-summary-id-value {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.br-summary-divider {
+  width: 1px;
+  height: 2.5em;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+.br-summary-stats {
+  display: flex;
+  gap: 2em;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.br-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.br-stat-label {
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.br-stat-value {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.br-stat--paid  .br-stat-value { color: #166534; }
+.br-stat--due   .br-stat-value { color: #991b1b; }
+.br-stat--clear .br-stat-value { color: #166534; }
+
+.br-summary-status {
+  margin-left: auto;
+}
+
+.br-fully-paid-chip,
+.br-settled-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  color: #166534;
+  font-size: 0.82em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.br-balance-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #991b1b;
+  font-size: 0.82em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Card Stack  (reuses .test-cards-stack, .test-card, .card-tab,
+   .card-content, .card-header, .card-body from the global SCSS already
+   defined for patient-test-list — duplicated here for encapsulation)
+   ════════════════════════════════════════════════════════════════════ */
+.test-cards-stack {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  min-height: 480px;
+  padding: 2em;
+  padding-right: 15em;
+}
+
+.test-card {
+  position: absolute;
+  left: 2em;
+  top: 2em;
+  width: calc(100% - 18em);
+  min-height: 430px;
+  display: flex;
+  flex-direction: row;
+  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.09);
+}
+
+.test-card:hover  { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13); }
+.test-card.active { box-shadow: 0 8px 32px rgba(30, 91, 168, 0.22); }
+
+/* Side tab */
+.card-tab {
+  position: absolute;
+  right: -4em;
+  top: 0;
+  width: 4em;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1em 0.5em;
+  color: #fff;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transition: all 0.3s ease;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.12);
+}
+
+.card-tab:hover { width: 5em; right: -5em; }
+.card-tab.hidden { opacity: 0; pointer-events: none; }
+
+.tab-id {
+  font-size: 0.72em;
+  font-weight: 700;
+  opacity: 0.9;
+  margin-bottom: 0.5em;
+}
+
+.tab-count {
+  font-size: 0.72em;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Card content wrapper */
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border-radius: var(--radius-lg);
+}
+
+/* Card header */
+.test-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(30, 91, 168, 0.08), rgba(102, 126, 234, 0.08));
+  padding: 1.1em 1.5em;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.header-title { display: flex; align-items: center; gap: 0.75em; }
+.card-header-right { display: flex; align-items: center; gap: 0.6em; }
+
+.br-card-title-block {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.br-card-testid {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.test-count-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid;
+  font-size: 0.78em;
+  font-weight: 700;
+}
+
+.status-badge.status-paid    { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.status-badge.status-partial { background: #fefce8; border-color: #fde047; color: #92400e; }
+.status-badge.status-pending { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+
+/* Card body */
+.test-card .card-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25em 1.5em;
+}
+
+/* ── Refund strip (shown per-card when refunds exist) ───────────────── */
+.br-refund-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 1em;
+  padding: 0.5em 0.9em;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  width: fit-content;
+}
+
+.br-refund-strip-icon {
+  color: #1d4ed8;
+  font-size: 0.85em;
+}
+
+.br-refund-strip-label {
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1e40af;
+}
+
+.br-refund-strip-value {
+  font-size: 1em;
+  font-weight: 800;
+  color: #1d4ed8;
+}
+
+/* ── Receipt table — replaces the old grid approach ─────────────────
+   A <table> is the only element that guarantees header cells and data
+   cells occupy exactly the same column widths. CSS grid across separate
+   containers cannot achieve this reliably.
+   ──────────────────────────────────────────────────────────────────── */
+.br-receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88em;
+}
+
+/* ── Header ── */
+.br-receipt-thead th {
+  padding: 6px 10px;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+  background: transparent;
+}
+.br-th-amount { text-align: right; }
+.br-th-action { text-align: center; width: 130px; }
+
+/* ── Payment row ── */
+.br-receipt-tr {
+  cursor: pointer;
+  transition: background 0.14s;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.br-receipt-tr:hover { background: rgba(30, 91, 168, 0.05); }
+.br-receipt-tr:last-child { border-bottom: none; }
+
+/* Mute payment row when refunded */
+.br-tr--has-refund td { opacity: 0.7; }
+.br-tr--has-refund:hover td { opacity: 1; }
+
+/* ── Refund row ── */
+.br-refund-tr {
+  cursor: pointer;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  transition: background 0.14s;
+}
+.br-refund-tr:hover { background: #dbeafe; }
+
+/* ── Shared cell padding ── */
+.br-receipt-tr td,
+.br-refund-tr td {
+  padding: 9px 10px;
+  vertical-align: middle;
+}
+
+/* ── Column-specific cell styles ── */
+.br-td-id   { font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.br-td-date { font-size: 0.9em; color: var(--text-secondary); white-space: nowrap; }
+.br-td-mode { font-size: 0.85em; white-space: nowrap; }
+.br-td-kind { white-space: nowrap; }
+.br-td-amount {
+  text-align: right;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #166534;
+}
+.br-td-action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.br-receipt-row:hover {
+  background: rgba(30, 91, 168, 0.05);
+  box-shadow: 0 2px 10px rgba(30, 91, 168, 0.1);
+  border-color: rgba(30, 91, 168, 0.2);
+}
+
+.br-rcpt-file-icon {
+  margin-right: 5px;
+  color: var(--primary-color);
+  font-size: 0.85em;
+}
+
+.br-rcpt-id   { font-weight: 700; color: var(--text-primary); }
+.br-rcpt-date { font-size: 0.85em; color: var(--text-secondary); }
+.br-rcpt-mode {
+  font-size: 0.78em;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #f0f4ff;
+  color: var(--primary-color);
+  border: 1px solid #c7d7f0;
+  display: inline-block;
+  white-space: nowrap;
+}
+.br-rcpt-type {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.br-rcpt-amount {
+  font-weight: 700;
+  color: #166534;
+  text-align: right;
+}
+.br-rcpt-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--primary-color);
+  opacity: 0.4;
+  transition: opacity 0.14s;
+}
+.br-receipt-row:hover .br-rcpt-action { opacity: 1; }
+
+.br-pdf-icon { font-size: 0.9em; }
+
+/* ── Receipt row kind tags ───────────────────────────────────────────── */
+.br-rcpt-kind {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .72rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 20px; white-space: nowrap; text-transform: uppercase; letter-spacing: .04em;
+}
+.br-rcpt-kind--payment {
+  background: #dcfce7; color: #166534; border: 1px solid #86efac;
+}
+.br-rcpt-kind--refund {
+  background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd;
+}
+
+/* Amount variants */
+.br-rcpt-amount { font-weight: 700; text-align: right; }
+.br-rcpt-amount--paid   { color: #166534; }
+.br-rcpt-amount--refund {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+}
+.br-rcpt-original {
+  font-size: .8em; color: #94a3b8; text-decoration: line-through;
+}
+.br-rcpt-refund-val {
+  font-size: .88em; color: #2563eb; font-weight: 700;
+}
+
+/* Refund reason detail row */
+.br-refund-detail-row {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 5px 14px 5px 32px; font-size: .78rem;
+  color: #64748b; background: #f0f9ff;
+  border-left: 3px solid #93c5fd; border-radius: 0 0 6px 6px;
+  margin-top: -4px; margin-bottom: 2px;
+}
+
+/* Cancelled booking badge in card header */
+.br-cancelled-badge {
+  background: #fee2e2 !important; color: #dc2626 !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+/* Cancelled footer chip */
+.br-cancelled-footer-chip {
+  display: flex; align-items: center; gap: 7px;
+  font-size: .82rem; font-weight: 600; color: #dc2626;
+  background: #fff5f5; border: 1px solid #fca5a5;
+  border-radius: 8px; padding: 7px 12px;
+}
+
+/* Refund button inside receipt row */
+.btn-refund-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  font-size: 0.76em;
+  font-weight: 700;
+  cursor: pointer;
+  background: #eff6ff;
+  color: #2563eb;
+  transition: background 0.14s, border-color 0.14s;
+  white-space: nowrap;
+}
+.btn-refund-row:hover { background: #dbeafe; border-color: #60a5fa; }
+
+/* Refunded chip */
+.br-refunded-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.76em;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  white-space: nowrap;
+}
+
+/* Struck-through amount on refunded payment rows */
+.br-rcpt-amount--struck {
+  text-decoration: line-through;
+  color: #94a3b8 !important;
+}
+
+/* ── Refund row cell overrides ───────────────────────────────────────── */
+.br-rr-icon   { color: #2563eb; margin-right: 4px; font-size: 0.85em; }
+.br-rr-id     { font-weight: 700; color: #1d4ed8; }
+.br-rr-date   { color: #3b82f6; }
+.br-rr-mode   { color: #94a3b8; }
+.br-rr-amount { color: #1d4ed8 !important; font-weight: 800; }
+.br-rr-action {
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  opacity: 0.6; transition: opacity 0.14s;
+}
+.br-refund-tr:hover .br-rr-action { opacity: 1; }
+.br-rr-reason {
+  font-size: 0.82em; color: #64748b;
+  max-width: 90px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; display: inline-block;
+}
+
+/* ── Card footer ─────────────────────────────────────────────────────── */
+.test-card .card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 0.85em 1.5em;
+  border-top: 1px solid var(--border-color);
+  background: #f8fafc;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.br-footer-remaining {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.br-footer-remaining strong {
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.btn-pay-now-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.85em;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.btn-pay-now-card:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.45);
+}
+
+.btn-pay-now-card:active { transform: scale(0.97); }
+
+/* ── TPA Payment Status Badge (receipt row) ──────────────────────────── */
+.tpa-status-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
+.tpa-status--pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.tpa-status--approved {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.tpa-status--settled {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+/* ── TPA Details Button ──────────────────────────────────────────────── */
+.btn-tpa-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  border: 1px solid #1e40af;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e40af;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  vertical-align: middle;
+}
+
+.btn-tpa-view:hover {
+  background: #1e40af;
+  color: #fff;
+}
+
+/* ── Utility ─────────────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); border: 0;
+}
+
+/* ── Print ───────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}

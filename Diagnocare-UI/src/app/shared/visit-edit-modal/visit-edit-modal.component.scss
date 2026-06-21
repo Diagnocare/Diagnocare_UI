@@ -1,0 +1,153 @@
+.vem-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+}
+
+.vem-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  width: min(520px, 96vw);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  overflow: hidden;
+
+  @media (max-width: 480px) {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+    max-height: 90vh;
+  }
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.vem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.vem-header-left { display: flex; align-items: center; gap: .75rem; }
+.vem-icon        { font-size: 1.4rem; }
+.vem-title       { font-size: .97rem; font-weight: 700; color: #0f172a; }
+.vem-subtitle    { font-size: .78rem; color: #64748b; margin-top: 1px; }
+.vem-close {
+  background: none; border: none; font-size: 1.1rem; color: #94a3b8;
+  cursor: pointer; padding: .25rem; border-radius: 6px;
+  &:hover { background: #f1f5f9; color: #475569; }
+}
+
+// ── Body ──────────────────────────────────────────────────────────────────────
+.vem-body {
+  padding: 1.1rem 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+
+.vem-field { display: flex; flex-direction: column; gap: .35rem; }
+
+.vem-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+
+.vem-label {
+  font-size: .81rem;
+  font-weight: 700;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  i { color: #0891b2; }
+}
+
+.vem-select,
+.vem-input {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .5rem .75rem;
+  font-size: .88rem;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color .15s;
+  &:focus { outline: none; border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,.1); }
+  &.is-invalid { border-color: #ef4444; }
+}
+
+.vem-error {
+  font-size: .75rem;
+  color: #ef4444;
+  margin-top: .15rem;
+}
+
+// ── Role filter chips ─────────────────────────────────────────────────────────
+.vem-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin-bottom: .1rem;
+}
+
+.vem-chip {
+  padding: .2rem .65rem;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: .73rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  &:hover { border-color: #0891b2; color: #0891b2; }
+  &.active { background: #0891b2; border-color: #0891b2; color: #fff; }
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+.vem-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .65rem;
+  padding: .85rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.vem-btn {
+  padding: .52rem 1.15rem;
+  border-radius: 8px;
+  font-size: .87rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  transition: all .15s;
+  &:disabled { opacity: .6; cursor: default; }
+}
+.vem-btn-cancel {
+  background: #fff; color: #64748b; border: 1.5px solid #e2e8f0;
+  &:hover:not(:disabled) { background: #f1f5f9; }
+}
+.vem-btn-save {
+  background: #0891b2; color: #fff; border: 1.5px solid #0891b2;
+  &:hover:not(:disabled) { background: #0369a1; border-color: #0369a1; }
+}

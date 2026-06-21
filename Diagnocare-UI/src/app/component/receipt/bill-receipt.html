@@ -1,0 +1,313 @@
+<div class="page-container">
+
+  <!-- ── Page Header ──────────────────────────────────────────────────── -->
+  <div class="page-header no-print">
+    <div class="header-left">
+      <h1>Payment Receipts</h1>
+      <p class="subtitle">Test-wise payment history &amp; balance summary</p>
+    </div>
+    <div class="header-actions-group">
+      <button class="btn btn-back" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Loading ──────────────────────────────────────────────────────── -->
+  <app-loading-spinner [isLoading]="isLoading" [message]="loadingMessage" />
+
+  <!-- ── Error ────────────────────────────────────────────────────────── -->
+  <div *ngIf="errorMessage && !isLoading" class="br-error-wrap">
+    <div class="br-error-card">
+      <i class="fa fa-exclamation-circle br-error-icon"></i>
+      <div>
+        <p class="br-error-title">Something went wrong</p>
+        <p class="br-error-msg" *ngIf="errorMessage.includes('401')">
+          You are not authorised. Please log in and try again.
+        </p>
+        <p class="br-error-msg" *ngIf="!errorMessage.includes('401')">{{ errorMessage }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Not Found ────────────────────────────────────────────────────── -->
+  <div *ngIf="notFound && !isLoading" class="not-found-wrapper">
+    <div class="not-found-card">
+      <div class="not-found-icon">
+        <i class="fa fa-search" style="font-size:2.5rem;color:#94a3b8;"></i>
+      </div>
+      <h2 class="not-found-title">No Receipts Found</h2>
+      <p>No records found for <strong>{{ inputSearchValue }}</strong></p>
+      <button class="btn btn-back" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i> Try Again
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Search Input ──────────────────────────────────────────────────── -->
+  <div *ngIf="showSearchInput && !isLoading" class="patient-id-input-section">
+    <div class="card">
+      <div class="card-body">
+        <h3>Enter Patient ID or Test ID</h3>
+        <input type="text" class="form-control" [(ngModel)]="inputSearchValue"
+          placeholder="Patient ID or Patient Test ID" (keyup.enter)="onSearchSubmit()">
+        <button class="btn btn-primary" (click)="onSearchSubmit()">Load</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!--  Main Content                                                     -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="groupedReceipts.length && !isLoading">
+
+    <!-- ── Summary Banner ───────────────────────────────────────────── -->
+    <div class="br-summary-banner">
+      <div class="br-summary-id">
+        <i class="fa fa-user-circle br-summary-id-icon"></i>
+        <div>
+          <span class="br-summary-id-label">Patient / Test ID</span>
+          <span class="br-summary-id-value">{{ inputSearchValue }}</span>
+        </div>
+      </div>
+
+      <div class="br-summary-divider"></div>
+
+      <div class="br-summary-stats">
+        <div class="br-stat">
+          <span class="br-stat-label">Bookings</span>
+          <span class="br-stat-value">{{ groupCount }}</span>
+        </div>
+        <div class="br-stat">
+          <span class="br-stat-label">Net Amount</span>
+          <span class="br-stat-value">₹{{ totalNetAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="br-stat br-stat--paid">
+          <span class="br-stat-label">Total Paid</span>
+          <span class="br-stat-value">₹{{ totalPaidOverall | number:'1.2-2' }}</span>
+        </div>
+        <!-- Refund total — shown only when at least one refund exists -->
+        <div class="br-stat br-stat--refund" *ngIf="totalRefundedOverall > 0">
+          <span class="br-stat-label">Total Refunded</span>
+          <span class="br-stat-value">₹{{ totalRefundedOverall | number:'1.2-2' }}</span>
+        </div>
+        <div class="br-stat"
+             [class.br-stat--due]="totalRemainingOverall > 0"
+             [class.br-stat--clear]="totalRemainingOverall === 0">
+          <span class="br-stat-label">Balance Due</span>
+          <span class="br-stat-value">₹{{ totalRemainingOverall | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="br-summary-status">
+        <span class="br-fully-paid-chip" *ngIf="!hasAnyPendingBalance">
+          <i class="fa fa-check-circle"></i> Fully Settled
+        </span>
+        <span class="br-balance-chip" *ngIf="hasAnyPendingBalance">
+          <i class="fa fa-exclamation-circle"></i> Balance Pending
+        </span>
+      </div>
+    </div>
+
+    <!-- ── Card Stack ─────────────────────────────────────────────────── -->
+    <div class="test-cards-stack">
+      <div *ngFor="let group of groupedReceipts; let i = index"
+           class="test-card card"
+           [class.active]="isActiveCard(i)"
+           [style.z-index]="getCardZIndex(i)"
+           [style.transform]="isActiveCard(i) ? 'translateX(0)' : 'translateX(' + (i - activeCardIndex) * 60 + 'px)'"
+           (click)="selectCard(i)">
+
+        <!-- Side tab (visible on stacked / inactive cards) -->
+        <div class="card-tab" [class.hidden]="isActiveCard(i)">
+          <span class="tab-id">#{{ group.patientTestId }}</span>
+          <span class="tab-count">{{ group.receipts.length }} Rec.</span>
+        </div>
+
+        <div class="card-content">
+
+          <!-- ── Card Header ──────────────────────────────────────── -->
+          <div class="card-header">
+            <div class="header-title">
+              <div class="br-card-title-block">
+                <span class="br-card-testid">Test #{{ group.patientTestId }}</span>
+                <span class="test-count-badge">
+                  {{ group.receipts.length }} Receipt{{ group.receipts.length !== 1 ? 's' : '' }}
+                </span>
+              </div>
+            </div>
+            <div class="card-header-right">
+              <!-- Cancelled badge takes priority -->
+              <span class="status-badge br-cancelled-badge" *ngIf="group.isCancelled">
+                <i class="fa fa-ban"></i> Booking Cancelled
+              </span>
+              <span class="status-badge" *ngIf="!group.isCancelled" [ngClass]="getPaymentStatusClass(group.paymentStatus)">
+                <i class="fa"
+                   [ngClass]="{
+                     'fa-check-circle': group.paymentStatus === 'Paid',
+                     'fa-adjust':       group.paymentStatus === 'Partial',
+                     'fa-clock-o':      group.paymentStatus === 'Pending'
+                   }"></i>
+                {{ group.paymentStatus }}
+              </span>
+            </div>
+          </div>
+
+          <!-- ── Card Body ────────────────────────────────────────── -->
+          <div class="card-body">
+
+            <!-- Refund summary strip — visible only when this test has refunds -->
+            <div class="br-refund-strip" *ngIf="group.totalRefunded > 0">
+              <i class="fa fa-undo br-refund-strip-icon"></i>
+              <span class="br-refund-strip-label">Refund Issued</span>
+              <span class="br-refund-strip-value">−₹{{ group.totalRefunded | number:'1.2-2' }}</span>
+            </div>
+
+            <!-- Receipt table — single grid so header and rows always align -->
+            <table class="br-receipt-table">
+              <thead>
+                <tr class="br-receipt-thead">
+                  <th>Receipt #</th>
+                  <th>Date</th>
+                  <th>Mode</th>
+                  <th>Kind</th>
+                  <th class="br-th-amount">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngFor="let r of group.receipts">
+
+                  <!-- ── Payment row ────────────────────────────── -->
+                  <tr class="br-receipt-tr"
+                      [class.br-tr--has-refund]="r.isRefunded"
+                      (click)="onReceiptClick(r, $event)"
+                      title="Click to generate payment receipt PDF">
+
+                    <td class="br-td-id">
+                      <i class="fa fa-file-text-o br-rcpt-file-icon"></i>
+                      {{ r.receiptId }}
+                    </td>
+                    <td class="br-td-date">{{ formatDate(r.createdDate) }}</td>
+                    <td class="br-td-mode">
+                      {{ r.paymentMode || '—' }}
+                      <ng-container *ngIf="r.paymentMode === 'TPA'">
+                        <span class="tpa-status-badge"
+                              [class.tpa-status--pending]="!r.tpaPaymentStatus || r.tpaPaymentStatus === 'Pending'"
+                              [class.tpa-status--approved]="r.tpaPaymentStatus === 'Approved'"
+                              [class.tpa-status--settled]="r.tpaPaymentStatus === 'Settled'">
+                          {{ r.tpaPaymentStatus || 'Pending' }}
+                        </span>
+                        <button class="btn-tpa-view"
+                                type="button"
+                                title="View / Edit TPA Details"
+                                (click)="openTpaView(r, $event)">
+                          <i class="fa fa-pencil"></i> TPA Details
+                        </button>
+                      </ng-container>
+                    </td>
+                    <td class="br-td-kind">
+                      <span class="br-rcpt-kind br-rcpt-kind--payment">
+                        <i class="fa fa-arrow-circle-down"></i> Payment
+                      </span>
+                    </td>
+                    <td class="br-td-amount">
+                      <span [class.br-rcpt-amount--struck]="r.isRefunded">
+                        ₹{{ r.amountPaid | number:'1.2-2' }}
+                      </span>
+                    </td>
+                    <td class="br-td-action" (click)="$event.stopPropagation()"></td>
+                  </tr>
+
+                  <!-- ── Refund row ──────────────────────────────── -->
+                  <tr class="br-refund-tr"
+                      *ngIf="r.isRefunded"
+                      (click)="onRefundRowClick(r, $event)"
+                      title="Click to generate refund receipt PDF">
+
+                    <td class="br-td-id br-rr-id">
+                      <i class="fa fa-undo br-rr-icon"></i>
+                      Ref #{{ r.receiptId }}
+                    </td>
+                    <td class="br-td-date br-rr-date">{{ formatDate(r.refundedAt || '') }}</td>
+                    <td class="br-rr-mode">—</td>
+                    <td class="br-td-kind">
+                      <span class="br-rcpt-kind br-rcpt-kind--refund">
+                        <i class="fa fa-arrow-circle-up"></i> Refund
+                      </span>
+                    </td>
+                    <td class="br-td-amount br-rr-amount">
+                      −₹{{ r.refundAmount | number:'1.2-2' }}
+                    </td>
+                    <td class="br-td-action br-rr-action" (click)="$event.stopPropagation()">
+                      <span class="br-rr-reason" *ngIf="r.refundReason" [title]="r.refundReason">
+                        <i class="fa fa-info-circle"></i> {{ r.refundReason }}
+                      </span>
+                    </td>
+                  </tr>
+
+                </ng-container>
+              </tbody>
+            </table>
+
+          </div><!-- /card-body -->
+
+          <!-- ── Card Footer ──────────────────────────────────────── -->
+          <div class="card-footer">
+            <!-- Cancelled: never show Pay Now -->
+            <span class="br-cancelled-footer-chip" *ngIf="group.isCancelled">
+              <i class="fa fa-ban"></i> Booking cancelled — no further payments accepted
+            </span>
+
+            <!-- Active booking with outstanding balance -->
+            <ng-container *ngIf="!group.isCancelled">
+              <span class="br-footer-remaining" *ngIf="group.remaining > 0">
+                Balance: <strong>₹{{ group.remaining | number:'1.2-2' }}</strong>
+              </span>
+              <button class="btn-pay-now-card"
+                      *ngIf="group.remaining > 0"
+                      (click)="openGroupPaymentModal(group, $event)">
+                <i class="fa fa-credit-card"></i> Pay Now
+              </button>
+              <span class="br-settled-chip" *ngIf="group.remaining === 0">
+                <i class="fa fa-check-circle"></i> Fully Settled
+              </span>
+            </ng-container>
+          </div>
+
+        </div><!-- /card-content -->
+      </div>
+    </div>
+
+  </ng-container>
+
+</div><!-- /page-container -->
+
+<!-- ── Payment Modal ──────────────────────────────────────────────────── -->
+<app-payment-modal
+  [visible]="showPaymentModal"
+  [patientTestId]="groupPaymentTestId"
+  [testAmount]="groupNetAmount"
+  [netAmount]="groupNetAmount"
+  [topupMode]="true"
+  [prefillAmount]="groupPrefillAmount"
+  (paid)="onPaymentSaved()"
+  (cancelled)="onPaymentCancelled()">
+</app-payment-modal>
+
+<!-- ── Refund Modal ────────────────────────────────────────────────────── -->
+<app-refund-modal
+  #refundModal
+  [visible]="showRefundModal"
+  [receiptId]="refundTargetReceipt?.receiptId ?? 0"
+  [maxRefund]="refundTargetReceipt?.amountPaid ?? 0"
+  (confirmed)="onRefundConfirmed($event)"
+  (cancelled)="onRefundDismissed()">
+</app-refund-modal>
+
+<!-- ── TPA Details Edit Modal ──────────────────────────────────────────── -->
+<app-tpa-details-modal
+  [visible]="showTpaModal"
+  [initialValues]="tpaModalDetails"
+  (confirmed)="onTpaConfirmed($event)"
+  (cancelled)="closeTpaModal()">
+</app-tpa-details-modal>

@@ -1,0 +1,200 @@
+<div class="el-root">
+
+  <!-- ── Left panel ── -->
+  <div class="el-left">
+    <div class="el-left-bg-circles">
+      <span class="el-circle el-c1"></span>
+      <span class="el-circle el-c2"></span>
+      <span class="el-circle el-c3"></span>
+    </div>
+    <div class="el-left-content">
+      <div class="el-brand">
+        <div class="el-brand-icon"><i class="fas fa-heartbeat"></i></div>
+        <span class="el-brand-name">Diagno<span class="el-brand-accent">care</span></span>
+      </div>
+      <h1 class="el-hero-title">Extend Your<br>Licence.</h1>
+      <p class="el-hero-sub">
+        Keep your pathology running without interruption.
+        Choose a plan and we'll extend your access instantly.
+      </p>
+      <ul class="el-features">
+        <li>
+          <span class="el-feat-icon"><i class="fas fa-sync-alt"></i></span>
+          <div>
+            <strong>Zero Downtime</strong>
+            <span>Your data stays intact — no re-registration needed.</span>
+          </div>
+        </li>
+        <li>
+          <span class="el-feat-icon"><i class="fas fa-calendar-check"></i></span>
+          <div>
+            <strong>Instant Activation</strong>
+            <span>New expiry takes effect immediately after extension.</span>
+          </div>
+        </li>
+        <li>
+          <span class="el-feat-icon"><i class="fas fa-shield-alt"></i></span>
+          <div>
+            <strong>All Data Preserved</strong>
+            <span>Patients, tests, reports — everything is kept safe.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Right panel ── -->
+  <div class="el-right">
+    <div class="el-card">
+
+      <!-- ════ LOADING ════ -->
+      <div class="el-state-loading" *ngIf="loadState === 'loading'">
+        <span class="el-spinner el-spinner-lg"></span>
+        <p>Fetching your pathology details…</p>
+      </div>
+
+      <!-- ════ ERROR ════ -->
+      <div class="el-state-msg" *ngIf="loadState === 'error'">
+        <i class="fas fa-exclamation-circle el-state-icon el-icon-error"></i>
+        <h3>Could Not Load Details</h3>
+        <p>{{ loadError }}</p>
+        <a routerLink="/home" class="el-btn el-btn-ghost">
+          <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+      </div>
+
+      <!-- ════ NOT REGISTERED ════ -->
+      <div class="el-state-msg" *ngIf="loadState === 'not-registered'">
+        <i class="fas fa-info-circle el-state-icon el-icon-info"></i>
+        <h3>No Registration Found</h3>
+        <p>This pathology has not been registered yet. Please register first to use Diagnocare.</p>
+        <a routerLink="/register-pathology" class="el-btn el-btn-primary">
+          <i class="fas fa-hospital-alt"></i> Register Pathology
+        </a>
+      </div>
+
+      <!-- ════ SUCCESS ════ -->
+      <div class="el-state-success" *ngIf="result">
+        <div class="el-success-icon"><i class="fas fa-check-circle"></i></div>
+        <h2 class="el-success-title">Licence Extended!</h2>
+        <p class="el-success-sub">
+          Your licence for <strong>{{ pathologyInfo?.path_Name }}</strong> has been
+          extended. New expiry: <strong>{{ newExpiryDisplay }}</strong>.
+        </p>
+        <div class="el-key-box" *ngIf="result.licenseKey">
+          <div class="el-key-label"><i class="fas fa-key"></i> Updated Licence Key</div>
+          <div class="el-key-value">{{ result.licenseKey }}</div>
+          <button class="el-key-copy" type="button" (click)="copyKey()">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+        </div>
+        <a routerLink="/login" class="el-btn el-btn-primary el-btn-wide">
+          <i class="fas fa-sign-in-alt"></i> Go to Login
+        </a>
+      </div>
+
+      <!-- ════ MAIN FORM ════ -->
+      <ng-container *ngIf="loadState === 'loaded' && !result">
+
+        <div class="el-card-header">
+          <div class="el-card-logo"><i class="fas fa-calendar-plus"></i></div>
+          <h2 class="el-card-title">Extend Licence</h2>
+          <p class="el-card-sub">Your pathology details are pre-filled from the database</p>
+        </div>
+
+        <!-- Expiry warning banner -->
+        <div class="el-expiry-banner"
+             [class.el-expiry-danger]="daysLeft <= 5"
+             [class.el-expiry-warn]="daysLeft > 5">
+          <i class="fas" [class.fa-exclamation-triangle]="daysLeft <= 5"
+                         [class.fa-clock]="daysLeft > 5"></i>
+          <span *ngIf="daysLeft > 0">
+            Licence expires on <strong>{{ currentExpiryDisplay }}</strong>
+            — <strong>{{ daysLeft }} day{{ daysLeft !== 1 ? 's' : '' }}</strong> remaining.
+          </span>
+          <span *ngIf="daysLeft <= 0">
+            Licence <strong>expired</strong> on {{ currentExpiryDisplay }}.
+          </span>
+        </div>
+
+        <!-- Submit error -->
+        <div class="el-error-banner" *ngIf="submitError">
+          <i class="fas fa-exclamation-circle"></i> {{ submitError }}
+        </div>
+
+        <!-- ── Pathology details (read-only) ── -->
+        <div class="el-section-label">Registered Pathology</div>
+        <div class="el-info-grid">
+          <div class="el-info-item">
+            <span class="el-info-lbl"><i class="fas fa-hospital-alt"></i> Name</span>
+            <span class="el-info-val">{{ pathologyInfo?.path_Name || '—' }}</span>
+          </div>
+          <div class="el-info-item" *ngIf="pathologyInfo?.path_Branch">
+            <span class="el-info-lbl"><i class="fas fa-code-branch"></i> Branch</span>
+            <span class="el-info-val">{{ pathologyInfo?.path_Branch }}</span>
+          </div>
+          <div class="el-info-item">
+            <span class="el-info-lbl"><i class="fas fa-map-marker-alt"></i> Address</span>
+            <span class="el-info-val">
+              {{ pathologyInfo?.path_Address1 }}
+              <ng-container *ngIf="pathologyInfo?.path_Address2">, {{ pathologyInfo?.path_Address2 }}</ng-container>
+              <ng-container *ngIf="pathologyInfo?.path_City">, {{ pathologyInfo?.path_City }}</ng-container>
+              <ng-container *ngIf="pathologyInfo?.path_State">, {{ pathologyInfo?.path_State }}</ng-container>
+              <ng-container *ngIf="pathologyInfo?.path_Pincode"> – {{ pathologyInfo?.path_Pincode }}</ng-container>
+            </span>
+          </div>
+          <div class="el-info-item">
+            <span class="el-info-lbl"><i class="fas fa-phone"></i> Contact</span>
+            <span class="el-info-val">{{ pathologyInfo?.path_ContactNo || '—' }}</span>
+          </div>
+          <div class="el-info-item">
+            <span class="el-info-lbl"><i class="fas fa-envelope"></i> Email</span>
+            <span class="el-info-val">{{ pathologyInfo?.path_Email || '—' }}</span>
+          </div>
+          <div class="el-info-item">
+            <span class="el-info-lbl"><i class="fas fa-certificate"></i> Current Plan</span>
+            <span class="el-info-val">{{ pathologyInfo?.license_Type || '—' }}</span>
+          </div>
+        </div>
+
+        <!-- ── Choose new plan (Trial hidden during extension) ── -->
+        <div class="el-section-label">Choose New Plan</div>
+        <div class="el-licence-toggle">
+          <button type="button" class="el-lic-btn el-lic-active"
+                  disabled>
+            <i class="fas fa-certificate"></i>
+            <div>
+              <span class="el-lic-name">Full Licence</span>
+              <span class="el-lic-desc">+365 days from Date of Expiry</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- New expiry preview -->
+        <div class="el-expiry-preview">
+          <i class="fas fa-calendar-alt"></i>
+          New expiry: <strong>{{ newExpiryDisplay }}</strong>
+          <span class="el-expiry-note">(365 days from Date of Expiry)</span>
+        </div>
+
+        <!-- Submit -->
+        <button type="button" class="el-btn el-btn-primary el-btn-wide" (click)="submit()" [disabled]="isSubmitting">
+          <ng-container *ngIf="!isSubmitting">
+            <i class="fas fa-sync-alt"></i> Extend Licence
+          </ng-container>
+          <ng-container *ngIf="isSubmitting">
+            <span class="el-spinner"></span> Extending…
+          </ng-container>
+        </button>
+
+        <div class="el-back-links">
+          <a routerLink="/login"><i class="fas fa-sign-in-alt"></i> Login instead</a>
+          &nbsp;·&nbsp;
+          <a routerLink="/home"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+
+</div>

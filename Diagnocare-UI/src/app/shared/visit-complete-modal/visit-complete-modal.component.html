@@ -1,0 +1,140 @@
+<!-- Backdrop -->
+<div class="vcm-backdrop" (click)="cancel()"></div>
+
+<!-- Modal -->
+<div class="vcm-modal" role="dialog" aria-modal="true">
+
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
+  <div class="vcm-header">
+    <div class="vcm-header-left">
+      <span class="vcm-icon">{{ viewMode ? '📋' : '✅' }}</span>
+      <div>
+        <div class="vcm-title">{{ viewMode ? 'Completion Details' : 'Mark Visit as Completed' }}</div>
+        <div class="vcm-subtitle" *ngIf="visitName">{{ visitName }}</div>
+        <div class="vcm-completed-at" *ngIf="viewMode && completedAtLabel">
+          Completed on {{ completedAtLabel }}
+        </div>
+      </div>
+    </div>
+    <button class="vcm-close" type="button" (click)="cancel()" aria-label="Close">✕</button>
+  </div>
+
+  <div class="vcm-body">
+
+    <!-- ══════════ VIEW MODE ══════════ -->
+    <ng-container *ngIf="viewMode">
+
+      <!-- Remark -->
+      <div class="vcm-view-block" *ngIf="viewRemark">
+        <div class="vcm-view-label"><i class="fa fa-comment-alt"></i> Remark</div>
+        <div class="vcm-view-value">{{ viewRemark }}</div>
+      </div>
+
+      <!-- Location -->
+      <div class="vcm-view-block" *ngIf="viewLocation">
+        <div class="vcm-view-label"><i class="fa fa-map-marker-alt"></i> Location</div>
+        <div class="vcm-view-value">
+          <a [href]="mapsUrl" target="_blank" rel="noopener" class="vcm-map-link">
+            <i class="fa fa-external-link-alt"></i> {{ viewLocation }} — Open in Maps
+          </a>
+        </div>
+      </div>
+
+      <!-- Photo -->
+      <div class="vcm-view-block" *ngIf="viewPhotoBase64">
+        <div class="vcm-view-label"><i class="fa fa-camera"></i> Photo</div>
+        <div class="vcm-view-photo">
+          <img [src]="'data:image/jpeg;base64,' + viewPhotoBase64" alt="Visit photo" />
+        </div>
+      </div>
+
+      <!-- Empty state when nothing was captured -->
+      <div class="vcm-view-empty"
+           *ngIf="!viewRemark && !viewLocation && !viewPhotoBase64">
+        <i class="fa fa-info-circle"></i> No additional details were captured for this visit.
+      </div>
+
+    </ng-container>
+
+    <!-- ══════════ CAPTURE MODE ══════════ -->
+    <ng-container *ngIf="!viewMode">
+
+      <!-- Remark -->
+      <div class="vcm-field">
+        <label class="vcm-label">
+          <i class="fa fa-comment-alt"></i> Remark / Comment
+          <span class="vcm-optional">optional</span>
+        </label>
+        <textarea class="vcm-textarea" [(ngModel)]="remark" rows="3"
+                  placeholder="How did the visit go? Any feedback or notes…"></textarea>
+      </div>
+
+      <!-- Photo -->
+      <div class="vcm-field">
+        <label class="vcm-label">
+          <i class="fa fa-camera"></i> Photo Evidence
+          <span class="vcm-optional">optional</span>
+        </label>
+        <div class="vcm-photo-preview" *ngIf="photoPreviewUrl">
+          <img [src]="photoPreviewUrl" alt="Visit photo" />
+          <button class="vcm-photo-remove" type="button" (click)="removePhoto()" title="Remove">✕</button>
+        </div>
+        <div class="vcm-photo-btns" *ngIf="!photoPreviewUrl">
+          <label class="vcm-upload-btn">
+            <i class="fa fa-upload"></i> Upload Photo
+            <input type="file" accept="image/*" hidden (change)="onFileSelected($event)" />
+          </label>
+          <label class="vcm-upload-btn vcm-camera-btn">
+            <i class="fa fa-camera"></i> Take Photo
+            <input type="file" accept="image/*" capture="environment" hidden (change)="onFileSelected($event)" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="vcm-field">
+        <label class="vcm-label">
+          <i class="fa fa-map-marker-alt"></i> Location
+          <span class="vcm-optional">optional</span>
+        </label>
+        <div class="vcm-location-row">
+          <div class="vcm-location-display"
+               [class.vcm-location--done]="locationStatus === 'done'"
+               [class.vcm-location--error]="locationStatus === 'error'"
+               [class.vcm-location--loading]="locationStatus === 'loading'">
+            <ng-container [ngSwitch]="locationStatus">
+              <span *ngSwitchCase="'idle'"    class="vcm-loc-placeholder">No location captured</span>
+              <span *ngSwitchCase="'loading'"><i class="fa fa-spinner fa-spin"></i> {{ locationLabel }}</span>
+              <span *ngSwitchCase="'done'">   <i class="fa fa-check-circle"></i> {{ locationLabel }}</span>
+              <span *ngSwitchCase="'error'">  <i class="fa fa-exclamation-circle"></i> {{ locationLabel }}</span>
+            </ng-container>
+          </div>
+          <button class="vcm-loc-btn" type="button" (click)="fetchLocation()"
+                  [disabled]="locationStatus === 'loading'"
+                  *ngIf="locationStatus !== 'done'">
+            <i class="fa fa-crosshairs"></i> Get GPS
+          </button>
+          <button class="vcm-loc-btn vcm-loc-clear" type="button" (click)="clearLocation()"
+                  *ngIf="locationStatus === 'done'">
+            <i class="fa fa-times"></i> Clear
+          </button>
+        </div>
+      </div>
+
+    </ng-container>
+
+  </div><!-- /body -->
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <div class="vcm-footer">
+    <button class="vcm-btn vcm-btn-cancel" type="button" (click)="cancel()" [disabled]="saving">
+      {{ viewMode ? 'Close' : 'Cancel' }}
+    </button>
+    <button class="vcm-btn vcm-btn-confirm" type="button" (click)="confirm()"
+            [disabled]="saving" *ngIf="!viewMode">
+      <i class="fa" [class.fa-check]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
+      {{ saving ? 'Saving…' : 'Mark as Completed' }}
+    </button>
+  </div>
+
+</div>

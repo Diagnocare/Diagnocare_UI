@@ -1,0 +1,241 @@
+<div class="acct-page">
+
+  <!-- PAGE HEADER -->
+  <div class="acct-header">
+    <h2 class="acct-title"><i class="fa fa-mobile-alt"></i> Authenticator App</h2>
+    <p class="acct-subtitle">Secure your account with a time-based one-time password (TOTP)</p>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="state === 'loading'" class="acct-card">
+    <div class="acct-card-body center-content">
+      <i class="fa fa-spinner fa-spin fa-2x text-primary"></i>
+      <p class="mt-2 text-muted">Loading…</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STATE: CONFIGURED
+  ══════════════════════════════════════ -->
+  <div *ngIf="state === 'configured'" class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-check-circle"></i>
+      <div>
+        <h4 class="acct-card-title">Authenticator App Active</h4>
+        <p class="acct-card-sub">Your account is protected with TOTP two-factor authentication</p>
+      </div>
+    </div>
+    <div class="acct-card-body">
+
+      <div class="status-banner status-ok">
+        <i class="fa fa-shield-alt"></i>
+        <span>MFA is <strong>enabled</strong> on this account</span>
+      </div>
+
+      <!-- Current MFA configuration -->
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label"><i class="fa fa-tag"></i> Issuer</span>
+          <span class="info-value">{{ issuerLabel }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label"><i class="fa fa-user"></i> Account</span>
+          <span class="info-value">{{ accountName }}</span>
+        </div>
+        <div class="info-item" *ngIf="registeredDevice">
+          <span class="info-label"><i class="fa fa-mobile-alt"></i> Registered on</span>
+          <span class="info-value device-chip">
+            <i class="fa fa-check-circle chip-icon"></i> {{ registeredDevice }}
+          </span>
+        </div>
+        <div class="info-item" *ngIf="configuredAt">
+          <span class="info-label"><i class="fa fa-calendar-alt"></i> Configured</span>
+          <span class="info-value">{{ configuredAt | date:'mediumDate' }}</span>
+        </div>
+      </div>
+
+      <div class="divider"><span>manage</span></div>
+
+      <div class="action-row">
+        <button class="btn-reconfigure" (click)="beginSetup()">
+          <i class="fa fa-sync-alt"></i> Reconfigure
+        </button>
+        <button class="btn-danger" (click)="disableMFA()">
+          <i class="fa fa-times-circle"></i> Remove MFA
+        </button>
+      </div>
+
+      <p class="hint-text">
+        <i class="fa fa-info-circle"></i>
+        Use <strong>Reconfigure</strong> if you changed your authenticator app or got a new device.
+        Removing MFA will revert to your previous login method.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STATE: SETUP — show QR + manual key
+  ══════════════════════════════════════ -->
+  <div *ngIf="state === 'setup'" class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-qrcode"></i>
+      <div>
+        <h4 class="acct-card-title">Set Up Authenticator App</h4>
+        <p class="acct-card-sub">Scan the QR code or enter the key manually</p>
+      </div>
+    </div>
+    <div class="acct-card-body">
+
+      <ol class="step-list">
+        <li>Open your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.)</li>
+        <li>Tap <strong>Add account</strong> / <strong>+</strong></li>
+        <li>Scan the QR code below, or enter the setup key manually</li>
+        <li>Click <strong>Continue</strong> and enter the 6-digit code to verify and activate</li>
+      </ol>
+
+      <!-- QR Code -->
+      <div class="qr-wrapper" *ngIf="qrCodeDataUrl">
+        <img [src]="qrCodeDataUrl" alt="MFA QR Code" class="qr-img" />
+        <p class="qr-label">{{ issuer }} &mdash; {{ userName }}</p>
+      </div>
+
+      <div class="divider"><span>or enter key manually</span></div>
+
+      <!-- Manual entry key -->
+      <div class="key-block">
+        <div class="key-row">
+          <span class="key-value" [class.blurred]="!keyVisible">
+            {{ keyVisible ? formatKey(manualEntryKey) : '•••• •••• •••• ••••' }}
+          </span>
+          <button class="key-btn" (click)="keyVisible = !keyVisible" [title]="keyVisible ? 'Hide key' : 'Show key'">
+            <i class="fa" [class.fa-eye]="!keyVisible" [class.fa-eye-slash]="keyVisible"></i>
+          </button>
+          <button class="key-btn" (click)="copyKey()" title="Copy key">
+            <i class="fa" [class.fa-check]="keyCopied" [class.fa-copy]="!keyCopied"></i>
+          </button>
+        </div>
+        <p class="key-hint">Type: Time-based (TOTP) &nbsp;·&nbsp; Algorithm: SHA-1 &nbsp;·&nbsp; Digits: 6 &nbsp;·&nbsp; Period: 30 s</p>
+      </div>
+
+      <div *ngIf="error" class="msg msg-error">{{ error }}</div>
+
+      <div class="action-row">
+        <button class="btn-continue" (click)="proceedToVerify()">
+          <i class="fa fa-arrow-right"></i> Continue to Verify
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STATE: DISABLE-CONFIRM — TOTP proof before removal
+  ══════════════════════════════════════ -->
+  <div *ngIf="state === 'disable-confirm'" class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-shield-alt" style="color: #dc3545;"></i>
+      <div>
+        <h4 class="acct-card-title">Confirm MFA Removal</h4>
+        <p class="acct-card-sub">Enter your current authenticator code to confirm</p>
+      </div>
+    </div>
+    <div class="acct-card-body">
+
+      <div class="status-banner" style="background:#fff3cd; border-left:4px solid #ffc107; color:#856404;">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>This will <strong>remove two-factor authentication</strong> from your account. Enter your 6-digit code to proceed.</span>
+      </div>
+
+      <p class="verify-hint" style="margin-top:1.25rem;">
+        Open your authenticator app and enter the current code for
+        <strong>{{ issuerLabel }}</strong>.
+      </p>
+
+      <div class="otp-wrapper">
+        <input
+          class="otp-input"
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="000000"
+          autocomplete="one-time-code"
+          [(ngModel)]="disableCode"
+          (keyup.enter)="confirmDisable()"
+        />
+      </div>
+
+      <div *ngIf="error" class="msg msg-error">{{ error }}</div>
+
+      <div class="action-row">
+        <button class="btn-danger" (click)="confirmDisable()" [disabled]="disabling">
+          <i class="fa" [class.fa-times-circle]="!disabling" [class.fa-spinner]="disabling" [class.fa-spin]="disabling"></i>
+          {{ disabling ? 'Removing…' : 'Confirm Remove' }}
+        </button>
+        <button class="btn-cancel" (click)="cancelDisable()" [disabled]="disabling">
+          <i class="fa fa-arrow-left"></i> Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STATE: VERIFY — enter TOTP code
+  ══════════════════════════════════════ -->
+  <div *ngIf="state === 'verify'" class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-keyboard"></i>
+      <div>
+        <h4 class="acct-card-title">Verify & Activate</h4>
+        <p class="acct-card-sub">Enter the 6-digit code from your authenticator app to complete setup</p>
+      </div>
+    </div>
+    <div class="acct-card-body">
+
+      <p class="verify-hint">
+        Open your authenticator app and enter the current 6-digit code for
+        <strong>{{ issuer }}</strong>.
+      </p>
+
+      <div class="otp-wrapper">
+        <input
+          class="otp-input"
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="000000"
+          autocomplete="one-time-code"
+          [(ngModel)]="verifyCode"
+          (keyup.enter)="verifyAndActivate()"
+        />
+      </div>
+
+      <!-- Device name (optional) -->
+      <div class="device-name-block">
+        <label class="device-label">
+          <i class="fa fa-mobile-alt"></i> Device name
+          <span class="optional-badge">optional</span>
+        </label>
+        <input
+          class="device-input"
+          type="text"
+          placeholder="e.g. My iPhone, Work Phone"
+          maxlength="64"
+          [(ngModel)]="deviceName"
+        />
+        <p class="device-hint">Label the device where your authenticator app is installed. This is shown on the configuration page for reference.</p>
+      </div>
+
+      <div *ngIf="error" class="msg msg-error">{{ error }}</div>
+
+      <div class="action-row">
+        <button class="btn-save" (click)="verifyAndActivate()" [disabled]="verifying">
+          <i class="fa" [class.fa-check]="!verifying" [class.fa-spinner]="verifying" [class.fa-spin]="verifying"></i>
+          {{ verifying ? 'Verifying…' : 'Verify & Activate' }}
+        </button>
+        <button class="btn-cancel" (click)="goBack()">
+          <i class="fa fa-arrow-left"></i> Back
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

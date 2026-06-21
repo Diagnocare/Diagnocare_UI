@@ -1,0 +1,225 @@
+<!-- Payment Modal Overlay -->
+<div class="pm-overlay" *ngIf="visible" (click)="cancel()">
+  <div class="pm-modal" (click)="$event.stopPropagation()">
+
+    <!-- ── Header ── -->
+    <div class="pm-header">
+      <div class="pm-header-left">
+        <div class="pm-header-icon">
+          <i class="fa fa-credit-card"></i>
+        </div>
+        <div>
+          <h3 class="pm-title">{{ topupMode ? 'Record Payment' : 'Add Payment' }}</h3>
+          <p class="pm-subtitle" *ngIf="topupMode">
+            Remaining balance: <strong>₹{{ prefillAmount | number:'1.2-2' }}</strong>
+          </p>
+          <p class="pm-subtitle" *ngIf="!topupMode">
+            Net payable: <strong>₹{{ netAmount | number:'1.2-2' }}</strong>
+          </p>
+        </div>
+      </div>
+      <button class="pm-close-btn" (click)="cancel()" title="Close">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- ── Amount Summary Strip ── -->
+    <div class="pm-amount-strip">
+      <!-- Topup mode: show net amount + already paid + remaining -->
+      <ng-container *ngIf="topupMode">
+        <div class="pm-amount-item">
+          <span class="pm-amount-label">Net Amount</span>
+          <span class="pm-amount-value">₹{{ netAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="pm-amount-divider"></div>
+        <div class="pm-amount-item">
+          <span class="pm-amount-label">Already Paid</span>
+          <span class="pm-amount-value pm-amount-value--paid">
+            ₹{{ (netAmount - prefillAmount) | number:'1.2-2' }}
+          </span>
+        </div>
+        <div class="pm-amount-divider"></div>
+        <div class="pm-amount-item pm-amount-item--net">
+          <span class="pm-amount-label">Balance Due</span>
+          <span class="pm-amount-value pm-amount-value--net">₹{{ prefillAmount | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
+
+      <!-- Standard mode: test amount + net payable -->
+      <ng-container *ngIf="!topupMode">
+        <div class="pm-amount-item">
+          <span class="pm-amount-label">Test Amount</span>
+          <span class="pm-amount-value">₹{{ testAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="pm-amount-divider"></div>
+        <div class="pm-amount-item pm-amount-item--net">
+          <span class="pm-amount-label">Net Payable</span>
+          <span class="pm-amount-value pm-amount-value--net">₹{{ netAmount | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ── Form ── -->
+    <form [formGroup]="form" class="pm-form" (ngSubmit)="save()">
+
+      <!-- Payment Type Toggle (standard mode only) -->
+      <div class="pm-field" *ngIf="!topupMode">
+        <label class="pm-label">Payment Type</label>
+        <div class="pm-type-toggle">
+          <button type="button"
+                  class="pm-type-btn"
+                  [class.pm-type-btn--active]="form.get('payment_Type')?.value === PaymentType.Full"
+                  (click)="form.patchValue({ payment_Type: PaymentType.Full }); onPaymentTypeChange()">
+            <i class="fa fa-check-circle"></i>
+            <span>Full Payment</span>
+          </button>
+          <button type="button"
+                  class="pm-type-btn pm-type-btn--partial"
+                  [class.pm-type-btn--active]="form.get('payment_Type')?.value === PaymentType.Partial"
+                  (click)="form.patchValue({ payment_Type: PaymentType.Partial }); onPaymentTypeChange()">
+            <i class="fa fa-adjust"></i>
+            <span>Partial Payment</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Payment Mode -->
+      <div class="pm-field">
+        <label class="pm-label" for="pm-mode">Payment Mode</label>
+        <div class="pm-select-wrap">
+          <i class="fa fa-university pm-select-icon"></i>
+          <select id="pm-mode" class="pm-select" formControlName="payment_Mode" (change)="onPaymentModeChange()">
+            <option *ngFor="let mode of paymentModeOptions" [value]="mode">{{ mode }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TPA Details Panel -->
+      <div class="pm-tpa-panel" *ngIf="isTpaMode">
+        <div class="pm-tpa-header">
+          <i class="fa fa-hospital-o"></i> TPA Details
+        </div>
+        <div class="pm-tpa-grid">
+          <div class="pm-field">
+            <label class="pm-label">TPA Name <span class="pm-required">*</span></label>
+            <input class="pm-input pm-input--text" type="text" formControlName="tpa_Name"
+              placeholder="e.g. Star Health TPA"
+              [class.pm-input--error]="!form.get('tpa_Name')?.value?.trim()" />
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Policy Number <span class="pm-required">*</span></label>
+            <input class="pm-input pm-input--text" type="text" formControlName="tpa_Policy_Number"
+              placeholder="e.g. POL-2024-001"
+              [class.pm-input--error]="!form.get('tpa_Policy_Number')?.value?.trim()" />
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Claim Number <span class="pm-required">*</span></label>
+            <input class="pm-input pm-input--text" type="text" formControlName="tpa_Claim_Number"
+              placeholder="e.g. CLM-2024-001"
+              [class.pm-input--error]="!form.get('tpa_Claim_Number')?.value?.trim()" />
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Approval Code</label>
+            <input class="pm-input pm-input--text" type="text" formControlName="tpa_Approval_Code"
+              placeholder="Optional" />
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Policy Valid From</label>
+            <app-date-picker formControlName="tpa_Policy_Valid_From"
+                             inputClass="pm-input pm-input--text"
+                             placeholder="Select date"></app-date-picker>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Policy Valid To</label>
+            <app-date-picker formControlName="tpa_Policy_Valid_To"
+                             inputClass="pm-input pm-input--text"
+                             placeholder="Select date"></app-date-picker>
+          </div>
+        </div>
+        <p class="pm-tpa-note" *ngIf="!isTpaValid">
+          <i class="fa fa-exclamation-circle"></i>
+          Please fill TPA Name, Policy Number and Claim Number to proceed.
+        </p>
+      </div>
+
+      <!-- Amount Paid — always editable in topup mode; editable in standard Partial mode -->
+      <div class="pm-field" *ngIf="topupMode || isPartial">
+        <label class="pm-label" for="pm-amt-paid">
+          {{ topupMode ? 'Amount to Pay (₹)' : 'Amount Paid (₹)' }}
+        </label>
+        <div class="pm-input-wrap" [class.pm-input-wrap--error]="amountPaidError">
+          <i class="fa fa-inr pm-input-icon"></i>
+          <input id="pm-amt-paid"
+                 type="number"
+                 class="pm-input"
+                 formControlName="amount_Paid"
+                 [placeholder]="topupMode ? 'Pre-filled — edit if paying partial' : 'Enter amount paid'"
+                 min="1"
+                 [max]="maxPayable"
+                 (input)="onAmountPaidInput($event)">
+        </div>
+        <p class="pm-field-error" *ngIf="amountPaidError">{{ amountPaidError }}</p>
+      </div>
+
+      <!-- Amount Pending (read-only display) -->
+      <div class="pm-summary-row" *ngIf="topupMode">
+        <div class="pm-summary-item">
+          <span class="pm-summary-label">Amount Paying Now</span>
+          <span class="pm-summary-value pm-summary-value--paid">
+            ₹{{ (form.get('amount_Paid')?.value || 0) | number:'1.2-2' }}
+          </span>
+        </div>
+        <div class="pm-summary-item">
+          <span class="pm-summary-label">Still Pending After</span>
+          <span class="pm-summary-value"
+                [class.pm-summary-value--zero]="(form.get('amount_Pending')?.value || 0) == 0"
+                [class.pm-summary-value--pending]="(form.get('amount_Pending')?.value || 0) > 0">
+            ₹{{ (form.get('amount_Pending')?.value || 0) | number:'1.2-2' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Full Payment summary row (standard mode only) -->
+      <div class="pm-summary-row" *ngIf="!topupMode && !isPartial">
+        <div class="pm-summary-item">
+          <span class="pm-summary-label">Amount Paid</span>
+          <span class="pm-summary-value pm-summary-value--paid">₹{{ netAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="pm-summary-item">
+          <span class="pm-summary-label">Amount Pending</span>
+          <span class="pm-summary-value pm-summary-value--zero">₹0.00</span>
+        </div>
+      </div>
+
+      <!-- Partial breakdown (standard mode only) -->
+      <div class="pm-summary-row" *ngIf="!topupMode && isPartial && !amountPaidError && form.get('amount_Pending')?.value !== ''">
+        <div class="pm-summary-item">
+          <span class="pm-summary-label">Pending After Payment</span>
+          <span class="pm-summary-value pm-summary-value--pending">
+            ₹{{ form.get('amount_Pending')?.value | number:'1.2-2' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Error message -->
+      <div class="pm-save-error" *ngIf="saveError">
+        <i class="fa fa-exclamation-circle"></i>
+        {{ saveError }}
+      </div>
+
+      <!-- ── Footer Actions ── -->
+      <div class="pm-actions">
+        <button type="button" class="pm-btn pm-btn--cancel" (click)="cancel()" [disabled]="isSaving">
+          <i class="fa fa-times"></i> Cancel
+        </button>
+        <button type="submit"
+                class="pm-btn pm-btn--save"
+                [disabled]="!isFormValid || isSaving">
+          <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ isSaving ? 'Saving…' : 'Confirm Payment' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

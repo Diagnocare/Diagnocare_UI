@@ -1,0 +1,113 @@
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-left">
+        <h1>{{ isEdit ? 'Edit Contact' : 'Add Contact' }}</h1>
+        </div>
+        <div class="header-actions">
+        <button class="btn btn-back" (click)="goBack()">
+            <i class="fa fa-arrow-left"></i> Back to List
+        </button>
+        </div>
+    </div>
+    <div class="contact-form-container">
+    
+        <form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
+            <div class="form-grid">
+            <div class="field form-group">
+                <label class="form-label">Institution Type</label>
+                <select class="form-select" formControlName="institutionType">
+                <option [ngValue]="null" disabled>Select type</option>
+                <option *ngFor="let t of contactTypes" [ngValue]="t.value">{{ t.label }}</option>
+                </select>
+                <div class="error-text" *ngIf="contactForm.get('institutionType')?.invalid && (contactForm.get('institutionType')?.touched || contactForm.get('institutionType')?.dirty)">
+                <small *ngIf="contactForm.get('institutionType')?.errors?.['required']">Institution type is required.</small>
+                </div>
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label required">Name</label>
+                <input class="form-control" formControlName="name" />
+                <div class="error-text" *ngIf="contactForm.get('name')?.invalid && (contactForm.get('name')?.touched || contactForm.get('name')?.dirty)">
+                <small *ngIf="contactForm.get('name')?.errors?.['required']">Name is required.</small>
+                </div>
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Contact Person</label>
+                <input class="form-control" formControlName="contactPerson" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Contact Number</label>
+                <input class="form-control" formControlName="contactNumber" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Email</label>
+                <input class="form-control" formControlName="email" type="email" />
+                <div class="error-text" *ngIf="contactForm.get('email')?.invalid && (contactForm.get('email')?.touched || contactForm.get('email')?.dirty)">
+                <small *ngIf="contactForm.get('email')?.errors?.['email']">Please enter a valid email address.</small>
+                </div>
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Address Line 1</label>
+                <input class="form-control" formControlName="addressLine1" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Address Line 2</label>
+                <input class="form-control" formControlName="addressLine2" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">City</label>
+                <input class="form-control" formControlName="city" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">State</label>
+                <input class="form-control" formControlName="state" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Pin Code</label>
+                <input class="form-control" formControlName="pinCode" placeholder="6-digit pin code" />
+                <div class="error-text" *ngIf="contactForm.get('pinCode')?.invalid && (contactForm.get('pinCode')?.touched || contactForm.get('pinCode')?.dirty)">
+                <small *ngIf="contactForm.get('pinCode')?.errors?.['pattern']">Pin code must be 6 digits.</small>
+                </div>
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Country</label>
+                <input class="form-control" formControlName="country" />
+            </div>
+
+            <div class="field field-checkbox form-group">
+                <label class="form-label">Active</label>
+                <input type="checkbox" formControlName="isActive" />
+            </div>
+
+            <div class="field form-group">
+                <label class="form-label">Commission (%)</label>
+                <input class="form-control" formControlName="commissionPercentage"
+                       type="number" min="0" max="100" step="0.01"
+                       placeholder="e.g. 10.5" />
+                <div class="error-text" *ngIf="contactForm.get('commissionPercentage')?.invalid && (contactForm.get('commissionPercentage')?.touched || contactForm.get('commissionPercentage')?.dirty)">
+                <small>Commission must be between 0 and 100.</small>
+                </div>
+            </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" (click)="onClear()" class="btn btn-cancel">
+                <i class="fa fa-times"></i> Clear
+              </button>
+              <button type="submit" [disabled]="contactForm.invalid || isLoading" class="btn btn-primary">
+                <i class="fa fa-save"></i> {{ isEdit ? 'Update' : 'Add' }}
+              </button>
+            </div>
+        </form>
+  <app-loading-spinner [isLoading]="isLoading" [message]="isEdit ? 'Updating contact...' : 'Saving contact...'"></app-loading-spinner>
+</div>
+</div>

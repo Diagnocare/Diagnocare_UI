@@ -1,0 +1,72 @@
+<div class="rfb-wrapper">
+
+  <!-- ── Filter bar ─────────────────────────────────────────────────────────── -->
+  <div class="rfb-filters">
+    <div class="rfb-row">
+
+      <!-- Year (hidden for static/non-date-filtered reports) -->
+      <div class="rfb-group" *ngIf="showDateFilters">
+        <label class="rfb-label">Year</label>
+        <select class="rfb-select"
+                [ngModel]="selectedYear"
+                (ngModelChange)="yearChange.emit($event)"
+                [disabled]="isLoading">
+          <option value="">All</option>
+          <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
+        </select>
+      </div>
+
+      <!-- Period (hidden for static/non-date-filtered reports) -->
+      <div class="rfb-group" *ngIf="showDateFilters">
+        <label class="rfb-label">Period</label>
+        <div class="rfb-btn-row">
+          <button *ngFor="let p of periodOptions"
+                  class="rfb-btn"
+                  [class.rfb-btn--active]="selectedPeriod === p.value"
+                  (click)="periodChange.emit(p.value)"
+                  [disabled]="isLoading">
+            {{ p.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Chart Type (hidden when chartOptions is empty) -->
+      <div class="rfb-group" *ngIf="chartOptions.length">
+        <label class="rfb-label">Chart Type</label>
+        <div class="rfb-btn-row">
+          <button *ngFor="let c of chartOptions"
+                  class="rfb-btn"
+                  [class.rfb-btn--active]="selectedChartType === c.value"
+                  (click)="chartTypeChange.emit(c.value)"
+                  [disabled]="isLoading">
+            <i class="fa {{ c.icon }}"></i> {{ c.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="rfb-group rfb-group--actions">
+        <label class="rfb-label">&nbsp;</label>
+        <div class="rfb-btn-row">
+          <button *ngIf="showChartToggle"
+                  class="rfb-action-btn rfb-action-btn--chart"
+                  [class.rfb-action-btn--active]="chartActive"
+                  (click)="chartToggle.emit()"
+                  [disabled]="!hasData || isLoading"
+                  title="Toggle chart">
+            <i class="fa fa-chart-bar"></i> Chart
+          </button>
+
+          <button class="rfb-action-btn rfb-action-btn--csv"
+                  (click)="csvExport.emit()"
+                  [disabled]="!hasData || isLoading"
+                  title="Download CSV">
+            <i class="fa fa-download"></i> CSV
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,162 @@
+<div class="tdm-backdrop" *ngIf="visible" (click)="cancel()"></div>
+
+<div class="tdm-modal" *ngIf="visible" role="dialog" aria-modal="true" aria-labelledby="tdm-title">
+  <!-- Header -->
+  <div class="tdm-header">
+    <div class="tdm-header-icon">
+      <i class="fa fa-hospital-o"></i>
+    </div>
+    <div class="tdm-header-text">
+      <h3 id="tdm-title" class="tdm-title">TPA Details</h3>
+      <p class="tdm-subtitle">
+        {{ readOnly ? 'Third Party Association — view only' : 'Third Party Association payment information' }}
+      </p>
+    </div>
+    <button class="tdm-close-btn" type="button" (click)="cancel()" title="Close">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="form" (ngSubmit)="save()" class="tdm-form">
+
+    <!-- Row 1: TPA Name + Policy Number -->
+    <div class="tdm-row">
+      <div class="tdm-field">
+        <label class="tdm-label">
+          TPA Name <span class="tdm-required" *ngIf="!readOnly">*</span>
+        </label>
+        <input
+          type="text"
+          class="tdm-input"
+          [class.tdm-input--readonly]="readOnly"
+          formControlName="tpa_Name"
+          placeholder="e.g. Star Health TPA"
+          [readonly]="readOnly"
+          [class.tdm-input--error]="!readOnly && form.get('tpa_Name')?.invalid && form.get('tpa_Name')?.touched"
+        />
+        <span class="tdm-field-error"
+              *ngIf="!readOnly && form.get('tpa_Name')?.invalid && form.get('tpa_Name')?.touched">
+          TPA Name is required.
+        </span>
+      </div>
+
+      <div class="tdm-field">
+        <label class="tdm-label">
+          Policy Number <span class="tdm-required" *ngIf="!readOnly">*</span>
+        </label>
+        <input
+          type="text"
+          class="tdm-input"
+          [class.tdm-input--readonly]="readOnly"
+          formControlName="tpa_Policy_Number"
+          placeholder="e.g. POL-2024-001"
+          [readonly]="readOnly"
+          [class.tdm-input--error]="!readOnly && form.get('tpa_Policy_Number')?.invalid && form.get('tpa_Policy_Number')?.touched"
+        />
+        <span class="tdm-field-error"
+              *ngIf="!readOnly && form.get('tpa_Policy_Number')?.invalid && form.get('tpa_Policy_Number')?.touched">
+          Policy Number is required.
+        </span>
+      </div>
+    </div>
+
+    <!-- Row 2: Claim Number + Approval Code -->
+    <div class="tdm-row">
+      <div class="tdm-field">
+        <label class="tdm-label">
+          Claim Number <span class="tdm-required" *ngIf="!readOnly">*</span>
+        </label>
+        <input
+          type="text"
+          class="tdm-input"
+          [class.tdm-input--readonly]="readOnly"
+          formControlName="tpa_Claim_Number"
+          placeholder="e.g. CLM-2024-001"
+          [readonly]="readOnly"
+          [class.tdm-input--error]="!readOnly && form.get('tpa_Claim_Number')?.invalid && form.get('tpa_Claim_Number')?.touched"
+        />
+        <span class="tdm-field-error"
+              *ngIf="!readOnly && form.get('tpa_Claim_Number')?.invalid && form.get('tpa_Claim_Number')?.touched">
+          Claim Number is required.
+        </span>
+      </div>
+
+      <div class="tdm-field">
+        <label class="tdm-label">Approval Code <span class="tdm-optional">(optional)</span></label>
+        <input
+          type="text"
+          class="tdm-input"
+          [class.tdm-input--readonly]="readOnly"
+          formControlName="tpa_Approval_Code"
+          placeholder="e.g. APR-2024-001"
+          [readonly]="readOnly"
+        />
+      </div>
+    </div>
+
+    <!-- Row 3: Policy Validity Dates -->
+    <div class="tdm-row">
+      <div class="tdm-field">
+        <label class="tdm-label">Policy Valid From <span class="tdm-optional">(optional)</span></label>
+        <app-date-picker formControlName="tpa_Policy_Valid_From"
+                         inputClass="tdm-input"
+                         [readonly]="readOnly"
+                         placeholder="Select date"></app-date-picker>
+      </div>
+      <div class="tdm-field">
+        <label class="tdm-label">Policy Valid To <span class="tdm-optional">(optional)</span></label>
+        <app-date-picker formControlName="tpa_Policy_Valid_To"
+                         inputClass="tdm-input"
+                         [readonly]="readOnly"
+                         placeholder="Select date"></app-date-picker>
+      </div>
+    </div>
+
+    <!-- Row 4: TPA Payment Status -->
+    <div class="tdm-row tdm-row--status">
+      <div class="tdm-field">
+        <label class="tdm-label">Claim / Payment Status</label>
+        <select class="tdm-input tdm-select"
+                [class.tdm-input--readonly]="readOnly"
+                formControlName="tpa_Payment_Status"
+                [attr.disabled]="readOnly ? true : null">
+          <option value="Pending">Pending — awaiting TPA approval</option>
+          <option value="Approved">Approved — awaiting payment transfer</option>
+          <option value="Settled">Settled — payment received</option>
+        </select>
+        <!-- Status badge (read-only display) -->
+        <span *ngIf="readOnly" class="tdm-status-badge"
+              [class.tdm-status--pending]="form.get('tpa_Payment_Status')?.value === 'Pending'"
+              [class.tdm-status--approved]="form.get('tpa_Payment_Status')?.value === 'Approved'"
+              [class.tdm-status--settled]="form.get('tpa_Payment_Status')?.value === 'Settled'">
+          {{ form.get('tpa_Payment_Status')?.value || 'Pending' }}
+        </span>
+      </div>
+
+      <div class="tdm-field"
+           *ngIf="form.get('tpa_Payment_Status')?.value === 'Settled' || (readOnly && form.get('tpa_Settled_Date')?.value)">
+        <label class="tdm-label">Settlement Date</label>
+        <app-date-picker formControlName="tpa_Settled_Date"
+                         inputClass="tdm-input"
+                         [readonly]="readOnly"
+                         [max]="todayIso"
+                         placeholder="Select date"></app-date-picker>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="tdm-actions">
+      <button type="button" class="tdm-btn tdm-btn--cancel" (click)="cancel()">
+        <i class="fa fa-times"></i> {{ readOnly ? 'Close' : 'Cancel' }}
+      </button>
+      <button *ngIf="!readOnly" type="submit" class="tdm-btn tdm-btn--save"
+              [disabled]="initialValues !== null && !hasChanges"
+              [class.tdm-btn--disabled]="initialValues !== null && !hasChanges">
+        <i class="fa fa-check"></i>
+        {{ initialValues !== null ? 'Save Changes' : 'Confirm TPA Details' }}
+      </button>
+    </div>
+
+  </form>
+</div>

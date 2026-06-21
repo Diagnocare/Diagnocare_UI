@@ -1,0 +1,227 @@
+<!-- Full-screen spinner while OTP verification is in progress -->
+<app-loading-spinner [isLoading]="isSubmitting" message="Verifying, please wait…">
+</app-loading-spinner>
+
+<div class="otp-overlay" (click)="onClose()">
+  <div class="otp-card" (click)="$event.stopPropagation()">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <div class="otp-header">
+      <div class="otp-header-left">
+        <div class="otp-header-icon">
+          <i class="fa"
+             [class.fa-mobile-alt]="activeTotpMode"
+             [class.fa-exclamation-triangle]="unavailableMessage"
+             [class.fa-shield]="!activeTotpMode && !unavailableMessage"></i>
+        </div>
+        <div>
+          <h3 class="otp-title">
+            <ng-container *ngIf="unavailableMessage">{{ unavailableTitle }}</ng-container>
+            <ng-container *ngIf="!unavailableMessage && activeTotpMode">Authenticator App</ng-container>
+            <ng-container *ngIf="!unavailableMessage && !activeTotpMode">Verify Your Identity</ng-container>
+          </h3>
+          <p class="otp-subtitle">
+            <ng-container *ngIf="unavailableMessage">This method is not available on your account</ng-container>
+            <ng-container *ngIf="!unavailableMessage && activeTotpMode">Enter the 6-digit code from your authenticator app</ng-container>
+            <ng-container *ngIf="!unavailableMessage && !activeTotpMode">Two-factor authentication required</ng-container>
+          </p>
+        </div>
+      </div>
+      <button type="button" class="otp-close-btn" (click)="onClose()"
+              aria-label="Close" title="Cancel verification">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- ── Body ───────────────────────────────────────────────── -->
+    <div class="otp-body">
+
+      <!-- ══════════════════════════════════════════════════════
+           VIEW: Method unavailable message
+      ══════════════════════════════════════════════════════ -->
+      <div *ngIf="unavailableMessage" class="otp-step otp-unavailable">
+        <div class="otp-unavail-icon">
+          <i class="fa fa-lock"></i>
+        </div>
+        <p class="otp-unavail-msg">{{ unavailableMessage }}</p>
+        <button type="button" class="otp-btn otp-btn-primary otp-btn-full"
+                (click)="clearUnavailableMessage()">
+          <i class="fa fa-arrow-left"></i> Choose a Different Method
+        </button>
+        <button type="button" class="otp-btn otp-btn-ghost otp-btn-full otp-btn-mt"
+                (click)="onBack()">
+          <i class="fa fa-sign-in"></i> Back to Login
+        </button>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           VIEW: Method picker — all methods always displayed
+      ══════════════════════════════════════════════════════ -->
+      <div *ngIf="showMethodPicker && !activeTotpMode && !unavailableMessage" class="otp-step">
+        <p class="otp-step-label">Choose how you'd like to verify your identity:</p>
+
+        <div class="otp-method-list">
+          <div
+            *ngFor="let m of methods"
+            class="otp-method-row"
+            [class.otp-method-row--invalid]="!isMethodValid(m.key)"
+            (click)="onMethodCardClick(m)">
+
+            <span class="otp-method-icon" [class]="'otp-method-icon ' + m.iconClass">
+              <i class="fa" [class]="m.icon"></i>
+            </span>
+
+            <div class="otp-method-info">
+              <span class="otp-method-label">
+                {{ m.label }}
+                <span *ngIf="!isMethodValid(m.key)" class="otp-unavail-badge">
+                  <i class="fa fa-exclamation-circle"></i> Not available
+                </span>
+              </span>
+              <span class="otp-method-sub">{{ methodSub(m.key) }}</span>
+            </div>
+
+            <span class="otp-method-arrow">
+              <i class="fa" [class.fa-chevron-right]="isMethodValid(m.key)"
+                            [class.fa-info-circle]="!isMethodValid(m.key)"></i>
+            </span>
+          </div>
+        </div>
+
+        <div class="otp-step-actions otp-step-actions--single">
+          <button type="button" class="otp-btn otp-btn-ghost" (click)="onBack()">
+            <i class="fa fa-arrow-left"></i> Back to Login
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           VIEW: Confirm & Send (phone / email)
+      ══════════════════════════════════════════════════════ -->
+      <div *ngIf="selectedMethod && !showOtpInput && !activeTotpMode && !unavailableMessage"
+           class="otp-step">
+
+        <div class="otp-send-info">
+          <ng-container [ngSwitch]="selectedMethod">
+            <ng-container *ngSwitchCase="'phone'">
+              <div class="otp-send-icon phone"><i class="fa fa-mobile"></i></div>
+              <div>
+                <p class="otp-send-title">Send OTP via SMS</p>
+                <p class="otp-send-dest">
+                  We'll send a 6-digit code to <strong>{{ maskedContactNumber }}</strong>
+                </p>
+              </div>
+            </ng-container>
+            <ng-container *ngSwitchCase="'email'">
+              <div class="otp-send-icon email"><i class="fa fa-envelope"></i></div>
+              <div>
+                <p class="otp-send-title">Send OTP via Email</p>
+                <p class="otp-send-dest">
+                  We'll send a 6-digit code to <strong>{{ maskedEmail }}</strong>
+                </p>
+              </div>
+            </ng-container>
+            <ng-container *ngSwitchCase="'other'">
+              <div class="otp-send-icon other"><i class="fa fa-ellipsis-h"></i></div>
+              <div>
+                <p class="otp-send-title">Alternate Method</p>
+                <p class="otp-send-dest">A request will be sent to your registered alternate method.</p>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+
+        <div class="otp-step-actions">
+          <button type="button" class="otp-btn otp-btn-ghost" (click)="resetMethod()">
+            <i class="fa fa-arrow-left"></i> Change Method
+          </button>
+          <button type="button" class="otp-btn otp-btn-primary" (click)="sendOtpRequest()">
+            <i class="fa fa-paper-plane"></i> Send OTP
+          </button>
+        </div>
+      </div>
+
+      <!-- QR Code (if applicable) ────────────────────────────── -->
+      <div *ngIf="showQr" class="otp-qr-wrap">
+        <img *ngIf="qrCodeData" [src]="qrCodeData" alt="QR Code" class="otp-qr-img" />
+        <div *ngIf="!qrCodeData" class="otp-qr-placeholder">
+          <i class="fa fa-qrcode"></i>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           VIEW: Enter code (OTP or TOTP)
+      ══════════════════════════════════════════════════════ -->
+      <div *ngIf="(showOtpInput || activeTotpMode) && !unavailableMessage" class="otp-step">
+
+        <div class="otp-sent-banner" [class.otp-sent-banner-totp]="activeTotpMode"
+             *ngIf="otpSentMessage">
+          <i class="fa" [class.fa-mobile-alt]="activeTotpMode"
+                        [class.fa-check-circle]="!activeTotpMode"></i>
+          {{ otpSentMessage }}
+        </div>
+
+        <p class="otp-enter-label">Enter the 6-digit code below:</p>
+
+        <form [formGroup]="form" (ngSubmit)="onVerify()">
+          <div class="otp-boxes" formArrayName="digits"
+               role="group" aria-label="One time password">
+            <ng-container *ngFor="let _ of digits.controls; let i = index">
+              <input
+                class="otp-box"
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                autocomplete="one-time-code"
+                [formControlName]="i"
+                (input)="onInput(i, $event)"
+                (keydown)="onKeydown(i, $event)"
+                (paste)="onPaste($event)"
+              />
+              <span class="otp-box-sep" *ngIf="i === 2">—</span>
+            </ng-container>
+          </div>
+
+          <!-- Resend (OTP only) -->
+          <div class="otp-resend-row" *ngIf="!activeTotpMode">
+            <span class="otp-resend-hint">Didn't receive the code?</span>
+            <div class="otp-countdown-wrap" *ngIf="resendRemaining > 0">
+              <svg class="otp-countdown-svg" viewBox="0 0 36 36">
+                <circle class="otp-countdown-track" cx="18" cy="18" r="15.9" />
+                <circle class="otp-countdown-progress" cx="18" cy="18" r="15.9"
+                  [style.stroke-dashoffset]="100 - (resendRemaining / resendSeconds) * 100" />
+              </svg>
+              <span class="otp-countdown-num">{{ resendRemaining }}</span>
+            </div>
+            <button type="button" class="otp-btn otp-btn-resend"
+                    [disabled]="resendRemaining > 0" (click)="onResend()">
+              <i class="fa fa-refresh"></i> Resend OTP
+            </button>
+          </div>
+
+          <!-- TOTP refresh hint -->
+          <p class="otp-totp-hint" *ngIf="activeTotpMode">
+            <i class="fa fa-info-circle"></i>
+            Code refreshes every 30 seconds — use the current one shown in your app.
+          </p>
+
+          <button type="submit" class="otp-btn otp-btn-primary otp-btn-full"
+                  [disabled]="isSubmitting">
+            <ng-container *ngIf="!isSubmitting">
+              <i class="fa fa-check-circle"></i> Verify Code
+            </ng-container>
+            <ng-container *ngIf="isSubmitting">
+              <span class="otp-spinner"></span> Verifying…
+            </ng-container>
+          </button>
+
+          <button type="button" class="otp-btn otp-btn-ghost otp-btn-full otp-btn-mt"
+                  (click)="switchMethod()">
+            <i class="fa fa-exchange"></i> Use a different method
+          </button>
+        </form>
+      </div>
+
+    </div><!-- /otp-body -->
+  </div><!-- /otp-card -->
+</div><!-- /otp-overlay -->

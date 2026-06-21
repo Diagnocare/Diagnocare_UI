@@ -1,0 +1,123 @@
+<app-loading-spinner [isLoading]="isLoading" message="Loading report…"></app-loading-spinner>
+
+<div class="tr-wrapper">
+
+  <!-- ── Shared filter bar ───────────────────────────────────────────────────── -->
+  <app-report-filter-bar
+    [reportTitle]="config.label"
+    [reportIcon]="config.icon"
+    [availableYears]="availableYears"
+    [selectedYear]="selectedYear"
+    [selectedPeriod]="selectedPeriod"
+    [periodOptions]="periodOptions"
+    [chartOptions]="chartOptions"
+    [selectedChartType]="chartType"
+    [isLoading]="isLoading"
+    [hasData]="hasData"
+    [showChartToggle]="false"
+    [showDateFilters]="!config.noDateFilter"
+    (yearChange)="onYearChange($event)"
+    (periodChange)="onPeriodChange($event)"
+    (chartTypeChange)="onChartTypeChange($event)"
+    (csvExport)="onCsvExport()">
+  </app-report-filter-bar>
+
+  <ng-container *ngIf="!isLoading">
+
+    <!-- ── Empty state ────────────────────────────────────────────────────────── -->
+    <div class="no-data" *ngIf="rows.length === 0">
+      <i class="fa fa-inbox fa-3x"></i>
+      <p>No records found for the selected period.</p>
+    </div>
+
+    <!-- ── Split row: table left, chart right ─────────────────────────────────── -->
+    <div class="tr-split" [class.tr-split--with-chart]="showChart" *ngIf="rows.length > 0">
+
+      <!-- ── Table column ─────────────────────────────────────────────────────── -->
+      <div class="tr-split__table">
+
+        <!-- Table wrapped in global card style -->
+        <div class="table-container">
+          <div class="card-header" style="padding:.6rem .75rem; margin-bottom:0;">
+            <span class="tr-count">{{ totalLabel }}</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let col of cols"
+                      class="sortable"
+                      [style.text-align]="col.align"
+                      (click)="sortBy(col.key)">
+                    {{ col.label }}
+                    <i class="fa"
+                       [class.fa-sort]="sortKey !== col.key"
+                       [class.fa-sort-up]="sortKey === col.key && sortAsc"
+                       [class.fa-sort-down]="sortKey === col.key && !sortAsc"
+                       style="font-size:.68rem;margin-left:3px;opacity:.55"></i>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows">
+                  <td *ngFor="let col of cols" [style.text-align]="col.align">
+                    <ng-container *ngIf="col.kind === 'badge'; else plainCell">
+                      <span class="badge" [ngClass]="badgeClass(row[col.key])">{{ row[col.key] ?? '—' }}</span>
+                    </ng-container>
+                    <ng-template #plainCell>{{ formatCell(row[col.key], col.kind, col.key) }}</ng-template>
+                  </td>
+                </tr>
+              </tbody>
+
+              <tfoot *ngIf="hasTotals">
+                <tr class="tr-totals-row">
+                  <td *ngFor="let col of cols; let i = index" [style.text-align]="col.align">
+                    <strong *ngIf="i === 0">Totals</strong>
+                    <strong *ngIf="i > 0 && totals[col.key] !== undefined">
+                      {{ formatCell(totals[col.key], col.kind) }}
+                    </strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div><!-- /.table-container -->
+
+        <!-- Grand totals — global stats-row / stat-card (matches base-report) -->
+        <div class="stats-row" *ngIf="hasTotals">
+          <div class="stat-card" *ngFor="let k of (totals | keyvalue)">
+            <div class="stat-label">{{ formatTotalKey(k.key) }}</div>
+            <div class="stat-number">{{ formatTotalValue(k.key, +k.value) }}</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Chart column (only when chart is active) ──────────────────────────── -->
+      <div class="tr-split__chart" *ngIf="showChart">
+
+        <!-- Column selector — only for multi-column tabular reports -->
+        <div class="tr-chart-col-select" *ngIf="!isSummaryOnly && chartableNumericCols.length > 1">
+          <label class="tr-chart-label">Chart column</label>
+          <select class="tr-chart-select" [(ngModel)]="chartValueCol" (ngModelChange)="onChartColChange()">
+            <option *ngFor="let c of chartableNumericCols" [value]="c.key">{{ c.label }}</option>
+          </select>
+        </div>
+
+        <!-- Single canvas for all reports (dual Y-axes for summary-only) -->
+        <div class="tr-chart-canvas-wrap">
+          <canvas #chartCanvas></canvas>
+        </div>
+
+        <p class="tr-chart-note" *ngIf="!isSummaryOnly">
+          <i class="fa fa-info-circle"></i>
+          Top {{ rows.length > 20 ? 20 : rows.length }} rows by selected column.
+        </p>
+
+      </div>
+
+    </div><!-- /.tr-split -->
+
+  </ng-container>
+
+</div>

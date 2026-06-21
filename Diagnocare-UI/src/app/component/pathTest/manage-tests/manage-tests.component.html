@@ -1,0 +1,118 @@
+<div class="page-container">
+  <div class="content-container">
+    <div class="master-list-wrap">
+      <header class="header">
+        <div class="header-left">
+          <h1>Master Test List</h1>
+          <p class="subtitle">Manage groups, subgroups, and test rates</p>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-success" (click)="add()"><i class="fa fa-plus"></i> Add</button>
+          <button class="btn btn-secondary" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
+          <button class="btn btn-primary" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
+          <button class="btn btn-danger" (click)="drop()"><i class="fa fa-trash"></i> Drop</button>
+        </div>
+      </header>
+
+      <div class="search-row">
+        <input type="text" placeholder="Search groups, subgroups, or tests..." [(ngModel)]="query" />
+      </div>
+
+      <div class="columns">
+        <!-- Groups Column -->
+        <div class="card column">
+          <div class="card-header">
+            <span>Groups</span><small>Rs.</small>
+          </div>
+          <div class="list">
+            <ng-container *ngIf="filteredGroups.length > 0; else noGroups">
+              <div *ngFor="let g of filteredGroups"
+                   (click)="selectGroup(g)" [class.active]="g.testGroupId === selectedGroupId"
+                   class="list-item">
+                <div class="left">
+                  <div class="code">{{g.testGroupId}}</div>
+                  <div class="name">{{g.name}}</div>
+                  <span class="template-badge" *ngIf="g.templateId">
+                    <i class="fa fa-file-text-o"></i> Template
+                  </span>
+                </div>
+                <div class="right">{{g.price}}</div>
+              </div>
+            </ng-container>
+            <ng-template #noGroups>
+              <ng-container *ngIf="!isSelectedGroupIdValid">
+                <div class="empty-state">
+                  <div class="empty-sub">No groups to display.</div>
+                </div>
+              </ng-container>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- SubGroups Column -->
+        <div class="card column">
+          <div class="card-header">
+        <span>SubGroups</span><small>Rs.</small>
+      </div>
+      <div class="list">
+        <ng-container *ngIf="filteredSubGroups.length > 0; else noSubGroups">
+          <div *ngFor="let s of filteredSubGroups"
+               (click)="selectSubGroup(s)"
+               [class.active]="s.testGroupId === selectedSubGroupId"
+               class="list-item">
+            <div class="left">
+              <div class="code">{{s.testGroupId}}</div>
+              <div class="name">{{s.name}}</div>
+              <span class="template-badge" *ngIf="s.templateId">
+                <i class="fa fa-file-text-o"></i> Template
+              </span>
+            </div>
+            <div class="right">{{s.price}}</div>
+          </div>
+        </ng-container>
+        <ng-template #noSubGroups>
+          <div class="empty-state">
+            <div class="empty-sub">No subgroups for the selected group.</div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Tests Column -->
+    <div class="card column">
+      <div class="card-header">
+        <span>Tests</span><small>Rs.</small>
+      </div>
+      <div class="list">
+        <ng-container *ngIf="filteredTests.length > 0; else noTests">
+          <div *ngFor="let t of filteredTests"
+               (click)="selectTest(t)"
+               [class.active]="selectedTestId === t.testCode"
+               class="list-item test-item">
+            <div class="left">
+              <div class="code">{{t.testCode}}</div>
+              <div class="name">{{t.testName}}</div>
+              <span class="template-badge" *ngIf="t.templateId">
+                <i class="fa fa-file-text-o"></i> Template
+              </span>
+            </div>
+            <div class="right price">₹{{t.price}}</div>
+          </div>
+        </ng-container>
+        <ng-template #noTests>
+          <div class="empty-state">
+            <div class="empty-sub">No tests for the selected subgroup.</div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+<app-add-edit-modal *ngIf="showModal"
+        [mode]="mode"
+        [groups]="groups"
+        [tests]="tests"
+        [subGroups]="subGroups"
+        (submitted)="handleSubmit($event)"
+        (closed)="closeModal()"/>
+
+<app-confirm-modal></app-confirm-modal>

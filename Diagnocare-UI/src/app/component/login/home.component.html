@@ -1,0 +1,240 @@
+<!-- ── Navbar ─────────────────────────────────────────────────────── -->
+<nav class="dc-navbar">
+  <div class="dc-navbar-brand">
+    <span class="dc-logo-icon"><i class="fa fa-heartbeat"></i></span>
+    <span class="dc-logo-text">Diagno<span class="dc-logo-accent">care</span></span>
+  </div>
+  <div class="dc-navbar-actions">
+    <!-- Unregistered: show Register -->
+    <a *ngIf="navState === 'unregistered'"
+       routerLink="/register-pathology" class="dc-nav-register">
+      <i class="fas fa-hospital-alt"></i> Register Pathology
+    </a>
+    <a routerLink="/login" class="dc-nav-login">
+      <i class="fas fa-sign-in-alt"></i> Login
+    </a>
+  </div>
+</nav>
+
+<!-- ── Licence Expiry Banner ───────────────────────────────────────── -->
+<div class="dc-expiry-banner" *ngIf="navState === 'extend'"
+     [class.dc-expiry-critical]="daysLeft <= 5"
+     [class.dc-expiry-warning]="daysLeft > 5">
+  <span class="dc-expiry-banner-icon">
+    <i class="fas" [class.fa-exclamation-triangle]="daysLeft <= 5"
+                   [class.fa-clock]="daysLeft > 5"></i>
+  </span>
+  <span class="dc-expiry-banner-text">
+    <strong *ngIf="daysLeft > 0">
+      Your licence expires on {{ expiryDisplay }}
+      — only <strong>{{ daysLeft }} day{{ daysLeft !== 1 ? 's' : '' }}</strong> left.
+    </strong>
+    <strong *ngIf="daysLeft <= 0">
+      Your licence expired on {{ expiryDisplay }}.
+    </strong>
+    Please contact your administrator to renew.
+  </span>
+  <button class="dc-expiry-banner-dismiss" type="button" aria-label="Dismiss"
+          (click)="navState = 'registered'">
+    <i class="fas fa-times"></i>
+  </button>
+</div>
+
+<!-- ── Hero ──────────────────────────────────────────────────────── -->
+<section class="dc-hero" [class.dc-hero-with-banner]="navState === 'extend'">
+  <div class="dc-hero-bg-circles">
+    <span class="circle c1"></span>
+    <span class="circle c2"></span>
+    <span class="circle c3"></span>
+  </div>
+  <div class="dc-hero-content">
+    <div class="dc-hero-badge">
+      <i class="fa fa-flask"></i> Pathology Management System
+    </div>
+    <h1 class="dc-hero-title">
+      Precision Diagnostics,<br>
+      <span class="dc-hero-highlight">Simplified.</span>
+    </h1>
+    <p class="dc-hero-sub">
+      Diagnocare brings your entire pathology workflow into one intelligent platform —
+      from patient registration and lab tests to reports, billing, and beyond.
+    </p>
+    <div class="dc-hero-actions">
+      <!-- Unregistered → Register CTA -->
+      <a *ngIf="navState === 'unregistered'"
+         routerLink="/register-pathology" class="dc-btn dc-btn-primary">
+        <i class="fas fa-hospital-alt"></i> Register Your Lab
+      </a>
+      <a href="#features" class="dc-btn dc-btn-ghost">
+        <i class="fas fa-chevron-down"></i> Explore Features
+      </a>
+    </div>
+  </div>
+  <div class="dc-hero-visual">
+    <div class="dc-hero-card">
+      <div class="dc-hcard-row">
+        <span class="dc-hcard-dot green"></span>
+        <span class="dc-hcard-label">Patient Registered</span>
+        <span class="dc-hcard-val">Anita Sharma</span>
+      </div>
+      <div class="dc-hcard-row">
+        <span class="dc-hcard-dot blue"></span>
+        <span class="dc-hcard-label">Test Assigned</span>
+        <span class="dc-hcard-val">CBC + LFT</span>
+      </div>
+      <div class="dc-hcard-row">
+        <span class="dc-hcard-dot purple"></span>
+        <span class="dc-hcard-label">Report Ready</span>
+        <span class="dc-hcard-val">Ready to Print</span>
+      </div>
+      <div class="dc-hcard-divider"></div>
+      <div class="dc-hcard-stats">
+        <div class="dc-hcard-stat">
+          <span class="dc-hcard-stat-num">142</span>
+          <span class="dc-hcard-stat-lbl">Patients Today</span>
+        </div>
+        <div class="dc-hcard-stat">
+          <span class="dc-hcard-stat-num">38</span>
+          <span class="dc-hcard-stat-lbl">Reports Done</span>
+        </div>
+        <div class="dc-hcard-stat">
+          <span class="dc-hcard-stat-num">₹96k</span>
+          <span class="dc-hcard-stat-lbl">Revenue</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats bar ─────────────────────────────────────────────────── -->
+<section class="dc-stats">
+  <div class="dc-stat-item">
+    <span class="dc-stat-icon"><i class="fa fa-users"></i></span>
+    <span class="dc-stat-num">10,000+</span>
+    <span class="dc-stat-lbl">Patients Managed</span>
+  </div>
+  <div class="dc-stat-divider"></div>
+  <div class="dc-stat-item">
+    <span class="dc-stat-icon"><i class="fa fa-flask"></i></span>
+    <span class="dc-stat-num">500+</span>
+    <span class="dc-stat-lbl">Lab Tests Supported</span>
+  </div>
+  <div class="dc-stat-divider"></div>
+  <div class="dc-stat-item">
+    <span class="dc-stat-icon"><i class="fa fa-file-text"></i></span>
+    <span class="dc-stat-num">50,000+</span>
+    <span class="dc-stat-lbl">Reports Generated</span>
+  </div>
+  <div class="dc-stat-divider"></div>
+  <div class="dc-stat-item">
+    <span class="dc-stat-icon"><i class="fa fa-clock-o"></i></span>
+    <span class="dc-stat-num">24/7</span>
+    <span class="dc-stat-lbl">System Availability</span>
+  </div>
+</section>
+
+<!-- ── Features ──────────────────────────────────────────────────── -->
+<section class="dc-features" id="features">
+  <div class="dc-section-header">
+    <h2 class="dc-section-title">Everything a Pathology Lab Needs</h2>
+    <p class="dc-section-sub">Purpose-built modules that cover every corner of your lab's operation.</p>
+  </div>
+
+  <div class="dc-features-grid">
+
+    <div class="dc-feature-card">
+      <div class="dc-feature-icon" style="background: linear-gradient(135deg,#4CAF50,#2e7d32);">
+        <i class="fa fa-user-plus"></i>
+      </div>
+      <h3>Patient Registration</h3>
+      <p>Register patients in seconds with smart autofill, age calculation, and duplicate detection. Assign tests instantly at intake.</p>
+    </div>
+
+    <div class="dc-feature-card">
+      <div class="dc-feature-icon" style="background: linear-gradient(135deg,#2196F3,#1565C0);">
+        <i class="fa fa-flask"></i>
+      </div>
+      <h3>Lab Test Management</h3>
+      <p>Manage your complete test catalogue — groups, sub-groups, parameters, reference ranges, and units — all in one place.</p>
+    </div>
+
+    <div class="dc-feature-card">
+      <div class="dc-feature-icon" style="background: linear-gradient(135deg,#9C27B0,#6A1B9A);">
+        <i class="fa fa-file-text-o"></i>
+      </div>
+      <h3>Report Generation</h3>
+      <p>Generate professional, print-ready PDF reports with doctor signatures, letterheads, and branded templates in one click.</p>
+    </div>
+
+    <div class="dc-feature-card">
+      <div class="dc-feature-icon" style="background: linear-gradient(135deg,#FF9800,#E65100);">
+        <i class="fa fa-money"></i>
+      </div>
+      <h3>Billing & Receipts</h3>
+      <p>Issue itemised bills, track payments, manage discounts and refunds, and generate receipt registers with full audit trails.</p>
+    </div>
+
+    <div class="dc-feature-card">
+      <div class="dc-feature-icon" style="background: linear-gradient(135deg,#00BCD4,#006064);">
+        <i class="fa fa-bar-chart"></i>
+      </div>
+      <h3>Summary Reports</h3>
+      <p>Interactive dashboards for doctor-wise, panel-wise, and collection-wise analytics — with bar, pie, and line chart views.</p>
+    </div>
+
+    <div class="dc-feature-card">
+      <div class="dc-feature-icon" style="background: linear-gradient(135deg,#F44336,#B71C1C);">
+        <i class="fa fa-user-md"></i>
+      </div>
+      <h3>Doctor & Staff</h3>
+      <p>Maintain doctor profiles with digital signatures, manage collection boys, track attendance, and compute salary automatically.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Workflow ───────────────────────────────────────────────────── -->
+<section class="dc-workflow">
+  <div class="dc-section-header">
+    <h2 class="dc-section-title dc-light">How It Works</h2>
+    <p class="dc-section-sub dc-light">A streamlined flow from patient walk-in to report delivery.</p>
+  </div>
+  <div class="dc-workflow-steps">
+    <div class="dc-wstep">
+      <div class="dc-wstep-num">1</div>
+      <i class="fa fa-user-plus dc-wstep-icon"></i>
+      <h4>Register Patient</h4>
+      <p>Capture demographics, assign tests, collect payment.</p>
+    </div>
+    <div class="dc-wstep-arrow"><i class="fa fa-chevron-right"></i></div>
+    <div class="dc-wstep">
+      <div class="dc-wstep-num">2</div>
+      <i class="fa fa-pencil-square-o dc-wstep-icon"></i>
+      <h4>Enter Results</h4>
+      <p>Lab staff enter values; auto-flagging for out-of-range results.</p>
+    </div>
+    <div class="dc-wstep-arrow"><i class="fa fa-chevron-right"></i></div>
+    <div class="dc-wstep">
+      <div class="dc-wstep-num">3</div>
+      <i class="fa fa-file-pdf-o dc-wstep-icon"></i>
+      <h4>Generate Report</h4>
+      <p>One-click PDF with signature, logo, and test parameters.</p>
+    </div>
+    <div class="dc-wstep-arrow"><i class="fa fa-chevron-right"></i></div>
+    <div class="dc-wstep">
+      <div class="dc-wstep-num">4</div>
+      <i class="fa fa-send dc-wstep-icon"></i>
+      <h4>Deliver</h4>
+      <p>Print or download the report for the patient directly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<footer class="dc-footer">
+  <div class="dc-footer-brand">
+    <i class="fa fa-heartbeat"></i>
+    <span>Diagnocare</span>
+  </div>
+  <p class="dc-footer-copy">&copy; {{ currentYear }} Diagnocare. All rights reserved. Pathology Management System.</p>
+</footer>

@@ -1,0 +1,138 @@
+<div class="page-container pathology-theme">
+  <!-- Loading Spinner -->
+  <app-loading-spinner [isLoading]="isLoading" message="Loading patient details..."></app-loading-spinner>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Patient Management System</h2>
+      <p class="subtitle">{{componentTitle}}</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-back" (click)="clickBack()">
+        <i class="fa fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container">
+    <div class="card">
+      <div class="card-header">
+        <h3>Edit Patient Details</h3>
+      </div>
+      <div class="card-body">
+        <form [formGroup]="editPatientForm" (ngSubmit)="SubmitForm(editPatientForm)">
+          @if(formSubmitted && errors.length > 0)
+          {
+            <div class="alert alert-danger">
+              <h5>Please fix the following errors:</h5>
+              <ul>
+                <li *ngFor="let error of errors">{{ error }}</li>
+              </ul>
+            </div>
+          }
+    
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <div class="input-group">
+                <select formControlName="patient_Salutation" class="form-select" style="max-width: 80px;" [attr.tabindex]="getTabIndex('patient_Salutation')">
+                  <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
+                </select>
+                <input type="text" class="form-control" formControlName="patient_Name" [attr.tabindex]="getTabIndex('patient_Name')">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date Of Birth</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="patient_DOB"
+                placeholder="dd/mm/yyyy"
+                maxlength="10"
+                (input)="onDateInput($event)"
+                (keydown)="onDateKeyDown($event)"
+                autocomplete="off"
+                [attr.tabindex]="getTabIndex('patient_DOB')"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Age</label>
+              <input type="text" class="form-control" formControlName="patient_Age" [attr.tabindex]="getTabIndex('patient_Age')">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Age Group</label>
+              <select formControlName="patient_Age_Group" class="form-select" [attr.tabindex]="getTabIndex('patient_Age_Group')">
+                <option *ngFor="let entry of ageRange" [value]="entry">{{ entry }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <div class="radio-group">
+                <label class="radio-label" *ngFor="let entry of gender; let i = index">
+                  <input type="radio" formControlName="patient_Gender" [value]="entry" [attr.tabindex]="i === 0 ? getTabIndex('patient_Gender') : -1" /> {{entry}}
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marital Status</label>
+              <div class="radio-group">
+                <label class="radio-label" *ngFor="let status of maritalStatus; let i = index">
+                  <input type="radio" formControlName="patient_Marital_Status" [value]="status" [attr.tabindex]="i === 0 ? getTabIndex('patient_Marital_Status') : -1" /> {{status}}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Relation</label>
+              <select formControlName="relation" class="form-select" [attr.tabindex]="getTabIndex('relation')">
+                <option *ngFor="let relation of relations" [value]="relation">{{ relation }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Relative Name</label>
+              <input type="text" class="form-control" formControlName="relative_Name" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('relative_Name')">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Contact</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
+                  <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
+                </select>
+                <input type="number" class="form-control" formControlName="patient_Contact" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email ID</label>
+              <input type="text" class="form-control" formControlName="patient_Email" [attr.tabindex]="getTabIndex('patient_Email')">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <input type="text" class="form-control" formControlName="patient_Address" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('patient_Address')">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-success">
+              <i class="fa fa-save"></i> Update
+            </button>
+            <button type="button" class="btn btn-danger" (click)="clearForm()">
+              <i class="fa fa-times"></i> Clear
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

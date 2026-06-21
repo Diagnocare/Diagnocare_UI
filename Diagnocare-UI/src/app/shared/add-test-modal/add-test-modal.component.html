@@ -1,0 +1,495 @@
+<!-- ── Full-screen overlay backdrop ─────────────────────────────────────── -->
+<div class="atm-overlay" *ngIf="visible">
+
+  <!-- Page-style container inside overlay -->
+  <div class="atm-page page-container pathology-theme">
+
+    <!-- ── Page Header (matches add-patient's page-header) ──────────────── -->
+    <div class="page-header atm-page-header">
+      <div class="header-left">
+        <h1>Add New Test</h1>
+        <p class="subtitle">Patient&nbsp;<strong>{{ patientId }}</strong> &mdash; Select tests and complete payment</p>
+      </div>
+      <button class="btn btn-outline atm-close-page-btn" type="button" (click)="cancel()" title="Cancel">
+        <i class="fa fa-times"></i> Cancel
+      </button>
+    </div>
+
+    <!-- ── Shared Stepper ────────────────────────────────────────────────── -->
+    <app-stepper [steps]="stepperSteps" [currentStep]="currentStep"></app-stepper>
+
+    <!-- ── Registration Card ─────────────────────────────────────────────── -->
+    <div class="registration-card" *ngIf="!showTestCatalog">
+      <form [formGroup]="form" (ngSubmit)="submit()">
+
+        <!-- ═════════════════════════════════════ STEP 1: TEST & LAB ═══════ -->
+        <div *ngIf="currentStep === 1">
+          <div class="step-header step-header--3">
+            <div class="step-badge">1</div>
+            <div>
+              <h3>Test &amp; Lab</h3>
+              <p>Select tests and specify lab preferences</p>
+            </div>
+          </div>
+
+          <div class="step-body">
+            <div class="form-section-label">Test Selection</div>
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label class="form-label required">Test Name(s)</label>
+                <div class="test-input-wrap">
+                  <input type="text" class="form-control" formControlName="test_Name"
+                         placeholder="Click to browse and select tests…"
+                         (click)="openTestCatalog($event)" readonly
+                         [class.is-invalid]="form.get('test_Name')?.invalid && form.get('test_Name')?.touched" />
+                  <i class="fa fa-search test-browse-icon"></i>
+                </div>
+                <span class="field-error" *ngIf="form.get('test_Name')?.invalid && form.get('test_Name')?.touched">
+                  Please select at least one test.
+                </span>
+              </div>
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Urgent Report</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="atm-urgentReport" />
+                  <label for="atm-urgentReport" class="toggle-label">Mark as Urgent</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">Test Amount (₹)</label>
+                <input type="text" class="form-control" formControlName="test_Amount"
+                       placeholder="Auto-filled from test selection" readonly />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Referred By</label>
+                <div class="input-combo" [class.is-invalid]="form.get('referred_By')?.invalid && form.get('referred_By')?.touched">
+                  <select formControlName="referred_By_Type" class="combo-prefix combo-prefix--md"
+                          (change)="onReferredByTypeChange()">
+                    <option *ngFor="let entry of referredByTypeOptions" [value]="entry">{{ entry }}</option>
+                  </select>
+                  <div class="referred-by-input-wrap combo-input-wrap">
+                    <input type="text" class="combo-input" formControlName="referred_By"
+                           autocomplete="off" placeholder="Name / source"
+                           appAutocompleteInput
+                           (input)="onReferredByInput($event)"
+                           (focus)="onReferredByFocus()"
+                           (blur)="onReferredByBlur()" />
+                    <ul class="referred-by-suggestions" *ngIf="showReferredBySuggestions">
+                      <li *ngFor="let item of filteredReferredByOptions" (mousedown)="selectReferredBy(item)">
+                        {{ item }}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <span class="field-error" *ngIf="form.get('referred_By')?.invalid && form.get('referred_By')?.touched">
+                  Referred By is required.
+                </span>
+              </div>
+            </div>
+
+            <div class="form-section-label">Sample Collection</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Sampling Done At</label>
+                <select formControlName="sampling_Done" class="form-select">
+                  <option value="">-- Select --</option>
+                  <option *ngFor="let entry of samplingDoneAt" [value]="entry">{{ entry }}</option>
+                </select>
+              </div>
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Collected Outside</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="collected_Outside" id="atm-collectedOutside" />
+                  <label for="atm-collectedOutside" class="toggle-label">Outside Collection</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Shown inline when Collected Outside is checked -->
+            <div class="form-row" *ngIf="form.get('collected_Outside')?.value">
+              <div class="form-group">
+                <label class="form-label">Area</label>
+                <input type="text" class="form-control" formControlName="area" placeholder="Collection area" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Collected By</label>
+                <input type="text" class="form-control" formControlName="collected_By" placeholder="Agent / collector name" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label class="form-label">Remark</label>
+                <textarea class="form-control" formControlName="remark" rows="2"
+                          placeholder="Optional notes or remarks…"></textarea>
+              </div>
+            </div>
+          </div>
+        </div><!-- /step 1 -->
+
+        <!-- ═════════════════════════════════════ STEP 2: PAYMENT ══════════ -->
+        <div *ngIf="currentStep === 2">
+          <div class="step-header step-header--4">
+            <div class="step-badge atm-badge--payment">2</div>
+            <div>
+              <h3>Payment</h3>
+              <p>Review amounts and complete billing</p>
+            </div>
+          </div>
+
+          <div class="step-body">
+            <!-- Amount Summary Cards -->
+            <div class="amount-summary">
+              <div class="amount-card amount-card--test">
+                <span class="amount-label">Test Amount</span>
+                <span class="amount-value">₹{{ form.get('test_Amount')?.value || 0 }}</span>
+              </div>
+              <div class="amount-card amount-card--discount">
+                <span class="amount-label">Discount</span>
+                <span class="amount-value">{{ form.get('discount')?.value || 0 }}%</span>
+              </div>
+              <div class="amount-card amount-card--net">
+                <span class="amount-label">Net Amount</span>
+                <span class="amount-value">₹{{ form.get('net_Amount')?.value || 0 }}</span>
+              </div>
+            </div>
+
+            <div class="form-section-label">Amount Breakdown</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Test Amount (₹)</label>
+                <input type="text" class="form-control" formControlName="test_Amount" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Discount (%)</label>
+                <input type="number" class="form-control" formControlName="discount"
+                       (change)="calculateNetAmount()" placeholder="0" min="0" max="100" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">Net Amount (₹)</label>
+                <input type="number" class="form-control" formControlName="net_Amount"
+                       (change)="calculateDiscount()" />
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Payment Type</label>
+                <div class="radio-pill-group">
+                  <label class="radio-pill" *ngFor="let entry of paymentTypeOptions; let i = index">
+                    <input type="radio" formControlName="payment_Type" [value]="entry"
+                           (change)="onPaymentTypeChange()" />
+                    <span>{{ entry }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row" *ngIf="form.get('payment_Type')?.value !== 'No Payment'">
+              <div class="form-group">
+                <label class="form-label required">Payment Mode</label>
+                <select formControlName="payment_Mode" class="form-select"
+                        (change)="onPaymentModeChange()">
+                  <option *ngFor="let entry of paymentModeOptions" [value]="entry">{{ entry }}</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">
+                  Amount Paid (₹)
+                  <span *ngIf="paymentConfirmed" class="payment-lock-icon" title="Confirmed — locked">🔒</span>
+                </label>
+                <input type="text" class="form-control"
+                       [class.payment-locked-input]="paymentConfirmed"
+                       formControlName="amount_Paid" readonly />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">
+                  Amount Pending (₹)
+                  <span *ngIf="paymentConfirmed" class="payment-lock-icon" title="Confirmed — locked">🔒</span>
+                </label>
+                <input type="text" class="form-control"
+                       [class.payment-locked-input]="paymentConfirmed"
+                       formControlName="amount_Pending" readonly />
+              </div>
+            </div>
+
+            <!-- TPA Details Confirmed Banner -->
+            <div *ngIf="isTpaMode && tpaDetails" class="payment-confirmed-banner atm-tpa-confirmed-banner">
+              <div class="payment-confirmed-content">
+                <span class="payment-confirmed-icon">🏥</span>
+                <div class="payment-confirmed-text">
+                  <strong>TPA Details Confirmed</strong>
+                  <span>{{ tpaDetails.tpaName }} &nbsp;·&nbsp; Policy: {{ tpaDetails.tpaPolicyNumber }}</span>
+                </div>
+              </div>
+              <button type="button" class="btn-edit-payment" (click)="editTpaDetails()">
+                <i class="fa fa-pencil-alt"></i> Edit
+              </button>
+            </div>
+
+            <!-- TPA required reminder (before details are confirmed) -->
+            <div *ngIf="isTpaMode && !tpaDetails" class="atm-tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              TPA payment selected &mdash; please fill in TPA details to proceed.
+              <button type="button" class="atm-tpa-open-btn" (click)="editTpaDetails()">
+                <i class="fa fa-plus-circle"></i> Enter TPA Details
+              </button>
+            </div>
+
+            <!-- No Payment Info Banner -->
+            <div *ngIf="form.get('payment_Type')?.value === 'No Payment'" class="atm-tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              <strong>No payment collected now.</strong> Full amount of
+              ₹{{ form.get('net_Amount')?.value }} will be collected at report pickup.
+            </div>
+
+            <!-- Partial Payment Confirmed Banner -->
+            <div *ngIf="paymentConfirmed" class="payment-confirmed-banner">
+              <div class="payment-confirmed-content">
+                <span class="payment-confirmed-icon">✅</span>
+                <div class="payment-confirmed-text">
+                  <strong>Partial Payment Confirmed</strong>
+                  <span>
+                    ₹{{ form.get('amount_Paid')?.value }} paid now &nbsp;·&nbsp;
+                    ₹{{ form.get('amount_Pending')?.value }} pending
+                  </span>
+                </div>
+              </div>
+              <button type="button" class="btn-edit-payment" (click)="editPartialPayment()">
+                <i class="fa fa-pencil-alt"></i> Edit
+              </button>
+            </div>
+
+            <!-- Save Error -->
+            <div class="atm-save-error" *ngIf="saveError">
+              <i class="fa fa-exclamation-triangle"></i> {{ saveError }}
+            </div>
+          </div>
+        </div><!-- /step 2 -->
+
+        <!-- ── Form Actions Bar (matches add-patient exactly) ────────────── -->
+        <div class="form-actions">
+          <div class="actions-left">
+            <button type="button" class="btn btn-back" (click)="goToStep1()"
+                    [disabled]="currentStep === 1">
+              <i class="fa fa-arrow-left"></i> Previous
+            </button>
+          </div>
+
+          <div class="step-progress-hint">
+            <span class="hint-dot" [class.hint-dot--active]="currentStep === 1" [class.hint-dot--done]="currentStep > 1"></span>
+            <span class="hint-dot" [class.hint-dot--active]="currentStep === 2"></span>
+          </div>
+
+          <div class="actions-right">
+            <!-- Step 1: Next -->
+            <button type="button" class="btn btn-primary" (click)="goToStep2()"
+                    *ngIf="currentStep === 1"
+                    [disabled]="!isStep1Valid"
+                    title="Continue to payment">
+              Next <i class="fa fa-arrow-right"></i>
+            </button>
+            <!-- Step 2: Submit -->
+            <button type="submit" class="btn btn-success" *ngIf="currentStep === 2"
+                    [disabled]="!isStep2Valid || isSaving">
+              <i class="fa fa-spinner fa-spin" *ngIf="isSaving"></i>
+              <i class="fa fa-check" *ngIf="!isSaving"></i>
+              {{ isSaving ? 'Saving…' : 'Add Test' }}
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div><!-- /registration-card -->
+
+    <!-- ══════════════════════════════ TEST CATALOG ══════════════════════ -->
+    <div class="registration-card atm-catalog-card" *ngIf="showTestCatalog">
+
+      <!-- Catalog Header -->
+      <div class="step-header step-header--3">
+        <div class="step-badge">🔬</div>
+        <div>
+          <h3>Browse &amp; Select Tests</h3>
+          <p>Click tests to add them to your selection</p>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="atm-catalog-search">
+        <i class="fa fa-search"></i>
+        <input type="text" [(ngModel)]="query" [ngModelOptions]="{standalone: true}"
+               placeholder="Search by test name or code…" class="form-control" />
+      </div>
+
+      <!-- 3-column browser -->
+      <div class="atm-catalog-body">
+        <!-- Groups -->
+        <div class="card atm-cat-col">
+          <div class="card-header">Groups</div>
+          <div class="card-body">
+            <div *ngIf="filteredGroups.length === 0" class="no-data">No groups found</div>
+            <div *ngFor="let g of filteredGroups"
+                 class="list-item"
+                 [class.active]="g.testGroupId === selectedGroupId"
+                 (click)="getSubGroupList(g)">
+              <div class="left">
+                <div class="code">{{ g.testGroupId }}</div>
+                <div class="name">{{ g.name }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-groups -->
+        <div class="card atm-cat-col">
+          <div class="card-header">Sub-Groups</div>
+          <div class="card-body">
+            <div *ngIf="filteredSubGroups.length === 0" class="no-data">Select a group</div>
+            <div *ngFor="let s of filteredSubGroups"
+                 class="list-item"
+                 [class.active]="s.testGroupId === selectedSubGroupId"
+                 (click)="getMedicalTestList(s)">
+              <div class="left">
+                <div class="code">{{ s.testGroupId }}</div>
+                <div class="name">{{ s.name }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tests -->
+        <div class="card atm-cat-col">
+          <div class="card-header">Tests</div>
+          <div class="card-body">
+            <div *ngIf="filteredTests.length === 0" class="no-data">Select a sub-group</div>
+            <div *ngFor="let t of filteredTests"
+                 class="list-item test-item"
+                 [class.active]="focusedTestId === t.testCode"
+                 [class.test-selected]="isTestSelected(t)"
+                 (click)="toggleTestSelection(t)">
+              <div class="icon-wrap">
+                <div class="icon">
+                  <i class="fa" [class.fa-check-circle]="isTestSelected(t)" [class.fa-circle-o]="!isTestSelected(t)"
+                     [style.color]="isTestSelected(t) ? '#16a34a' : '#b0bfcc'"></i>
+                </div>
+              </div>
+              <div class="left">
+                <div class="code">{{ t.testCode }}</div>
+                <div class="name">{{ t.testName }}</div>
+              </div>
+              <div class="right">₹{{ t.price }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Items -->
+        <div class="card atm-cat-col atm-cat-col--selected">
+          <div class="card-header">
+            Selected ({{ selectedTests.length }})
+          </div>
+          <div class="card-body">
+            <div *ngIf="selectedTests.length === 0" class="no-data">No tests selected yet</div>
+            <div *ngFor="let t of selectedTests" class="selected-item">
+              <div class="left">
+                <span class="code">{{ t.testCode }}</span>
+                <span class="name">{{ t.testName }}</span>
+              </div>
+              <div class="right">
+                <span class="price">₹{{ t.price }}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger atm-remove-btn"
+                        (click)="removeSelectedTest(t.testCode)">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="total-summary" *ngIf="selectedTests.length > 0">
+            <div>
+              <div class="total-label">Total Amount</div>
+            </div>
+            <div class="total-amount">₹{{ totalAmount }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Catalog Actions -->
+      <div class="form-actions">
+        <div class="actions-left">
+          <button type="button" class="btn btn-back" (click)="cancelTestCatalog()">
+            <i class="fa fa-arrow-left"></i> Back to Form
+          </button>
+        </div>
+        <div class="actions-right">
+          <button type="button" class="btn btn-primary" (click)="confirmTestSelection()"
+                  [disabled]="selectedTests.length === 0">
+            <i class="fa fa-check"></i> Confirm Selection
+          </button>
+        </div>
+      </div>
+    </div><!-- /catalog card -->
+
+  </div><!-- /atm-page -->
+</div><!-- /atm-overlay -->
+
+<!-- ══════════════════════════════ TPA DETAILS MODAL ════════════════════ -->
+<app-tpa-details-modal
+  [visible]="showTpaModal"
+  [initialValues]="tpaDetails"
+  (confirmed)="onTpaConfirmed($event)"
+  (cancelled)="onTpaCancelled()">
+</app-tpa-details-modal>
+
+
+<!-- ════════════════════ PARTIAL PAYMENT MODAL (Bootstrap-style) ════════════ -->
+<div class="modal-backdrop fade show" *ngIf="showPartialPaymentPanel" style="z-index:1060"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" *ngIf="showPartialPaymentPanel" style="z-index:1065">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content" [formGroup]="form">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fa fa-credit-card"></i>&nbsp; Partial Payment Details
+        </h5>
+        <button type="button" class="btn-close" (click)="cancelPartialPayment()"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Locked Net Amount -->
+        <div class="form-group mb-3">
+          <label class="form-label">Net Amount (₹) — locked</label>
+          <div class="pm-locked-field">
+            <input type="text" class="form-control pm-disabled-input"
+                   [value]="form.get('net_Amount')?.value" readonly />
+            <span class="pm-lock-badge">🔒 Locked</span>
+          </div>
+        </div>
+        <!-- Amount Paid input -->
+        <div class="form-group mb-3">
+          <label class="form-label required">Amount Paid Now (₹)</label>
+          <input type="number" class="form-control"
+                 formControlName="amount_Paid"
+                 [class.is-invalid]="!!amountPaidError"
+                 placeholder="Enter amount paid"
+                 (input)="onPartialAmountPaidInput($event)" />
+          <div class="field-error" *ngIf="amountPaidError">{{ amountPaidError }}</div>
+        </div>
+        <!-- Amount Pending (computed) -->
+        <div class="form-group">
+          <label class="form-label">Amount Pending (₹)</label>
+          <input type="text" class="form-control" formControlName="amount_Pending" readonly />
+        </div>
+      </div>
+      <div class="modal-footer-actions">
+        <button type="button" class="btn btn-back" (click)="cancelPartialPayment()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="confirmPartialPayment()"
+                [disabled]="!!amountPaidError || !form.get('amount_Paid')?.value">
+          <i class="fa fa-check"></i> Confirm Partial Payment
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

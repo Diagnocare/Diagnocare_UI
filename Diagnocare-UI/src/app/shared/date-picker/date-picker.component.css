@@ -1,0 +1,348 @@
+/* ── Root container ───────────────────────────────────────────────────────── */
+.dp-root {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+/* ── Trigger (looks like a form field) ───────────────────────────────────── */
+.dp-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  cursor: pointer;
+  user-select: none;
+  min-height: 38px;
+  padding: 0.45em 0.75em;
+  border: 1px solid #d1d9e6;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a2e4a;
+  font-size: 0.875em;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  outline: none;
+}
+
+.dp-trigger:focus,
+.dp-root.dp-open .dp-trigger {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
+}
+
+.dp-trigger:hover:not([aria-disabled="true"]) {
+  border-color: #667eea;
+}
+
+.dp-root.dp-disabled .dp-trigger {
+  background: #f5f7fc;
+  color: #9aa8be;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.dp-trigger--empty .dp-display {
+  color: #aab5c6;
+}
+
+.dp-display {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-trigger-icon {
+  flex-shrink: 0;
+  color: #9aa8be;
+  font-size: 0.95em;
+  transition: color 0.18s, transform 0.2s;
+}
+
+.dp-trigger-icon--open {
+  color: #667eea;
+  transform: rotate(180deg) scale(1.1);
+}
+
+/* ── Backdrop ─────────────────────────────────────────────────────────────── */
+/*
+ * Fixed overlay behind the calendar panel.
+ * Clicking it closes the calendar.
+ * z-index: 9998 puts it above Bootstrap modals (1050) and tooltips (1070).
+ */
+.dp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(10, 20, 40, 0.35);
+  animation: dp-backdrop-in 0.15s ease;
+}
+
+@keyframes dp-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Calendar panel (fixed, centered modal) ──────────────────────────────── */
+/*
+ * position: fixed + translate centres the panel in the viewport regardless of
+ * where the trigger lives in the DOM — inside scrollable containers, Bootstrap
+ * modals, sidebars, etc.  This also eliminates the "double-click" bug caused
+ * by parent overflow:hidden clipping the clickable hit-area of day buttons.
+ */
+.dp-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  width: min(320px, 92vw);
+  background: #ffffff;
+  color: #1a2e4a;
+  border: 1px solid #e1e8f0;
+  border-radius: 16px;
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.18),
+    0 20px 48px -8px rgba(30, 91, 168, 0.18);
+  padding: 16px;
+  animation: dp-modal-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dp-modal-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1);    }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.dp-header {
+  margin-bottom: 10px;
+}
+
+.dp-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.dp-nav-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #5a6a7e;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.dp-nav-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #1E5BA8;
+}
+
+.dp-month-year {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: #1a2e4a;
+  letter-spacing: 0.01em;
+}
+
+/* ── Weekday row ─────────────────────────────────────────────────────────── */
+.dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.dp-weekday {
+  text-align: center;
+  font-size: 0.72em;
+  font-weight: 700;
+  color: #9aa8be;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 0;
+}
+
+/* ── Day grid ────────────────────────────────────────────────────────────── */
+.dp-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-days button.dp-day,
+.dp-days button.dp-day:focus,
+.dp-days button.dp-day:active {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 34px;
+  font-size: 0.82em;
+  font-weight: 500;
+  border-radius: 8px;
+  background: transparent;
+  color: #1a2e4a;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+  outline: none;
+}
+
+.dp-days button.dp-day:hover:not(:disabled):not(.dp-day--selected) {
+  background: #eef2ff;
+  color: #1E5BA8;
+}
+
+.dp-days button.dp-day.dp-day--other {
+  color: #c5cedc;
+}
+
+.dp-days button.dp-day.dp-day--other:hover:not(:disabled) {
+  background: #f5f7fc;
+  color: #9aa8be;
+}
+
+.dp-days button.dp-day.dp-day--today {
+  background: #eef2ff;
+  color: #1E5BA8;
+  font-weight: 700;
+  position: relative;
+}
+
+.dp-days button.dp-day.dp-day--today::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #667eea;
+}
+
+.dp-days button.dp-day.dp-day--selected {
+  background: linear-gradient(135deg, #1E5BA8, #667eea);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(30, 91, 168, 0.3);
+}
+
+.dp-days button.dp-day.dp-day--selected:hover {
+  background: linear-gradient(135deg, #1a4f96, #5b72d8);
+}
+
+.dp-days button.dp-day.dp-day--disabled,
+.dp-days button.dp-day:disabled {
+  color: #c5cedc;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.dp-footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f4fb;
+}
+
+.dp-footer-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font-size: 0.78em;
+  font-weight: 600;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.dp-today-btn {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #1E5BA8;
+}
+
+.dp-today-btn:hover {
+  background: #1E5BA8;
+  border-color: #1E5BA8;
+  color: #fff;
+}
+
+.dp-clear-btn {
+  background: #fff5f5;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.dp-clear-btn:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.dp-close-btn {
+  background: #f5f7fc;
+  border-color: #d1d9e6;
+  color: #5a6a7e;
+}
+
+.dp-close-btn:hover {
+  background: #e2e8f0;
+  border-color: #b0bec5;
+  color: #1a2e4a;
+}
+
+/* ── Readonly state ──────────────────────────────────────────────────────── */
+.dp-root.dp-readonly .dp-trigger {
+  background: #f5f7fc;
+  color: #6b7a8e;
+  cursor: default;
+  pointer-events: none;
+}
+
+.dp-root.dp-readonly .dp-trigger-icon {
+  color: #b0bec5;
+}
+
+/* ── Validation error (host class: is-invalid) ───────────────────────────── */
+/*
+ * Applied when the parent template adds [class.is-invalid]="..." to the
+ * <app-date-picker> element.  ViewEncapsulation.None makes these global.
+ */
+app-date-picker.is-invalid .dp-trigger {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.18) !important;
+}
+
+/* ── Bootstrap / custom class compatibility ─────────────────────────────── */
+.dp-trigger.form-control,
+.dp-trigger.form-input {
+  display: flex !important;
+  height: auto !important;
+}
+
+:host {
+  display: block;
+  width: 100%;
+}

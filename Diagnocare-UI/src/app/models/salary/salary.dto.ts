@@ -1,0 +1,178 @@
+// ── Salary status ─────────────────────────────────────────────────────────────
+
+export enum SalaryStatus {
+  Pending       = 'Pending',
+  PartiallyPaid = 'PartiallyPaid',
+  Paid          = 'Paid',
+}
+
+// ── Payment type ──────────────────────────────────────────────────────────────
+
+/**
+ * Whether the payment settles the full outstanding balance or is a partial installment.
+ * String values match the backend PaymentType enum.
+ */
+export enum PaymentType {
+  Partial = 'Partial',
+  Full    = 'Full',
+}
+
+// ── Payment source ────────────────────────────────────────────────────────────
+
+/**
+ * Which salary component a payment is being made against.
+ * Numeric values match the backend PaymentSource enum:
+ *   1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance
+ */
+export enum PaymentFor {
+  BaseSalary      = 1,
+  TravelAllowance = 2,
+  OtherAllowance  = 3,
+}
+
+export const PaymentForLabels: Record<PaymentFor, string> = {
+  [PaymentFor.BaseSalary]:      'Base Salary',
+  [PaymentFor.TravelAllowance]: 'Travel Allowance',
+  [PaymentFor.OtherAllowance]:  'Other Allowance',
+};
+
+// ── Salary config (per user, persisted setting) ───────────────────────────────
+
+export interface UserSalaryConfigDTO {
+  configId:                 number;
+  userId:                   number;
+  fullName:                 string;
+  baseSalary:               number;
+  pfPercentage:             number;
+  /** Computed: baseSalary × pfPercentage / 100 (PF applies to base only). */
+  pfAmount?:                number;
+  travelAllowance?:         number;
+  otherAllowance?:          number;
+  /** Computed: baseSalary + travelAllowance + otherAllowance − pfAmount. */
+  netSalary?:               number;
+  effectiveDate?:           string;  // 'YYYY-MM-DD' — retained for backend compatibility
+  /** Number of paid leaves allowed per calendar month without salary deduction. */
+  allowedLeavesPerMonth?:   number;
+  /** 0 = Fixed, 1 = Percentage of revenue. */
+  salaryType?:              number;
+  revenuePercentage?:       number | null;
+}
+
+export interface SaveSalaryConfigDTO {
+  userId:                   number;
+  baseSalary:               number;
+  pfPercentage:             number;
+  travelAllowance?:         number;
+  otherAllowance?:          number;
+  effectiveDate?:           string;  // 'YYYY-MM-DD' — retained for backend compatibility
+  /** Number of paid leaves allowed per calendar month without salary deduction. */
+  allowedLeavesPerMonth?:   number;
+  /** 0 = Fixed, 1 = Percentage of revenue. */
+  salaryType:               number;
+  revenuePercentage?:       number | null;
+}
+
+// ── Partial payment ───────────────────────────────────────────────────────────
+
+export interface PartialPaymentDTO {
+  paymentId:          number;
+  salaryId:           number;
+  paymentAmount:      number;          // API field: paymentAmount
+  paymentMonth:       string;          // e.g. "2026-05"
+  paymentDate:        string;          // ISO datetime "2026-05-15T00:00:00"
+  reference?:         string | null;
+  /** Numeric: 1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance */
+  paymentSource:      PaymentFor | number;
+  paymentSourceName?: string;          // e.g. "BaseSalary"
+  /** 'Partial' | 'Full' — whether this settled the full outstanding balance. */
+  paymentType?:       PaymentType | string;
+  createdDate:        string;
+}
+
+export interface AddPaymentDTO {
+  salaryId:      number;
+  paymentAmount: number;
+  /** Month being paid — YYYY-MM format (e.g. 2026-05) */
+  paymentMonth:  string;
+  paymentDate:   string;
+  /** Optional reference / note */
+  reference?:    string;
+  /** Numeric: 1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance. Not sent for Full payments. */
+  paymentFor?:   PaymentFor;
+  /** Whether this is a full settlement or a partial installment. */
+  paymentType:   PaymentType;
+}
+
+// ── Monthly salary record ─────────────────────────────────────────────────────
+
+/** Salary record for one employee — matches actual API response. */
+export interface SalaryRecordDTO {
+  salaryId:              number;
+  userId:                number;
+  userName:              string;
+  fullName:              string;
+  typeUserId:            number;
+  deactivatedAt?:        string | null;
+  baseSalary:            number;
+  pfAmount?:             number;
+  travelAllowance?:      number;
+  otherAllowance?:       number;
+  grossSalary?:          number;
+  /** baseSalary + travelAllowance + otherAllowance − pfAmount */
+  netSalary?:            number;
+  totalPaid?:            number;
+  pendingAmount?:        number;
+  paymentCount?:         number;
+  isFullyPaid:           boolean;
+  baseSalaryPaid?:       number;
+  travelAllowancePaid?:  number;
+  otherAllowancePaid?:   number;
+  payments:              PartialPaymentDTO[];
+  /** Derived on the frontend from isFullyPaid + totalPaid. */
+  status?:               SalaryStatus;
+}
+
+/** Top-level response from GET api/salary/GetMonthly?year=&month= */
+export interface MonthlySalaryResponseDTO {
+  /** ISO month string e.g. "2026-05" */
+  month:           string;
+  totalEmployees?: number;
+  totalNetSalary?: number;
+  totalPaid?:      number;
+  // totalPending?:   number;
+  fullyPaidCount?: number;
+  pendingCount?:   number;
+  employees:       SalaryRecordDTO[];
+}
+
+export interface GenerateSalaryDTO {
+  month: number;
+  year:  number;
+}
+
+// ── Payable salary calculation result ────────────────────────────────────────
+
+/** Response from GET api/salary/CalculatePayableSalary */
+export interface CalculatePayableSalaryDTO {
+  userId:                number;
+  userName:              string;
+  fullName:              string;
+  year:                  number;
+  month:                 number;
+  monthLabel:            string;
+  baseSalary:            number;
+  allowedLeavesPerMonth: number;
+  totalDaysInMonth:      number;
+  absentDays:            number;
+  halfDays:              number;
+  /** absentDays + halfDays × 0.5 */
+  effectiveAbsentDays:   number;
+  /** effectiveAbsentDays − allowedLeavesPerMonth (min 0) */
+  extraAbsentDays:       number;
+  /** baseSalary / totalDaysInMonth */
+  perDayBaseSalary:      number;
+  /** extraAbsentDays × perDayBaseSalary */
+  deductionAmount:       number;
+  /** baseSalary − deductionAmount */
+  payableBaseSalary:     number;
+}

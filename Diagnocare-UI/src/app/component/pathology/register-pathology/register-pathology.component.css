@@ -1,0 +1,288 @@
+/* ═══════════════════════════════════════════════════════════════════
+   REGISTER PATHOLOGY PAGE  — mirrors login page split-panel style
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Root layout ──────────────────────────────────────────────────── */
+.rp-root {
+  display: flex;
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Left decorative panel ────────────────────────────────────────── */
+.rp-left {
+  position: relative;
+  width: 42%;
+  min-height: 100vh;
+  background: linear-gradient(145deg, #0f172a 0%, #1e3a5f 55%, #0891b2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 3rem 2.5rem;
+  flex-shrink: 0;
+}
+
+.rp-left-bg-circles { position: absolute; inset: 0; pointer-events: none; }
+.rp-circle { position: absolute; border-radius: 50%; opacity: .08; background: #fff; }
+.rp-c1 { width: 380px; height: 380px; top: -80px;  left: -100px; }
+.rp-c2 { width: 260px; height: 260px; top: 45%;   right: -60px; }
+.rp-c3 { width: 180px; height: 180px; bottom: -40px; left: 30%; }
+
+.rp-left-content {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  max-width: 380px;
+}
+
+/* Brand */
+.rp-brand { display: flex; align-items: center; gap: .6rem; margin-bottom: 2.2rem; }
+.rp-brand-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(255,255,255,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem; color: #7dd3fc;
+}
+.rp-brand-name  { font-size: 1.35rem; font-weight: 700; color: #fff; }
+.rp-brand-accent { color: #7dd3fc; }
+
+/* Hero text */
+.rp-hero-title  { font-size: 2.1rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem; color: #fff; }
+.rp-hero-sub    { font-size: .95rem; color: rgba(255,255,255,.75); line-height: 1.6; margin-bottom: 2rem; }
+
+/* Feature list */
+.rp-features { list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-direction: column; gap: .9rem; }
+.rp-features li { display: flex; align-items: flex-start; gap: .75rem; }
+.rp-feat-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; color: #7dd3fc; flex-shrink: 0; margin-top: 2px;
+}
+.rp-features li div { display: flex; flex-direction: column; gap: .15rem; }
+.rp-features li strong { font-size: .88rem; color: #fff; font-weight: 600; }
+.rp-features li span  { font-size: .8rem; color: rgba(255,255,255,.65); }
+
+/* Plan pills */
+.rp-plan-pills { display: flex; gap: .6rem; flex-wrap: wrap; }
+.rp-pill {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .35rem .85rem; border-radius: 20px; font-size: .8rem; font-weight: 600;
+}
+.rp-pill-trial   { background: rgba(251,191,36,.18);  color: #fde68a; }
+.rp-pill-license { background: rgba(34,197,94,.18);   color: #86efac; }
+
+/* ── Right panel ──────────────────────────────────────────────────── */
+.rp-right {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+  overflow-y: auto;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.rp-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0,0,0,.09);
+  padding: 2.2rem 2rem;
+  width: 100%;
+  max-width: 640px;
+}
+
+/* Card header */
+.rp-card-header { text-align: center; margin-bottom: 1.5rem; }
+.rp-card-logo {
+  width: 52px; height: 52px; border-radius: 14px; margin: 0 auto .9rem;
+  background: linear-gradient(135deg, #0891b2, #0369a1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: #fff;
+}
+.rp-card-title { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin: 0 0 .3rem; }
+.rp-card-sub   { font-size: .88rem; color: #64748b; margin: 0; }
+
+/* ── Error banner ─────────────────────────────────────────────────── */
+.rp-error-banner {
+  display: flex; align-items: center; gap: .5rem;
+  background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;
+  padding: .65rem 1rem; margin-bottom: 1.2rem;
+  color: #dc2626; font-size: .87rem;
+}
+
+/* ── Section labels ───────────────────────────────────────────────── */
+.rp-section-label {
+  font-size: .7rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: #94a3b8;
+  margin: 1.25rem 0 .6rem;
+  padding-bottom: .3rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────── */
+.rp-row { display: flex; gap: .75rem; }
+.rp-field-grow  { flex: 1 1 auto; }
+.rp-field-half  { flex: 0 0 calc(50% - .375rem); }
+.rp-field-third { flex: 1 1 0; min-width: 0; }
+.rp-field-half-inline { max-width: 260px; }
+
+/* ── Fields ───────────────────────────────────────────────────────── */
+.rp-field { margin-bottom: .9rem; }
+.rp-label { display: block; font-size: .8rem; font-weight: 600; color: #374151; margin-bottom: .3rem; }
+.rp-label .req { color: #ef4444; }
+
+.rp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color .18s;
+}
+.rp-input-wrap:focus-within { border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,.1); }
+.rp-input-wrap.rp-input-error { border-color: #ef4444; }
+
+.rp-input-icon {
+  padding: 0 .75rem; color: #94a3b8; font-size: .85rem; flex-shrink: 0;
+}
+.rp-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  padding: .6rem .75rem .6rem 0; font-size: .88rem; color: #1e293b;
+}
+.rp-input-no-icon { padding: .6rem .75rem; }
+.rp-input::placeholder { color: #cbd5e1; }
+
+.rp-field-error { color: #ef4444; font-size: .75rem; margin-top: .25rem; }
+
+/* ── Licence toggle ───────────────────────────────────────────────── */
+.rp-licence-toggle {
+  display: flex; gap: .75rem; margin-bottom: .75rem;
+}
+.rp-lic-btn {
+  flex: 1;
+  display: flex; align-items: center; gap: .75rem;
+  padding: .85rem 1rem;
+  border: 2px solid #e2e8f0; border-radius: 10px;
+  background: #f8fafc; cursor: pointer;
+  transition: border-color .18s, background .18s;
+  text-align: left;
+}
+.rp-lic-btn i {
+  font-size: 1.3rem; color: #94a3b8; flex-shrink: 0;
+  transition: color .18s;
+}
+.rp-lic-btn div { display: flex; flex-direction: column; gap: .1rem; }
+.rp-lic-name { font-size: .88rem; font-weight: 700; color: #374151; }
+.rp-lic-desc { font-size: .75rem; color: #94a3b8; }
+
+.rp-lic-active {
+  border-color: #0891b2;
+  background: #f0f9ff;
+}
+.rp-lic-active i    { color: #0891b2; }
+.rp-lic-active .rp-lic-name { color: #0369a1; }
+.rp-lic-active .rp-lic-desc { color: #0891b2; }
+
+/* ── Expiry row ───────────────────────────────────────────────────── */
+.rp-expiry-row {
+  display: flex; align-items: center; gap: .5rem;
+  background: #f0f9ff; border: 1px solid #bae6fd;
+  border-radius: 8px; padding: .55rem .85rem;
+  font-size: .84rem; color: #0369a1; margin-bottom: 1.25rem;
+}
+.rp-expiry-row i { color: #0891b2; flex-shrink: 0; }
+.rp-expiry-note { font-size: .75rem; color: #64748b; margin-left: .25rem; }
+
+/* ── Submit button ────────────────────────────────────────────────── */
+.rp-submit-btn {
+  width: 100%;
+  padding: .8rem;
+  border: none; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg, #0891b2, #0369a1);
+  color: #fff; font-size: .95rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  transition: opacity .18s, transform .1s;
+  text-decoration: none;
+}
+.rp-submit-btn:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
+.rp-submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.rp-btn-go-login { margin-top: 1.5rem; }
+
+/* Spinner */
+.rp-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff; border-radius: 50%;
+  animation: rp-spin .7s linear infinite;
+}
+@keyframes rp-spin { to { transform: rotate(360deg); } }
+
+/* ── Back links ───────────────────────────────────────────────────── */
+.rp-back-home {
+  text-align: center; margin-top: 1.25rem;
+  font-size: .82rem; color: #94a3b8;
+}
+.rp-back-home a { color: #0891b2; text-decoration: none; font-weight: 500; }
+.rp-back-home a:hover { text-decoration: underline; }
+
+/* ── Success state ────────────────────────────────────────────────── */
+.rp-success {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 1rem 0;
+}
+.rp-success-icon {
+  font-size: 3.5rem; color: #22c55e; margin-bottom: 1rem;
+  animation: rp-pop .4s cubic-bezier(.18,.89,.32,1.28);
+}
+@keyframes rp-pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.rp-success-title { font-size: 1.6rem; font-weight: 800; color: #0f172a; margin: 0 0 .5rem; }
+.rp-success-sub   { font-size: .92rem; color: #475569; max-width: 400px; line-height: 1.55; margin-bottom: 1.75rem; }
+
+.rp-key-box {
+  width: 100%; background: #f8fafc; border: 2px dashed #0891b2;
+  border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: .75rem;
+}
+.rp-key-label {
+  font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: #0891b2; margin-bottom: .5rem;
+}
+.rp-key-value {
+  font-size: 1.35rem; font-weight: 800; color: #0f172a;
+  letter-spacing: .12em; word-break: break-all; margin-bottom: .85rem;
+  font-family: 'Courier New', monospace;
+}
+.rp-key-copy {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .4rem 1rem; border: 1.5px solid #0891b2; border-radius: 7px;
+  background: #fff; color: #0891b2; font-size: .82rem; font-weight: 600;
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.rp-key-copy:hover { background: #0891b2; color: #fff; }
+
+.rp-key-meta {
+  font-size: .84rem; color: #64748b; margin-bottom: 1rem;
+}
+.rp-key-meta strong { color: #334155; }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .rp-root   { flex-direction: column; }
+  .rp-left   { width: 100%; min-height: auto; padding: 2rem 1.5rem; }
+  .rp-right  { padding: 1.5rem 1rem; }
+  .rp-card   { padding: 1.5rem 1.25rem; }
+  .rp-row    { flex-wrap: wrap; }
+  .rp-field-half,
+  .rp-field-third { flex: 1 1 100%; }
+  .rp-licence-toggle { flex-direction: column; }
+  .rp-hero-title { font-size: 1.6rem; }
+}
+@media (max-width: 480px) {
+  .rp-card { padding: 1.2rem 1rem; border-radius: 12px; }
+  .rp-key-value { font-size: 1rem; letter-spacing: .06em; }
+  .rp-field-half-inline { max-width: 100%; }
+}

@@ -1,0 +1,264 @@
+<div class="rp-root">
+
+  <!-- ── Left panel ── -->
+  <div class="rp-left">
+    <div class="rp-left-bg-circles">
+      <span class="rp-circle rp-c1"></span>
+      <span class="rp-circle rp-c2"></span>
+      <span class="rp-circle rp-c3"></span>
+    </div>
+    <div class="rp-left-content">
+      <div class="rp-brand">
+        <div class="rp-brand-icon"><i class="fas fa-heartbeat"></i></div>
+        <span class="rp-brand-name">Diagno<span class="rp-brand-accent">care</span></span>
+      </div>
+      <h1 class="rp-hero-title">Register Your<br>Pathology Lab.</h1>
+      <p class="rp-hero-sub">
+        Get started in minutes. Fill in your lab details, choose a licence plan,
+        and receive your unique licence key instantly.
+      </p>
+      <ul class="rp-features">
+        <li>
+          <span class="rp-feat-icon"><i class="fas fa-key"></i></span>
+          <div>
+            <strong>Instant Licence Key</strong>
+            <span>Receive your key immediately after registration.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rp-feat-icon"><i class="fas fa-flask"></i></span>
+          <div>
+            <strong>Full Platform Access</strong>
+            <span>Patients, tests, billing and reports from day one.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rp-feat-icon"><i class="fas fa-shield-alt"></i></span>
+          <div>
+            <strong>Secure &amp; Private</strong>
+            <span>Your lab data stays yours — always encrypted.</span>
+          </div>
+        </li>
+      </ul>
+      <div class="rp-plan-pills">
+        <div class="rp-pill rp-pill-trial">
+          <i class="fas fa-clock"></i>
+          <span>15-Day Trial</span>
+        </div>
+        <div class="rp-pill rp-pill-license">
+          <i class="fas fa-certificate"></i>
+          <span>Full Licence</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right panel ── -->
+  <div class="rp-right">
+    <div class="rp-card">
+
+      <!-- ════════════════════════════════════════
+           SUCCESS STATE
+      ════════════════════════════════════════ -->
+      <ng-container *ngIf="registrationResult">
+        <div class="rp-success">
+          <div class="rp-success-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h2 class="rp-success-title">Registration Successful!</h2>
+          <p class="rp-success-sub">
+            Your pathology <strong>{{ form.get('path_Name')?.value }}</strong> has been
+            registered. Save your licence key — you will need it to activate the system.
+          </p>
+
+          <div class="rp-key-box">
+            <div class="rp-key-label">
+              <i class="fas fa-key"></i> Your Licence Key
+            </div>
+            <div class="rp-key-value">{{ registrationResult.licenseKey || registrationResult.path_Id || '—' }}</div>
+            <button class="rp-key-copy" type="button" (click)="copyLicenseKey()" title="Copy to clipboard">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </div>
+
+          <div class="rp-key-meta" *ngIf="registrationResult.path_Id">
+            <i class="fas fa-id-badge"></i> Pathology ID: <strong>{{ registrationResult.path_Id }}</strong>
+          </div>
+
+          <a routerLink="/login" class="rp-submit-btn rp-btn-go-login">
+            <i class="fas fa-sign-in-alt"></i> Go to Login
+          </a>
+        </div>
+      </ng-container>
+
+      <!-- ════════════════════════════════════════
+           REGISTRATION FORM
+      ════════════════════════════════════════ -->
+      <ng-container *ngIf="!registrationResult">
+
+        <div class="rp-card-header">
+          <div class="rp-card-logo"><i class="fas fa-hospital-alt"></i></div>
+          <h2 class="rp-card-title">Register Pathology</h2>
+          <p class="rp-card-sub">Fill in your lab details to get started</p>
+        </div>
+
+        <!-- Server error -->
+        <div class="rp-error-banner" *ngIf="serverError">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>{{ serverError }}</span>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="off" novalidate>
+
+          <!-- ── Section: Lab Identity ── -->
+          <div class="rp-section-label">Lab Identity</div>
+          <div class="rp-row">
+            <div class="rp-field rp-field-grow">
+              <label class="rp-label">Pathology Name <span class="req">*</span></label>
+              <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Name')">
+                <span class="rp-input-icon"><i class="fas fa-hospital-alt"></i></span>
+                <input type="text" class="rp-input" formControlName="path_Name"
+                       placeholder="e.g. City Diagnostic Centre" />
+              </div>
+              <div class="rp-field-error" *ngIf="hasError('path_Name')">Pathology name is required.</div>
+            </div>
+            <div class="rp-field rp-field-half">
+              <label class="rp-label">Branch / Location</label>
+              <div class="rp-input-wrap">
+                <span class="rp-input-icon"><i class="fas fa-code-branch"></i></span>
+                <input type="text" class="rp-input" formControlName="path_Branch"
+                       placeholder="e.g. Main Branch" />
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Section: Address ── -->
+          <div class="rp-section-label">Address</div>
+          <div class="rp-field">
+            <label class="rp-label">Address Line 1 <span class="req">*</span></label>
+            <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Address1')">
+              <span class="rp-input-icon"><i class="fas fa-map-marker-alt"></i></span>
+              <input type="text" class="rp-input" formControlName="path_Address1"
+                     placeholder="Building / Street" />
+            </div>
+            <div class="rp-field-error" *ngIf="hasError('path_Address1')">Address is required.</div>
+          </div>
+          <div class="rp-field">
+            <label class="rp-label">Address Line 2</label>
+            <div class="rp-input-wrap">
+              <span class="rp-input-icon"><i class="fas fa-map-signs"></i></span>
+              <input type="text" class="rp-input" formControlName="path_Address2"
+                     placeholder="Landmark / Area (optional)" />
+            </div>
+          </div>
+          <div class="rp-row">
+            <div class="rp-field rp-field-third">
+              <label class="rp-label">City <span class="req">*</span></label>
+              <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_City')">
+                <input type="text" class="rp-input rp-input-no-icon" formControlName="path_City" placeholder="City" />
+              </div>
+              <div class="rp-field-error" *ngIf="hasError('path_City')">Required.</div>
+            </div>
+            <div class="rp-field rp-field-third">
+              <label class="rp-label">State <span class="req">*</span></label>
+              <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_State')">
+                <input type="text" class="rp-input rp-input-no-icon" formControlName="path_State" placeholder="State" />
+              </div>
+              <div class="rp-field-error" *ngIf="hasError('path_State')">Required.</div>
+            </div>
+            <div class="rp-field rp-field-third">
+              <label class="rp-label">Pincode</label>
+              <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Pincode')">
+                <input type="text" class="rp-input rp-input-no-icon" formControlName="path_Pincode" placeholder="Pincode" />
+              </div>
+              <div class="rp-field-error" *ngIf="hasError('path_Pincode')">Invalid pincode.</div>
+            </div>
+          </div>
+          <div class="rp-field rp-field-half-inline">
+            <label class="rp-label">Country <span class="req">*</span></label>
+            <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Country')">
+              <span class="rp-input-icon"><i class="fas fa-globe"></i></span>
+              <input type="text" class="rp-input" formControlName="path_Country" placeholder="Country" />
+            </div>
+          </div>
+
+          <!-- ── Section: Contact ── -->
+          <div class="rp-section-label">Contact Details</div>
+          <div class="rp-row">
+            <div class="rp-field rp-field-half">
+              <label class="rp-label">Contact Number <span class="req">*</span></label>
+              <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_ContactNo')">
+                <span class="rp-input-icon"><i class="fas fa-phone"></i></span>
+                <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" />
+              </div>
+              <div class="rp-field-error" *ngIf="hasError('path_ContactNo')">Valid contact number required.</div>
+            </div>
+            <div class="rp-field rp-field-half">
+              <label class="rp-label">Email <span class="req">*</span></label>
+              <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Email')">
+                <span class="rp-input-icon"><i class="fas fa-envelope"></i></span>
+                <input type="email" class="rp-input" formControlName="path_Email" placeholder="lab@example.com" />
+              </div>
+              <div class="rp-field-error" *ngIf="hasError('path_Email')">Valid email is required.</div>
+            </div>
+          </div>
+
+          <!-- ── Section: Licence ── -->
+          <div class="rp-section-label">Licence Plan</div>
+          <div class="rp-licence-toggle">
+            <button type="button" class="rp-lic-btn"
+                    [class.rp-lic-active]="licenseType === 'Trial'"
+                    (click)="selectLicenseType('Trial')">
+              <i class="fas fa-clock"></i>
+              <div>
+                <span class="rp-lic-name">Trial</span>
+                <span class="rp-lic-desc">15 days free access</span>
+              </div>
+            </button>
+            <button type="button" class="rp-lic-btn"
+                    [class.rp-lic-active]="licenseType === 'License'"
+                    (click)="selectLicenseType('License')">
+              <i class="fas fa-certificate"></i>
+              <div>
+                <span class="rp-lic-name">Full Licence</span>
+                <span class="rp-lic-desc">365 days full access</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Expiry display -->
+          <div class="rp-expiry-row">
+            <i class="fas fa-calendar-alt"></i>
+            <span *ngIf="licenseType === 'Trial'">
+              Trial expires on <strong>{{ expiryDisplay }}</strong>
+              <span class="rp-expiry-note">(15 days from today, non-editable)</span>
+            </span>
+            <span *ngIf="licenseType === 'License'">
+              Licence valid until <strong>{{ expiryDisplay }}</strong>
+              <span class="rp-expiry-note">(365 days from today)</span>
+            </span>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" class="rp-submit-btn" [disabled]="isSubmitting">
+            <ng-container *ngIf="!isSubmitting">
+              <i class="fas fa-paper-plane"></i> Register Pathology
+            </ng-container>
+            <ng-container *ngIf="isSubmitting">
+              <span class="rp-spinner"></span> Registering…
+            </ng-container>
+          </button>
+
+        </form>
+
+        <div class="rp-back-home">
+          <a routerLink="/login"><i class="fas fa-sign-in-alt"></i> Already registered? Login</a>
+          &nbsp;·&nbsp;
+          <a routerLink="/home"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+
+</div>

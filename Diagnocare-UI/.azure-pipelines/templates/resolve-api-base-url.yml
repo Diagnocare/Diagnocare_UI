@@ -1,0 +1,60 @@
+parameters:
+  - name: envFilePath
+    type: string
+  - name: variableName
+    type: string
+  - name: displayName
+    type: string
+    default: 'Resolve API URL from environment file'
+
+steps:
+  - powershell: |
+      $ErrorActionPreference = 'Stop'
+      $envFilePath = '${{ parameters.envFilePath }}'
+      $variableName = '${{ parameters.variableName }}'
+
+      if (-not (Test-Path $envFilePath)) {
+        $fileName = [System.IO.Path]::GetFileName($envFilePath)
+        $sourceRoot = '$(Build.SourcesDirectory)'
+        $candidate = Get-ChildItem -Path $sourceRoot -Recurse -Filter $fileName -File |
+          Where-Object { $_.FullName -match '[\\/]src[\\/]environments[\\/]' } |
+          Select-Object -First 1
+
+        if ($candidate) {
+          $envFilePath = $candidate.FullName
+          Write-Host "Resolved environment file path to: $envFilePath"
+        } else {
+          Write-Host "##vso[task.logissue type=error]Environment file not found: $envFilePath"
+          exit 1
+        }
+      }
+
+      $content = Get-Content -Path $envFilePath -Raw
+      $propertyNames = @('apiBaseUrl', 'userAPIUrl')
+      $match = $null
+      $resolvedProperty = $null
+
+      foreach ($propertyName in $propertyNames) {
+        $regexPattern = $propertyName + '\s*:\s*[''\"]([^''\"]+)[''\"]'
+        $candidate = [regex]::Match($content, $regexPattern)
+        if ($candidate.Success) {
+          $match = $candidate
+          $resolvedProperty = $propertyName
+          break
+        }
+      }
+
+      if (-not $match) {
+        Write-Host "##vso[task.logissue type=error]No API URL property found in: $envFilePath. Expected one of: apiBaseUrl, userAPIUrl"
+        exit 1
+      }
+
+      $apiBaseUrl = $match.Groups[1].Value
+      if ([string]::IsNullOrWhiteSpace($apiBaseUrl)) {
+        Write-Host "##vso[task.logissue type=error]$resolvedProperty is empty in: $envFilePath"
+        exit 1
+      }
+
+      Write-Host "Resolved API URL using property: $resolvedProperty"
+      Write-Host "##vso[task.setvariable variable=$variableName]$apiBaseUrl"
+    displayName: ${{ parameters.displayName }}

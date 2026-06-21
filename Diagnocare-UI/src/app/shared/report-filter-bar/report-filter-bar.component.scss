@@ -1,0 +1,182 @@
+// ── Wrapper ───────────────────────────────────────────────────────────────────
+.rfb-wrapper {
+  padding: 0;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.rfb-header {
+  margin-bottom: 0.75rem;
+}
+
+.rfb-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.rfb-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+// ── Filter bar ────────────────────────────────────────────────────────────────
+.rfb-filters {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.rfb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  align-items: flex-end;
+}
+
+// ── Group ─────────────────────────────────────────────────────────────────────
+.rfb-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rfb-group--actions {
+  margin-left: auto;  // push actions to the right
+}
+
+// ── Label ─────────────────────────────────────────────────────────────────────
+.rfb-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 0;
+}
+
+// ── Year select ───────────────────────────────────────────────────────────────
+.rfb-select {
+  height: 2.1rem;
+  min-width: 6rem;
+  padding: 0 0.65rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #1e293b;
+  background: #fff;
+  appearance: auto;
+  transition: border-color 0.15s;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: #0284c7; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+// ── Button row ────────────────────────────────────────────────────────────────
+.rfb-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+// ── Toggle buttons (period / chart type) ──────────────────────────────────────
+.rfb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 2.1rem;
+  padding: 0 0.75rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+
+  i { font-size: 0.75rem; }
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+  }
+
+  &--active {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      background: #0369a1;
+      border-color: #0369a1;
+    }
+  }
+
+  &:disabled { opacity: 0.45; cursor: default; }
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+.rfb-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 2.1rem;
+  padding: 0 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+
+  &:disabled { opacity: 0.45; cursor: default; }
+
+  // Chart toggle
+  &--chart {
+    background: #ede9fe;
+    border-color: #c4b5fd;
+    color: #5b21b6;
+
+    &:hover:not(:disabled) { background: #ddd6fe; }
+    &.rfb-action-btn--active {
+      background: #7c3aed;
+      border-color: #7c3aed;
+      color: #fff;
+    }
+  }
+
+  // CSV download
+  &--csv {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #047857;
+
+    &:hover:not(:disabled) { background: #d1fae5; }
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .rfb-row { gap: 0.85rem; }
+  .rfb-group--actions { margin-left: 0; }
+  .rfb-btn { padding: 0 0.55rem; font-size: 0.75rem; }
+}

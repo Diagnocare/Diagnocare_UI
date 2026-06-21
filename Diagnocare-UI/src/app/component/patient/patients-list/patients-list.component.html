@@ -1,0 +1,234 @@
+<div class="page-container pathology-theme">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <h2>Patient Management System</h2>
+            <p class="subtitle">Manage patient records and reports</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-success" (click)="navigateToAddPatient()">
+                <i class="fa fa-plus"></i> Add New Patient
+            </button>
+        </div>
+    </div>
+    <div class="content-container">
+
+    <!-- Search and Filter Section -->
+    <div class="search-section">
+        <div class="search-row">
+
+            <div class="search-group">
+                <label class="filter-label">
+                    <i class="fa fa-user-circle"></i> Patient Search
+                </label>
+                <div class="input-icon-wrap">
+                    <input type="text" [(ngModel)]="searchTerm"
+                        placeholder="Name or ID…" class="form-control">
+                </div>
+            </div>
+
+            <div class="filter-group date-range">
+                <label class="filter-label">
+                    <i class="fa fa-calendar-alt"></i> Date Range
+                </label>
+                <div class="date-inputs">
+                    <app-date-picker
+                        [(ngModel)]="dateFrom"
+                        inputClass="form-control"
+                        placeholder="From"
+                        [max]="todayIso">
+                    </app-date-picker>
+                    <span class="date-sep"><i class="fa fa-long-arrow-alt-right"></i></span>
+                    <app-date-picker
+                        [(ngModel)]="dateTo"
+                        inputClass="form-control"
+                        placeholder="To"
+                        [min]="dateFrom"
+                        [max]="todayIso">
+                    </app-date-picker>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fa fa-filter"></i> Status
+                </label>
+                <select [(ngModel)]="statusFilter" class="form-select">
+                    <option value="">All</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+
+            <div class="filter-group search-btn-group">
+                <label class="filter-label">&nbsp;</label>
+                <button type="submit" class="btn btn-search" (click)="searchPatients()">
+                    <i class="fa fa-search"></i> Search
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <!-- Loading Spinner -->
+        <app-loading-spinner [isLoading]="isLoading" message="Loading patients..."></app-loading-spinner>
+        <!-- No Data Message -->
+        <div *ngIf="filteredPatients.length === 0 && !isLoading">
+            <div *ngIf="isTodayDateRange(); else otherNoData" class="no-data">
+                <i class="fa fa-info-circle"></i>
+                <p>No patient registered for today</p>
+            </div>
+            <ng-template #otherNoData>
+                <div class="no-data">
+                    <i class="fa fa-info-circle"></i>
+                    <p>No patients found matching your criteria.</p>
+                </div>
+            </ng-template>
+        </div>
+        <table *ngIf="!isLoading && filteredPatients.length > 0" class="patients-table">
+            <thead>
+                <tr>
+                    <th (click)="sort('patient_Reg_Date')" class="sortable">
+                    Patient Reg Date
+                    <i class="sort-icon" [class]="getSortIcon('patient_Reg_Date')"></i>
+                    </th>
+                    <th (click)="sort('patient_Name')" class="sortable">
+                    Patient Name / Father Name
+                    <i class="sort-icon" [class]="getSortIcon('patient_Name')"></i>
+                    </th>
+                    <th (click)="sort('patient_DOB')" class="sortable">
+                    Date Of Birth
+                    <i class="sort-icon" [class]="getSortIcon('patient_DOB')"></i>
+                    </th>
+                    <th (click)="sort('patient_Age')" class="sortable">
+                    Age/Sex
+                    <i class="sort-icon" [class]="getSortIcon('patient_Age')"></i>
+                    </th>
+                    <!-- <th (click)="sort('receipt')" class="sortable">
+                    Receipt
+                    <i class="sort-icon" [class]="getSortIcon('receipt')"></i>
+                    </th>-->
+                    <th>Urg Rep</th>
+                    <!--<th (click)="sort('total_Amount')" class="sortable">
+                    Total Amt
+                    <i class="sort-icon" [class]="getSortIcon('total_Amount')"></i>
+                    </th>
+                    <th (click)="sort('discount')" class="sortable">
+                    Disc
+                    <i class="sort-icon" [class]="getSortIcon('discount')"></i>
+                    </th>
+                    <th (click)="sort('net_Amount')" class="sortable">
+                    Net Amt
+                    <i class="sort-icon" [class]="getSortIcon('net_Amount')"></i>
+                    </th> -->
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        <tbody>
+        <tr *ngFor="let patient of filteredPatients; let i = index; trackBy: trackByPatientId" 
+            [class]="getRowClass(patient)">
+            
+            <td>{{patient.patient_Reg_Date}}</td>
+            <td>
+                <div class="patient-info">
+                    <strong>{{patient.patient_Name}}</strong>
+                    <small>{{patient.relative_Name}}</small>
+                </div>
+            </td>
+            <td>{{patient.patient_DOB}}</td>
+            <td>
+                <div class="patient-info">
+                    <strong>{{ getDisplayAge(patient.patient_Age) }}</strong>
+                    <small>{{ patient.patient_Gender }}</small>
+                </div>
+            </td>
+            <td>
+              <span [ngClass]="getUrgentClass(patient.isUrgent)">
+                <span class="urgent-dot"></span>
+                {{ patient.isUrgent === 'Yes' ? 'Urgent' : 'Normal' }}
+              </span>
+            </td>
+            <!-- <td></td> -->
+            <!-- <td class="amount">₹{{patient.net_Amount}}</td> -->
+            <!-- <td> -->
+            <!-- <div class="ref-info">
+                <div>{{patient.altRefNo || '-'}}</div>
+                <small>{{patient.permanent_Id || '-'}}</small>
+            </div> -->
+            <!-- </td> -->
+            <!-- <td> -->
+            <!-- <div class="ref-info"> -->
+                <!-- <div>{{patient.referredByLab || '-'}}</div> -->
+                <!-- <small>{{patient.referred_By || '-'}}</small> -->
+            <!-- </div> -->
+            <!-- </td> -->
+            <!-- <td>{{patient.receipt}}</td> -->
+            <!-- <td> -->
+            <!-- <span class="badge" [class]="patient.urgent_Report === 'Yes' ? 'badge-urgent' : 'badge-normal'">
+                {{patient.urgent_Report}}
+            </span> -->
+            <!-- </td> -->                                                                                                                              
+            <!-- <td class="amount">₹{{patient.total_Amount}}</td>
+            <td class="amount">₹{{patient.discount}}</td> 
+            -->
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(patient.status)">
+                <span class="status-dot"></span>
+                {{ patient.status || '—' }}
+              </span>
+            </td>
+            <td>
+            <div class="action-buttons">
+                <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
+                <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
+                <app-action-btn type="delete" title="Delete Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
+            </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    
+
+    
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="filteredPatients.length > 0">
+        <div class="pagination-info">
+            Showing {{startIndex + 1}} to {{endIndex}} of {{totalItems}} patients
+        </div>
+        <div class="pagination-controls">
+            <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="form-select" style="width: auto;">
+                <option value="5">5 per page</option>
+                <option value="10">10 per page</option>
+                <option value="25">25 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+            </select>
+            
+            <button class="pagination-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">First</button>
+            <button class="pagination-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
+            
+            <span class="page-numbers">
+                <button 
+                    *ngFor="let page of getVisiblePages()" 
+                    class="pagination-btn"
+                    [class.active]="page === currentPage"
+                    (click)="goToPage(page)">
+                    {{page}}
+                </button>
+            </span>
+            
+            <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+            <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">Last</button>
+        </div>
+    </div>
+    </div>
+</div>
+
+<app-confirm-modal></app-confirm-modal>

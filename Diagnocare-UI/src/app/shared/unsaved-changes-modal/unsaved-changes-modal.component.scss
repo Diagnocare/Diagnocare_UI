@@ -1,0 +1,103 @@
+// ── Overlay ──────────────────────────────────────────────────────────────────
+.ucm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;          // above Bootstrap navbars (1030) and dropdowns (1000)
+  animation: ucm-fade 0.15s ease;
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────────
+.ucm-card {
+  background: var(--bg-white, #fff);
+  border-radius: 1em;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  padding: 2.25em 2.5em 2em;
+  width: min(90vw, 26em);
+  text-align: center;
+  animation: ucm-slide-up 0.2s ease;
+}
+
+// ── Icon ─────────────────────────────────────────────────────────────────────
+.ucm-icon {
+  font-size: 2.6em;
+  color: #f59e0b;
+  margin-bottom: 0.35em;
+}
+
+// ── Title ────────────────────────────────────────────────────────────────────
+.ucm-title {
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--text-primary, #2c3e50);
+  margin: 0 0 0.5em;
+}
+
+// ── Body ─────────────────────────────────────────────────────────────────────
+.ucm-body {
+  font-size: 0.92em;
+  color: var(--text-secondary, #555);
+  line-height: 1.55;
+  margin: 0 0 1.6em;
+}
+
+// ── Action buttons ───────────────────────────────────────────────────────────
+.ucm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65em;
+}
+
+.ucm-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.92em;
+  padding: 0.65em 1em;
+
+  i { margin-right: 0.45em; }
+}
+
+.ucm-btn-save {
+  border-color: #653cec !important;
+  color: #653cec !important;
+
+  &:hover:not(:disabled) {
+    background: #653cec !important;
+    color: #fff !important;
+  }
+}
+
+.ucm-btn-discard {
+  border-color: #dc2626 !important;
+  color: #dc2626 !important;
+
+  &:hover:not(:disabled) {
+    background: #dc2626 !important;
+    color: #fff !important;
+  }
+}
+
+.ucm-btn-stay {
+  border-color: #3fe072 !important;
+  color: #3fe072 !important;
+
+  &:hover:not(:disabled) {
+    background: #3fe072 !important;
+    color: #fff !important;
+  }
+}
+// ── Animations ───────────────────────────────────────────────────────────────
+@keyframes ucm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes ucm-slide-up {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

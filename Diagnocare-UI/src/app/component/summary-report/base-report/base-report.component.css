@@ -1,0 +1,42 @@
+.report-wrapper {
+  padding: 0;
+}
+
+/* ── Side-by-side split layout ──────────────────────────────────────────────── */
+.split-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.split-row > .col-md-6 {
+  flex: 0 0 48%;
+  max-width: 50%;
+  box-sizing: border-box;
+  padding-left: 0.625em;
+  padding-right: 0.625em;
+}
+
+/* ── Chart ──────────────────────────────────────────────────────────────────── */
+.chart-container {
+  padding: 1.5em;
+  height: 100%;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 420px;
+  width: 100%;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .split-row {
+    flex-direction: column;
+  }
+  .split-row > .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .chart-wrapper { height: 300px; }
+}

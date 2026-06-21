@@ -1,0 +1,228 @@
+/* ── Page shell ─────────────────────────────────────────────────────────── */
+.le-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Brand bar ──────────────────────────────────────────────────────────── */
+.le-brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.le-brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.le-brand-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+
+  span {
+    color: #f0c040;
+  }
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.le-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 48px 40px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+/* ── Lock icon ──────────────────────────────────────────────────────────── */
+.le-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border: 3px solid #fca5a5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.le-lock-icon {
+  font-size: 36px;
+  color: #dc2626;
+}
+
+/* ── Text ───────────────────────────────────────────────────────────────── */
+.le-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 10px;
+}
+
+.le-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+/* ── Expiry chip ────────────────────────────────────────────────────────── */
+.le-expiry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #dc2626;
+  border-radius: 999px;
+  padding: 6px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 28px;
+}
+
+/* ── Info box ───────────────────────────────────────────────────────────── */
+.le-info-box {
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.le-info-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0369a1;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.le-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    font-size: 13px;
+    color: #334155;
+    padding: 3px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      color: #16a34a;
+      font-size: 12px;
+    }
+  }
+}
+
+/* ── CTA box ────────────────────────────────────────────────────────────── */
+.le-cta-box {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.le-cta-text {
+  font-size: 14px;
+  color: #92400e;
+  line-height: 1.6;
+  margin: 0 0 16px;
+
+  &.le-cta-admin {
+    color: #1e40af;
+  }
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.le-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.le-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+
+  &:hover   { opacity: 0.88; }
+  &:active  { transform: scale(0.97); }
+}
+
+.le-btn-primary {
+  background: linear-gradient(135deg, #1e5ba8, #667eea);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(30, 91, 168, 0.3);
+}
+
+.le-btn-outline {
+  background: transparent;
+  border: 1.5px solid #64748b !important;
+  color: #64748b;
+}
+
+.le-btn-extend {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
+  text-decoration: none;
+}
+
+.le-cta-admin {
+  color: #1e40af;
+  font-weight: 600;
+
+  i { color: #1d4ed8; margin-right: 4px; }
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.le-footer {
+  margin-top: 28px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .le-card {
+    padding: 32px 20px;
+  }
+  .le-title {
+    font-size: 22px;
+  }
+}

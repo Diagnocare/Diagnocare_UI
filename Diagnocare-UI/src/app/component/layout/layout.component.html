@@ -1,0 +1,15 @@
+<app-header></app-header>
+
+<div *ngIf="passwordExpiryDaysLeft !== null"
+  class="alert alert-warning alert-dismissible mb-0 d-flex align-items-center justify-content-between px-4 py-2"
+  style="border-radius: 0; border-left: 4px solid #f0ad4e;">
+  <span>
+    <i class="fa fa-exclamation-triangle me-2"></i>
+    <strong>Password Expiry Notice:</strong>
+    Your password will expire in <strong>{{ passwordExpiryDaysLeft }} day{{ passwordExpiryDaysLeft === 1 ? '' : 's' }}</strong>.
+    Please <a routerLink="/change-password" class="alert-link" (click)="dismissExpiryWarning()">update your password</a> to avoid being locked out.
+  </span>
+  <button type="button" class="btn-close ms-3" aria-label="Dismiss" (click)="dismissExpiryWarning()"></button>
+</div>
+
+<router-outlet></router-outlet>

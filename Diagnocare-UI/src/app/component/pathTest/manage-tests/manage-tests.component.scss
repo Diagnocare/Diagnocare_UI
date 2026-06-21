@@ -1,0 +1,330 @@
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75em;
+  margin-top: 0;
+  margin-left: 0;
+}
+
+/* Selected Tests Column Styling */
+.selected-list .selected-item {
+  color: #fff !important;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.4em;
+  padding: 0.75em 1em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.3);
+  position: relative;
+  z-index: 2;
+  transition: background 0.15s, box-shadow 0.15s;
+
+  // Alternating: deeper vs lighter purple
+  &:nth-child(odd)  { background: #4f2fa3 !important; box-shadow: 0 2px 8px rgba(79,47,163,0.3); }
+  &:nth-child(even) { background: #6d48c4 !important; box-shadow: 0 2px 8px rgba(109,72,196,0.3); }
+
+  &:hover { filter: brightness(1.1); }
+}
+
+.selected-list .selected-item .left .code,
+.selected-list .selected-item .left .name {
+  color: #fff;
+  text-shadow: 0 1px 2px #1e5ba899;
+}
+
+.selected-list .selected-item .right .price {
+  color: #fff;
+  font-weight: 700;
+}
+
+.selected-list .selected-item .remove {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.25em;
+  cursor: pointer;
+  margin-left: 1em;
+  transition: color 0.2s;
+}
+.selected-list .selected-item .remove:hover {
+  color: #ffb3b3;
+}
+/* Manage Tests Component - Uses pathology-theme.css for base styles */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5em;
+  color: #fff;
+  gap: 1rem;
+}
+/* List layout customizations */
+.search-row {
+  margin-bottom: 1.5em;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 1em;
+  width: 100%;
+}
+
+.search-row input[type="text"] {
+  border-radius: 2em;
+  padding: 0.75em 1.5em;
+  border: 0.125em solid var(--border-color);
+  font-size: 1em;
+  width: 100%;
+  max-width: 100%;
+  min-width: 18rem;
+  background: var(--bg-white);
+  box-shadow: var(--shadow-light);
+  margin-right: 1em;
+}
+
+/* Add margin between search and columns */
+.master-list-wrap {
+  margin-bottom: 1.5em;
+}
+.list {
+  margin-bottom: 0.5em;
+  max-height: 22em;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--bg-light);
+}
+
+.list::-webkit-scrollbar {
+  width: 0.5em;
+}
+.list::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 1em;
+}
+.list::-webkit-scrollbar-track {
+  background: var(--bg-light);
+  border-radius: 1em;
+}
+/* Selected/active state: ensure visible and accessible */
+
+/* More distinct background for selected/active test and subgroup */
+/* Distinct background for selected group/subgroup (not test) */
+/* Solid, bold background for selected group/subgroup */
+.list-item.active:not(.test-item),
+.list-item.selected:not(.test-item) {
+  background: #7f5ecd !important;
+  color: #fff !important;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 12px 0 #4f2fa388;
+  position: relative;
+  z-index: 2;
+  transition: background 0.2s;
+}
+
+/* Keep selected test-item with blue accent */
+.list-item.active.test-item,
+.list-item.selected.test-item {
+  background: #7f5ecd !important;
+  color: #fff !important;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 12px 0 #4f2fa388;
+  position: relative;
+  z-index: 2;
+  transition: background 0.2s;
+}
+
+.list-item.active .left .code,
+.list-item.active .left .name,
+.list-item.selected .left .code,
+.list-item.selected .left .name {
+  color: #fff;
+  text-shadow: 0 1px 2px #1e5ba899;
+}
+
+.list-item.active .right,
+.list-item.selected .right {
+  color: #fff;
+  text-shadow: 0 1px 2px #1e5ba899;
+}
+/* Manage Tests Component - Uses pathology-theme.css for base styles */
+
+/* List layout customizations */
+
+.columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.125em;
+  margin-bottom: 1.125em;
+}
+
+.column {
+  flex: 1 1 19rem;
+  min-width: 18rem;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.selected-column {
+  flex: 1 1 22rem;
+  min-width: 20rem;
+  max-width: 100%;
+}
+
+.col-md-4 {
+  flex: 1;
+  min-width: 18.75em;
+}
+
+.card {
+  height: 540px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body.list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0.375em;
+}
+
+/* List item styles */
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--radius-md);
+  padding: 0.75em;
+  margin-bottom: 0.4em;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.1s, background 0.12s;
+  border: 1px solid rgba(30, 91, 168, 0.08);
+
+  // Alternating backgrounds
+  &:nth-child(odd)  { background: #ffffff; }
+  &:nth-child(even) { background: #eef2ff; }
+}
+
+.list-item:hover {
+  transform: translateY(-0.125em);
+  box-shadow: 0 4px 16px rgba(30, 91, 168, 0.18);
+  background: #dbeafe !important;
+  border-color: rgba(30, 91, 168, 0.2);
+}
+
+.list-item .left .code {
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.375em;
+}
+
+.list-item .left .name {
+  color: var(--text-primary);
+  font-size: 0.75em;
+  opacity: 0.85;
+}
+
+/* Active/Selected states */
+.list-item.active,
+.list-item.selected {
+  background: var(--btn-primary);
+  color: var(--text-primary);
+  border: none;
+}
+
+.list-item.active .left .code,
+.list-item.active .left .name,
+.list-item.selected .left .code,
+.list-item.selected .left .name {
+  color: var(--text-light);
+}
+
+.list-item.active .right,
+.list-item.selected .right {
+  color: var(--text-light);
+}
+
+.list-item.active.test-item,
+.list-item.selected.test-item {
+  background: var(--btn-primary);
+  color: var(--text-primary);
+  border: none;
+}
+
+.list-item.active.test-item .left .code,
+.list-item.active.test-item .left .name,
+.list-item.selected.test-item .left .code,
+.list-item.selected.test-item .left .name {
+  color: var(--text-light);
+}
+
+.list-item.active.test-item .right,
+.list-item.selected.test-item .right {
+  color: var(--text-light);
+}
+
+.list-item.focused {
+  box-shadow: 0 0.5em 1.25em rgba(12, 131, 183, 0.12);
+}
+
+/* Right side pricing */
+.list-item .right {
+  color: var(--text-primary);
+  font-weight: 700;
+  min-width: 3.125em;
+  text-align: right;
+}
+
+.list-item .price {
+  color: var(--primary-color);
+}
+
+/* Test item specific */
+.test-item {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Template badge ───────────────────────────────────────────── */
+.template-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  font-size: 0.68em;
+  font-weight: 500;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+  border-radius: 0.75em;
+  padding: 0.12em 0.45em;
+  white-space: nowrap;
+  margin-top: 0.2em;
+
+  i { font-size: 0.9em; }
+}
+
+.list-item.active .template-badge,
+.list-item.selected .template-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 75em) {
+  .columns {
+    flex-direction: column;
+  }
+  
+  .col-md-4 {
+    flex: 0 0 100%;
+    min-width: 100%;
+  }
+  
+  .card {
+    height: auto;
+    min-height: 18.75em;
+  }
+}

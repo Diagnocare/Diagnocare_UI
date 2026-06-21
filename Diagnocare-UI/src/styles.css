@@ -1,0 +1,996 @@
+/* ── External libraries ───────────────────────────────────────────────────── */
+@import "~bootstrap/dist/css/bootstrap.css";
+/* @import "~font-awesome/css/font-awesome.css"; */
+@import "~@fortawesome/fontawesome-free/css/all.css";
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE GLOBAL THEME
+   Single source of truth for all app-wide styling.
+   Component files should only contain layout/overrides unique to that page.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ────────────────────────────────────────────────────────── */
+:root {
+  --primary-gradient: linear-gradient(135deg, #1E5BA8 0%, #667eea 50%, #764ba2 100%);
+  --primary-color: #1E5BA8;
+  --secondary-color: #667eea;
+  --accent-color: #764ba2;
+
+  /* Button gradients */
+  --btn-success:       linear-gradient(135deg, #4CAF50, #45a049);
+  --btn-success-hover: linear-gradient(135deg, #45a049, #4CAF50);
+  --btn-primary:       linear-gradient(135deg, #2196F3, #1976D2);
+  --btn-primary-hover: linear-gradient(135deg, #1976D2, #2196F3);
+  --btn-danger:        linear-gradient(135deg, #f44336, #d32f2f);
+  --btn-danger-hover:  linear-gradient(135deg, #d32f2f, #f44336);
+  --btn-warning:       linear-gradient(135deg, #ff9800, #f57c00);
+  --btn-warning-hover: linear-gradient(135deg, #f57c00, #ff9800);
+
+  /* Text */
+  --text-primary:   #2c3e50;
+  --text-secondary: #666;
+  --text-light:     #fff;
+
+  /* Backgrounds */
+  --bg-light:   #f8f9fa;
+  --bg-white:   #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.35);
+
+  /* Borders & shadows */
+  --border-color:   #e1e8ed;
+  --shadow-light:   0 0.125em 0.625em rgba(0, 0, 0, 0.1);
+  --shadow-medium:  0 0.25em 1.25em rgba(0, 0, 0, 0.15);
+  --shadow-heavy:   0 0.625em 2.5em rgba(0, 0, 0, 0.2);
+
+  /* Border radius */
+  --radius-sm: 0.25em;
+  --radius-md: 0.5em;
+  --radius-lg: 0.75em;
+  --radius-xl: 1em;
+}
+
+/* ── Page Container ───────────────────────────────────────────────────────── */
+.page-container {
+  min-height: 100vh;
+  background: var(--primary-gradient);
+  padding: 0;
+  margin: 0;
+}
+
+.content-container {
+  padding: 1.25em 2.5em;
+}
+
+/* ── Page Header ──────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-overlay);
+  padding: 1.25em 2.5em;
+  color: var(--text-light);
+  border-bottom: 0.125em solid rgba(255, 255, 255, 0.1);
+}
+
+.page-header h1,
+.page-header h2 {
+  margin: 0;
+  font-size: 1.75em;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.page-header .subtitle {
+  margin: 0.3125em 0 0;
+  font-size: 0.875em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.header-left h1,
+.header-left h2 {
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75em;
+  align-items: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-light);
+  padding: 1.5625em;
+  margin-bottom: 1.25em;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25em;
+  padding-bottom: 0.9375em;
+  border-bottom: 0.125em solid var(--border-color);
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 0;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  padding: 0.625em 1.25em;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary */
+.btn-primary {
+  background: var(--btn-primary);
+  color: var(--text-light);
+  border: none;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 0.25em 0.75em rgba(33, 150, 243, 0.4);
+}
+
+/* Success */
+.btn-success {
+  background: var(--btn-success);
+  color: var(--text-light);
+  border: none;
+}
+.btn-success:hover:not(:disabled) {
+  background: var(--btn-success-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 0.25em 0.75em rgba(76, 175, 80, 0.4);
+}
+
+/* Danger */
+.btn-danger {
+  background: var(--btn-danger);
+  color: var(--text-light);
+  border: none;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--btn-danger-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 0.25em 0.75em rgba(244, 67, 54, 0.4);
+}
+
+/* Warning */
+.btn-warning {
+  background: var(--btn-warning);
+  color: var(--text-light);
+  border: none;
+}
+.btn-warning:hover:not(:disabled) {
+  background: var(--btn-warning-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 0.25em 0.75em rgba(255, 152, 0, 0.4);
+}
+
+/* ── Secondary — neutral actions (kept for edge cases) ───────────────────── */
+.btn-secondary,
+.btn-outline-secondary {
+  background: #f1f5f9;
+  border: 1.5px solid #94a3b8;
+  color: #475569;
+}
+.btn-secondary:hover:not(:disabled),
+.btn-outline-secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+  border-color: #64748b;
+  color: #334155;
+  box-shadow: 0 2px 6px rgba(71, 85, 105, 0.15);
+}
+
+/* ── Back — navigation button, consistent across ALL pages ───────────────── */
+/*
+ * Use .btn-back for every "Back", "Back to List", or "Go Back" navigation action.
+ *
+ * Design: solid slate-indigo fill with white label — high contrast, clearly
+ * readable, distinct from btn-primary (blue gradient) and btn-cancel (red).
+ *
+ * Auto-adapts to a white semi-transparent outline inside .page-header so it
+ * always reads well on the dark gradient header too.
+ *
+ * Pairing rule:  [← Back]  btn-back   next to   [Save]  btn-primary / btn-success
+ */
+.btn-back {
+  background: #567299;          /* slate-600 — neutral-dark, clearly "previous" */
+  border: 1.5px solid #334155;  /* slate-700 */
+  color: #ffffff;               /* white — maximum contrast on slate bg */
+}
+.btn-back:hover:not(:disabled) {
+  background: #567299;          /* slate-700, visibly darker on hover */
+  border-color: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(51, 65, 85, 0.35);
+  transform: translateY(-1px);
+}
+.btn-back:active:not(:disabled) {
+  background: #567299;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Auto-adapt: white semi-transparent when inside the dark gradient page-header */
+.page-header .btn-back,
+.header-actions .btn-back,
+.header-actions-group .btn-back {
+  /* background: rgba(255, 255, 255, 0.15); */
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  color: #fff;
+}
+.page-header .btn-back:hover:not(:disabled),
+.header-actions .btn-back:hover:not(:disabled),
+.header-actions-group .btn-back:hover:not(:disabled) {
+  /* background: rgba(255, 255, 255, 0.28); */
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+
+/* ── Cancel / Back — consistent red outline across ALL pages ──────────────── */
+/*
+ * Use .btn-cancel for every Back / Cancel / Close action.
+ * Soft outlined red — clearly "exit" without looking as aggressive as
+ * .btn-danger (the solid gradient reserved for destructive Delete actions).
+ *
+ * Pairing rule:  [Cancel / Back]  btn-cancel   +   [Save / Submit]  btn-primary/btn-success
+ *                [Yes, Delete]    btn-danger   +   [Cancel]         btn-cancel
+ */
+.btn-cancel {
+  background: #fff1f0;
+  border: 1.5px solid #fca5a5;
+  color: #dc2626;
+}
+.btn-cancel:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #b91c1c;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.18);
+}
+.btn-cancel:active:not(:disabled) {
+  background: #fecaca;
+  transform: translateY(0);
+}
+
+/* White outline variant for use on dark gradient header backgrounds */
+.btn-outline {
+  background: transparent;
+  border: 0.125em solid var(--text-light);
+  color: var(--text-light);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--text-light);
+  color: var(--primary-color);
+}
+
+/* Sizes */
+.btn-sm {
+  padding: 0.375em 0.75em;
+  font-size: 0.8em;
+}
+.btn-lg {
+  padding: 0.875em 1.75em;
+  font-size: 1em;
+}
+
+/* ── Delete / Confirm pages ─────────────────────────────────────────────── */
+/*
+ * Used by doctor-delete, collectionBoys-delete, contact-delete, etc.
+ * Centers the warning icon + message + action buttons inside a card.
+ */
+.delete-confirm-card {
+  max-width: 480px;
+  margin: 2em auto;
+  padding: 2.5em 2em;
+  text-align: center;
+}
+.delete-icon-wrap {
+  width: 4em;
+  height: 4em;
+  border-radius: 50%;
+  background: #fff1f0;
+  border: 2px solid #fca5a5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25em;
+}
+.delete-icon {
+  font-size: 1.75em;
+  color: #dc2626;
+}
+.delete-confirm-card h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  margin: 0 0 0.5em;
+}
+.delete-hint {
+  font-size: 0.875em;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 1.75em;
+}
+.delete-confirm-card .form-actions {
+  justify-content: center;
+  gap: 0.75em;
+}
+
+/* ── Forms ────────────────────────────────────────────────────────────────── */
+/* Inline label + input: label fixed at 130 px, input takes the rest */
+.form-group {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
+  margin-bottom: 0.85rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.875em;
+  text-align: right;
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: #f44336;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75em 0.9375em;
+  border: 0.125em solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875em;
+  transition: all 0.3s ease;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 0.1875em rgba(102, 126, 234, 0.2);
+}
+
+.form-control:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.form-control.is-invalid {
+  border-color: #f44336;
+}
+
+.form-control.is-valid {
+  border-color: #4CAF50;
+}
+
+input.ng-invalid.ng-touched {
+  border-left: 5px solid red;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75em 0.9375em;
+  border: 0.125em solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875em;
+  background: var(--bg-white);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 0.1875em rgba(102, 126, 234, 0.2);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15.625em, 1fr));
+  gap: 1.25em;
+}
+
+.form-error {
+  color: #f44336;
+  font-size: 0.75em;
+  margin-top: 0.3125em;
+}
+
+/* Error / hint messages span the input column (not the label column) */
+.form-group .form-error,
+.form-group .form-hint,
+.form-group .field-error,
+.form-group .error-text,
+.form-group .text-danger,
+.form-group .invalid-feedback {
+  grid-column: 2;
+}
+
+/* ── Form Actions row (Save / Cancel footer) ──────────────────────────────── */
+.form-actions {
+  display: flex;
+  gap: 0.75em;
+  justify-content: flex-end;   /* right-aligned — Cancel left of primary CTA */
+  align-items: center;
+  padding-top: 1.25em;
+  margin-top: 0.9375em;
+  border-top: 0.0625em solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+.table-container {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-light);
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: var(--text-light);
+  padding: 0.9375em 0.75em;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875em;
+  text-transform: uppercase;
+  letter-spacing: 0.03125em;
+}
+
+.data-table td {
+  padding: 0.75em;
+  border-bottom: 0.0625em solid var(--border-color);
+  font-size: 0.875em;
+  color: var(--text-primary);
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(102, 126, 234, 0.08);
+}
+
+.data-table tbody tr:nth-child(odd) {
+  background-color: rgba(102, 126, 234, 0.03);
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: rgba(118, 75, 162, 0.03);
+}
+
+.data-table tbody tr:nth-child(odd):hover,
+.data-table tbody tr:nth-child(even):hover {
+  background-color: rgba(102, 126, 234, 0.08);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Search & Filter section ──────────────────────────────────────────────── */
+.search-section {
+  background: var(--bg-white);
+  padding: 1.25em;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25em;
+  box-shadow: var(--shadow-light);
+}
+
+.search-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5em, 1fr));
+  gap: 0.9375em;
+}
+
+.search-group,
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125em;
+}
+
+.search-group label,
+.filter-group label {
+  font-weight: 600;
+  font-size: 0.8125em;
+  color: var(--text-primary);
+}
+
+.search-input,
+.filter-input {
+  padding: 0.625em 0.9375em;
+  border: 0.125em solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875em;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 0.1875em rgba(102, 126, 234, 0.2);
+}
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.625em;
+  padding: 1.25em;
+}
+
+.pagination-btn {
+  padding: 0.5em 1em;
+  border: 0.125em solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-btn.active {
+  background: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: var(--text-light);
+}
+
+.pagination-info {
+  font-size: 0.875em;
+  color: var(--text-secondary);
+}
+
+/* ── Grid helpers ─────────────────────────────────────────────────────────── */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.625em 0.9375em;
+}
+
+.col-md-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+  padding: 0 0.625em;
+}
+
+.col-md-12 {
+  flex: 0 0 100%;
+  max-width: 100%;
+  padding: 0 0.625em;
+}
+
+/* ── Input group ──────────────────────────────────────────────────────────── */
+.input-group {
+  display: flex;
+  gap: 0.5em;
+  align-items: stretch;
+}
+
+.input-group .form-control,
+.input-group .form-select {
+  flex: 1;
+}
+
+/* ── Radio group ──────────────────────────────────────────────────────────── */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9375em;
+  padding: 0.625em 0;
+}
+
+.radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375em;
+  cursor: pointer;
+  font-size: 0.875em;
+  color: var(--text-primary);
+}
+
+.radio-label input[type="radio"] {
+  width: 1.125em;
+  height: 1.125em;
+  accent-color: var(--secondary-color);
+}
+
+/* ── Alerts ───────────────────────────────────────────────────────────────── */
+.alert {
+  padding: 0.9375em 1.25em;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625em;
+}
+
+.alert h5 { margin: 0; font-size: 1em; font-weight: 600; }
+.alert ul  { margin: 0; padding-left: 1.25em; }
+.alert li  { margin-bottom: 0.3125em; }
+
+.alert-danger,
+.alert-error  { background-color: #ffebee; color: #c62828; border: 0.0625em solid #ef9a9a; }
+.alert-success { background-color: #e8f5e9; color: #2e7d32; border: 0.0625em solid #a5d6a7; }
+.alert-warning { background-color: #fff3e0; color: #e65100; border: 0.0625em solid #ffcc80; }
+.alert-info    { background-color: #e3f2fd; color: #1565c0; border: 0.0625em solid #90caf9; }
+
+/* ── Badges ───────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.625em;
+  border-radius: 1.25em;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-success { background-color: #e8f5e9; color: #2e7d32; }
+.badge-danger  { background-color: #ffebee; color: #c62828; }
+.badge-warning { background-color: #fff3e0; color: #e65100; }
+.badge-info    { background-color: #e3f2fd; color: #1565c0; }
+.badge-primary { background-color: #e8eaf6; color: #3949ab; }
+
+/* ── Table action buttons ─────────────────────────────────────────────────── */
+/*
+ * Icon-only square buttons used in table "Actions" columns.
+ * Consumed via <app-action-btn type="view|edit|delete|print">.
+ *
+ * Colour intent:
+ *   view   → blue   (informational)
+ *   edit   → orange (modify / warning)
+ *   delete → red    (destructive)
+ *   print  → purple (output)
+ */
+.action-buttons {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+
+.btn-action {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  padding: 0;
+  font-size: 0.875em;
+  flex-shrink: 0;
+}
+
+.btn-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* View — blue tint */
+.btn-action.btn-view {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+.btn-action.btn-view:hover {
+  background-color: #bbdefb;
+  color: #0d47a1;
+}
+
+/* Edit — orange tint */
+.btn-action.btn-edit {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+.btn-action.btn-edit:hover {
+  background-color: #ffe0b2;
+  color: #bf360c;
+}
+
+/* Delete — red tint */
+.btn-action.btn-delete {
+  background-color: #ffebee;
+  color: #c62828;
+}
+.btn-action.btn-delete:hover {
+  background-color: #ffcdd2;
+  color: #b71c1c;
+}
+
+/* Print — purple tint */
+.btn-action.btn-print {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+.btn-action.btn-print:hover {
+  background-color: #e1bee7;
+  color: #6a1b9a;
+}
+
+/* ── Stats row ────────────────────────────────────────────────────────────── */
+.stats-row {
+  display: flex;
+  gap: 0.9375em;
+  margin-top: 0.9375em;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: var(--text-light);
+  padding: 0.75em 1.25em;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875em;
+}
+
+.stat-number { font-size: 0.9375em; }
+
+/* ── No-data empty state ──────────────────────────────────────────────────── */
+.no-data {
+  text-align: center;
+  padding: 2.5em 1.25em;
+  color: var(--text-secondary);
+}
+
+.no-data i { font-size: 3em; margin-bottom: 0.9375em; opacity: 0.5; }
+.no-data p { margin: 0; font-size: 1em; }
+
+/* ── Loading overlay ──────────────────────────────────────────────────────── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* ── Image preview ────────────────────────────────────────────────────────── */
+.img-preview {
+  max-width: 9.375em;
+  max-height: 9.375em;
+  border-radius: var(--radius-md);
+  border: 0.125em solid var(--border-color);
+  object-fit: cover;
+}
+
+/* ── Utility ──────────────────────────────────────────────────────────────── */
+.text-center { text-align: center; }
+.text-left   { text-align: left; }
+.text-right  { text-align: right; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+
+/* ── Responsive breakpoints ───────────────────────────────────────────────── */
+
+/* iPad / tablet (≤ 768px) ─────────────────────────────────────────────────── */
+@media (max-width: 48em) {
+  .page-header {
+    flex-direction: column;
+    gap: 0.75em;
+    padding: 0.875em 1rem;
+  }
+
+  .page-header h1,
+  .page-header h2 {
+    font-size: 1.35em;
+  }
+
+  .content-container {
+    padding: 0.9375em;
+  }
+
+  .card {
+    padding: 0.9375em;
+  }
+
+  .form-row      { grid-template-columns: 1fr; }
+  .form-group    { grid-template-columns: 1fr; }
+  .form-group .form-error,
+  .form-group .form-hint,
+  .form-group .field-error,
+  .form-group .error-text,
+  .form-group .text-danger,
+  .form-group .invalid-feedback { grid-column: 1; }
+  .search-row    { grid-template-columns: 1fr; }
+  .col-md-6      { flex: 0 0 100%; max-width: 100%; }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Tables: horizontal scroll on small screens */
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Action buttons — larger touch targets */
+  .btn-action { width: 40px; height: 40px; }
+}
+
+/* Small mobile (≤ 480px) ──────────────────────────────────────────────────── */
+@media (max-width: 30em) {
+  .page-header {
+    padding: 0.75em 0.875rem;
+  }
+
+  .page-header h1,
+  .page-header h2 {
+    font-size: 1.15em;
+  }
+
+  .page-header .subtitle {
+    font-size: 0.78em;
+  }
+
+  .btn {
+    font-size: 0.82em;
+    padding: 0.55em 1em;
+  }
+
+  .btn-sm {
+    font-size: 0.75em;
+    padding: 0.35em 0.65em;
+  }
+
+  /* Buttons in header go full-width on phones */
+  .header-actions .btn { flex: 1; }
+}
+
+/* Large monitor / Mac (≥ 1440px) ─────────────────────────────────────────── */
+@media (min-width: 90em) {
+  .page-header {
+    padding: 1.25em 3.5em;
+  }
+
+  .page-header h1,
+  .page-header h2 {
+    font-size: 2em;
+  }
+
+  .content-container {
+    padding: 1.75em 3.5em;
+  }
+}
+
+/* ── Inactive user rows (attendance & salary) ─────────────────────────────── */
+.row-inactive {
+  opacity: 0.55;
+}
+.row-inactive td {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,255,255,0.35);
+}
+/* Don't strikethrough the badge itself */
+.row-inactive .badge-inactive,
+.row-inactive .emp-meta {
+  text-decoration: none;
+}
+
+.badge-inactive {
+  display: inline-block;
+  font-size: 0.65em;
+  font-weight: 700;
+  padding: 0.15em 0.5em;
+  border-radius: 20px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  vertical-align: middle;
+  margin-left: 0.4em;
+  text-decoration: none !important;
+  line-height: 1.4;
+}
+
+.avatar-inactive {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LEGACY / THIRD-PARTY OVERRIDES
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ng-select */
+ng-select { width: 100%; font-size: 14px; }
+
+.ng-select .ng-dropdown-panel {
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background-color: #ffffff;
+  width: 95%;
+}
+
+.ng-select .ng-option {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.ng-select .ng-option:hover { background-color: #f0f0f0; }
+
+/* Force toastr container to viewport top-right and above every modal/overlay */
+.toast-container,
+.toast-top-right {
+  position: fixed !important;
+  z-index: 99999 !important;  /* must exceed any modal (1200) or Bootstrap backdrop (1055) */
+}
+
+.toast-top-right {
+  top: 12px !important;
+  right: 12px !important;
+}

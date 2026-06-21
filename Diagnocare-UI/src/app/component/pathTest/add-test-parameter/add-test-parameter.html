@@ -1,0 +1,104 @@
+
+<div class="page-container">
+
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Manage Test Parameter</h1>
+      <p class="subtitle">Manage Test Parameters for {{testItem?.testCode}} : {{testItem?.testName}}</p>
+    </div>
+  </header>
+
+  <div class="content-container">
+    <div class="card">
+      <div class="card-header">
+        <h3>Parameters</h3>
+        <div class="header-actions">
+          <button type="button" class="btn btn-success btn-sm" (click)="addRow()">
+            <i class="fa fa-plus"></i>
+            <span class="btn-label"> Add Parameter</span>
+          </button>
+          <button type="button" class="btn btn-back btn-sm" (click)="closeAndGoToManageTest()">
+            <i class="fa fa-arrow-left"></i>
+            <span class="btn-label"> Back</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <app-loading-spinner [isLoading]="isLoading" message="Loading test parameters..."></app-loading-spinner>
+
+        <form [formGroup]="parameterform" (ngSubmit)="submit()">
+          <div class="table-container">
+            <table class="data-table" formArrayName="parameters">
+              <thead>
+                <tr>
+                  <th class="col-name">Parameter Name</th>
+                  <th class="col-unit">Unit</th>
+                  <th class="col-range">Ref. Low</th>
+                  <th class="col-range">Ref. High</th>
+                  <th class="col-action">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let group of parameters.controls; let i = index" [formGroupName]="i">
+                  <input type="hidden" formControlName="parameterId" />
+                  <td class="col-name">
+                    <input
+                      type="text"
+                      class="form-control"
+                      formControlName="parameterName"
+                      placeholder="Parameter Name" />
+                  </td>
+                  <td class="col-unit">
+                    <select class="form-select" formControlName="parameterUnit">
+                      <option value="" disabled selected>Select Unit</option>
+                      <option *ngFor="let unit of parameterUnits" [value]="unit">{{unit}}</option>
+                    </select>
+                  </td>
+                  <td class="col-range">
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="parameterRangeLow"
+                      placeholder="Low"
+                      step="any" />
+                  </td>
+                  <td class="col-range">
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="parameterRangeHigh"
+                      placeholder="High"
+                      step="any" />
+                  </td>
+                  <td class="col-action">
+                    <button type="button" class="btn-action btn-delete" title="Remove row" (click)="removeRow(i)">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Empty state -->
+                <tr *ngIf="parameters.controls.length === 0">
+                  <td colspan="5" class="empty-row">
+                    <i class="fa fa-info-circle"></i> No parameters yet. Click <strong>Add Parameter</strong> to begin.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div class="form-actions">
+      <button type="button" class="btn btn-cancel" (click)="closeAndGoToManageTest()">
+        <i class="fa fa-times"></i> Cancel
+      </button>
+      <button type="submit" class="btn btn-primary" (click)="submit()">
+        <i class="fa fa-save"></i> Save Parameters
+      </button>
+    </div>
+  </div>
+</div>

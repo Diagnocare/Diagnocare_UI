@@ -1,0 +1,39 @@
+<div class="ucm-overlay" *ngIf="isOpen" (click)="onCancel()">
+  <div class="ucm-card" role="dialog" aria-modal="true"
+       aria-labelledby="ucmTitle" (click)="$event.stopPropagation()">
+
+    <!-- Warning icon -->
+    <div class="ucm-icon">
+      <i class="fa fa-exclamation-triangle"></i>
+    </div>
+
+    <!-- Title -->
+    <h2 class="ucm-title" id="ucmTitle">Unsaved Changes</h2>
+
+    <!-- Body -->
+    <p class="ucm-body">
+      You have
+      <strong>{{ changeCount }} unsaved change{{ changeCount !== 1 ? 's' : '' }}</strong>
+      <ng-container *ngIf="context"> {{ context }}</ng-container>.
+      What would you like to do?
+    </p>
+
+    <!-- Actions -->
+    <div class="ucm-actions">
+      <button class="btn btn-outline ucm-btn ucm-btn-save" [disabled]="saving" (click)="onSave()">
+        <i class="fa" [ngClass]="saving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        {{ saving ? 'Saving…' : 'Save &amp; Continue' }}
+      </button>
+
+      <button class="btn btn-outline ucm-btn ucm-btn-discard" [disabled]="saving" (click)="onDiscard()">
+        <i class="fa fa-arrow-right"></i>
+        Discard &amp; Continue
+      </button>
+
+      <button class="btn btn-outline ucm-btn ucm-btn-stay" [disabled]="saving" (click)="onCancel()">
+        <i class="fa fa-times"></i>
+        Stay Here
+      </button>
+    </div>
+  </div>
+</div>

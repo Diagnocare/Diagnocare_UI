@@ -1,0 +1,197 @@
+# ============================================================
+#  templates/build-deploy-stage.yml
+#
+#  Reusable template that emits ONE Build stage + ONE Deploy
+#  stage for a given environment.
+#
+#  Parameters
+#  ──────────────────────────────────────────────────────────
+#  Required
+#    envLabel        – Short label used in stage/job names
+#                      e.g.  DEV | QA | UAT | PROD
+#    buildConfiguration – Angular config name e.g. development|qa|uat|production
+#    artifactName    – Unique artifact drop name, e.g. drop-qa
+#    targetPath      – Windows deploy path on the remote server
+#                      e.g. C:\inetpub\wwwroot\DiagnocareQAUI
+#
+#  Optional (inherit caller defaults when omitted)
+#    dependsOnStage  – Stage that must succeed before Build
+#                      Leave blank for the very first stage
+#    requireApproval – true  → use a deployment job + Environment gate
+#                      false → plain job, runs automatically
+#    environmentName – Azure DevOps Environment for the gate
+#                      (only used when requireApproval: true)
+#    stageIndex      – Numeric prefix shown in the display name
+#    nodeVersion     – Node version string  (default: 22.x)
+#    workingDir      – Folder containing package.json
+#    artifactPath    – Folder to publish as the artifact
+#    sshEndpoint     – SSH service connection name
+#    deploySubfolder – Sub-folder appended to targetPath
+# =============================================================
+
+parameters:
+  - name: envLabel
+    type: string
+
+  - name: buildConfiguration
+    type: string
+
+  - name: artifactName
+    type: string
+
+  - name: targetPath
+    type: string
+
+  - name: dependsOnStage
+    type: string
+    default: ''
+
+  - name: requireApproval
+    type: boolean
+    default: false
+
+  - name: environmentName
+    type: string
+    default: ''
+
+  - name: stageIndexBuild
+    type: number
+    default: 0
+
+  - name: stageIndexDeploy
+    type: number
+    default: 0
+
+  - name: nodeVersion
+    type: string
+    default: '$(nodeVersion)'
+
+  - name: workingDir
+    type: string
+    default: '$(workingDir)'
+
+  - name: artifactPath
+    type: string
+    default: '$(artifactPath)'
+
+  - name: sshEndpoint
+    type: string
+    default: '$(sshEndpoint)'
+
+# ──────────────────────────────────────────────────────────
+#  BUILD STAGE
+#  Two full variants so ${{ if }} only wraps complete nodes –
+#  never partial properties or list prefixes (both are invalid).
+#
+#  Variant A – WITH dependsOn + approval gate  (QA / UAT / PROD)
+#  Variant B – NO dependsOn, NO gate           (DEV)
+# ──────────────────────────────────────────────────────────
+stages:
+
+  # ── Variant A: depends on a prior stage + manual gate ──────
+  - ${{ if and(ne(parameters.dependsOnStage, ''), eq(parameters.requireApproval, true)) }}:
+    - stage: Build_${{ parameters.envLabel }}
+      displayName: '${{ parameters.stageIndexBuild }} · Build [${{ parameters.envLabel }}]'
+      dependsOn: ${{ parameters.dependsOnStage }}
+      condition: succeeded('${{ parameters.dependsOnStage }}')
+      jobs:
+        - deployment: Build${{ parameters.envLabel }}Gate
+          displayName: 'Manual gate – then build ${{ parameters.envLabel }}'
+          environment: '${{ parameters.environmentName }}'
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - checkout: self
+                    displayName: 'Checkout repository'
+
+                  - task: NodeTool@0
+                    displayName: 'Use Node.js ${{ parameters.nodeVersion }}'
+                    inputs:
+                      versionSpec: '${{ parameters.nodeVersion }}'
+
+                  - script: npm ci
+                    displayName: 'Install dependencies'
+                    workingDirectory: '${{ parameters.workingDir }}'
+
+                  - script: npx ng build --configuration ${{ parameters.buildConfiguration }}
+                    displayName: 'Build Angular app (${{ parameters.envLabel }})'
+                    workingDirectory: '${{ parameters.workingDir }}'
+
+                  - task: PublishBuildArtifacts@1
+                    displayName: 'Publish ${{ parameters.envLabel }} artifact'
+                    inputs:
+                      PathtoPublish: '${{ parameters.artifactPath }}'
+                      ArtifactName: '${{ parameters.artifactName }}'
+                      publishLocation: 'Container'
+
+  # ── Variant B: first stage, runs automatically (DEV) ───────
+  - ${{ if and(eq(parameters.dependsOnStage, ''), eq(parameters.requireApproval, false)) }}:
+    - stage: Build_${{ parameters.envLabel }}
+      displayName: '${{ parameters.stageIndexBuild }} · Build [${{ parameters.envLabel }}]'
+      jobs:
+        - job: Build${{ parameters.envLabel }}
+          displayName: 'Build Angular – ${{ parameters.envLabel }} config'
+          steps:
+            - checkout: self
+              displayName: 'Checkout repository'
+
+            - task: NodeTool@0
+              displayName: 'Use Node.js ${{ parameters.nodeVersion }}'
+              inputs:
+                versionSpec: '${{ parameters.nodeVersion }}'
+
+            - script: npm ci
+              displayName: 'Install dependencies'
+              workingDirectory: '${{ parameters.workingDir }}'
+
+            - script: npx ng build --configuration ${{ parameters.buildConfiguration }}
+              displayName: 'Build Angular app (${{ parameters.envLabel }})'
+              workingDirectory: '${{ parameters.workingDir }}'
+
+            - task: PublishBuildArtifacts@1
+              displayName: 'Publish ${{ parameters.envLabel }} artifact'
+              inputs:
+                PathtoPublish: '${{ parameters.artifactPath }}'
+                ArtifactName: '${{ parameters.artifactName }}'
+                publishLocation: 'Container'
+
+# ──────────────────────────────────────────────────────────
+#  DEPLOY STAGE  (always automatic – runs after its Build)
+# ──────────────────────────────────────────────────────────
+  - stage: Deploy_${{ parameters.envLabel }}
+    displayName: '${{ parameters.stageIndexDeploy }} · Deploy [${{ parameters.envLabel }}]  ← auto'
+    dependsOn: Build_${{ parameters.envLabel }}
+    condition: succeeded('Build_${{ parameters.envLabel }}')
+    jobs:
+      - job: Deploy${{ parameters.envLabel }}
+        displayName: 'Deploy to ${{ parameters.envLabel }} environment'
+        steps:
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download ${{ parameters.envLabel }} artifact'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '${{ parameters.artifactName }}'
+              downloadPath: '$(Pipeline.Workspace)'
+
+          - task: SSH@0
+            displayName: 'Ensure target folder exists'
+            inputs:
+              sshEndpoint: '${{ parameters.sshEndpoint }}'
+              runOptions: 'commands'
+              commands: |
+                if not exist "${{ parameters.targetPath }}" mkdir "${{ parameters.targetPath }}"
+                icacls "${{ parameters.targetPath }}" /grant IIS_IUSRS:(OI)(CI)M /T
+              failOnStandardError: false
+
+          - task: CopyFilesOverSSH@0
+            displayName: 'Copy files to ${{ parameters.envLabel }} server'
+            inputs:
+              sshEndpoint: '${{ parameters.sshEndpoint }}'
+              sourceFolder: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
+              contents: '**'
+              targetFolder: '${{ parameters.targetPath }}'
+              cleanTargetFolder: true
+              isWindowsOnTarget: true
+              readyTimeout: '20000'

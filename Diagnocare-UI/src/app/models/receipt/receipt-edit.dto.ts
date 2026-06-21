@@ -1,0 +1,12 @@
+/** DTO used when updating a receipt/payment record. */
+export interface ReceiptEditDto {
+  reciept_Id: number;
+  patient_Test_Id: string;
+  total_Amount: number;
+  discount: number;
+  net_Amount: number;
+  payment_Type: string;
+  amount_Paid: number;
+  amount_Pending: number;
+  payment_Mode: string;
+}

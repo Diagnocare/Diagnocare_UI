@@ -1,0 +1,102 @@
+<div class="page-container"><div class="contact-list-container">
+    <div class="page-header">
+      <div>
+        <h2 style="margin:0;">Contact Address Book</h2>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+      <button (click)="goBack()" class="btn btn-back"><i class="fa fa-arrow-left"></i> Back</button>
+      <button (click)="addContact()" class="btn btn-success">
+        <i class="fa fa-plus"></i> Add Contact
+      </button>
+    </div>
+    </div>
+
+    <div class="search-section page-margin">
+      <div class="search-row">
+        <div class="form-group">
+          <label class="form-label">Search</label>
+          <input placeholder="Search by name or city" class="search-input form-control" (input)="onSearch($event.target.value)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" (change)="onFilterChange($any($event.target).value)">
+            <option value="">All Types</option>
+            <option *ngFor="let t of contactTypes" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Page Size</label>
+          <select class="form-select" (change)="changePageSize(+$any($event.target).value)">
+            <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }} / page</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <app-loading-spinner [isLoading]="isLoading" message="Loading contacts..."></app-loading-spinner>
+
+    <!-- ── Tabbed panel (tab bar + table fused into one card) ───────────────── -->
+    <div class="tab-panel page-margin" *ngIf="!isLoading">
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn" [class.active]="activeTab === 'contacts'" (click)="setTab('contacts')">
+          <i class="fa fa-address-book"></i> Contacts
+          <span class="tab-count">{{ contactsCount }}</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'panel'" (click)="setTab('panel')">
+          <i class="fa fa-handshake"></i> Panel Contacts
+          <span class="tab-count panel">{{ panelCount }}</span>
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div *ngIf="filteredContacts.length" class="table-container tab-table">
+        <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Contact Person</th>
+            <th>Contact Number</th>
+            <th>Email</th>
+            <th>City</th>
+            <th *ngIf="activeTab === 'panel'">Commission %</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let contact of pagedContacts">
+            <td>{{ contact.name }}</td>
+            <td>{{ institutionTypeLabel(contact.institutionType) }}</td>
+            <td>{{ contact.contactPerson }}</td>
+            <td>{{ contact.contactNumber }}</td>
+            <td>{{ contact.email }}</td>
+            <td>{{ contact.city }}</td>
+            <td *ngIf="activeTab === 'panel'">
+              <span class="badge b-g">{{ contact.commissionPercentage }}%</span>
+            </td>
+            <td>{{ contact.isActive ? 'Yes' : 'No' }}</td>
+            <td class="action-buttons">
+              <app-action-btn type="edit"   title="Edit Contact"   (clicked)="editContact(contact.id)"></app-action-btn>
+              <app-action-btn type="delete" title="Delete Contact" (clicked)="deleteContact(contact.id)"></app-action-btn>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="pagination-btn" (click)="prevPage()" [disabled]="currentPage===1">Prev</button>
+        <button class="pagination-btn" *ngFor="let p of [].constructor(totalPages); let i = index" (click)="goToPage(i+1)" [class.active]="currentPage===i+1">{{ i+1 }}</button>
+        <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage===totalPages">Next</button>
+      </div>
+    </div>
+
+    <!-- Empty state inside the card -->
+    <div *ngIf="!filteredContacts.length" class="no-data-msg tab-empty">
+      <i class="fa fa-inbox"></i>
+      <p>No {{ activeTab === 'panel' ? 'panel contacts' : 'contacts' }} found.</p>
+    </div>
+
+    </div><!-- /tab-panel -->
+</div></div>

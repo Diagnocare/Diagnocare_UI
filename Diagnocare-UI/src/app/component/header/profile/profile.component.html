@@ -1,0 +1,195 @@
+<app-confirm-modal></app-confirm-modal>
+
+<div class="acct-page">
+
+  <!-- PAGE HEADER -->
+  <div class="acct-header">
+    <h2 class="acct-title"><i class="fas fa-user-circle"></i> My Profile</h2>
+    <p class="acct-subtitle">View and update your personal information</p>
+  </div>
+
+  <!-- CARD -->
+  <div class="acct-card">
+    <div class="acct-card-header">
+      <i class="fas fa-id-card"></i>
+      <div>
+        <h4 class="acct-card-title">Account Details</h4>
+        <p class="acct-card-sub">Your personal info and contact details</p>
+      </div>
+    </div>
+
+    <div class="acct-card-body profile-card-body">
+      <div class="profile-layout">
+
+        <!-- ── Avatar column ───────────────────────────────── -->
+        <div class="avatar-col">
+          <div class="avatar-wrap">
+            <img
+              [src]="user?.profilePhoto || '/assets/defaultPic.jpg'"
+              class="profile-avatar"
+              alt="Profile Photo">
+          </div>
+
+          <div class="avatar-actions">
+            <input type="file" accept="image/*" (change)="onProfilePicChange($event)"
+                   style="display:none;" #fileInput>
+            <button class="btn btn-outline-secondary btn-sm" (click)="fileInput.click()">
+              <i class="fas fa-camera me-1"></i>Change Photo
+            </button>
+            <button *ngIf="previewAvailable" class="btn btn-primary btn-sm" (click)="saveProfilePic()">
+              <i class="fas fa-save me-1"></i>Save
+            </button>
+          </div>
+
+          <div class="role-badge-wrap" *ngIf="user?.typeUserId">
+            <span class="role-badge">{{ getRoleLabel(user?.typeUserId) }}</span>
+          </div>
+        </div>
+
+        <!-- ── Details column ─────────────────────────────── -->
+        <div class="details-col">
+
+          <div class="field-row">
+            <span class="field-label">First Name</span>
+            <span class="field-value">{{ user?.first_Name || '—' }}</span>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">Last Name</span>
+            <span class="field-value">{{ user?.last_Name || '—' }}</span>
+          </div>
+
+          <div class="field-row" *ngIf="user?.qualification">
+            <span class="field-label">Qualification</span>
+            <span class="field-value">{{ user?.qualification }}</span>
+          </div>
+
+          <div class="field-row" *ngIf="user?.position">
+            <span class="field-label">Position</span>
+            <span class="field-value">{{ user?.position }}</span>
+          </div>
+
+          <div class="field-divider"></div>
+
+          <!-- ── Email (editable) ──────────────────────────── -->
+          <div class="field-row">
+            <span class="field-label"><i class="fas fa-envelope"></i> Email</span>
+            <div class="field-edit-col">
+
+              <div *ngIf="editField !== 'email'" class="field-display">
+                <span class="field-value">{{ user?.email || '—' }}</span>
+                <button class="btn-edit" (click)="startEdit('email')">
+                  <i class="fas fa-pencil-alt"></i> Edit
+                </button>
+              </div>
+
+              <div *ngIf="editField === 'email'">
+                <div *ngIf="editStep === 'input'">
+                  <div class="input-group mb-2">
+                    <input type="email" class="form-control" placeholder="Enter new email"
+                           [(ngModel)]="newEmail" name="newEmail">
+                    <button class="btn btn-primary" (click)="sendOtp()" [disabled]="otpSending">
+                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
+                      Send OTP
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                  </div>
+                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+                </div>
+
+                <div *ngIf="editStep === 'otp'">
+                  <p class="otp-hint">
+                    <i class="fas fa-info-circle me-1"></i>OTP sent to <strong>{{ newEmail }}</strong>
+                  </p>
+                  <div class="input-group mb-2">
+                    <input type="text" class="form-control" placeholder="6-digit OTP"
+                           maxlength="6" [(ngModel)]="otpCode" name="otpCodeEmail">
+                    <button class="btn btn-success" (click)="verifyAndSave()" [disabled]="otpVerifying || saving">
+                      <span *ngIf="otpVerifying || saving" class="spinner-border spinner-border-sm me-1"></span>
+                      Verify & Save
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                  </div>
+                  <div class="otp-links">
+                    <button class="btn btn-link btn-sm p-0" (click)="resendOtp()"
+                            [disabled]="resendCountdown > 0 || otpSending">
+                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
+                      {{ resendCountdown > 0 ? 'Resend in ' + resendCountdown + 's' : 'Resend OTP' }}
+                    </button>
+                    <button class="btn btn-link btn-sm p-0 text-secondary"
+                            (click)="editStep = 'input'; otpCode = ''; errorMsg = ''">Change email</button>
+                  </div>
+                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── Phone (editable) ──────────────────────────── -->
+          <div class="field-row">
+            <span class="field-label"><i class="fas fa-phone"></i> Phone</span>
+            <div class="field-edit-col">
+
+              <div *ngIf="editField !== 'phone'" class="field-display">
+                <span class="field-value">{{ user?.contactPhone || '—' }}</span>
+                <button class="btn-edit" (click)="startEdit('phone')">
+                  <i class="fas fa-pencil-alt"></i> Edit
+                </button>
+              </div>
+
+              <div *ngIf="editField === 'phone'">
+                <div *ngIf="editStep === 'input'">
+                  <div class="input-group mb-2">
+                    <input type="tel" class="form-control" placeholder="Enter 10-digit phone number"
+                           maxlength="10" [(ngModel)]="newPhone" name="newPhone">
+                    <button class="btn btn-primary" (click)="sendOtp()" [disabled]="otpSending">
+                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
+                      Send OTP
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                  </div>
+                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+                </div>
+
+                <div *ngIf="editStep === 'otp'">
+                  <p class="otp-hint">
+                    <i class="fas fa-info-circle me-1"></i>OTP sent to <strong>{{ newPhone }}</strong>
+                  </p>
+                  <div class="input-group mb-2">
+                    <input type="text" class="form-control" placeholder="6-digit OTP"
+                           maxlength="6" [(ngModel)]="otpCode" name="otpCodePhone">
+                    <button class="btn btn-success" (click)="verifyAndSave()" [disabled]="otpVerifying || saving">
+                      <span *ngIf="otpVerifying || saving" class="spinner-border spinner-border-sm me-1"></span>
+                      Verify & Save
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                  </div>
+                  <div class="otp-links">
+                    <button class="btn btn-link btn-sm p-0" (click)="resendOtp()"
+                            [disabled]="resendCountdown > 0 || otpSending">
+                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
+                      {{ resendCountdown > 0 ? 'Resend in ' + resendCountdown + 's' : 'Resend OTP' }}
+                    </button>
+                    <button class="btn btn-link btn-sm p-0 text-secondary"
+                            (click)="editStep = 'input'; otpCode = ''; errorMsg = ''">Change number</button>
+                  </div>
+                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Emergency Contact -->
+          <div class="field-row" *ngIf="user?.emergencyContact">
+            <span class="field-label"><i class="fas fa-phone-alt"></i> Emergency</span>
+            <span class="field-value">{{ user?.emergencyContact }}</span>
+          </div>
+
+        </div><!-- /details-col -->
+      </div><!-- /profile-layout -->
+    </div><!-- /acct-card-body -->
+  </div><!-- /acct-card -->
+
+</div><!-- /acct-page -->

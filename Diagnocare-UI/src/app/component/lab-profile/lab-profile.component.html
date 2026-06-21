@@ -1,0 +1,357 @@
+<div class="page-container">
+  <div class="page-inner">
+
+    <!-- ── Page Header ── -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title"><i class="fas fa-hospital-alt"></i> Lab Profile</h2>
+        <p class="page-subtitle">Complete your pathology details — used across reports, billing, and the patient portal</p>
+      </div>
+    </div>
+
+    <!-- ── Loading ── -->
+    <app-loading-spinner
+      [isLoading]="loadState === 'loading'"
+      message="Loading lab profile…">
+    </app-loading-spinner>
+
+    <!-- ── Error ── -->
+    <div class="lp-error" *ngIf="loadState === 'error'">
+      <i class="fas fa-exclamation-circle"></i>
+      Could not load lab profile. Please refresh the page.
+    </div>
+
+    <!-- ══ LICENCE INFO (read-only) ══ -->
+    <div class="profile-card lp-licence-card" *ngIf="loadState === 'loaded'">
+      <div class="profile-card-header">
+        <i class="fas fa-key"></i>
+        <div>
+          <h4 class="profile-card-title">Licence Information</h4>
+          <p class="profile-card-sub">Read-only — contact Super Admin to extend or change the licence</p>
+        </div>
+      </div>
+      <div class="profile-card-body">
+        <div class="lp-licence-grid">
+
+          <!-- Licence Type -->
+          <div class="lp-licence-item">
+            <span class="lp-licence-label"><i class="fas fa-tag"></i> Licence Type</span>
+            <span class="lp-licence-value">
+              <span class="lp-badge" [class.lp-badge-trial]="licenseType === 'Trial'"
+                                     [class.lp-badge-license]="licenseType === 'License'">
+                {{ licenseType || '—' }}
+              </span>
+            </span>
+          </div>
+
+          <!-- Expiry Date -->
+          <div class="lp-licence-item">
+            <span class="lp-licence-label"><i class="fas fa-calendar-times"></i> Expiry Date</span>
+            <span class="lp-licence-value lp-expiry">{{ formattedLicenseExpiry }}</span>
+          </div>
+
+          <!-- License Key -->
+          <div class="lp-licence-item lp-licence-item--full">
+            <span class="lp-licence-label"><i class="fas fa-fingerprint"></i> License Key</span>
+            <div class="lp-key-row">
+              <code class="lp-key-value">{{ maskedLicenseKey }}</code>
+              <button type="button" class="lp-key-btn lp-key-btn--eye" (click)="toggleKeyVisibility()"
+                      [title]="licenseKeyVisible ? 'Hide key' : 'Show key'" *ngIf="licenseKey">
+                <i class="fas" [class.fa-eye]="!licenseKeyVisible" [class.fa-eye-slash]="licenseKeyVisible"></i>
+              </button>
+              <button type="button" class="lp-key-btn lp-key-btn--copy" (click)="copyLicenseKey()"
+                      title="Copy key" *ngIf="licenseKey">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Form ── -->
+    <form *ngIf="loadState === 'loaded'" [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+      <!-- ══ SECTION: Identity & Logo ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-id-card"></i>
+          <div>
+            <h4 class="profile-card-title">Identity &amp; Branding</h4>
+            <p class="profile-card-sub">Core name, tagline, and logo shown on all reports and communications</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+
+          <!-- Logo upload -->
+          <div class="logo-row">
+            <div class="logo-preview-wrap">
+              <img *ngIf="logoPreview" [src]="logoPreview" alt="Lab Logo" class="logo-preview-img" />
+              <div *ngIf="!logoPreview" class="logo-placeholder">
+                <i class="fas fa-image"></i>
+                <span>No logo</span>
+              </div>
+            </div>
+            <div class="logo-actions">
+              <label class="btn-upload" for="logoInput">
+                <i class="fas fa-upload"></i> Upload Logo
+              </label>
+              <input id="logoInput" type="file" accept="image/*" class="hidden-file-input"
+                     (change)="onLogoChange($event)" />
+              <button *ngIf="logoPreview" type="button" class="btn-remove-logo" (click)="removeLogo()">
+                <i class="fas fa-trash-alt"></i> Remove
+              </button>
+              <p class="logo-hint">PNG or JPG, max 2 MB. Appears on printed reports and portal header.</p>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div class="field field-span2">
+              <label class="field-label">Pathology Name <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="path_Name"
+                     placeholder="e.g. City Diagnostic Centre" [class.is-error]="hasError('path_Name')" />
+              <div class="field-error" *ngIf="hasError('path_Name')">Name is required.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Branch / Location</label>
+              <input type="text" class="field-input" formControlName="path_Branch"
+                     placeholder="e.g. Main Branch, Andheri" />
+            </div>
+            <div class="field field-span2">
+              <label class="field-label">Motto / Tagline</label>
+              <input type="text" class="field-input" formControlName="path_Motto"
+                     placeholder="e.g. Precision Diagnostics for Better Health" />
+              <div class="field-hint">Printed under the lab name on reports</div>
+            </div>
+            <div class="field field-span2">
+              <label class="field-label">Short Tagline</label>
+              <input type="text" class="field-input" formControlName="path_Tagline"
+                     placeholder="e.g. Trusted. Accurate. Fast." />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: Address ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-map-marker-alt"></i>
+          <div>
+            <h4 class="profile-card-title">Address</h4>
+            <p class="profile-card-sub">Printed on reports, bills, and patient receipts</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+          <div class="field-grid">
+            <div class="field field-span2">
+              <label class="field-label">Address Line 1 <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="path_Address1"
+                     placeholder="Building / Street" [class.is-error]="hasError('path_Address1')" />
+              <div class="field-error" *ngIf="hasError('path_Address1')">Address is required.</div>
+            </div>
+            <div class="field field-span2">
+              <label class="field-label">Address Line 2</label>
+              <input type="text" class="field-input" formControlName="path_Address2"
+                     placeholder="Landmark / Area (optional)" />
+            </div>
+            <div class="field">
+              <label class="field-label">City <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="path_City"
+                     placeholder="City" [class.is-error]="hasError('path_City')" />
+              <div class="field-error" *ngIf="hasError('path_City')">Required.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">State <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="path_State"
+                     placeholder="State" [class.is-error]="hasError('path_State')" />
+              <div class="field-error" *ngIf="hasError('path_State')">Required.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Country <span class="req">*</span></label>
+              <input type="text" class="field-input" formControlName="path_Country"
+                     placeholder="Country" />
+            </div>
+            <div class="field">
+              <label class="field-label">Pincode</label>
+              <input type="text" class="field-input" formControlName="path_Pincode"
+                     placeholder="Pincode" [class.is-error]="hasError('path_Pincode')" />
+              <div class="field-error" *ngIf="hasError('path_Pincode')">Invalid pincode.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: Contact ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-phone-alt"></i>
+          <div>
+            <h4 class="profile-card-title">Contact Details</h4>
+            <p class="profile-card-sub">Phone, email and web presence</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label">Primary Contact <span class="req">*</span></label>
+              <input type="tel" class="field-input" formControlName="path_ContactNo"
+                     placeholder="Mobile / Landline" [class.is-error]="hasError('path_ContactNo')" />
+              <div class="field-error" *ngIf="hasError('path_ContactNo')">Valid number required.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Alternate Contact</label>
+              <input type="tel" class="field-input" formControlName="path_AltContactNo"
+                     placeholder="Secondary number" [class.is-error]="hasError('path_AltContactNo')" />
+              <div class="field-error" *ngIf="hasError('path_AltContactNo')">Invalid number.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Email <span class="req">*</span></label>
+              <input type="email" class="field-input" formControlName="path_Email"
+                     placeholder="lab@example.com" [class.is-error]="hasError('path_Email')" />
+              <div class="field-error" *ngIf="hasError('path_Email')">Valid email required.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Website</label>
+              <input type="url" class="field-input" formControlName="path_Website"
+                     placeholder="https://www.yourlab.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: Legal & Compliance ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-balance-scale"></i>
+          <div>
+            <h4 class="profile-card-title">Legal &amp; Compliance</h4>
+            <p class="profile-card-sub">Registration numbers printed on bills and regulatory reports</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label">GST Number</label>
+              <input type="text" class="field-input" formControlName="path_GSTNo"
+                     placeholder="e.g. 27AABCU9603R1ZX" />
+            </div>
+            <div class="field">
+              <label class="field-label">PAN Number</label>
+              <input type="text" class="field-input" formControlName="path_PANNo"
+                     placeholder="e.g. AABCU9603R" />
+            </div>
+            <div class="field">
+              <label class="field-label">Lab Registration No.</label>
+              <input type="text" class="field-input" formControlName="path_RegNo"
+                     placeholder="PCPNDT / State reg. number" />
+            </div>
+            <div class="field">
+              <label class="field-label">NABL Accreditation No.</label>
+              <input type="text" class="field-input" formControlName="path_NABLNo"
+                     placeholder="MC-XXXX (if applicable)" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: People ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-user-md"></i>
+          <div>
+            <h4 class="profile-card-title">People</h4>
+            <p class="profile-card-sub">Director and in-charge names printed on official documents</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label">Lab Director / Owner</label>
+              <input type="text" class="field-input" formControlName="path_DirectorName"
+                     placeholder="Dr. Full Name" />
+            </div>
+            <div class="field">
+              <label class="field-label">Lab In-Charge</label>
+              <input type="text" class="field-input" formControlName="path_LabInCharge"
+                     placeholder="In-charge / Manager name" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: Report Branding ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-file-medical-alt"></i>
+          <div>
+            <h4 class="profile-card-title">Report Branding</h4>
+            <p class="profile-card-sub">Text printed at the top and bottom of every generated report</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+          <div class="field-grid">
+            <div class="field field-span2">
+              <label class="field-label">Report Header</label>
+              <textarea class="field-input field-textarea" formControlName="path_ReportHeader" rows="3"
+                        placeholder="e.g. City Diagnostic Centre | ISO 9001:2015 Certified | 24/7 Emergency Services"></textarea>
+              <div class="field-hint">Appears at the top of every printed or PDF report</div>
+            </div>
+            <div class="field field-span2">
+              <label class="field-label">Report Footer</label>
+              <textarea class="field-input field-textarea" formControlName="path_ReportFooter" rows="3"
+                        placeholder="e.g. Results are for physician reference only. Report queries: lab@example.com"></textarea>
+              <div class="field-hint">Appears at the bottom of every report</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Default Signatory Name</label>
+              <input type="text" class="field-input" formControlName="path_SignatoryName"
+                     placeholder="Name printed under the signature line" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: Regional Settings ══ -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <i class="fas fa-globe"></i>
+          <div>
+            <h4 class="profile-card-title">Regional Settings</h4>
+            <p class="profile-card-sub">Country calling code and currency used across bills and reports</p>
+          </div>
+        </div>
+        <div class="profile-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label class="field-label">Country Code</label>
+              <input type="text" class="field-input" formControlName="path_CountryCode"
+                     placeholder="+91" />
+              <div class="field-hint">Used as the default dialling prefix for patient contacts</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Currency</label>
+              <input type="text" class="field-input" formControlName="path_Currency"
+                     placeholder="INR" />
+              <div class="field-hint">Shown on bills and receipts (e.g. INR, USD, ₹)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Save bar ── -->
+      <div class="save-bar">
+        <button type="submit" class="btn-save" [disabled]="isSaving">
+          <ng-container *ngIf="!isSaving">
+            <i class="fas fa-save"></i> Save Lab Profile
+          </ng-container>
+          <ng-container *ngIf="isSaving">
+            <span class="save-spinner"></span> Saving…
+          </ng-container>
+        </button>
+      </div>
+
+    </form>
+
+  </div><!-- /.page-inner -->
+</div>

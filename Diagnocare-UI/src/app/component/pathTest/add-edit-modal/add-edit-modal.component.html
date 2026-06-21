@@ -1,0 +1,635 @@
+<div class="modal-backdrop" (click)="close()"></div>
+<app-loading-spinner [isLoading]="isLoading" message="Saving..."></app-loading-spinner>
+
+<div class="modal-container">
+
+  <!-- ══ MODAL HEADER ══════════════════════════════════════════════ -->
+  <div class="modal-header">
+    <div class="modal-header-icon">
+      <i class="fa" [ngClass]="mode === 'add' ? 'fa-plus-circle' : 'fa-pencil-square-o'"></i>
+    </div>
+    <div class="modal-header-text">
+      <h2 class="modal-title">
+        <ng-container *ngIf="step === 0">{{ mode === 'add' ? 'Add New Item' : 'Edit Existing Item' }}</ng-container>
+        <ng-container *ngIf="step > 0">{{ ModalHeading }}</ng-container>
+      </h2>
+      <p class="modal-subtitle">
+        <ng-container *ngIf="step === 0 && mode === 'add'">Choose the type of item to create</ng-container>
+        <ng-container *ngIf="step === 0 && mode === 'edit'">Choose what you want to update</ng-container>
+        <ng-container *ngIf="step > 0 && selected === 'group'">
+          <span class="step-dot" [class.done]="step >= 1">Group</span>
+          <ng-container *ngIf="step >= 2">
+            <span class="step-sep">›</span>
+            <span class="step-dot" [class.done]="step >= 2" [class.future]="step < 2">SubGroup</span>
+          </ng-container>
+          <ng-container *ngIf="step >= 3">
+            <span class="step-sep">›</span>
+            <span class="step-dot" [class.done]="step >= 3" [class.future]="step < 3">Test</span>
+          </ng-container>
+        </ng-container>
+        <ng-container *ngIf="step > 0 && selected === 'subgroup'">
+          <span class="step-dot" [class.done]="step >= 1">SubGroup</span>
+          <ng-container *ngIf="step >= 2">
+            <span class="step-sep">›</span>
+            <span class="step-dot" [class.done]="step >= 2" [class.future]="step < 2">Test</span>
+          </ng-container>
+        </ng-container>
+        <ng-container *ngIf="step > 0 && selected === 'test'">
+          <span class="step-dot done">Test Details</span>
+        </ng-container>
+      </p>
+    </div>
+    <button class="modal-close-btn" (click)="close()" title="Close"><i class="fa fa-times"></i></button>
+  </div>
+
+  <!-- ══ MODAL BODY ════════════════════════════════════════════════ -->
+  <div class="modal-body">
+
+    <ng-container *ngIf="mode == 'add'; else editModal">
+
+      <!-- ── Step 0: Type Selector ─────────────────────────────── -->
+      <div *ngIf="step === 0" class="type-selector">
+
+        <label class="type-option" [class.active]="selected === 'group'">
+          <input type="radio" name="itemType" value="group" (change)="selected='group'">
+          <div class="type-icon"><i class="fa fa-folder-o"></i></div>
+          <div class="type-text">
+            <strong>New Group</strong>
+            <span>Top-level category for tests</span>
+          </div>
+          <div class="type-check"><i class="fa fa-check-circle"></i></div>
+        </label>
+
+        <label class="type-option" [class.active]="selected === 'subgroup'">
+          <input type="radio" name="itemType" value="subgroup" (change)="selected='subgroup'">
+          <div class="type-icon"><i class="fa fa-folder-open-o"></i></div>
+          <div class="type-text">
+            <strong>New SubGroup</strong>
+            <span>Add to an existing group</span>
+          </div>
+          <div class="type-check"><i class="fa fa-check-circle"></i></div>
+        </label>
+
+        <label class="type-option" [class.active]="selected === 'test'">
+          <input type="radio" name="itemType" value="test" (change)="selected='test'">
+          <div class="type-icon"><i class="fa fa-flask"></i></div>
+          <div class="type-text">
+            <strong>New Test</strong>
+            <span>Add to an existing subgroup</span>
+          </div>
+          <div class="type-check"><i class="fa fa-check-circle"></i></div>
+        </label>
+      </div>
+
+      <!-- ── Add: Group steps ─────────────────────────────────── -->
+      <ng-container [ngSwitch]="selected">
+        <ng-container *ngSwitchCase="'group'">
+
+          <!-- Step 1: Group -->
+          <div *ngIf="step === 1" class="form-section">
+            <div class="section-label"><i class="fa fa-folder-o"></i> Group Details</div>
+
+            <div class="form-group">
+              <label class="form-label">Group Code</label>
+              <div class="auto-code-field">
+                <input type="text" class="form-control code-input" [(ngModel)]="formData.group.testGroupId" disabled>
+                <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Group Name</label>
+              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
+                     [(ngModel)]="formData.group.name" #groupName="ngModel" required>
+              <div class="field-error" *ngIf="groupName.invalid && (groupName.touched || groupName.dirty)">
+                <i class="fa fa-exclamation-circle"></i> Group name is required
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="formData.group.price" min="1" #addGroupPrice="ngModel">
+              </div>
+              <div class="field-error" *ngIf="formData.group.price <= 0 && addGroupPrice.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Step 2: SubGroup -->
+          <div *ngIf="step === 2" class="form-section">
+            <div class="section-label"><i class="fa fa-folder-open-o"></i> SubGroup Details</div>
+
+            <div class="form-group">
+              <label class="form-label">SubGroup Code</label>
+              <div class="auto-code-field">
+                <input type="text" class="form-control code-input" [(ngModel)]="formData.subGroup.testGroupId" disabled>
+                <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">SubGroup Name</label>
+              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
+                     [(ngModel)]="formData.subGroup.name" #subGroupName="ngModel" required>
+              <div class="field-error" *ngIf="subGroupName.invalid && (subGroupName.touched || subGroupName.dirty)">
+                <i class="fa fa-exclamation-circle"></i> SubGroup name is required
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="formData.subGroup.price" min="1" #addSubPrice2="ngModel">
+              </div>
+              <div class="field-error" *ngIf="formData.subGroup.price <= 0 && addSubPrice2.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Step 3: Test -->
+          <div *ngIf="step === 3" class="form-section">
+            <div class="section-label"><i class="fa fa-flask"></i> Test Details</div>
+
+            <div class="form-group">
+              <label class="form-label">Test Code</label>
+              <div class="auto-code-field">
+                <input type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
+                <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Test Name</label>
+              <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+                     [(ngModel)]="formData.test.testName" #testName="ngModel" required>
+              <div class="field-error" *ngIf="testName.invalid && (testName.touched || testName.dirty)">
+                <i class="fa fa-exclamation-circle"></i> Test name is required
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="formData.test.price" min="1" #addGroupTestPrice="ngModel">
+              </div>
+              <div class="field-error" *ngIf="formData.test.price <= 0 && addGroupTestPrice.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+        </ng-container>
+
+        <!-- ── Add: SubGroup steps ─────────────────────────────── -->
+        <ng-container *ngSwitchCase="'subgroup'">
+
+          <!-- Step 1: SubGroup -->
+          <div *ngIf="step === 1" class="form-section">
+            <div class="section-label"><i class="fa fa-folder-open-o"></i> SubGroup Details</div>
+
+            <div class="form-group">
+              <label class="form-label required">Parent Group</label>
+              <select class="form-control" [(ngModel)]="formData.subGroup.parentGroupId">
+                <option value="" disabled selected>Select a group…</option>
+                <option *ngFor="let g of groups" [value]="g.testGroupId">
+                  {{ g.testGroupId }} — {{ g.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">SubGroup Code</label>
+              <div class="auto-code-field">
+                <input type="text" class="form-control code-input" [(ngModel)]="formData.subGroup.testGroupId" disabled>
+                <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">SubGroup Name</label>
+              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
+                     [(ngModel)]="formData.subGroup.name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="formData.subGroup.price" min="1" #addSubOnlyPrice="ngModel">
+              </div>
+              <div class="field-error" *ngIf="formData.subGroup.price <= 0 && addSubOnlyPrice.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Step 2: Test -->
+          <div *ngIf="step === 2" class="form-section">
+            <div class="section-label"><i class="fa fa-flask"></i> Test Details</div>
+
+            <div class="form-group">
+              <label class="form-label">Test Code</label>
+              <div class="auto-code-field">
+                <input type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
+                <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Test Name</label>
+              <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+                     [(ngModel)]="formData.test.testName">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="formData.test.price" min="1" #addSubTestPrice="ngModel">
+              </div>
+              <div class="field-error" *ngIf="formData.test.price <= 0 && addSubTestPrice.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+        </ng-container>
+
+        <!-- ── Add: Test only ──────────────────────────────────── -->
+        <ng-container *ngSwitchCase="'test'">
+          <div *ngIf="step === 1" class="form-section">
+            <div class="section-label"><i class="fa fa-flask"></i> Test Details</div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label required">Group</label>
+                <select class="form-control" [(ngModel)]="formData.group.testGroupId">
+                  <option value="" disabled selected>Select group…</option>
+                  <option *ngFor="let g of groups" [value]="g.testGroupId">
+                    {{ g.testGroupId }} — {{ g.name }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">SubGroup</label>
+                <select class="form-control" [(ngModel)]="formData.subGroup.testGroupId">
+                  <option value="" disabled selected>Select subgroup…</option>
+                  <ng-container *ngFor="let s of subGroups">
+                    <option *ngIf="s.parentGroupId === formData.group.testGroupId" [value]="s.testGroupId">
+                      {{ s.testGroupId }} — {{ s.name }}
+                    </option>
+                  </ng-container>
+                  <option *ngIf="!formData.group.testGroupId" value="" disabled>Choose a group first</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Test Code</label>
+              <div class="auto-code-field">
+                <input type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
+                <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Test Name</label>
+              <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+                     [(ngModel)]="formData.test.testName">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="formData.test.price" min="1" #addTestOnlyPrice="ngModel">
+              </div>
+              <div class="field-error" *ngIf="formData.test.price <= 0 && addTestOnlyPrice.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+        </ng-container>
+      </ng-container>
+
+    </ng-container>
+
+    <!-- ══ EDIT MODE ════════════════════════════════════════════════ -->
+    <ng-template #editModal>
+
+      <!-- Step 0: Type Selector -->
+      <div *ngIf="step === 0" class="type-selector">
+
+        <label class="type-option" [class.active]="selected === 'group'">
+          <input type="radio" name="itemType" value="group" (change)="selected='group'">
+          <div class="type-icon"><i class="fa fa-folder-o"></i></div>
+          <div class="type-text">
+            <strong>Edit Group</strong>
+            <span>Update name or rate</span>
+          </div>
+          <div class="type-check"><i class="fa fa-check-circle"></i></div>
+        </label>
+
+        <label class="type-option" [class.active]="selected === 'subgroup'">
+          <input type="radio" name="itemType" value="subgroup" (change)="selected='subgroup'">
+          <div class="type-icon"><i class="fa fa-folder-open-o"></i></div>
+          <div class="type-text">
+            <strong>Edit SubGroup</strong>
+            <span>Update subgroup details</span>
+          </div>
+          <div class="type-check"><i class="fa fa-check-circle"></i></div>
+        </label>
+
+        <label class="type-option" [class.active]="selected === 'test'">
+          <input type="radio" name="itemType" value="test" (change)="selected='test'">
+          <div class="type-icon"><i class="fa fa-flask"></i></div>
+          <div class="type-text">
+            <strong>Edit Test</strong>
+            <span>Update test name or rate</span>
+          </div>
+          <div class="type-check"><i class="fa fa-check-circle"></i></div>
+        </label>
+      </div>
+
+      <ng-container [ngSwitch]="selected">
+
+        <!-- Edit: Group -->
+        <ng-container *ngSwitchCase="'group'">
+          <div *ngIf="step === 1" class="form-section">
+            <div class="section-label"><i class="fa fa-folder-o"></i> Edit Group</div>
+
+            <div class="form-group">
+              <label class="form-label required">Select Group</label>
+              <select class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
+                      (change)="onEditGroupSelect()">
+                <option value="" disabled selected>Choose a group…</option>
+                <option *ngFor="let g of groups" [value]="g.testGroupId">
+                  {{ g.testGroupId }} — {{ g.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="readonly-info" *ngIf="updatedFormData.group.testGroupId">
+              <span class="readonly-label">Code</span>
+              <span class="readonly-value mono">{{ updatedFormData.group.testGroupId }}</span>
+              <span class="readonly-lock"><i class="fa fa-lock"></i> Cannot be changed</span>
+            </div>
+
+            <div class="form-group" *ngIf="updatedFormData.group.testGroupId">
+              <label class="form-label required">Group Name</label>
+              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
+                     [(ngModel)]="updatedFormData.group.name" required>
+            </div>
+
+            <div class="form-group" *ngIf="updatedFormData.group.testGroupId">
+              <label class="form-label required">Rate (₹)</label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                       [(ngModel)]="updatedFormData.group.price" min="1" #editGroupPrice="ngModel">
+              </div>
+              <div class="field-error" *ngIf="updatedFormData.group.price <= 0 && editGroupPrice.touched">
+                <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+              </div>
+            </div>
+
+          </div>
+        </ng-container>
+
+        <!-- Edit: SubGroup -->
+        <ng-container *ngSwitchCase="'subgroup'">
+          <div *ngIf="step === 1" class="form-section">
+            <div class="section-label"><i class="fa fa-folder-open-o"></i> Edit SubGroup</div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label required">Group</label>
+                <select class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
+                        (change)="onEditGroupChangedForSub()">
+                  <option value="" disabled selected>Choose a group…</option>
+                  <option *ngFor="let g of groups" [value]="g.testGroupId">
+                    {{ g.testGroupId }} — {{ g.name }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">SubGroup</label>
+                <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                        (change)="onEditSubGroupSelect()">
+                  <option value="" disabled selected>Choose subgroup…</option>
+                  <ng-container *ngFor="let s of subGroups">
+                    <option *ngIf="s.parentGroupId === updatedFormData.group.testGroupId" [value]="s.testGroupId">
+                      {{ s.testGroupId }} — {{ s.name }}
+                    </option>
+                  </ng-container>
+                </select>
+              </div>
+            </div>
+
+            <ng-container *ngIf="updatedFormData.subGroup.testGroupId">
+              <div class="readonly-info">
+                <span class="readonly-label">Code</span>
+                <span class="readonly-value mono">{{ updatedFormData.subGroup.testGroupId }}</span>
+                <span class="readonly-lock"><i class="fa fa-lock"></i> Cannot be changed</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">SubGroup Name</label>
+                <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
+                       [(ngModel)]="updatedFormData.subGroup.name" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Rate (₹)</label>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">₹</span>
+                  <input type="number" class="form-control has-prefix" placeholder="0.00"
+                         [(ngModel)]="updatedFormData.subGroup.price" min="1" #editSubPrice="ngModel">
+                </div>
+                <div class="field-error" *ngIf="updatedFormData.subGroup.price <= 0 && editSubPrice.touched">
+                  <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+                </div>
+              </div>
+
+            </ng-container>
+          </div>
+        </ng-container>
+
+        <!-- Edit: Test -->
+        <ng-container *ngSwitchCase="'test'">
+          <div *ngIf="step === 1" class="form-section">
+            <div class="section-label"><i class="fa fa-flask"></i> Edit Test</div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label required">Group</label>
+                <select class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
+                        (change)="onEditGroupChangedForTest()">
+                  <option value="" disabled selected>Choose a group…</option>
+                  <option *ngFor="let g of groups" [value]="g.testGroupId">
+                    {{ g.testGroupId }} — {{ g.name }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">SubGroup</label>
+                <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                        (change)="onEditSubGroupChangedForTest()">
+                  <option value="" disabled selected>Choose subgroup…</option>
+                  <ng-container *ngFor="let s of subGroups">
+                    <option *ngIf="s.parentGroupId === updatedFormData.group.testGroupId" [value]="s.testGroupId">
+                      {{ s.testGroupId }} — {{ s.name }}
+                    </option>
+                  </ng-container>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" *ngIf="updatedFormData.subGroup.testGroupId">
+              <label class="form-label required">Test</label>
+              <select class="form-control" [(ngModel)]="updatedFormData.test.testCode"
+                      (change)="onEditTestSelect()">
+                <option value="" disabled selected>Choose a test…</option>
+                <ng-container *ngFor="let t of tests">
+                  <option *ngIf="t.subGroupId === updatedFormData.subGroup.testGroupId" [value]="t.testCode">
+                    {{ t.testCode }} — {{ t.testName }}
+                  </option>
+                </ng-container>
+                <option *ngIf="tests.length == 0" value="" disabled>No tests in this subgroup</option>
+              </select>
+            </div>
+
+            <ng-container *ngIf="updatedFormData.test.testCode">
+              <div class="readonly-info">
+                <span class="readonly-label">Code</span>
+                <span class="readonly-value mono">{{ updatedFormData.test.testCode }}</span>
+                <span class="readonly-lock"><i class="fa fa-lock"></i> Cannot be changed</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Test Name</label>
+                <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+                       [(ngModel)]="updatedFormData.test.testName" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Rate (₹)</label>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">₹</span>
+                  <input type="number" class="form-control has-prefix" placeholder="0.00"
+                         [(ngModel)]="updatedFormData.test.price" min="1" #editTestPrice="ngModel">
+                </div>
+                <div class="field-error" *ngIf="updatedFormData.test.price <= 0 && editTestPrice.touched">
+                  <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
+                </div>
+              </div>
+
+            </ng-container>
+          </div>
+        </ng-container>
+
+      </ng-container>
+    </ng-template>
+
+  </div><!-- /modal-body -->
+
+  <!-- ══ MODAL FOOTER ════════════════════════════════════════════════ -->
+  <div class="modal-footer">
+    <button class="btn btn-cancel" (click)="close()">
+      <i class="fa fa-times"></i> Cancel
+    </button>
+
+    <!-- Add mode -->
+    <ng-container *ngIf="mode === 'add'">
+      <!-- Group step 1: save group only OR continue to subgroup -->
+      <ng-container *ngIf="selected === 'group' && step === 1">
+        <button class="btn btn-secondary"
+          [disabled]="!formData.group.name || formData.group.price <= 0"
+          (click)="submit()">
+          <i class="fa fa-check"></i> Create Group
+        </button>
+        <button class="btn btn-primary"
+          [disabled]="!formData.group.name || formData.group.price <= 0"
+          (click)="next()">
+          Add SubGroup <i class="fa fa-arrow-right"></i>
+        </button>
+      </ng-container>
+
+      <!-- SubGroup step 1: save subgroup only OR continue to test -->
+      <ng-container *ngIf="selected === 'subgroup' && step === 1">
+        <button class="btn btn-secondary"
+          [disabled]="!isSubGroupStepValid"
+          (click)="submit()">
+          <i class="fa fa-check"></i> Create SubGroup
+        </button>
+        <button class="btn btn-primary"
+          [disabled]="!isSubGroupStepValid"
+          (click)="next()">
+          Add Test <i class="fa fa-arrow-right"></i>
+        </button>
+      </ng-container>
+
+      <!-- All other last-step cases -->
+      <button class="btn btn-primary"
+        *ngIf="selected && step && isLastStep && !(selected === 'group' && step === 1) && !(selected === 'subgroup' && step === 1)"
+        (click)="submit()"
+        [disabled]="
+          (selected === 'group' && step === 2 && (!formData.subGroup.name || formData.subGroup.price <= 0)) ||
+          (selected === 'group' && step === 3 && (!formData.test.testName || formData.test.price <= 0)) ||
+          (selected === 'subgroup' && step === 2 && (!formData.test.testName || formData.test.price <= 0)) ||
+          (selected === 'test' && step === 1 && (!formData.group.testGroupId || !formData.subGroup.testGroupId || !formData.test.testName || formData.test.price <= 0))
+        ">
+        <i class="fa fa-check"></i> Create
+      </button>
+
+      <!-- Next button — excluded for group/subgroup step 1 (handled above) -->
+      <button class="btn btn-primary"
+        *ngIf="(!isLastStep || step === 0) && !(selected === 'group' && step === 1) && !(selected === 'subgroup' && step === 1)"
+        [disabled]="
+          (!selected && step === 0) ||
+          (selected === 'group' && step === 2 && (!formData.subGroup.name || formData.subGroup.price <= 0)) ||
+          (selected === 'subgroup' && step === 2 && (!formData.test.testName || formData.test.price <= 0))
+        "
+        (click)="next()">
+        Next <i class="fa fa-arrow-right"></i>
+      </button>
+    </ng-container>
+
+    <!-- Edit mode -->
+    <ng-container *ngIf="mode === 'edit'">
+      <button class="btn btn-primary" *ngIf="isLastEditStep"
+        [disabled]="
+          !selected ||
+          (selected === 'group'    && updatedFormData.group.price <= 0) ||
+          (selected === 'subgroup' && updatedFormData.subGroup.price <= 0) ||
+          (selected === 'test'     && updatedFormData.test.price <= 0)
+        "
+        (click)="submit()">
+        <i class="fa fa-save"></i> Update
+      </button>
+      <button class="btn btn-primary" *ngIf="!isLastEditStep"
+        [disabled]="!selected"
+        (click)="next()">
+        Next <i class="fa fa-arrow-right"></i>
+      </button>
+    </ng-container>
+  </div>
+
+</div>
+

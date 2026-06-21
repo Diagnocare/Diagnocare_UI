@@ -1,0 +1,1016 @@
+<app-loading-spinner [isLoading]="isLoading" [message]="spinnerMessage"></app-loading-spinner>
+
+<div class="page-container">
+
+  <!-- ══════════════════════════════════════════════════════
+       PAGE HEADER
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2 class="page-title"><i class="fa fa-money-bill-wave"></i> Salary Management</h2>
+      <p class="page-subtitle">Manage staff salaries, allowances, PF deductions and payment records</p>
+    </div>
+    <div class="tab-switcher">
+      <button class="tab-btn" [class.active]="activeTab === 'monthly'" (click)="switchTab('monthly')">
+        <i class="fa fa-calendar-alt"></i> Monthly
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'config'" (click)="switchTab('config')">
+        <i class="fa fa-cog"></i> Salary Config
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       MONTHLY TAB
+  ══════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'monthly'">
+
+    <div class="month-nav-bar">
+      <button class="nav-btn" (click)="prevMonth()" [disabled]="isLoading">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+      <span class="month-label">
+        <i class="fa fa-spinner fa-spin month-loading-spinner" *ngIf="isLoading"></i>
+        {{ monthLabel }}
+      </span>
+      <button class="nav-btn" (click)="nextMonth()" [disabled]="isLoading || isCurrentMonth">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+      <div class="nav-spacer"></div>
+
+      <!-- Inactive toggle -->
+      <button class="tab-btn inactive-toggle"
+              [class.active]="showInactive"
+              (click)="toggleInactive()"
+              [disabled]="isLoading"
+              title="Show / hide deactivated employees">
+        <i class="fa fa-user-slash"></i> Inactive
+      </button>
+
+      <!-- Role filter tabs -->
+      <div class="role-filter-tabs">
+        <button class="tab-btn" [class.active]="roleFilter === 'other'"
+                (click)="setRoleFilter('other')">Users</button>
+        <button class="tab-btn" [class.active]="roleFilter === 'doctor'"
+                (click)="setRoleFilter('doctor')">Doctor</button>
+        <button class="tab-btn" [class.active]="roleFilter === 'collection-boy'"
+                (click)="setRoleFilter('collection-boy')">Collection Boy</button>
+      </div>
+
+      <div class="search-box">
+        <i class="fa fa-search search-icon"></i>
+        <input type="text" class="search-input" placeholder="Search employee…" [(ngModel)]="searchTerm" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <!-- <button class="btn btn-primary" (click)="generateSalary()" [disabled]="isGenerating || isLoading">
+        <span *ngIf="isGenerating"><i class="fa fa-spinner fa-spin"></i> Generating…</span>
+        <span *ngIf="!isGenerating"><i class="fa fa-bolt"></i> Generate Salary</span>
+      </button> -->
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-cards" *ngIf="monthlyData && !isLoading">
+      <div class="stat-card card-payable">
+        <div class="stat-icon"><i class="fa fa-wallet"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ formatINR(displayTotals.payable) }}</div>
+          <div class="stat-label">Total Net Salary</div>
+        </div>
+      </div>
+      <div class="stat-card card-paid">
+        <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ formatINR(displayTotals.paid) }}</div>
+          <div class="stat-label">Total Paid</div>
+        </div>
+      </div>
+      <div class="stat-card card-pending">
+        <div class="stat-icon"><i class="fa fa-hourglass-half"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ formatINR(displayTotals.pending) }}</div>
+          <div class="stat-label">Pending</div>
+        </div>
+      </div>
+      <div class="stat-card card-count">
+        <div class="stat-icon"><i class="fa fa-users"></i></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ filteredRecords.length }}</div>
+          <div class="stat-label">Employees</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isLoading">
+      <div class="empty-state" *ngIf="!monthlyData || monthlyData.employees.length === 0">
+        <div class="empty-icon"><i class="fa fa-file-invoice-dollar"></i></div>
+        <h3>No salary records for {{ monthLabel }}</h3>
+        <p>Click <strong>Generate Salary</strong> to create records for all configured employees.</p>
+      </div>
+      <div class="empty-state" *ngIf="monthlyData && monthlyData.employees.length > 0 && filteredRecords.length === 0">
+        <div class="empty-icon"><i class="fa fa-search"></i></div>
+        <h3>No results for "{{ searchTerm }}"</h3>
+        <p>Try a different name.</p>
+      </div>
+
+      <table class="salary-table" *ngIf="filteredRecords.length > 0">
+        <thead>
+          <tr class="table-header-row">
+            <th class="col-emp">Employee</th>
+            <th class="col-amt">Base Salary</th>
+            <th class="col-amt">Travel Allow.</th>
+            <th class="col-amt">Other Allow.</th>
+            <!-- <th class="col-amt">PF</th> -->
+            <th class="col-amt">Net Salary</th>
+            <th class="col-amt">Paid</th>
+            <!-- <th class="col-amt">Pending</th> -->
+            <th class="col-status">Status</th>
+            <th class="col-action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let rec of filteredRecords; let odd = odd"
+            class="salary-row"
+            [class.row-alt]="odd"
+            [class.row-active]="panelRecord?.userId === rec.userId"
+            [class.row-inactive]="isInactiveRecord(rec)"
+          >
+            <td class="col-emp">
+              <div class="emp-info">
+                <div class="emp-avatar" [class.avatar-inactive]="isInactiveRecord(rec)">{{ userInitial(rec.fullName) }}</div>
+                <div class="emp-details">
+                  <div class="emp-name">
+                    {{ rec.fullName }}
+                    <span class="badge-inactive" *ngIf="isInactiveRecord(rec)">Inactive</span>
+                  </div>
+                  <div class="emp-meta">@{{ rec.userName }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="col-amt amt-basic">{{ formatINR(rec.baseSalary) }}</td>
+            <td class="col-amt">
+              <span *ngIf="(rec.travelAllowance ?? 0) > 0" class="allow-badge allow-travel">
+                {{ formatINR(rec.travelAllowance) }}
+              </span>
+              <span *ngIf="!(rec.travelAllowance ?? 0)" class="text-muted">—</span>
+            </td>
+            <td class="col-amt">
+              <span *ngIf="(rec.otherAllowance ?? 0) > 0" class="allow-badge allow-other">
+                {{ formatINR(rec.otherAllowance) }}
+              </span>
+              <span *ngIf="!(rec.otherAllowance ?? 0)" class="text-muted">—</span>
+            </td>
+            <!-- <td class="col-amt amt-pf">
+              <span class="pf-badge">{{ formatINR(rec.pfAmount) }}</span>
+            </td> -->
+            <td class="col-amt amt-net">{{ formatINR(rec.netSalary) }}</td>
+            <td class="col-amt amt-paid">{{ formatINR(rec.totalPaid) }}</td>
+            <!-- <td class="col-amt" [class.amt-pending]="(rec.pendingAmount ?? 0) > 0">
+              {{ formatINR(rec.pendingAmount) }}
+            </td> -->
+            <td class="col-status">
+              <span class="status-badge" [ngClass]="statusClass(rec.status)">
+                {{ statusLabel(rec.status) }}
+              </span>
+            </td>
+            <td class="col-action">
+              <div class="action-btns">
+                <button
+                  class="btn btn-sm btn-primary"
+                  (click)="openPanel(rec)"
+                  [disabled]="rec.salaryId === 0"
+                  [title]="rec.salaryId === 0 ? 'Generate salary first' : 'View payments'"
+                >
+                  <i class="fa fa-receipt"></i> Payments
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <!-- ══════════════════════════════════════════════════════
+       CONFIG TAB
+  ══════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'config'">
+
+    <div class="config-header">
+      <h3 class="config-title"><i class="fa fa-sliders-h"></i> Salary Configuration</h3>
+      <p class="config-subtitle">
+        Select an employee to view or configure their base salary, allowances and PF.
+      </p>
+    </div>
+
+    <app-loading-spinner
+      *ngIf="isLoadingConfigTab"
+      [isLoading]="true"
+      [message]="'Loading User details for configuration'"
+      class="center-spinner">
+    </app-loading-spinner>
+
+    <div class="config-workspace" *ngIf="!isLoadingConfigTab">
+
+      <!-- Employee picker -->
+      <div class="config-card picker-card">
+        <div class="picker-label"><i class="fa fa-user-circle"></i> Select Employee</div>
+
+        <div class="chosen-user" *ngIf="selectedConfigUserId; else showPicker">
+          <div class="chosen-avatar">{{ userInitial(selectedUserName) }}</div>
+          <div class="chosen-name">{{ selectedUserName }}</div>
+          <button class="chosen-clear" (click)="clearUserSelection()" title="Change employee">
+            <i class="fa fa-times-circle"></i>
+          </button>
+        </div>
+
+        <ng-template #showPicker>
+          <div class="dropdown-wrapper">
+            <div class="dropdown-trigger" (click)="openDropdown()" [class.open]="isDropdownOpen">
+              <i class="fa fa-search dropdown-trigger-icon"></i>
+              <input
+                *ngIf="isDropdownOpen"
+                class="dropdown-search"
+                type="text"
+                placeholder="Type to search employees…"
+                [(ngModel)]="userSearchTerm"
+                (click)="$event.stopPropagation()"
+                autofocus
+              />
+              <span *ngIf="!isDropdownOpen" class="dropdown-placeholder">
+                Search and select an employee…
+              </span>
+              <i class="fa fa-chevron-down dropdown-arrow" [class.rotated]="isDropdownOpen"></i>
+            </div>
+            <div class="dropdown-list" *ngIf="isDropdownOpen" (mouseleave)="closeDropdown()">
+              <div class="dropdown-empty" *ngIf="filteredUserList.length === 0">
+                <i class="fa fa-inbox"></i> No employees found
+              </div>
+              <div class="dropdown-option" *ngFor="let u of filteredUserList" (click)="selectUser(u)">
+                <div class="opt-avatar">{{ userInitial(fullName(u)) }}</div>
+                <div class="opt-details">
+                  <div class="opt-name">{{ fullName(u) }}</div>
+                  <div class="opt-username">@{{ u.user_Name }}</div>
+                </div>
+                <span class="opt-config-badge" *ngIf="hasConfig(u.id)">Configured</span>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+
+      <ng-container *ngIf="selectedConfigUserId">
+
+        <!-- Existing config view -->
+        <div class="config-card config-view-card" *ngIf="selectedUserConfig && !isEditingConfig">
+          <div class="config-view-header">
+            <div class="config-view-title">
+              <i class="fa fa-check-circle cv-icon"></i> Salary Configuration
+            </div>
+            <button class="btn btn-sm btn-primary" (click)="startEditConfig()">
+              <i class="fa fa-edit"></i> Edit
+            </button>
+          </div>
+
+          <div class="config-fields-grid">
+            <div class="cfg-field">
+              <div class="cfg-field-label">Base Salary</div>
+              <div class="cfg-field-value amt-net">{{ formatINR(selectedUserConfig.baseSalary) }}</div>
+            </div>
+            <div class="cfg-field">
+              <div class="cfg-field-label">Travel Allowance</div>
+              <div class="cfg-field-value">
+                <span class="allow-badge allow-travel" *ngIf="(selectedUserConfig.travelAllowance ?? 0) > 0">
+                  {{ formatINR(selectedUserConfig.travelAllowance) }}
+                </span>
+                <span class="text-muted" *ngIf="!(selectedUserConfig.travelAllowance ?? 0)">Not set</span>
+              </div>
+            </div>
+            <div class="cfg-field">
+              <div class="cfg-field-label">Other Allowance</div>
+              <div class="cfg-field-value">
+                <span class="allow-badge allow-other" *ngIf="(selectedUserConfig.otherAllowance ?? 0) > 0">
+                  {{ formatINR(selectedUserConfig.otherAllowance) }}
+                </span>
+                <span class="text-muted" *ngIf="!(selectedUserConfig.otherAllowance ?? 0)">Not set</span>
+              </div>
+            </div>
+            <div class="cfg-field">
+              <div class="cfg-field-label">PF Percentage</div>
+              <div class="cfg-field-value">{{ selectedUserConfig.pfPercentage }}%</div>
+            </div>
+            <div class="cfg-field">
+              <div class="cfg-field-label">PF Deduction</div>
+              <div class="cfg-field-value">
+                <span class="pf-badge">{{ formatINR(selectedUserConfig.pfAmount) }}</span>
+              </div>
+            </div>
+            <div class="cfg-field">
+              <div class="cfg-field-label">Net Salary</div>
+              <div class="cfg-field-value amt-net">
+                {{ formatINR(configNetSalary(selectedUserConfig)) }}
+              </div>
+            </div>
+            <div class="cfg-field cfg-field-leaves">
+              <div class="cfg-field-label">
+                <i class="fa fa-umbrella-beach cfg-leaves-icon"></i>
+                Allowed Leaves / Month
+              </div>
+              <div class="cfg-field-value">
+                <span class="leaves-badge">
+                  <i class="fa fa-calendar-check"></i>
+                  {{ selectedUserConfig.allowedLeavesPerMonth ?? 1 }}
+                  day{{ (selectedUserConfig.allowedLeavesPerMonth ?? 1) !== 1 ? 's' : '' }}
+                </span>
+                <span class="leaves-note">per month, paid &amp; without deduction</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No config yet -->
+        <div class="config-card no-config-banner" *ngIf="isNewConfig && !isEditingConfig">
+          <div class="no-config-icon"><i class="fa fa-info-circle"></i></div>
+          <div class="no-config-body">
+            <strong>No salary config found</strong> for {{ selectedUserName }}.
+            <span>Fill in the form below to set it up.</span>
+          </div>
+        </div>
+
+        <!-- Add / Edit form -->
+        <div class="config-card config-form-card" *ngIf="isEditingConfig">
+          <div class="config-form-header">
+            <h4 class="config-form-title">
+              <i class="fa" [class.fa-plus-circle]="isNewConfig" [class.fa-edit]="!isNewConfig"></i>
+              {{ isNewConfig ? 'Add Salary Configuration' : 'Edit Salary Configuration' }}
+            </h4>
+          </div>
+
+          <!-- Live preview strip -->
+          <div class="preview-strip" *ngIf="configDraft.baseSalary > 0">
+            <div class="preview-item">
+              <div class="preview-val">{{ formatINR(configDraft.baseSalary) }}</div>
+              <div class="preview-lbl">Base</div>
+            </div>
+            <ng-container *ngIf="(configDraft.travelAllowance ?? 0) > 0">
+              <div class="preview-sep">+</div>
+              <div class="preview-item">
+                <div class="preview-val allow-travel-color">{{ formatINR(configDraft.travelAllowance) }}</div>
+                <div class="preview-lbl">Travel Allow.</div>
+              </div>
+            </ng-container>
+            <ng-container *ngIf="(configDraft.otherAllowance ?? 0) > 0">
+              <div class="preview-sep">+</div>
+              <div class="preview-item">
+                <div class="preview-val allow-other-color">{{ formatINR(configDraft.otherAllowance) }}</div>
+                <div class="preview-lbl">Other Allow.</div>
+              </div>
+            </ng-container>
+            <div class="preview-sep">−</div>
+            <div class="preview-item">
+              <div class="preview-val pf-color">{{ formatINR(draftPfAmount) }}</div>
+              <div class="preview-lbl">PF ({{ configDraft.pfPercentage }}%)</div>
+            </div>
+            <div class="preview-sep">=</div>
+            <div class="preview-item">
+              <div class="preview-val net-color">{{ formatINR(draftNetPayable) }}</div>
+              <div class="preview-lbl">Net Salary</div>
+            </div>
+          </div>
+
+          <!-- Salary component panels -->
+          <div class="salary-component-panels">
+
+            <!-- Fixed component -->
+            <div class="salary-component-card" [class.active]="hasFixedComponent">
+              <div class="scc-header">
+                <span class="scc-icon fixed-icon"><i class="fa fa-money-bill-wave"></i></span>
+                <div>
+                  <div class="scc-title">Fixed Salary</div>
+                  <div class="scc-subtitle">Flat monthly base — PF deducted from this</div>
+                </div>
+                <span class="scc-active-badge" *ngIf="hasFixedComponent">Active</span>
+              </div>
+              <div class="scc-body">
+                <label class="form-label">Base Salary (₹)</label>
+                <div class="input-with-suffix">
+                  <input type="number" class="form-input" [(ngModel)]="configDraft.baseSalary"
+                    min="0" placeholder="e.g. 25000" />
+                  <span class="input-suffix">₹</span>
+                </div>
+                <div class="field-hint">Leave at 0 if this employee has no fixed component</div>
+              </div>
+            </div>
+
+            <!-- Revenue % component -->
+            <div class="salary-component-card" [class.active]="hasPercentComponent">
+              <div class="scc-header">
+                <span class="scc-icon pct-icon"><i class="fa fa-percent"></i></span>
+                <div>
+                  <div class="scc-title">% of Revenue</div>
+                  <div class="scc-subtitle">Salary = monthly revenue × percentage</div>
+                </div>
+                <span class="scc-active-badge" *ngIf="hasPercentComponent">Active</span>
+              </div>
+              <div class="scc-body">
+                <label class="form-label">Revenue Percentage</label>
+                <div class="input-with-suffix">
+                  <input type="number" class="form-input" [(ngModel)]="configDraft.revenuePercentage"
+                    min="0" max="100" step="0.1" placeholder="e.g. 10" />
+                  <span class="input-suffix">%</span>
+                </div>
+                <div class="field-hint">Leave at 0 if this employee has no revenue % component</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Form fields -->
+          <div class="config-form-grid">
+
+            <div class="form-group">
+              <label class="form-label">Travel Allowance (₹)</label>
+              <input type="number" class="form-input" [(ngModel)]="configDraft.travelAllowance"
+                min="0" placeholder="0" />
+              <div class="field-hint">Monthly travel reimbursement (PF-exempt)</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Other Allowance (₹)</label>
+              <input type="number" class="form-input" [(ngModel)]="configDraft.otherAllowance"
+                min="0" placeholder="0" />
+              <div class="field-hint">Any additional recurring allowance (PF-exempt)</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">PF Percentage <span class="req">*</span></label>
+              <div class="input-with-suffix">
+                <input type="number" class="form-input" [(ngModel)]="configDraft.pfPercentage"
+                  min="0" max="100" step="0.5" placeholder="12" />
+                <span class="input-suffix">%</span>
+              </div>
+              <div class="field-hint">Applied to base salary only (standard: 12%)</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fa fa-umbrella-beach form-label-icon"></i>
+                Allowed Leaves / Month
+              </label>
+              <div class="input-with-suffix">
+                <input
+                  type="number"
+                  class="form-input"
+                  [(ngModel)]="configDraft.allowedLeavesPerMonth"
+                  min="0"
+                  max="31"
+                  step="1"
+                  placeholder="1"
+                />
+                <span class="input-suffix">days</span>
+              </div>
+              <div class="field-hint">Paid leaves per month that do <strong>not</strong> trigger a salary deduction (0 = none allowed)</div>
+            </div>
+
+
+          </div>
+
+          <div class="config-form-actions">
+            <button
+              class="btn btn-success"
+              (click)="saveConfig()"
+              [disabled]="isSavingConfig || (!hasFixedComponent && !hasPercentComponent)"
+            >
+              <span *ngIf="isSavingConfig"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
+              <span *ngIf="!isSavingConfig">
+                <i class="fa fa-save"></i>
+                {{ isNewConfig ? 'Add Configuration' : 'Save Changes' }}
+              </span>
+            </button>
+            <button class="btn btn-cancel" (click)="cancelEditConfig()" [disabled]="isSavingConfig">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <div class="config-placeholder" *ngIf="!selectedConfigUserId">
+        <div class="cp-icon"><i class="fa fa-user-cog"></i></div>
+        <p class="cp-text">Select an employee above to view or configure their salary details.</p>
+      </div>
+
+    </div>
+  </ng-container>
+
+</div><!-- /page-container -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     PAYMENT PANEL
+══════════════════════════════════════════════════════ -->
+<div class="panel-overlay" [class.open]="isPanelOpen" (click)="closePanel()"></div>
+
+<aside class="payment-panel" [class.open]="isPanelOpen" *ngIf="panelRecord">
+
+  <!-- Header -->
+  <div class="panel-header">
+    <div class="panel-emp">
+      <div class="panel-avatar">{{ userInitial(panelRecord.fullName) }}</div>
+      <div class="panel-emp-details">
+        <div class="panel-emp-name">{{ panelRecord.fullName }}</div>
+        <div class="panel-emp-period">{{ monthLabel }}</div>
+      </div>
+    </div>
+    <button class="panel-close" (click)="closePanel()"><i class="fa fa-times"></i></button>
+  </div>
+
+  <!-- Summary strip -->
+  <div class="panel-summary">
+    <div class="ps-item">
+      <div class="ps-val">{{ formatINR(panelRecord.netSalary) }}</div>
+      <div class="ps-lbl">Net Salary</div>
+    </div>
+    <div class="ps-sep"></div>
+    <div class="ps-item">
+      <div class="ps-val ps-paid">{{ formatINR(panelRecord.totalPaid) }}</div>
+      <div class="ps-lbl">Paid</div>
+    </div>
+    <div class="ps-sep"></div>
+    <div class="ps-item">
+      <div class="ps-val" [class.ps-pending]="(panelRecord.pendingAmount ?? 0) > 0">
+        {{ formatINR(panelRecord.pendingAmount) }}
+      </div>
+      <div class="ps-lbl">Pending</div>
+    </div>
+    <div class="ps-sep"></div>
+    <div class="ps-item">
+      <span class="status-badge" [ngClass]="statusClass(panelRecord.status)">
+        {{ statusLabel(panelRecord.status) }}
+      </span>
+      <div class="ps-lbl">Status</div>
+    </div>
+  </div>
+
+  <!-- Salary breakdown -->
+  <div class="panel-breakdown">
+    <div class="pb-row">
+      <span class="pb-key">Base Salary</span>
+      <span class="pb-val">{{ formatINR(panelRecord.baseSalary) }}</span>
+    </div>
+    <div class="pb-row pb-allow" *ngIf="(panelRecord.travelAllowance ?? 0) > 0">
+      <span class="pb-key"><i class="fa fa-car pb-icon"></i> Travel Allowance</span>
+      <span class="pb-val allow-travel-color">+ {{ formatINR(panelRecord.travelAllowance) }}</span>
+    </div>
+    <div class="pb-row pb-allow" *ngIf="(panelRecord.otherAllowance ?? 0) > 0">
+      <span class="pb-key"><i class="fa fa-plus-circle pb-icon"></i> Other Allowance</span>
+      <span class="pb-val allow-other-color">+ {{ formatINR(panelRecord.otherAllowance) }}</span>
+    </div>
+    <div class="pb-row pb-deduction">
+      <span class="pb-key"><i class="fa fa-shield-alt pb-icon"></i> PF Deduction</span>
+      <span class="pb-val">− {{ formatINR(panelRecord.pfAmount) }}</span>
+    </div>
+    <div class="pb-row pb-total">
+      <span class="pb-key">Net Salary</span>
+      <span class="pb-val">{{ formatINR(panelRecord.netSalary) }}</span>
+    </div>
+  </div>
+
+  <!-- Payment section -->
+  <div class="panel-section">
+    <div class="panel-section-header">
+
+      <div class="psh-title-row">
+        <h4 class="panel-section-title"><i class="fa fa-history"></i> Payment History</h4>
+      </div>
+
+      <div class="panel-section-actions" *ngIf="!isAddingPayment">
+
+        <!-- Calculate — only on last day of current month or any past month -->
+        <button
+          *ngIf="shouldShowCalc"
+          class="psa-btn psa-btn-calc"
+          (click)="openCalcModal(panelRecord)"
+          [disabled]="isCalculating || panelRecord.salaryId === 0"
+          title="View leave-adjusted salary breakdown"
+        >
+          <span class="psa-icon">
+            <i class="fa fa-spinner fa-spin" *ngIf="isCalculating && calcLoadingUserId === panelRecord.userId"></i>
+            <i class="fa fa-calculator"      *ngIf="!(isCalculating && calcLoadingUserId === panelRecord.userId)"></i>
+          </span>
+          <span class="psa-label">Calculate</span>
+          <span class="psa-sub">Payable Salary</span>
+        </button>
+
+        <!-- Pay Full -->
+        <button
+          class="psa-btn psa-btn-full"
+          (click)="openFullPayment()"
+          [disabled]="(panelRecord.pendingAmount ?? 0) <= 0 || isCalculatingForPayment"
+          title="Auto-calculate and record full outstanding payment"
+        >
+          <span class="psa-icon">
+            <i class="fa fa-spinner fa-spin" *ngIf="isCalculatingForPayment"></i>
+            <i class="fa fa-check-double"    *ngIf="!isCalculatingForPayment"></i>
+          </span>
+          <span class="psa-label">{{ isCalculatingForPayment ? 'Calculating…' : 'Pay Full' }}</span>
+          <span class="psa-sub">Clear all pending</span>
+        </button>
+
+        <!-- Add Partial Payment -->
+        <button
+          class="psa-btn psa-btn-partial"
+          (click)="toggleAddPayment()"
+          [disabled]="(panelRecord.pendingAmount ?? 0) <= 0"
+          title="Record a partial payment"
+        >
+          <span class="psa-icon"><i class="fa fa-plus"></i></span>
+          <span class="psa-label">Add Payment</span>
+          <span class="psa-sub">Partial amount</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- No payments -->
+    <div class="no-payments" *ngIf="panelRecord.payments.length === 0 && !isAddingPayment">
+      <i class="fa fa-inbox"></i> No payments recorded yet.
+    </div>
+
+    <!-- Payment list -->
+    <ul class="payment-list" *ngIf="panelRecord.payments.length > 0">
+      <li class="payment-item" *ngFor="let pay of panelRecord.payments">
+        <div class="pay-top">
+          <span class="pay-amount">{{ formatINR(pay.paymentAmount) }}</span>
+          <div class="pay-badges">
+            <span
+              class="pay-type-badge"
+              [class.pay-type-full]="pay.paymentType === 'Full'"
+              [class.pay-type-partial]="pay.paymentType !== 'Full'"
+            >
+              <i class="fa" [class.fa-check-double]="pay.paymentType === 'Full'"
+                            [class.fa-coins]="pay.paymentType !== 'Full'"></i>
+              {{ pay.paymentType === 'Full' ? 'Full' : 'Partial' }}
+            </span>
+            <span *ngIf="pay.paymentType !== 'Full'" class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
+              {{ paymentForLabel(pay.paymentSource) }}
+            </span>
+          </div>
+        </div>
+        <div class="pay-meta">
+          <span><i class="fa fa-calendar"></i> {{ formatPaymentDate(pay.paymentDate) }}</span>
+          <span *ngIf="pay.reference" class="pay-remarks">· {{ pay.reference }}</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+</aside>
+
+
+<!-- ══════════════════════════════════════════════════════
+     ADD / PAY-FULL PAYMENT MODAL
+══════════════════════════════════════════════════════ -->
+<div class="pm-overlay" [class.pm-overlay-open]="isAddingPayment" (click)="toggleAddPayment()"></div>
+
+<div class="pm-modal" [class.pm-modal-open]="isAddingPayment" *ngIf="panelRecord" role="dialog" aria-modal="true">
+
+  <!-- ── Modal header ── -->
+  <div class="pm-header"
+    [class.pm-header-full]="paymentForm.paymentType === PaymentType.Full"
+    [class.pm-header-partial]="paymentForm.paymentType === PaymentType.Partial"
+  >
+    <div class="pm-header-left">
+      <div class="pm-header-icon">
+        <i class="fa" [class.fa-check-double]="paymentForm.paymentType === PaymentType.Full"
+                      [class.fa-coins]="paymentForm.paymentType === PaymentType.Partial"></i>
+      </div>
+      <div>
+        <div class="pm-header-title">
+          {{ paymentForm.paymentType === PaymentType.Full ? 'Full Payment' : 'Partial Payment' }}
+        </div>
+        <div class="pm-header-sub">{{ panelRecord.fullName }} · {{ monthLabel }}</div>
+      </div>
+    </div>
+    <button class="pm-close" (click)="toggleAddPayment()" aria-label="Close"><i class="fa fa-times"></i></button>
+  </div>
+
+  <!-- ── Quick stats strip ── -->
+  <div class="pm-stats">
+    <div class="pm-stat">
+      <div class="pm-stat-val">{{ formatINR(displayNetSalary) }}</div>
+      <div class="pm-stat-lbl">Net Salary</div>
+    </div>
+    <div class="pm-stat-sep"></div>
+    <div class="pm-stat">
+      <div class="pm-stat-val pm-stat-paid">{{ formatINR(panelRecord.totalPaid) }}</div>
+      <div class="pm-stat-lbl">Paid</div>
+    </div>
+    <div class="pm-stat-sep"></div>
+    <div class="pm-stat">
+      <div class="pm-stat-val pm-stat-pending">{{ formatINR(displayPendingAmount) }}</div>
+      <div class="pm-stat-lbl">Pending</div>
+    </div>
+    <div class="pm-stat-sep"></div>
+    <div class="pm-stat">
+      <span class="status-badge" [ngClass]="statusClass(panelRecord.status)">
+        {{ statusLabel(panelRecord.status) }}
+      </span>
+      <div class="pm-stat-lbl">Status</div>
+    </div>
+  </div>
+
+  <!-- ── Modal body ── -->
+  <div class="pm-body">
+
+    <!-- Payment For (Partial only) — full-width row of radio cards -->
+    <div class="pm-field pm-field-full" *ngIf="paymentForm.paymentType === PaymentType.Partial">
+      <label class="pm-label">Payment For <span class="req">*</span></label>
+      <div class="pm-radio-group">
+        <label
+          *ngFor="let opt of paymentForOptions"
+          class="pm-radio-card"
+          [class.pm-radio-active]="paymentForm.paymentFor === opt.value"
+        >
+          <input
+            type="radio"
+            [(ngModel)]="paymentForm.paymentFor"
+            [value]="opt.value"
+            (change)="onPaymentForChange()"
+            hidden
+          />
+          <i class="fa pm-radio-icon"
+            [class.fa-money-bill-wave]="opt.value === 1"
+            [class.fa-car]="opt.value === 2"
+            [class.fa-plus-circle]="opt.value === 3"
+          ></i>
+          <span class="pm-radio-label">{{ opt.label }}</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Two-column grid for Amount + Date -->
+    <div class="pm-grid">
+
+      <div class="pm-field">
+        <label class="pm-label">
+          Amount (₹) <span class="req">*</span>
+          <span class="pm-locked-badge" *ngIf="isFullPaymentAmountLocked">
+            <i class="fa fa-calculator"></i> Auto-calculated
+          </span>
+        </label>
+        <div class="pm-amount-wrap">
+          <input
+            type="number"
+            class="pm-input"
+            [class.pm-input-error]="paymentAmountError"
+            [class.pm-input-locked]="isFullPaymentAmountLocked"
+            [(ngModel)]="paymentForm.paymentAmount"
+            (input)="onAmountInput()"
+            min="1"
+            [max]="pendingForSelectedType"
+            placeholder="Enter amount"
+            [attr.disabled]="isFullPaymentAmountLocked ? true : null"
+          />
+          <button
+            *ngIf="paymentForm.paymentType === PaymentType.Partial && !isFullPaymentAmountLocked"
+            type="button"
+            class="pm-fill-max"
+            (click)="fillMaxAmount()"
+            [title]="'Fill max: ' + formatINR(pendingForSelectedType)"
+          >Max</button>
+        </div>
+        <!-- Locked hint: explains where the number came from -->
+        <div class="pm-hint pm-hint-calc" *ngIf="isFullPaymentAmountLocked">
+          <i class="fa fa-info-circle"></i>
+          Net payable (after leave deductions) minus payments already recorded.
+        </div>
+        <div class="pm-hint" *ngIf="!paymentAmountError && !isFullPaymentAmountLocked">
+          Max:
+          <ng-container *ngIf="paymentForm.paymentType === PaymentType.Partial">
+            {{ paymentForLabel(paymentForm.paymentFor) }} pending —
+          </ng-container>
+          {{ formatINR(pendingForSelectedType) }}
+        </div>
+        <div class="pm-error" *ngIf="paymentAmountError">{{ paymentAmountError }}</div>
+      </div>
+
+      <div class="pm-field">
+        <label class="pm-label">Payment Date <span class="req">*</span></label>
+        <app-date-picker [(ngModel)]="paymentForm.paymentDate" inputClass="pm-input"></app-date-picker>
+      </div>
+
+      <div class="pm-field pm-field-full">
+        <label class="pm-label">Reference <span class="pm-optional">(optional)</span></label>
+        <input
+          type="text"
+          class="pm-input"
+          [(ngModel)]="paymentForm.reference"
+          placeholder="e.g. cheque no., UPI ref…"
+          maxlength="200"
+        />
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Modal footer ── -->
+  <div class="pm-footer">
+    <button class="btn btn-outline-secondary" (click)="toggleAddPayment()">
+      <i class="fa fa-times"></i> Cancel
+    </button>
+    <button
+      class="btn pm-submit-btn"
+      [class.pm-submit-full]="paymentForm.paymentType === PaymentType.Full"
+      [class.pm-submit-partial]="paymentForm.paymentType === PaymentType.Partial"
+      (click)="submitPayment()"
+      [disabled]="!paymentFormValid"
+    >
+      <i class="fa fa-save"></i>
+      {{ paymentForm.paymentType === PaymentType.Full ? 'Record Full Payment' : 'Record Partial Payment' }}
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     CALCULATE PAYABLE SALARY MODAL
+══════════════════════════════════════════════════════ -->
+<div class="calc-overlay" [class.calc-overlay-open]="isCalcModalOpen" (click)="closeCalcModal()"></div>
+
+<div class="calc-modal" [class.calc-modal-open]="isCalcModalOpen" *ngIf="calcResult && calcRecord" role="dialog" aria-modal="true">
+
+  <!-- ── Modal header ── -->
+  <div class="calc-header">
+    <div class="calc-header-left">
+      <div class="calc-header-icon"><i class="fa fa-calculator"></i></div>
+      <div>
+        <div class="calc-header-title">Payable Salary Calculation</div>
+        <div class="calc-header-sub">{{ calcResult.fullName }} · {{ calcResult.monthLabel }}</div>
+      </div>
+    </div>
+    <button class="calc-close" (click)="closeCalcModal()" aria-label="Close"><i class="fa fa-times"></i></button>
+  </div>
+
+  <div class="calc-body">
+
+    <!-- ── Section 1: Salary Components ── -->
+    <div class="calc-section">
+      <div class="calc-section-title"><i class="fa fa-money-bill-wave"></i> Salary Components</div>
+      <div class="calc-grid">
+
+        <div class="calc-row">
+          <span class="calc-key"><span class="calc-key-label">Base Salary</span></span>
+          <span class="calc-val calc-val-base">{{ formatINR(calcResult.baseSalary) }}</span>
+        </div>
+
+        <div class="calc-row" *ngIf="(calcRecord.travelAllowance ?? 0) > 0">
+          <span class="calc-key">
+            <span class="calc-key-label"><i class="fa fa-car calc-row-icon"></i> Travel Allowance (TA)</span>
+          </span>
+          <span class="calc-val allow-travel-color">+ {{ formatINR(calcRecord.travelAllowance) }}</span>
+        </div>
+
+        <div class="calc-row" *ngIf="(calcRecord.otherAllowance ?? 0) > 0">
+          <span class="calc-key">
+            <span class="calc-key-label"><i class="fa fa-plus-circle calc-row-icon"></i> Dearness Allowance (DA)</span>
+          </span>
+          <span class="calc-val allow-other-color">+ {{ formatINR(calcRecord.otherAllowance) }}</span>
+        </div>
+
+        <div class="calc-row calc-row-deduction">
+          <span class="calc-key">
+            <span class="calc-key-label"><i class="fa fa-shield-alt calc-row-icon"></i> PF Deduction</span>
+          </span>
+          <span class="calc-val">− {{ formatINR(calcRecord.pfAmount) }}</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 2: Leave & Attendance Analysis ── -->
+    <div class="calc-section">
+      <div class="calc-section-title"><i class="fa fa-calendar-check"></i> Leave &amp; Attendance Analysis</div>
+      <div class="calc-grid">
+
+        <div class="calc-row">
+          <span class="calc-key"><span class="calc-key-label">Total Days in Month</span></span>
+          <span class="calc-val calc-val-neutral">{{ calcResult.totalDaysInMonth }} days</span>
+        </div>
+
+        <div class="calc-row">
+          <span class="calc-key"><span class="calc-key-label">Allowed Paid Leaves</span></span>
+          <span class="calc-val calc-val-ok">
+            {{ calcResult.allowedLeavesPerMonth }} day{{ calcResult.allowedLeavesPerMonth !== 1 ? 's' : '' }}
+          </span>
+        </div>
+
+        <div class="calc-row">
+          <span class="calc-key"><span class="calc-key-label">Absent Days</span></span>
+          <span class="calc-val calc-val-warn">
+            {{ calcResult.absentDays }} day{{ calcResult.absentDays !== 1 ? 's' : '' }}
+          </span>
+        </div>
+
+        <div class="calc-row">
+          <span class="calc-key"><span class="calc-key-label">Half Days</span></span>
+          <span class="calc-val calc-val-warn">
+            {{ calcResult.halfDays }} day{{ calcResult.halfDays !== 1 ? 's' : '' }}
+          </span>
+        </div>
+
+        <div class="calc-row calc-row-sub">
+          <span class="calc-key">
+            <span class="calc-key-label">Effective Absent Days</span>
+            <span class="calc-formula">Absent + Half Days × 0.5</span>
+          </span>
+          <span class="calc-val calc-val-warn">{{ calcResult.effectiveAbsentDays | number:'1.1-1' }} days</span>
+        </div>
+
+        <div class="calc-row calc-row-highlight-warn" *ngIf="calcResult.extraAbsentDays > 0">
+          <span class="calc-key">
+            <span class="calc-key-label">Extra Absent Days</span>
+            <span class="calc-formula">Effective absent − allowed leaves</span>
+          </span>
+          <span class="calc-val calc-val-bad">{{ calcResult.extraAbsentDays | number:'1.1-1' }} days</span>
+        </div>
+
+        <div class="calc-row" *ngIf="calcResult.extraAbsentDays === 0">
+          <span class="calc-key"><span class="calc-key-label">Extra Absent Days</span></span>
+          <span class="calc-val calc-val-ok"><i class="fa fa-check-circle"></i> None — within allowed leaves</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 3: Deduction Calculation ── -->
+    <div class="calc-section" *ngIf="calcResult.extraAbsentDays > 0">
+      <div class="calc-section-title"><i class="fa fa-minus-circle"></i> Deduction Calculation</div>
+      <div class="calc-grid">
+
+        <div class="calc-row">
+          <span class="calc-key">
+            <span class="calc-key-label">Per Day Base Salary</span>
+            <span class="calc-formula">Base salary ÷ Days in month</span>
+          </span>
+          <span class="calc-val calc-val-neutral">{{ formatINR(calcResult.perDayBaseSalary) }}</span>
+        </div>
+
+        <div class="calc-row calc-row-highlight-warn">
+          <span class="calc-key">
+            <span class="calc-key-label">Deduction Amount</span>
+            <span class="calc-formula">Extra absent days × per day rate</span>
+          </span>
+          <span class="calc-val calc-val-bad">− {{ formatINR(calcResult.deductionAmount) }}</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 4: Payable Summary ── -->
+    <div class="calc-section calc-section-payable">
+      <div class="calc-section-title"><i class="fa fa-check-circle"></i> Payable Summary</div>
+      <div class="calc-grid">
+
+        <div class="calc-row">
+          <span class="calc-key">
+            <span class="calc-key-label">Payable Base Salary</span>
+            <span class="calc-formula">Base salary − deduction</span>
+          </span>
+          <span class="calc-val calc-val-payable">{{ formatINR(calcResult.payableBaseSalary) }}</span>
+        </div>
+
+        <div class="calc-row" *ngIf="(calcRecord.travelAllowance ?? 0) > 0">
+          <span class="calc-key"><span class="calc-key-label">Travel Allowance (TA)</span></span>
+          <span class="calc-val allow-travel-color">{{ formatINR(calcRecord.travelAllowance) }}</span>
+        </div>
+
+        <div class="calc-row" *ngIf="(calcRecord.otherAllowance ?? 0) > 0">
+          <span class="calc-key"><span class="calc-key-label">Dearness Allowance (DA)</span></span>
+          <span class="calc-val allow-other-color">{{ formatINR(calcRecord.otherAllowance) }}</span>
+        </div>
+
+        <div class="calc-row calc-row-deduction">
+          <span class="calc-key"><span class="calc-key-label">PF Deduction</span></span>
+          <span class="calc-val">− {{ formatINR(calcRecord.pfAmount) }}</span>
+        </div>
+
+        <div class="calc-total-row">
+          <span class="calc-key"><span class="calc-key-label">Net Payable This Month</span></span>
+          <span class="calc-val calc-val-net">{{ formatINR(calcNetPayable) }}</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /calc-body -->
+
+  <div class="calc-footer">
+    <button class="btn btn-outline-secondary" (click)="closeCalcModal()">
+      <i class="fa fa-times"></i> Close
+    </button>
+  </div>
+
+</div>

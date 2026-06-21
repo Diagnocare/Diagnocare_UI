@@ -1,0 +1,513 @@
+<div class="page-container">
+
+  <!-- ── Page Header ──────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Patient Test Results</h1>
+      <p class="subtitle" *ngIf="!showPatientIdInput">
+        <span *ngIf="!showAllTests">Last {{ RECENT_DAYS }} days &amp; pending reports</span>
+        <span *ngIf="showAllTests">Full test history</span>
+        <span *ngIf="patientId"> &mdash; Patient&nbsp;<strong>{{ patientId }}</strong></span>
+      </p>
+      <p class="subtitle" *ngIf="showPatientIdInput">View all patient test records</p>
+    </div>
+
+    <div class="header-actions-group">
+      <!-- Add New Test -->
+      <button class="btn btn-primary" (click)="addNewTest()" *ngIf="!showPatientIdInput" title="Register a new test for this patient">
+        <i class="fa fa-plus"></i> Add New Test
+      </button>
+
+      <!-- Filter mode segmented toggle -->
+      <div class="filter-mode-toggle" *ngIf="!showPatientIdInput">
+        <button class="filter-mode-btn"
+                [class.filter-mode-btn--active]="!showAllTests"
+                (click)="showRecentOnly()"
+                title="Show only recent and pending tests">
+          <i class="fa fa-clock-o"></i>
+          <span>Recent &amp; Pending</span>
+        </button>
+        <button class="filter-mode-btn"
+                [class.filter-mode-btn--active]="showAllTests"
+                (click)="showOldReports()"
+                title="Show full test history">
+          <i class="fa fa-history"></i>
+          <span>All Reports</span>
+          <span class="filter-mode-count" *ngIf="!showAllTests && hasOldTests">+{{ oldTestCount }}</span>
+        </button>
+      </div>
+
+      <button class="btn btn-outline" (click)="refreshList()" [disabled]="showPatientIdInput">
+        <i class="fa fa-refresh"></i> Refresh
+      </button>
+      <button class="btn btn-back" (click)="goBack()">
+        <i class="fa fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Patient ID Input ──────────────────────────────────────────── -->
+  <div *ngIf="showPatientIdInput" class="patient-id-input-section">
+    <div class="card">
+      <div class="card-body">
+        <h3>Enter Patient ID</h3>
+        <input type="text" class="form-control" [(ngModel)]="enteredPatientId"
+               placeholder="Patient ID" (keyup.enter)="onPatientIdSubmit()">
+        <button class="btn btn-primary" (click)="onPatientIdSubmit()">Load</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ──────────────────────────────────────────────── -->
+  <div class="content-container" *ngIf="!showPatientIdInput">
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="errorMessage" class="alert alert-danger">
+      <h5>Error</h5>
+      <p>{{ errorMessage }}</p>
+    </div>
+
+    <!-- ── Empty: no tests at all ───────────────────────────────── -->
+    <div *ngIf="noTestsAtAll && !errorMessage" class="no-data-state">
+      <div class="no-data-icon"><i class="fa fa-flask"></i></div>
+      <h3 class="no-data-title">No Tests Registered</h3>
+      <p class="no-data-message">
+        There are no tests on record for patient <strong>{{ patientId }}</strong> yet.
+      </p>
+      <div class="no-data-actions">
+        <button class="btn btn-primary btn-lg" (click)="addNewTest()">
+          <i class="fa fa-plus"></i> Register New Test
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Empty: has history but nothing passes recent filter ──── -->
+    <div *ngIf="noRecentTests && !errorMessage" class="no-recent-state">
+      <div class="no-recent-icon"><i class="fa fa-check-circle"></i></div>
+      <h3 class="no-recent-title">All Reports Up to Date</h3>
+      <p class="no-recent-message">
+        No tests in the last <strong>{{ RECENT_DAYS }} days</strong> with pending reports.<br>
+        There {{ oldTestCount === 1 ? 'is' : 'are' }}
+        <strong>{{ oldTestCount }}</strong> older record{{ oldTestCount !== 1 ? 's' : '' }} in the archive.
+      </p>
+      <div class="no-data-actions">
+        <button class="btn btn-outline btn-lg" (click)="showOldReports()">
+          <i class="fa fa-history"></i> View All Reports
+        </button>
+      </div>
+    </div>
+  
+    <!-- ── Test Cards Stack ──────────────────────────────────────── -->
+    <div *ngIf="!isLoading && patientTests.length > 0" class="test-cards-stack">
+      <div *ngFor="let test of patientTests; let i = index"
+           class="test-card card"
+           [class.active]="isActiveCard(i)"
+           [style.z-index]="getCardZIndex(i)"
+           [style.transform]="isActiveCard(i) ? 'translateX(0)' : 'translateX(' + (i - activeCardIndex) * 60 + 'px)'"
+           (click)="selectCard(i)">
+
+        <!-- Right Side Tab (visible when not active) -->
+        <div class="card-tab" [class.hidden]="isActiveCard(i)">
+          <span class="tab-id">{{ test.patient_Test_Id }}</span>
+          <span class="tab-count">{{ getTestCount(test) }} Tests</span>
+        </div>
+
+        <div class="card-content">
+          <div class="card-header">
+            <div class="header-title">
+              <h3>{{ test.patient_Test_Id }}</h3>
+              <span class="test-count-badge">{{ getTestCount(test) }} Tests</span>
+
+              <!-- Registration date chip -->
+              <span class="test-date-chip" *ngIf="getFormattedDate(test)">
+                <i class="fa fa-calendar"></i> {{ getFormattedDate(test) }}
+              </span>
+            </div>
+
+            <div class="card-header-right">
+              <!-- Cancelled badge (highest priority) -->
+              <span class="report-status-chip report-cancelled" *ngIf="isCancelled(test)">
+                <i class="fa fa-ban"></i> Cancelled
+              </span>
+
+              <!-- Report status chip (only when not cancelled) -->
+              <ng-container *ngIf="!isCancelled(test)">
+                <span class="report-status-chip report-pending"
+                      *ngIf="reportStatus(test) === 'Pending'">
+                  <i class="fa fa-hourglass-half"></i> Pending
+                </span>
+                <span class="report-status-chip report-partial"
+                      *ngIf="reportStatus(test) === 'Partial'">
+                  <i class="fa fa-adjust"></i> Partial
+                </span>
+                <span class="report-status-chip report-done"
+                      *ngIf="reportStatus(test) === 'Completed'">
+                  <i class="fa fa-check-circle"></i> Completed
+                </span>
+              </ng-container>
+
+              <!-- Payment badge -->
+              <span class="badge" [ngClass]="getPaymentStatusClass(test)">
+                Payment : {{ getPaymentStatus(test) }}
+              </span>
+
+              <!-- Urgent badge -->
+              <span class="badge badge-danger urgent-badge" *ngIf="test.urgent_Report">
+                <i class="fa fa-bolt"></i> Urgent
+              </span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <!-- Test Details Section -->
+            <div class="test-details">
+              <div class="detail-row">
+                <span class="detail-label">Referred By:</span>
+                <span class="detail-value">{{ test.referred_By || 'N/A' }}</span>
+              </div>
+
+              <div class="detail-row">
+                <span class="detail-label">Collected By:</span>
+                <span class="detail-value">{{ test.collected_By || 'N/A' }}</span>
+              </div>
+
+              <div class="detail-row">
+                <span class="detail-label">Area:</span>
+                <span class="detail-value">{{ test.area || 'N/A' }}</span>
+              </div>
+
+              <div class="detail-row">
+                <span class="detail-label">Sampling Done:</span>
+                <span class="detail-value">{{ test.sampling_Done || 'N/A' }}</span>
+              </div>
+            </div>
+
+            <!-- Payment Details Section -->
+            <!-- <div class="payment-section" *ngIf="test.bill_Reciept">
+              <h4>Payment Details</h4>
+              <div class="payment-details">
+                <!-- <div class="detail-row">
+                  <span class="detail-label">Total Amount:</span>
+                  <span class="detail-value amount">₹{{ test.bill_Reciept.test_Amount | number:'1.2-2' }}</span>
+                </div> -->
+
+                <!-- <div class="detail-row" *ngIf="test.bill_Reciept.discount > 0">
+                  <span class="detail-label">Discount:</span>
+                  <span class="detail-value discount">{{ test.bill_Reciept.discount | number:'1.2-2' }}%</span>
+                </div> -->
+
+                <!-- <div class="detail-row">
+                  <span class="detail-label">Net Amount:</span>
+                  <span class="detail-value amount highlight">₹{{ test.bill_Reciept.net_Amount | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="detail-row">
+                  <span class="detail-label">Amount Paid:</span>
+                  <span class="detail-value paid">₹{{ test.bill_Reciept.amount_Paid | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="detail-row" *ngIf="test.bill_Reciept.amount_Pending > 0">
+                  <span class="detail-label">Pending:</span>
+                  <span class="detail-value pending">₹{{ test.bill_Reciept.amount_Pending | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="detail-row">
+                  <span class="detail-label">Payment Mode:</span>
+                  <span class="detail-value">{{ test.bill_Reciept.payment_Mode || 'N/A' }}</span>
+                </div> 
+              </div>
+            </div> -->
+
+            <!-- Remarks Section -->
+            <div class="remarks-section" *ngIf="test.remark">
+              <h4>Remarks</h4>
+              <p class="remark-text">{{ test.remark }}</p>
+            </div>
+
+            <!-- Additional Info -->
+            <div class="additional-info" *ngIf="test.collected_Outside">
+              <span class="badge badge-info">Collected Outside</span>
+            </div>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="card-footer">
+            <button class="btn btn-sm btn-primary"
+                    *ngIf="!isCancelled(test)"
+                    (click)="viewDetails(test, $event)">
+              <i class="fa fa-eye"></i> View Test Details
+            </button>
+            <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
+                    title="View payment receipts for this test">
+              <i class="fa fa-file-text"></i> View Receipts
+            </button>
+            <button class="btn btn-sm btn-cancel-booking"
+                    *ngIf="!isCancelled(test) && reportStatus(test) === 'Pending'"
+                    (click)="openCancelModal(test, $event)"
+                    [disabled]="loadingCancelModal"
+                    title="Cancel this booking (only available for pending reports)">
+              <i class="fa" [ngClass]="loadingCancelModal ? 'fa-spinner fa-spin' : 'fa-ban'"></i>
+              {{ loadingCancelModal ? 'Loading…' : 'Cancel Booking' }}
+            </button>
+            <span class="cancelled-info-chip" *ngIf="isCancelled(test) && test.cancellation_Reason">
+              <i class="fa fa-info-circle"></i> {{ test.cancellation_Reason }}
+            </span>
+          </div>
+        </div><!-- /card-content -->
+      </div>
+    </div>
+
+  </div><!-- /content-container -->
+</div><!-- /page-container -->
+
+
+<!-- ══ Test Details Overlay ════════════════════════════════════════════ -->
+<div class="detail-overlay" *ngIf="showDetailView">
+  <div class="detail-overlay-backdrop" (click)="closeDetailView()"></div>
+
+  <div class="detail-container">
+    <!-- Detail Header -->
+    <div class="detail-header">
+      <div class="header-left">
+        <h2>Test Details</h2>
+        <p class="subtitle" *ngIf="selectedPatientTest">
+          {{ selectedPatientTest.patient_Test_Id }} — {{ selectedPatientTest.test_Name }}
+        </p>
+      </div>
+      <button class="overlay-close-btn" (click)="closeDetailView()" title="Close">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoadingDetails" class="detail-loading">
+      <div class="spinner"></div>
+      <p>Loading test details...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="detailErrorMessage" class="alert alert-danger">
+      <h5>Error</h5>
+      <p>{{ detailErrorMessage }}</p>
+    </div>
+
+    <!-- No Data -->
+    <div *ngIf="!isLoadingDetails && !detailErrorMessage && testDetails.length === 0" class="no-data-detail">
+      <i class="fa fa-info-circle"></i>
+      <p>No test details available.</p>
+    </div>
+
+    <!-- Detail Cards Stack -->
+    <div *ngIf="!isLoadingDetails && testDetails.length > 0" class="detail-cards-stack">
+      <div *ngFor="let detail of testDetails; let i = index"
+           class="detail-card card"
+           [class.active]="isActiveDetailCard(i)"
+           [style.z-index]="getDetailCardZIndex(i)"
+           [style.transform]="isActiveDetailCard(i) ? 'translateX(0)' : 'translateX(' + (i - activeDetailIndex) * 60 + 'px)'"
+           (click)="selectDetailCard(i)">
+
+        <div class="card-tab" [class.hidden]="isActiveDetailCard(i)">
+          <span class="tab-id">Test {{ i + 1 }}</span>
+          <span class="tab-count">{{ detail.testName }}</span>
+        </div>
+
+        <div class="card-content">
+          <div class="card-header">
+            <div class="header-title">
+              <h3>Test {{ i + 1 }}: {{ detail.testName }}</h3>
+            </div>
+            <span class="badge" [ngClass]="detail.isAbnormal ? 'badge-danger' : 'badge-success'">
+              {{ detail.isAbnormal ? 'Abnormal' : 'Normal' }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="test-details">
+              <div class="detail-row">
+                <span class="detail-label">Test Code:</span>
+                <span class="detail-value">{{ detail.testCode }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Test Name:</span>
+                <span class="detail-value">{{ detail.testName }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Price:</span>
+                <span class="detail-value amount">₹{{ detail.price | number:'1.2-2' }}</span>
+              </div>
+              <div class="detail-row" *ngIf="detail.testParameter">
+                <span class="detail-label">Parameter:</span>
+                <span class="detail-value">{{ detail.testParameter }}</span>
+              </div>
+              <div class="detail-row result-row" *ngIf="detail.resultValue" [class.abnormal]="detail.isAbnormal">
+                <span class="detail-label">Result:</span>
+                <span class="detail-value result-value">{{ detail.resultValue }}</span>
+              </div>
+              <div class="detail-row" *ngIf="detail.normalRange">
+                <span class="detail-label">Normal Range:</span>
+                <span class="detail-value">{{ detail.normalRange }}</span>
+              </div>
+              <div class="detail-row" *ngIf="detail.unit">
+                <span class="detail-label">Unit:</span>
+                <span class="detail-value">{{ detail.unit }}</span>
+              </div>
+              <div class="detail-row" *ngIf="detail.method">
+                <span class="detail-label">Method:</span>
+                <span class="detail-value">{{ detail.method }}</span>
+              </div>
+              <div class="detail-row" *ngIf="detail.status">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value">{{ detail.status }}</span>
+              </div>
+            </div>
+
+            <div class="remarks-section" *ngIf="detail.remarks">
+              <h4>Remarks</h4>
+              <p class="remark-text">{{ detail.remarks }}</p>
+            </div>
+
+            <div class="card-footer">
+              <button class="btn btn-success"
+                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
+                      (click)="openParameterView(detail, $event)">
+                <i class="fa fa-file-text"></i> Test Result
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ Payment Modal ════════════════════════════════════════════════════ -->
+<app-payment-modal
+  [visible]="showPaymentModal"
+  [patientTestId]="paymentTestId"
+  [testAmount]="paymentTestAmount"
+  [netAmount]="paymentNetAmount"
+  [topupMode]="isPaymentTopup"
+  [prefillAmount]="paymentPrefillAmount"
+  (paid)="onPaymentSaved()"
+  (cancelled)="onPaymentCancelled()">
+</app-payment-modal>
+
+<!-- ══ Add Test Modal ══════════════════════════════════════════════════ -->
+<app-add-test-modal
+  [visible]="showAddTestModal"
+  [patientId]="patientId"
+  (saved)="onAddTestSaved()"
+  (cancelled)="onAddTestCancelled()">
+</app-add-test-modal>
+
+<!-- Receipt details are handled by the shared /receipt module (BillReceipt).
+     Clicking "View Receipts" navigates there directly — no duplicate overlay needed. -->
+
+<!-- ══ Cancel Booking Modal ══════════════════════════════════════════════ -->
+<app-cancel-booking-modal
+  #cancelModal
+  [visible]="showCancelModal"
+  [tests]="cancelTest ? [cancelTest] : []"
+  [testDetails]="testDetailMap"
+  (confirmed)="onCancelConfirmed($event)"
+  (cancelled)="onCancelDismissed()">
+</app-cancel-booking-modal>
+
+<!-- ══ Parameter Management Overlay ════════════════════════════════════ -->
+<div class="parameter-overlay" *ngIf="showParameterView">
+  <div class="parameter-overlay-backdrop" (click)="closeParameterView()"></div>
+
+  <div class="parameter-container">
+    <div class="parameter-header">
+      <div class="header-left">
+        <h2>Create Test Report</h2>
+        <p class="subtitle" *ngIf="selectedTestDetail">
+          {{ selectedTestDetail.testCode }} — {{ selectedTestDetail.testName }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-success" (click)="saveTestReport()">
+          <i class="fa fa-save"></i> Save Report
+        </button>
+        <!-- Pay Now — payment not yet complete -->
+        <button class="btn btn-pay-now"
+                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) !== 'Paid'"
+                (click)="payNowFromReport($event)"
+                title="Complete payment to unlock report">
+          <i class="fa fa-credit-card"></i> Pay Now
+        </button>
+        <!-- View Report — only when fully paid -->
+        <button class="btn btn-info"
+                *ngIf="!selectedPatientTest || getPaymentStatus(selectedPatientTest) === 'Paid'"
+                (click)="generateTestReportPDF()"
+                [disabled]="isGeneratingReport"
+                [title]="isGeneratingReport ? 'Generating report…' : 'Generate and open report in new tab'">
+          <i class="fa" [ngClass]="isGeneratingReport ? 'fa-spinner fa-spin' : 'fa-file-text-o'"></i>
+          {{ isGeneratingReport ? 'Generating…' : 'View Report' }}
+        </button>
+        <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoadingParameters" class="parameter-loading">
+      <div class="spinner"></div>
+      <p>Loading parameters...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="parameterErrorMessage" class="alert alert-danger">
+      <h5>Error</h5>
+      <p>{{ parameterErrorMessage }}</p>
+    </div>
+
+    <!-- No Data -->
+    <div *ngIf="!isLoadingParameters && !parameterErrorMessage && testParameters.length === 0" class="no-data-parameter">
+      <i class="fa fa-info-circle"></i>
+      <p>No parameters available for this test.</p>
+    </div>
+
+    <!-- Parameter Table -->
+    <div *ngIf="!isLoadingParameters && testParameters.length > 0" class="parameter-list-section">
+      <table class="table table-bordered parameter-list-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Parameter Name</th>
+            <th>Unit</th>
+            <th>Normal Range</th>
+            <th>Type</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let param of testParameters; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>{{ param.parameterName }}</td>
+            <td>{{ param.parameterUnit || 'N/A' }}</td>
+            <td>{{ param.parameterRange || 'N/A' }}</td>
+            <td>{{ param.type || 'N/A' }}</td>
+            <td>
+              <input
+                type="text"
+                class="form-control result-input"
+                [placeholder]="'Enter result (' + param.parameterUnit + ')'"
+                [(ngModel)]="param.resultValue"
+                (input)="updateParameterResult(param, $any($event.target).value)">
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+

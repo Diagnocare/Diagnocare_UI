@@ -1,0 +1,85 @@
+<div class="dashboard">
+
+  <!-- ── Welcome hero ────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero__left">
+      <p class="hero__greeting">{{ greeting }},</p>
+      <h1 class="hero__name">{{ userName }}</h1>
+      <div class="hero__meta">
+        <span class="role-badge">{{ userRoleDisplay }}</span>
+        <span class="hero__date"><i class="fa fa-calendar"></i> {{ todayDisplay }}</span>
+      </div>
+      <p class="hero__tagline">Here's what's available for you today.</p>
+    </div>
+    <div class="hero__right">
+      <div class="hero__brand">
+        <div class="hero__brand-icon"><i class="fa fa-heartbeat"></i></div>
+        <div>
+          <div class="hero__brand-name">Diagno<span>care</span></div>
+          <div class="hero__brand-sub">Pathology Management System</div>
+        </div>
+      </div>
+      <div class="hero__stats">
+        <div class="hero__stat">
+          <i class="fa fa-shield"></i>
+          <span>Secure</span>
+        </div>
+        <div class="hero__stat">
+          <i class="fa fa-bolt"></i>
+          <span>Fast</span>
+        </div>
+        <div class="hero__stat">
+          <i class="fa fa-line-chart"></i>
+          <span>Insightful</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Licence expired notice (replaces action cards) ─────────────────── -->
+  <section class="expired-notice" *ngIf="isLicenseExpired">
+    <div class="expired-notice__card">
+      <div class="expired-notice__icon"><i class="fa fa-lock"></i></div>
+      <h2>Access Restricted</h2>
+      <p>Your pathology licence has expired. All system features are currently unavailable.</p>
+      <p>Please contact your system administrator to renew the licence and restore full access.</p>
+    </div>
+  </section>
+
+  <!-- ── Quick-action cards ──────────────────────────────────────────────── -->
+  <section class="actions" *ngIf="!isLicenseExpired">
+
+    <ng-container *ngFor="let group of cardGroups">
+      <div class="actions__group" *ngIf="group.cards.length > 0">
+        <h2 class="actions__group-title">
+          <i class="fa" [class]="group.icon"></i> {{ group.label }}
+        </h2>
+        <div class="actions__grid">
+          <div class="action-card" *ngFor="let card of group.cards" (click)="navigate(card.route)" [class]="'action-card--' + card.color">
+            <div class="action-card__icon">
+              <i class="fa" [class]="card.icon"></i>
+            </div>
+            <div class="action-card__body">
+              <h3>{{ card.title }}</h3>
+              <p>{{ card.description }}</p>
+            </div>
+            <div class="action-card__arrow">
+              <i class="fa fa-arrow-right"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+  </section>
+
+  <!-- ── Footer info row ─────────────────────────────────────────────────── -->
+  <footer class="dash-footer">
+    <span><i class="fa fa-circle" [class.text-success]="!isLicenseExpired" [class.text-danger]="isLicenseExpired"></i>
+      Licence {{ isLicenseExpired ? 'Expired' : 'Active' }}
+      <ng-container *ngIf="!isLicenseExpired && expiryDate"> · Expires {{ expiryDate }}</ng-container>
+    </span>
+    <span>Diagnocare &copy; {{ currentYear }}</span>
+  </footer>
+
+</div>

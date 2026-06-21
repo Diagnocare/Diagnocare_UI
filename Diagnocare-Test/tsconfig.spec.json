@@ -1,0 +1,30 @@
+{
+  "extends": "../Diagnocare_UI/tsconfig.json",
+  "compilerOptions": {
+    "rootDir":          ".",
+    "baseUrl":          ".",
+    "outDir":           "./dist",
+    "module":           "CommonJS",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict":           false,
+    "noImplicitAny":    false,
+    "types":            ["jest", "node"],
+    "paths": {
+      "src/app/*":          ["../Diagnocare_UI/src/app/*"],
+      "src/environments/*": ["../Diagnocare_UI/src/environments/*"]
+    }
+  },
+  "include": [
+    "src/**/*.spec.ts",
+    "setup-jest.ts",
+    "../Diagnocare_UI/src/app/**/*.ts",
+    "../Diagnocare_UI/src/environments/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

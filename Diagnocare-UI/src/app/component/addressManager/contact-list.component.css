@@ -1,0 +1,128 @@
+.contact-list-container {
+  max-width: 90em;
+  margin: 1.5rem auto;
+  padding: 0;
+}
+
+.card {
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-white);
+  box-shadow: var(--shadow-light);
+  text-align: center;
+}
+
+.page-margin{
+    margin:3em;
+}
+
+/* ── Tab panel wrapper (tab bar + table as one card) ──────────────────────── */
+.tab-panel {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-light);
+  overflow: hidden;         /* rounds the corners of children */
+}
+
+/* Nested table-container and tab-table lose their own shadow/radius */
+.tab-panel .tab-table {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── Tab bar ───────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  background: var(--bg-white);
+  border-bottom: 2px solid var(--border-color);
+  padding: 0 1rem;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
+  color: var(--text-secondary);        /* #666 — readable on white */
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background: #f0f4ff;
+  color: var(--primary-color);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);         /* #1E5BA8 — strong blue on white */
+  border-bottom-color: var(--primary-color);
+  background: transparent;
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0 0.4em;
+  height: 1.5em;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;                      /* dark on light-gray pill */
+}
+
+.tab-count.panel {
+  background: #d1fae5;
+  color: #065f46;                      /* dark green on green pill */
+}
+
+.tab-btn.active .tab-count {
+  background: #dbeafe;
+  color: #1e40af;                      /* dark blue on blue pill */
+}
+
+.tab-btn.active .tab-count.panel {
+  background: #bbf7d0;
+  color: #065f46;
+}
+
+/* Empty state inside the tab panel */
+.tab-empty {
+  padding: 3rem 1rem;
+}
+
+/* ── Empty state ───────────────────────────────────────────────────────────── */
+.no-data-msg {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.no-data-msg i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* ── Commission badge ──────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.2em 0.55em;
+  border-radius: 0.35em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.b-g { background: #d1fae5; color: #065f46; }   /* green  – has commission */
+.b-b { background: #e0e7ff; color: #3730a3; }   /* indigo – no commission  */

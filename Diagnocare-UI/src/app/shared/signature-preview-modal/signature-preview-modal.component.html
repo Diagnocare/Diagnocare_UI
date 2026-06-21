@@ -1,0 +1,44 @@
+<div class="modal-overlay" *ngIf="show" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div class="modal-header-icon"><i class="fa fa-pencil-square-o"></i></div>
+      <div>
+        <h4 class="modal-title">Doctor Signature</h4>
+        <p class="modal-subtitle">Preview, update or delete the signature on file</p>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="signature-frame" *ngIf="signatureUrl; else noSig">
+        <img [src]="signatureUrl" alt="Signature Preview" class="signature-img" />
+      </div>
+      <ng-template #noSig>
+        <div class="no-signature">
+          <i class="fa fa-ban no-sig-icon"></i>
+          <p>No signature on file</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="modal-actions">
+      <!-- Hidden file input triggered by Update button — only needed when actions are allowed -->
+      <input *ngIf="allowActions" #signatureFileInput type="file" accept="image/*" style="display:none"
+             (change)="onFileSelected($event)" />
+
+      <ng-container *ngIf="allowActions">
+        <button type="button" class="btn btn-primary" (click)="onUpdateClick()">
+          <i class="fa fa-upload"></i> Update Signature
+        </button>
+        <button type="button" class="btn btn-danger" (click)="onRemove()">
+          <i class="fa fa-trash"></i> Delete Signature
+        </button>
+      </ng-container>
+
+      <button type="button" class="btn btn-secondary" (click)="onClose()">
+        <i class="fa fa-times"></i> Close
+      </button>
+    </div>
+
+  </div>
+</div>

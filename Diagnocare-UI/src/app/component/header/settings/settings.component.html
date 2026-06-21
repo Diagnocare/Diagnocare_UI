@@ -1,0 +1,58 @@
+<div class="acct-page">
+
+  <!-- ══════════════════════════════════════
+       PAGE HEADER
+  ══════════════════════════════════════ -->
+  <div class="acct-header">
+    <h2 class="acct-title"><i class="fa fa-cog"></i> Settings</h2>
+    <p class="acct-subtitle">Manage account preferences</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION: AUTHENTICATION
+  ══════════════════════════════════════ -->
+  <div class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-shield-alt"></i>
+      <div>
+        <h4 class="acct-card-title">Authentication Mode</h4>
+        <p class="acct-card-sub">Choose how you verify your identity at login</p>
+      </div>
+    </div>
+
+    <div class="acct-card-body">
+      <div class="current-value-row">
+        <span class="current-label">Current mode:</span>
+        <span class="current-badge">{{ currentAuthTypeLabel }}</span>
+        <button class="btn-link-sm" (click)="editingAuthType = true" *ngIf="!editingAuthType">
+          <i class="fa fa-pencil-alt"></i> Change
+        </button>
+      </div>
+
+      <div *ngIf="editingAuthType" class="edit-block">
+        <div *ngFor="let opt of authTypeOptions" class="radio-row">
+          <input class="radio-input" type="radio" name="authType"
+                 [id]="'authType_' + opt.value"
+                 [value]="opt.value"
+                 [(ngModel)]="selectedAuthType">
+          <label class="radio-label" [for]="'authType_' + opt.value">{{ opt.label }}</label>
+        </div>
+        <div class="action-row">
+          <button class="btn-save" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
+          <button class="btn-cancel" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
+        </div>
+      </div>
+
+      <div *ngIf="errorMsg"   class="msg msg-error">{{ errorMsg }}</div>
+      <div *ngIf="successMsg" class="msg msg-success">{{ successMsg }}</div>
+    </div>
+  </div>
+
+  <!-- Info hint pointing to Lab Setup -->
+  <div class="hint-row">
+    <i class="fa fa-info-circle"></i>
+    Looking for Sampling Locations or Areas of Operation?
+    Those are now in <strong>Lab Setup</strong> in the navigation menu.
+  </div>
+
+</div>

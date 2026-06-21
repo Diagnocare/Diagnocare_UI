@@ -1,0 +1,218 @@
+<app-loading-spinner [isLoading]="isLoading" [message]="spinnerMessage"></app-loading-spinner>
+
+<!-- ── Download progress overlay ─────────────────────────────────────── -->
+<div class="download-overlay" *ngIf="isDownloading">
+  <div class="download-dialog">
+    <div class="dl-spinner-ring"></div>
+    <p class="dl-message">{{ downloadMessage }}</p>
+  </div>
+</div>
+
+<div class="page-container">
+
+  <!-- ── Page header ─────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Report Templates</h1>
+      <p class="subtitle">
+        Preview any template with real pathology, patient, test and doctor
+        data, then download as PDF or Word document.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" (click)="loadTemplates()">
+        <i class="fa fa-refresh"></i> Refresh
+      </button>
+      <button class="btn btn-success" (click)="openDesigner()">
+        <i class="fa fa-pencil-square-o"></i> Design Template
+      </button>
+    </div>
+  </div>
+
+  <!-- ── No-default banner ──────────────────────────────────── -->
+  <div class="no-default-banner" *ngIf="hasNoDefault">
+    <i class="fa fa-exclamation-triangle"></i>
+    <div class="no-default-text">
+      <strong>No default template selected.</strong>
+      Patient reports will not generate until a default template is set.
+      Hover over a template card and click <strong>Set Default</strong> to assign one.
+    </div>
+  </div>
+
+  <div class="content-container">
+
+    <!-- ── Empty state ──────────────────────────────────────── -->
+    <div class="empty-state" *ngIf="!isLoading && templates.length === 0">
+      <div class="empty-icon">📋</div>
+      <h3>No Templates Available</h3>
+      <p>No report templates have been configured yet. Please contact your administrator.</p>
+    </div>
+
+    <!-- ── Template gallery grid ────────────────────────────── -->
+    <div class="template-grid" *ngIf="!isLoading && templates.length > 0">
+
+      <div
+        class="template-card"
+        *ngFor="let t of templates"
+        (mouseenter)="hoveredTemplateId = t.templateId"
+        (mouseleave)="hoveredTemplateId = null"
+      >
+
+        <!-- ── Thumbnail / icon area ───────────────────────── -->
+        <div class="template-thumb" (click)="openPreview(t)">
+
+          <img
+            *ngIf="t.thumbnailBase64"
+            [src]="thumbnailSrc(t.thumbnailBase64)"
+            [alt]="t.templateName + ' preview'"
+            class="thumb-image"
+          />
+
+          <div class="thumb-icon" *ngIf="!t.thumbnailBase64">
+            <span class="format-icon">
+              {{ (t.format || 'pdf') === 'pdf' ? '📄' : '📝' }}
+            </span>
+          </div>
+
+          <!-- Hover overlay — visible on mouse-enter -->
+          <div class="thumb-overlay" [class.visible]="hoveredTemplateId === t.templateId">
+            <button class="overlay-btn preview-btn" (click)="openPreview(t); $event.stopPropagation()">
+              <span>👁</span> Preview
+            </button>
+            <button
+              *ngIf="defaultTemplateId !== t.templateId"
+              class="overlay-btn set-default-btn"
+              [disabled]="isSettingDefault"
+              (click)="setAsDefault(t); $event.stopPropagation()"
+              title="Set as pathology default template"
+            >
+              <i class="fa fa-star"></i> Set Default
+            </button>
+            <button
+              *ngIf="defaultTemplateId === t.templateId"
+              class="overlay-btn clear-default-btn"
+              [disabled]="isSettingDefault"
+              (click)="setAsDefault(t); $event.stopPropagation()"
+              title="Clear as default template"
+            >
+              <i class="fa fa-star"></i> Clear Default
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Card body ───────────────────────────────────── -->
+        <div class="template-body">
+          <div class="template-meta">
+            <span class="category-badge" *ngIf="t.category">{{ t.category }}</span>
+            <span class="default-badge" *ngIf="defaultTemplateId === t.templateId">
+              <i class="fa fa-check-circle"></i> Pathology Default
+            </span>
+          </div>
+
+          <h3 class="template-name">{{ t.templateName }}</h3>
+          <p class="template-desc">{{ t.description }}</p>
+
+          <p class="template-date" *ngIf="t.updatedAt">
+            Updated: {{ t.updatedAt | date: 'dd-MM-yyyy' }}
+          </p>
+        </div>
+
+        <!-- ── Card footer ─────────────────────────────────── -->
+        <div class="template-footer">
+          <button
+            class="btn btn-danger btn-sm footer-btn"
+            [disabled]="isDownloading"
+            (click)="downloadDirect(t, 'pdf', $event)"
+            title="Download as PDF"
+          >
+            📄 PDF
+          </button>
+          <button
+            class="btn btn-primary btn-sm footer-btn"
+            [disabled]="isDownloading"
+            (click)="downloadDirect(t, 'docx', $event)"
+            title="Download as Word"
+          >
+            📝 Word
+          </button>
+        </div>
+
+      </div><!-- /template-card -->
+    </div><!-- /template-grid -->
+  </div><!-- /content-container -->
+</div><!-- /page-container -->
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     Preview Modal
+     ════════════════════════════════════════════════════════════════ -->
+<div class="preview-overlay" *ngIf="showPreview" (click)="closePreview()">
+  <div class="preview-dialog" (click)="$event.stopPropagation()">
+
+    <!-- Modal header -->
+    <div class="preview-header">
+      <h2 class="preview-title">{{ previewTitle }}</h2>
+
+      <div class="preview-header-actions">
+
+        <!-- Download as PDF -->
+        <button
+          class="btn btn-danger btn-sm"
+          [disabled]="previewLoading || !activeDetail || isDownloading"
+          (click)="downloadFromModal('pdf')"
+          title="Download as PDF"
+        >
+          <ng-container *ngIf="isDownloading && downloadMessage; else pdfLabel">
+            ⏳ {{ downloadMessage }}
+          </ng-container>
+          <ng-template #pdfLabel>📄 Download PDF</ng-template>
+        </button>
+
+        <!-- Download as Word -->
+        <button
+          class="btn btn-primary btn-sm"
+          [disabled]="previewLoading || !activeDetail || isDownloading"
+          (click)="downloadFromModal('docx')"
+          title="Download as Word (.docx)"
+        >
+          <ng-container *ngIf="isDownloading && downloadMessage; else docxLabel">
+            ⏳ {{ downloadMessage }}
+          </ng-container>
+          <ng-template #docxLabel>📝 Download Word</ng-template>
+        </button>
+
+        <button class="preview-close" (click)="closePreview()" aria-label="Close preview">✕</button>
+      </div>
+    </div>
+
+    <!-- Modal body -->
+    <div class="preview-body">
+
+      <!-- Spinner while loading the detail -->
+      <div class="preview-loading" *ngIf="previewLoading">
+        <div class="spinner-ring"></div>
+        <p>Loading preview…</p>
+      </div>
+
+      <!-- Rendered HTML template via srcdoc -->
+      <iframe
+        *ngIf="!previewLoading && previewSrcdoc"
+        [srcdoc]="previewSrcdoc"
+        class="preview-iframe"
+        title="Template Preview"
+        sandbox="allow-same-origin"
+      ></iframe>
+
+    </div><!-- /preview-body -->
+
+    <!-- Modal footer hint -->
+    <div class="preview-footer" *ngIf="!previewLoading && activeDetail">
+      <span class="preview-hint">
+        💡 <strong>PDF</strong> — rendered directly from the template, no print dialog needed.
+        &nbsp;&nbsp;
+        <strong>Word</strong> — downloads a <em>.docx</em> file, opens in Microsoft Word or LibreOffice.
+      </span>
+    </div>
+
+  </div><!-- /preview-dialog -->
+</div><!-- /preview-overlay -->

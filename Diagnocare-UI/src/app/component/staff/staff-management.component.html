@@ -1,0 +1,163 @@
+<app-loading-spinner [isLoading]="activeSection.loading" [message]="'Loading ' + activeSection.title + '...'"></app-loading-spinner>
+
+<div class="page-container pathology-theme">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Staff Management</h1>
+      <p class="subtitle">Manage users, collection boys and doctors</p>
+    </div>
+    <div class="header-actions">
+      <!-- Show Inactive toggle -->
+      <button class="btn btn-outline-secondary"
+              [class.active]="showInactive"
+              (click)="toggleInactive()"
+              title="Toggle inactive staff visibility">
+        <i class="fa" [ngClass]="showInactive ? 'fa-eye-slash' : 'fa-eye'"></i>
+        {{ showInactive ? 'Hide Inactive' : 'Show Inactive' }}
+      </button>
+      <button class="btn btn-success" (click)="add(activeSection.type)">
+        <i class="fa fa-plus"></i> Add {{ activeSection.title | slice:0:-1 }}
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container">
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button
+        *ngFor="let section of sections"
+        class="tab-btn"
+        [class.active]="activeSection.type === section.type"
+        (click)="selectTab(section)">
+        <i class="fa" [ngClass]="section.icon"></i>
+        {{ section.title }}
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="card table-container">
+
+      <!-- ── Users tab ──────────────────────────────────────────────────── -->
+      <ng-container *ngIf="activeSection.type === 'user' && !activeSection.loading">
+        <table class="data-table" *ngIf="visibleUsers.length; else emptyUsers">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of visibleUsers" [class.row-inactive]="!isMemberActive(u)">
+              <td>
+                {{ u.first_Name }} {{ u.last_Name }}
+                <span class="badge-inactive" *ngIf="!isMemberActive(u)">Inactive</span>
+              </td>
+              <td>{{ u.user_Name }}</td>
+              <td><span class="role-badge">{{ getRoleLabel(u.typeUserId) }}</span></td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.contactPhone }}</td>
+              <td class="action-buttons">
+                <ng-container *ngIf="!isProtectedUser(u)">
+                  <app-action-btn type="edit"   title="Edit User"   (clicked)="editUser(u.id)"></app-action-btn>
+                  <app-action-btn type="delete" title="Delete User" (clicked)="deleteUser(u.id)"></app-action-btn>
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyUsers>
+          <div class="no-data"><i class="fa fa-users"></i><p>No users registered yet.</p></div>
+        </ng-template>
+      </ng-container>
+
+      <!-- ── Collection Boys tab ────────────────────────────────────────── -->
+      <ng-container *ngIf="activeSection.type === 'collection-boy' && !activeSection.loading">
+        <table class="data-table" *ngIf="visibleCollectionBoys.length; else emptyCb">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Qualification</th>
+              <th>Position</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cb of visibleCollectionBoys" [class.row-inactive]="!isMemberActive(cb)">
+              <td>
+                {{ cb.first_Name }} {{ cb.last_Name }}
+                <span class="badge-inactive" *ngIf="!isMemberActive(cb)">Inactive</span>
+              </td>
+              <td>{{ cb.qualification || '—' }}</td>
+              <td>{{ cb.position || '—' }}</td>
+              <td class="action-buttons">
+                <app-action-btn type="edit"   title="Edit Collection Boy"   (clicked)="editStaff('collection-boy', cb.id)"></app-action-btn>
+                <app-action-btn type="delete" title="Delete Collection Boy" (clicked)="deleteStaff('collection-boy', cb.id)"></app-action-btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyCb>
+          <div class="no-data"><i class="fa fa-motorcycle"></i><p>No collection boys registered yet.</p></div>
+        </ng-template>
+      </ng-container>
+
+      <!-- ── Doctors tab ────────────────────────────────────────────────── -->
+      <ng-container *ngIf="activeSection.type === 'doctor' && !activeSection.loading">
+        <table class="data-table" *ngIf="visibleDoctors.length; else emptyDoc">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Qualification</th>
+              <th>Position</th>
+              <th>Signature</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let doc of visibleDoctors" [class.row-inactive]="!isMemberActive(doc)">
+              <td>
+                {{ doc.first_Name }} {{ doc.last_Name }}
+                <span class="badge-inactive" *ngIf="!isMemberActive(doc)">Inactive</span>
+              </td>
+              <td>{{ doc.qualification || '—' }}</td>
+              <td>{{ doc.position || '—' }}</td>
+              <td>
+                <ng-container *ngIf="doc.signatureImage; else noSig">
+                  <img [src]="'data:image/png;base64,' + doc.signatureImage"
+                       alt="Signature" class="sig-thumb"
+                       (click)="openSignaturePreview(doc)" />
+                </ng-container>
+                <ng-template #noSig>
+                  <span class="no-sig"><i class="fa fa-ban"></i> None</span>
+                </ng-template>
+              </td>
+              <td class="action-buttons">
+                <app-action-btn type="edit"   title="Edit Doctor"   (clicked)="editStaff('doctor', doc.id)"></app-action-btn>
+                <app-action-btn type="delete" title="Delete Doctor" (clicked)="deleteStaff('doctor', doc.id)"></app-action-btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #emptyDoc>
+          <div class="no-data"><i class="fa fa-user-md"></i><p>No doctors registered yet.</p></div>
+        </ng-template>
+      </ng-container>
+
+    </div>
+  </div>
+</div>
+
+<app-confirm-modal></app-confirm-modal>
+<app-signature-preview-modal
+  [show]="showSignatureModal"
+  [signatureUrl]="signaturePreviewUrl"
+  [allowActions]="false"
+  (close)="closeSignatureModal()">
+</app-signature-preview-modal>
