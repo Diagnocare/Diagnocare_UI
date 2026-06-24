@@ -52,6 +52,32 @@ export class AttendanceService {
   }
 
   /**
+   * GET api/attendance/GetMyWeekly?startDate=YYYY-MM-DD
+   * Returns only the currently logged-in user's weekly attendance.
+   * Accessible to all authenticated roles (not just Admin).
+   */
+  getMyWeeklyAttendance(mondayDate: string): Observable<WeeklyAttendanceResponseDTO> {
+    return this.http
+      .get<WeeklyAttendanceResponseDTO>(
+        `${this.baseUrl}${apiEndpoints.getMyWeeklyAttendance}?startDate=${mondayDate}`
+      )
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
+   * GET api/attendance/GetMyMonthly?year=YYYY&month=M
+   * Returns only the currently logged-in user's monthly attendance.
+   * Accessible to all authenticated roles (not just Admin).
+   */
+  getMyMonthlyAttendance(year: number, month: number): Observable<WeeklyAttendanceResponseDTO> {
+    return this.http
+      .get<WeeklyAttendanceResponseDTO>(
+        `${this.baseUrl}${apiEndpoints.getMyMonthly}?year=${year}&month=${month}`
+      )
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
    * Saves attendance records using the correct HTTP verb per record state:
    *   - New records (attendanceId === 0) → POST /Add
    *   - Existing records (attendanceId > 0) → PUT /Update (upsert)

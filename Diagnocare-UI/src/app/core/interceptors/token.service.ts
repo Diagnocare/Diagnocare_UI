@@ -380,4 +380,52 @@ export class TokenService {
     const remaining = decoded.exp * 1000 - Date.now();
     return remaining > 0 ? remaining : 0;
   }
+
+  // ── Grace buffer ───────────────────────────────────────────────────────────
+
+  private readonly GRACE_BUFFER_KEY = 'diagnocare_grace_buffer_minutes';
+
+  /**
+   * Persist the pathology-configured grace buffer (in minutes) to localStorage.
+   * Called by the lab-setup component when the admin saves the setting, and also
+   * by AppComponent on init when it fetches pathology info.
+   */
+  setGraceBufferMinutes(minutes: number): void {
+    localStorage.setItem(this.GRACE_BUFFER_KEY, String(minutes));
+  }
+
+  /**
+   * Retrieve the grace buffer duration (in minutes).
+   * Returns 0 if not configured (disables grace-period PIN auth).
+   */
+  getGraceBufferMinutes(): number {
+    const raw = localStorage.getItem(this.GRACE_BUFFER_KEY);
+    if (!raw) return 0;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }
+
+  /**
+   * Returns true when the stored JWT is expired BUT the expiry happened within
+   * the pathology-configured grace buffer window.
+   *
+   * Formula:
+   *   milliseconds_since_expiry = now - (exp * 1000)
+   *   within_grace = milliseconds_since_expiry <= graceBufferMinutes * 60 * 1000
+   *
+   * Returns false when:
+   *   • No token is stored
+   *   • Grace buffer is 0 (disabled)
+   *   • Token expired longer ago than the grace window
+   */
+  isWithinGracePeriod(): boolean {
+    const graceMs = this.getGraceBufferMinutes() * 60 * 1000;
+    if (graceMs <= 0) return false;
+
+    const decoded = this.decodeToken();
+    if (!decoded?.exp) return false;
+
+    const expiredAgoMs = Date.now() - decoded.exp * 1000;
+    return expiredAgoMs > 0 && expiredAgoMs <= graceMs;
+  }
 }

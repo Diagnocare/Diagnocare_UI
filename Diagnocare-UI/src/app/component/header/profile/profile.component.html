@@ -116,6 +116,7 @@
                       <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
                       {{ resendCountdown > 0 ? 'Resend in ' + resendCountdown + 's' : 'Resend OTP' }}
                     </button>
+                    <span class="otp-sep">|</span>
                     <button class="btn btn-link btn-sm p-0 text-secondary"
                             (click)="editStep = 'input'; otpCode = ''; errorMsg = ''">Change email</button>
                   </div>
@@ -171,6 +172,7 @@
                       <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
                       {{ resendCountdown > 0 ? 'Resend in ' + resendCountdown + 's' : 'Resend OTP' }}
                     </button>
+                    <span class="otp-sep">|</span>
                     <button class="btn btn-link btn-sm p-0 text-secondary"
                             (click)="editStep = 'input'; otpCode = ''; errorMsg = ''">Change number</button>
                   </div>

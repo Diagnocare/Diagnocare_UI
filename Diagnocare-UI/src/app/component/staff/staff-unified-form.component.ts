@@ -4,6 +4,8 @@ import {
   ReactiveFormsModule, FormBuilder, FormGroup, AbstractControl,
   FormControl, Validators, ValidatorFn
 } from '@angular/forms';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { switchMap } from 'rxjs/operators';
 import { of, Observable } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -28,7 +30,8 @@ export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule,
-    LoadingSpinnerComponent, ConfirmModalComponent, SignaturePreviewModalComponent, DatePickerComponent
+    LoadingSpinnerComponent, ConfirmModalComponent, SignaturePreviewModalComponent, DatePickerComponent,
+    FieldErrorComponent, FormKeyboardDirective,
   ]
 })
 export class StaffUnifiedFormComponent implements OnInit {
@@ -41,6 +44,15 @@ export class StaffUnifiedFormComponent implements OnInit {
   loadingMsg = '';
 
   form!: FormGroup;
+  submitted = false;
+
+  /** Tab order varies by form type — user has contactPhone/typeUserId, doctor has qualification/position. */
+  get tabFields(): string[] {
+    const common = ['user_Name', 'first_Name', 'last_Name', 'effectiveFrom', 'deactivatedAt'];
+    if (this.formType === 'user')           return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'typeUserId', 'effectiveFrom', 'deactivatedAt'];
+    if (this.formType === 'doctor')         return ['user_Name', 'first_Name', 'last_Name', 'qualification', 'position', 'effectiveFrom', 'deactivatedAt'];
+    return common; // collection-boy
+  }
 
   /** Role options shown in the User type selector */
   userRoleOptions = [
@@ -207,6 +219,7 @@ export class StaffUnifiedFormComponent implements OnInit {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   onSubmit(): void {
+    this.submitted = true;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -334,6 +347,6 @@ export class StaffUnifiedFormComponent implements OnInit {
 
   isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);
-    return !!(ctrl?.invalid && ctrl?.touched);
+    return !!(ctrl?.invalid && (ctrl?.touched || this.submitted));
   }
 }

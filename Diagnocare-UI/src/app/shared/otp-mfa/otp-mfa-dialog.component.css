@@ -544,6 +544,27 @@
   background: #f9fafb;
 }
 
+/* ── Verify error (set by parent after a failed verification attempt) ── */
+.otp-verify-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #ef4444;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #b91c1c;
+  margin-bottom: 0.9rem;
+}
+.otp-verify-error i { font-size: 1rem; flex-shrink: 0; }
+
+:host-context(html[data-theme="dark"])     .otp-verify-error { background: #2d1515; border-color: #7f1d1d; color: #f87171; }
+:host-context(html[data-theme="midnight"]) .otp-verify-error { background: #200e0e; border-color: #6b1111; color: #f87171; }
+:host-context(html[data-theme="warm"])     .otp-verify-error { background: #fff5f5; border-color: #f7c0c0; color: #9b1c1c; }
+
 /* ── TOTP hint ────────────────────────────────────────────────────── */
 .otp-totp-hint {
   font-size: 0.8rem;
@@ -569,4 +590,102 @@
 
   .otp-step-actions { flex-direction: column-reverse; }
   .otp-step-actions .otp-btn { width: 100%; }
+}
+
+/* ══════════════════════════════════════════════════════
+   THEME OVERRIDES  (:host-context beats [_ngcontent] scope)
+══════════════════════════════════════════════════════ */
+
+/* ── Dark ─────────────────────────── */
+:host-context(html[data-theme="dark"]) .otp-card             { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .otp-step-label       { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .otp-method-row       { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-method-row:hover { background: #1e3a5f; border-color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .otp-method-label     { color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .otp-method-sub       { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .otp-method-arrow     { color: #475569; }
+:host-context(html[data-theme="dark"]) .otp-method-row--invalid { background: #1e293b; border-color: #21262d; }
+:host-context(html[data-theme="dark"]) .otp-send-info        { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-send-title       { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .otp-send-dest        { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .otp-sent-banner      { background: #052e16; border-color: #14532d; color: #86efac; }
+:host-context(html[data-theme="dark"]) .otp-sent-banner.otp-sent-banner-totp { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+:host-context(html[data-theme="dark"]) .otp-enter-label      { color: #475569; }
+:host-context(html[data-theme="dark"]) .otp-box              { background: #0f172a; color: #5b9cf6; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-box:focus        { background: #0f172a; border-color: #5b9cf6; box-shadow: 0 0 0 3px rgba(91,156,246,0.18); }
+:host-context(html[data-theme="dark"]) .otp-box:not(:placeholder-shown):not(:focus) { background: #052e16; border-color: #4ade80; }
+:host-context(html[data-theme="dark"]) .otp-resend-hint      { color: #64748b; }
+:host-context(html[data-theme="dark"]) .otp-btn-ghost        { background: #1e293b; color: #cbd5e1; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-btn-ghost:hover:not(:disabled) { background: #273548; }
+:host-context(html[data-theme="dark"]) .otp-btn-resend       { color: #5b9cf6; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-btn-resend:hover:not(:disabled) { background: #1e3a5f; }
+:host-context(html[data-theme="dark"]) .otp-qr-placeholder   { background: #0f172a; border-color: #334155; color: #475569; }
+:host-context(html[data-theme="dark"]) .otp-qr-img           { border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-totp-hint        { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .otp-totp-hint i      { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .otp-unavail-icon     { background: #2d1515; border-color: #7f1d1d; color: #f87171; }
+:host-context(html[data-theme="dark"]) .otp-unavail-msg      { background: #431407; border-color: #7c2d12; color: #fdba74; }
+:host-context(html[data-theme="dark"]) .otp-unavail-badge    { background: #2d1515; border-color: #7f1d1d; color: #f87171; }
+:host-context(html[data-theme="dark"]) .otp-countdown-track  { stroke: #334155; }
+
+/* ── Midnight ─────────────────────── */
+:host-context(html[data-theme="midnight"]) .otp-card             { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .otp-step-label       { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .otp-method-row       { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .otp-method-row:hover { background: #11162a; border-color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .otp-method-label     { color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .otp-method-sub       { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .otp-method-arrow     { color: #30363d; }
+:host-context(html[data-theme="midnight"]) .otp-method-row--invalid { background: #0d1117; border-color: #161b22; }
+:host-context(html[data-theme="midnight"]) .otp-send-info        { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .otp-send-title       { color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .otp-send-dest        { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .otp-sent-banner      { background: #031a0e; border-color: #064e3b; color: #6ee7b7; }
+:host-context(html[data-theme="midnight"]) .otp-box              { background: #0d1117; color: #4d9ef0; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .otp-box:focus        { background: #0d1117; border-color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .otp-btn-ghost        { background: #0d1117; color: #a6adc8; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .otp-btn-ghost:hover:not(:disabled) { background: #161b22; }
+:host-context(html[data-theme="midnight"]) .otp-btn-resend       { color: #4d9ef0; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .otp-btn-resend:hover:not(:disabled) { background: #11162a; }
+:host-context(html[data-theme="midnight"]) .otp-qr-placeholder   { background: #0d1117; border-color: #21262d; color: #30363d; }
+:host-context(html[data-theme="midnight"]) .otp-unavail-icon     { background: #200e0e; border-color: #6b1111; color: #f87171; }
+:host-context(html[data-theme="midnight"]) .otp-unavail-msg      { background: #2d0f04; border-color: #531c07; color: #fbbf24; }
+
+/* ── Warm ─────────────────────────── */
+:host-context(html[data-theme="warm"]) .otp-card             { background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .otp-step-label       { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .otp-method-row       { background: #fef9f0; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .otp-method-row:hover { background: #fef3e2; border-color: #c47028; }
+:host-context(html[data-theme="warm"]) .otp-method-label     { color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .otp-method-sub       { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .otp-send-info        { background: #fef9f0; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .otp-send-title       { color: #9c5a28; }
+:host-context(html[data-theme="warm"]) .otp-send-dest        { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .otp-box              { background: #fffdf7; color: #9c5a28; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .otp-box:focus        { background: #fffdf7; border-color: #c47028; box-shadow: 0 0 0 3px rgba(196,112,40,0.18); }
+:host-context(html[data-theme="warm"]) .otp-btn-ghost        { background: #fef9f0; color: #4a3728; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .otp-btn-ghost:hover:not(:disabled) { background: #f5ede0; }
+:host-context(html[data-theme="warm"]) .otp-btn-resend       { color: #9c5a28; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .otp-btn-resend:hover:not(:disabled) { background: #fef3e2; }
+:host-context(html[data-theme="warm"]) .otp-totp-hint        { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .otp-totp-hint i      { color: #9c5a28; }
+
+/* ── System (OS dark) ─────────────── */
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .otp-card             { background: #1e293b; }
+  :host-context(html[data-theme="system"]) .otp-step-label       { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .otp-method-row       { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .otp-method-row:hover { background: #1e3a5f; border-color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .otp-method-label     { color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .otp-method-sub       { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .otp-send-info        { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .otp-send-title       { color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .otp-send-dest        { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .otp-sent-banner      { background: #052e16; border-color: #14532d; color: #86efac; }
+  :host-context(html[data-theme="system"]) .otp-box              { background: #0f172a; color: #5b9cf6; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .otp-box:focus        { background: #0f172a; border-color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .otp-btn-ghost        { background: #1e293b; color: #cbd5e1; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .otp-btn-resend       { color: #5b9cf6; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .otp-unavail-icon     { background: #2d1515; border-color: #7f1d1d; color: #f87171; }
+  :host-context(html[data-theme="system"]) .otp-unavail-msg      { background: #431407; border-color: #7c2d12; color: #fdba74; }
 }

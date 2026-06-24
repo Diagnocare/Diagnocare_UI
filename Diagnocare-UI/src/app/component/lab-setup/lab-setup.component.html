@@ -24,8 +24,8 @@
       <button class="tab-btn" [class.active]="activeTab === 'units'" (click)="switchTab('units')">
         <i class="fa fa-balance-scale"></i> Parameter Units
       </button>
-      <button class="tab-btn" [class.active]="activeTab === 'token'" (click)="switchTab('token')">
-        <i class="fa fa-clock"></i> Token Expiry
+      <button class="tab-btn" [class.active]="activeTab === 'grace'" (click)="switchTab('grace')">
+        <i class="fa fa-hourglass-half"></i> Grace Buffer
       </button>
     </div>
 
@@ -279,68 +279,78 @@
     </ng-container>
 
     <!-- ══════════════════════════════════════════════════
-         TAB: TOKEN EXPIRY
+         TAB: GRACE BUFFER
     ══════════════════════════════════════════════════ -->
-    <ng-container *ngIf="activeTab === 'token'">
+    <ng-container *ngIf="activeTab === 'grace'">
       <div class="config-card">
         <div class="config-card-header">
-          <i class="fa fa-clock"></i>
+          <i class="fa fa-hourglass-half"></i>
           <div>
-            <h4 class="config-card-title">JWT Token Expiry</h4>
-            <p class="config-card-sub">Set how long (in minutes) an authentication token remains valid after expiry before the user is required to log in again</p>
+            <h4 class="config-card-title">PIN Grace Buffer</h4>
+            <p class="config-card-sub">
+              When a user's JWT token expires, they will be prompted for their PIN instead of being
+              immediately logged out — but only within this grace window. Set to 0 to disable PIN
+              re-authentication and always redirect to the login page on expiry.
+            </p>
           </div>
         </div>
         <div class="config-card-body">
 
           <!-- Loading state -->
-          <div class="token-loading" *ngIf="tokenExpiryLoading">
+          <div class="token-loading" *ngIf="graceBufferLoading">
             <i class="fa fa-spinner fa-spin"></i> Loading current setting…
           </div>
 
-          <ng-container *ngIf="!tokenExpiryLoading">
+          <ng-container *ngIf="!graceBufferLoading">
 
             <!-- Current value chip -->
-            <div class="token-current" *ngIf="tokenExpiryMinutes !== null">
+            <div class="token-current" *ngIf="graceBufferMinutes !== null">
               <i class="fa fa-info-circle"></i>
-              Current value: <strong>{{ tokenExpiryMinutes }} minute{{ tokenExpiryMinutes !== 1 ? 's' : '' }}</strong>
+              <ng-container *ngIf="graceBufferMinutes > 0">
+                Current value: <strong>{{ graceBufferMinutes }} minute{{ graceBufferMinutes !== 1 ? 's' : '' }}</strong>
+              </ng-container>
+              <ng-container *ngIf="graceBufferMinutes === 0">
+                Grace buffer is currently <strong>disabled</strong> (set to 0)
+              </ng-container>
             </div>
 
             <!-- Input row -->
             <div class="token-field-label">
-              <i class="fa fa-hourglass-half"></i> Token expiry duration (minutes)
+              <i class="fa fa-hourglass-half"></i> Grace buffer duration (minutes) — 0 to disable
             </div>
             <div class="token-input-row">
               <input
                 class="token-input"
                 type="number"
-                min="1"
+                min="0"
                 step="1"
-                placeholder="e.g. 60"
-                [(ngModel)]="tokenExpiryInput"
-                (keyup.enter)="saveTokenExpiry()"
-                [disabled]="tokenExpirySaving" />
+                placeholder="e.g. 5"
+                [(ngModel)]="graceBufferInput"
+                (keyup.enter)="saveGraceBuffer()"
+                [disabled]="graceBufferSaving" />
               <button
                 class="btn-token-save"
-                (click)="saveTokenExpiry()"
-                [disabled]="tokenExpirySaving || tokenExpiryInput === null">
-                <i class="fa" [class.fa-save]="!tokenExpirySaving" [class.fa-spinner]="tokenExpirySaving" [class.fa-spin]="tokenExpirySaving"></i>
-                {{ tokenExpirySaving ? 'Saving…' : 'Save' }}
+                (click)="saveGraceBuffer()"
+                [disabled]="graceBufferSaving || graceBufferInput === null">
+                <i class="fa" [class.fa-save]="!graceBufferSaving" [class.fa-spinner]="graceBufferSaving" [class.fa-spin]="graceBufferSaving"></i>
+                {{ graceBufferSaving ? 'Saving…' : 'Save' }}
               </button>
             </div>
 
             <!-- Validation / error -->
-            <div class="item-error" *ngIf="tokenExpiryError">{{ tokenExpiryError }}</div>
+            <div class="item-error" *ngIf="graceBufferError">{{ graceBufferError }}</div>
 
             <!-- Success -->
-            <div class="token-success" *ngIf="tokenExpirySuccess">
-              <i class="fa fa-check-circle"></i> {{ tokenExpirySuccess }}
+            <div class="token-success" *ngIf="graceBufferSuccess">
+              <i class="fa fa-check-circle"></i> {{ graceBufferSuccess }}
             </div>
 
             <!-- Helper hint -->
             <p class="token-hint">
               <i class="fa fa-lightbulb"></i>
-              Common values: <strong>30</strong> (half hour), <strong>60</strong> (1 hour), <strong>480</strong> (8 hours / full work day).
-              Changes take effect for new logins; existing tokens retain their original expiry.
+              Within this window after expiry, users who have set a PIN will see a PIN prompt instead of the login page.
+              Recommended: <strong>2–10 minutes</strong> for a convenient but secure buffer.
+              Users must set their own PIN from <strong>Settings → Session PIN</strong>.
             </p>
 
           </ng-container>

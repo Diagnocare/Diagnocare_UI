@@ -108,7 +108,8 @@
           <span>{{ serverError }}</span>
         </div>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="off" novalidate>
+        <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="off" novalidate
+              appFormKeyboard [tabFields]="tabFields">
 
           <!-- ── Section: Lab Identity ── -->
           <div class="rp-section-label">Lab Identity</div>
@@ -120,7 +121,7 @@
                 <input type="text" class="rp-input" formControlName="path_Name"
                        placeholder="e.g. City Diagnostic Centre" />
               </div>
-              <div class="rp-field-error" *ngIf="hasError('path_Name')">Pathology name is required.</div>
+              <app-field-error [control]="form.get('path_Name')" label="Pathology Name" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-half">
               <label class="rp-label">Branch / Location</label>
@@ -141,7 +142,7 @@
               <input type="text" class="rp-input" formControlName="path_Address1"
                      placeholder="Building / Street" />
             </div>
-            <div class="rp-field-error" *ngIf="hasError('path_Address1')">Address is required.</div>
+            <app-field-error [control]="form.get('path_Address1')" label="Address Line 1" [forceShow]="submitted"></app-field-error>
           </div>
           <div class="rp-field">
             <label class="rp-label">Address Line 2</label>
@@ -157,21 +158,21 @@
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_City')">
                 <input type="text" class="rp-input rp-input-no-icon" formControlName="path_City" placeholder="City" />
               </div>
-              <div class="rp-field-error" *ngIf="hasError('path_City')">Required.</div>
+              <app-field-error [control]="form.get('path_City')" label="City" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-third">
               <label class="rp-label">State <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_State')">
                 <input type="text" class="rp-input rp-input-no-icon" formControlName="path_State" placeholder="State" />
               </div>
-              <div class="rp-field-error" *ngIf="hasError('path_State')">Required.</div>
+              <app-field-error [control]="form.get('path_State')" label="State" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-third">
               <label class="rp-label">Pincode</label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Pincode')">
                 <input type="text" class="rp-input rp-input-no-icon" formControlName="path_Pincode" placeholder="Pincode" />
               </div>
-              <div class="rp-field-error" *ngIf="hasError('path_Pincode')">Invalid pincode.</div>
+              <app-field-error [control]="form.get('path_Pincode')" label="Pincode" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
           <div class="rp-field rp-field-half-inline">
@@ -191,7 +192,7 @@
                 <span class="rp-input-icon"><i class="fas fa-phone"></i></span>
                 <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" />
               </div>
-              <div class="rp-field-error" *ngIf="hasError('path_ContactNo')">Valid contact number required.</div>
+              <app-field-error [control]="form.get('path_ContactNo')" label="Contact Number" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-half">
               <label class="rp-label">Email <span class="req">*</span></label>
@@ -199,7 +200,7 @@
                 <span class="rp-input-icon"><i class="fas fa-envelope"></i></span>
                 <input type="email" class="rp-input" formControlName="path_Email" placeholder="lab@example.com" />
               </div>
-              <div class="rp-field-error" *ngIf="hasError('path_Email')">Valid email is required.</div>
+              <app-field-error [control]="form.get('path_Email')" label="Email" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 

@@ -84,14 +84,15 @@ export class HeaderService {
     }
 
     /**
-     * Verifies a profile-update OTP.
+     * Verifies a profile-update OTP (email/phone) or TOTP code (authenticator app).
+     * authType: 1=Mobile, 2=Email, 3=AuthenticationApp
      * Returns { success, message } only — no JWT issued.
      */
-    verifyProfileOtp(userId: string, code: string): Observable<{ success: boolean; message: string }> {
+    verifyProfileOtp(userId: string, code: string, authType: number = 1): Observable<{ success: boolean; message: string }> {
       const endpoint = `${this.url}${apiEndpoints.verifyProfileOtp}`;
       return this.httpClient.post<{ success: boolean; message: string }>(
         endpoint,
-        { userId, code }
+        { userId, code, authType }
       ).pipe(catchError(this.errorHandler.bind(this)));
     }
 

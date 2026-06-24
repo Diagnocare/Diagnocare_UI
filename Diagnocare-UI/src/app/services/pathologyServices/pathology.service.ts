@@ -66,11 +66,28 @@ export class PathologyService {
         ).pipe(catchError(this.errorHandler));
       }
 
-      /** PUT — update JWT token expiry duration (minutes) for this pathology */
-      updateTokenExpiry(minutes: number): Observable<any> {
+      /**
+       * PUT — updates the grace buffer duration (minutes) stored in token_expiry_in_minutes.
+       * Within this window after JWT expiry, users with a PIN are prompted to re-authenticate
+       * instead of being immediately redirected to /login.
+       * Set to 0 to disable PIN re-authentication entirely.
+       */
+      updateGraceBuffer(minutes: number): Observable<any> {
         return this.httpClient.put<any>(
-          `${this.url}${apiEndpoints.updateTokenExpiry}?tokenExpiryInMinutes=${minutes}`,
+          `${this.url}${apiEndpoints.updateGraceBuffer}?graceBufferInMinutes=${minutes}`,
           null
+        ).pipe(catchError(this.errorHandler));
+      }
+
+      /**
+       * POST — uploads the pathology logo to the database.
+       * Accepts a data-URL (e.g. from FileReader.readAsDataURL); the API strips
+       * the data-URI prefix automatically before storing the raw bytes.
+       */
+      uploadLogo(logoBase64: string): Observable<any> {
+        return this.httpClient.post<any>(
+          `${this.url}UploadLogo`,
+          { logoBase64 }
         ).pipe(catchError(this.errorHandler));
       }
 

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 
@@ -42,11 +43,22 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() otpMessage          = '';
   @Input() resendDisabled      = false;
   @Input() id: number          = 0;
+  /**
+   * When provided, this function is called instead of loginService.generateOtp().
+   * Allows reusing the dialog outside the login flow (e.g. Settings PIN setup).
+   * Receives the selected method ('phone' | 'email') and must return an Observable.
+   */
+  @Input() sendOtpFn: ((method: string) => Observable<any>) | null = null;
+  /** Label for the back/cancel navigation button (default: 'Back to Login'). */
+  @Input() backLabel = 'Back to Login';
+  /** Error message to show after a failed verify attempt; set by parent. */
+  @Input() verifyError = '';
 
   // ── Outputs ───────────────────────────────────────────────────────
   @Output() verify        = new EventEmitter<{ code: string; authType: number }>();
   @Output() channelChange = new EventEmitter<string>();
   @Output() close         = new EventEmitter<void>();
+  @Output() back          = new EventEmitter<void>();
 
   // ── Form ──────────────────────────────────────────────────────────
   form: FormGroup;
@@ -221,9 +233,10 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   sendOtpRequest(): void {
     if (!this.userId || !this.selectedMethod) return;
     this.showOtpInput = true;
-    this.loginService.generateOtp(this.id, this.userId, this.selectedMethod).subscribe({
-      next: () => this.startResendTimer(),
-    });
+    const sender$ = this.sendOtpFn
+      ? this.sendOtpFn(this.selectedMethod)
+      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+    sender$.subscribe({ next: () => this.startResendTimer() });
   }
 
   // ── Getters ───────────────────────────────────────────────────────
@@ -264,12 +277,16 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   }
 
   onBack(): void {
+    this.back.emit();
     window.dispatchEvent(new CustomEvent('backFromMfaDialog', { bubbles: true }));
   }
 
   onResend(): void {
     if (!this.userId || !this.selectedMethod) return;
-    this.loginService.generateOtp(this.id, this.userId, this.selectedMethod).subscribe({
+    const sender$ = this.sendOtpFn
+      ? this.sendOtpFn(this.selectedMethod)
+      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+    sender$.subscribe({
       next: () => {
         this.resendRemaining = this.resendSeconds;
         this.startResendTimer();

@@ -21,32 +21,26 @@
         <h3>Edit Patient Details</h3>
       </div>
       <div class="card-body">
-        <form [formGroup]="editPatientForm" (ngSubmit)="SubmitForm(editPatientForm)">
-          @if(formSubmitted && errors.length > 0)
-          {
-            <div class="alert alert-danger">
-              <h5>Please fix the following errors:</h5>
-              <ul>
-                <li *ngFor="let error of errors">{{ error }}</li>
-              </ul>
-            </div>
-          }
-    
+        <form [formGroup]="editPatientForm" (ngSubmit)="SubmitForm(editPatientForm)" appFormKeyboard [tabFields]="tabFields">
+
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Name</label>
-              <div class="input-group">
+              <label class="form-label required">Name</label>
+              <div class="input-group" [class.is-invalid]="isFieldInvalid('patient_Name')">
                 <select formControlName="patient_Salutation" class="form-select" style="max-width: 80px;" [attr.tabindex]="getTabIndex('patient_Salutation')">
                   <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
                 </select>
-                <input type="text" class="form-control" formControlName="patient_Name" [attr.tabindex]="getTabIndex('patient_Name')">
+                <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Name')"
+                       formControlName="patient_Name" [attr.tabindex]="getTabIndex('patient_Name')">
               </div>
+              <app-field-error [control]="editPatientForm.get('patient_Name')" label="Patient Name" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Date Of Birth</label>
+              <label class="form-label required">Date Of Birth</label>
               <input
                 type="text"
                 class="form-control"
+                [class.is-invalid]="isFieldInvalid('patient_DOB')"
                 formControlName="patient_DOB"
                 placeholder="dd/mm/yyyy"
                 maxlength="10"
@@ -55,13 +49,16 @@
                 autocomplete="off"
                 [attr.tabindex]="getTabIndex('patient_DOB')"
               />
+              <app-field-error [control]="editPatientForm.get('patient_DOB')" label="Date of Birth" [forceShow]="formSubmitted"></app-field-error>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Age</label>
-              <input type="text" class="form-control" formControlName="patient_Age" [attr.tabindex]="getTabIndex('patient_Age')">
+              <label class="form-label required">Age</label>
+              <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Age')"
+                     formControlName="patient_Age" [attr.tabindex]="getTabIndex('patient_Age')">
+              <app-field-error [control]="editPatientForm.get('patient_Age')" label="Age" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label">Age Group</label>
@@ -73,56 +70,69 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Gender</label>
-              <div class="radio-group">
+              <label class="form-label required">Gender</label>
+              <div class="radio-group" [class.is-invalid]="isFieldInvalid('patient_Gender')">
                 <label class="radio-label" *ngFor="let entry of gender; let i = index">
                   <input type="radio" formControlName="patient_Gender" [value]="entry" [attr.tabindex]="i === 0 ? getTabIndex('patient_Gender') : -1" /> {{entry}}
                 </label>
               </div>
+              <app-field-error [control]="editPatientForm.get('patient_Gender')" label="Gender" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Marital Status</label>
-              <div class="radio-group">
+              <label class="form-label required">Marital Status</label>
+              <div class="radio-group" [class.is-invalid]="isFieldInvalid('patient_Marital_Status')">
                 <label class="radio-label" *ngFor="let status of maritalStatus; let i = index">
                   <input type="radio" formControlName="patient_Marital_Status" [value]="status" [attr.tabindex]="i === 0 ? getTabIndex('patient_Marital_Status') : -1" /> {{status}}
                 </label>
               </div>
+              <app-field-error [control]="editPatientForm.get('patient_Marital_Status')" label="Marital Status" [forceShow]="formSubmitted"></app-field-error>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Relation</label>
-              <select formControlName="relation" class="form-select" [attr.tabindex]="getTabIndex('relation')">
+              <label class="form-label required">Relation</label>
+              <select formControlName="relation" class="form-select" [class.is-invalid]="isFieldInvalid('relation')"
+                      [attr.tabindex]="getTabIndex('relation')">
                 <option *ngFor="let relation of relations" [value]="relation">{{ relation }}</option>
               </select>
+              <app-field-error [control]="editPatientForm.get('relation')" label="Relation" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Relative Name</label>
-              <input type="text" class="form-control" formControlName="relative_Name" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('relative_Name')">
+              <label class="form-label required">Relative Name</label>
+              <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('relative_Name')"
+                     formControlName="relative_Name" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('relative_Name')">
+              <app-field-error [control]="editPatientForm.get('relative_Name')" label="Relative Name" [forceShow]="formSubmitted"></app-field-error>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Contact</label>
+              <label class="form-label required">Contact</label>
               <div style="display: flex; gap: 6px; align-items: center;">
                 <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                   <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                 </select>
-                <input type="number" class="form-control" formControlName="patient_Contact" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;">
+                <input type="number" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Contact')"
+                       formControlName="patient_Contact" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;">
               </div>
+              <app-field-error [control]="editPatientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label">Email ID</label>
-              <input type="text" class="form-control" formControlName="patient_Email" [attr.tabindex]="getTabIndex('patient_Email')">
+              <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Email')"
+                     formControlName="patient_Email" [attr.tabindex]="getTabIndex('patient_Email')">
+              <app-field-error [control]="editPatientForm.get('patient_Email')" label="Email" [forceShow]="formSubmitted"></app-field-error>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Address</label>
-            <input type="text" class="form-control" formControlName="patient_Address" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('patient_Address')">
+            <label class="form-label required">Address</label>
+            <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Address')"
+                   formControlName="patient_Address" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('patient_Address')">
+            <app-field-error [control]="editPatientForm.get('patient_Address')" label="Address" [forceShow]="formSubmitted"></app-field-error>
           </div>
+
           <div class="form-actions">
             <button type="submit" class="btn btn-success">
               <i class="fa fa-save"></i> Update

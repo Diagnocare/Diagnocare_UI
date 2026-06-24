@@ -22,6 +22,8 @@ export interface ModuleAccess {
   patientsLink:     boolean;
   patientTestsLink: boolean;
   myVisits:         boolean;
+  /** True for non-admin staff who can view their own attendance (read-only). */
+  myAttendance:     boolean;
   /** Route to navigate to immediately after a successful login. */
   landingRoute:     string;
 }
@@ -35,7 +37,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel:       true,
     patientsLink:     false,
     patientTestsLink: false,
-    myVisits:         false,   // Admins manage the schedule, they don't receive assignments
+    myVisits:         false,
+    myAttendance:     false,   // Admins see all staff via the full Attendance module
     landingRoute:     '/pathology',
   },
   [Role.Admin.id]: {
@@ -46,7 +49,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel:       true,
     patientsLink:     false,
     patientTestsLink: false,
-    myVisits:         false,   // Admins manage the schedule, they don't receive assignments
+    myVisits:         false,
+    myAttendance:     false,   // Admins see all staff via the full Attendance module
     landingRoute:     '/pathology',
   },
   [Role.User.id]: {
@@ -57,7 +61,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel:       false,
     patientsLink:     false,
     patientTestsLink: false,
-    myVisits:         true,    // staff members can be assigned field visits
+    myVisits:         true,
+    myAttendance:     true,    // staff members can view their own attendance
     landingRoute:     '/patients',
   },
   [Role.Assistant.id]: {
@@ -68,7 +73,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel:       false,
     patientsLink:     false,
     patientTestsLink: false,
-    myVisits:         true,    // staff members can be assigned field visits
+    myVisits:         true,
+    myAttendance:     true,    // staff members can view their own attendance
     landingRoute:     '/patients',
   },
   [Role.Collection_Boy.id]: {
@@ -77,9 +83,10 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     summaryReports:   false,
     labSetup:         false,
     adminPanel:       false,
-    patientsLink:     true,    // see patient list for sample collection
+    patientsLink:     true,
     patientTestsLink: false,
-    myVisits:         true,    // collection boys are commonly assigned field visits
+    myVisits:         true,
+    myAttendance:     true,    // collection boys can view their own attendance
     landingRoute:     '/patients',
   },
   [Role.Doctor.id]: {
@@ -89,8 +96,9 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     labSetup:         false,
     adminPanel:       false,
     patientsLink:     false,
-    patientTestsLink: true,    // view patient test reports
-    myVisits:         true,    // doctors can be assigned field visits
+    patientTestsLink: true,
+    myVisits:         true,
+    myAttendance:     true,    // doctors can view their own attendance
     landingRoute:     '/patient-tests',
   },
 };
@@ -105,5 +113,6 @@ export const DEFAULT_ACCESS: ModuleAccess = {
   patientsLink:     false,
   patientTestsLink: false,
   myVisits:         false,
+  myAttendance:     false,
   landingRoute:     '/pathology',
 };

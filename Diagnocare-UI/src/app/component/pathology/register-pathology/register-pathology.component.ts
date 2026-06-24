@@ -5,20 +5,30 @@ import { RouterModule } from '@angular/router';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
 import { PathologyRegisterDto } from 'src/app/models/pathology/pathology-register.dto';
 import { PathologyRegisterResponseDto } from 'src/app/models/pathology/pathology-register-response.dto';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 @Component({
   selector: 'app-register-pathology',
   standalone: true,
   templateUrl: './register-pathology.component.html',
   styleUrls: ['./register-pathology.component.css'],
-  imports: [ReactiveFormsModule, CommonModule, RouterModule],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, FieldErrorComponent, FormKeyboardDirective],
 })
 export class RegisterPathologyComponent implements OnInit {
 
   form!: FormGroup;
   isSubmitting = false;
+  submitted = false;
   registrationResult: PathologyRegisterResponseDto | null = null;
   serverError = '';
+
+  readonly tabFields = [
+    'path_Name', 'path_Branch',
+    'path_Address1', 'path_Address2',
+    'path_City', 'path_State', 'path_Pincode', 'path_Country',
+    'path_ContactNo', 'path_Email',
+  ];
 
   readonly TRIAL_DAYS   = 15;
   readonly LICENSE_DAYS = 365;
@@ -70,6 +80,7 @@ export class RegisterPathologyComponent implements OnInit {
   }
 
   submit(): void {
+    this.submitted = true;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -101,7 +112,7 @@ export class RegisterPathologyComponent implements OnInit {
 
   hasError(field: string): boolean {
     const c = this.form.get(field);
-    return !!(c && c.invalid && c.touched);
+    return !!(c && c.invalid && (c.touched || this.submitted));
   }
 
   copyLicenseKey(): void {

@@ -15,27 +15,47 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
   confirmText = 'Confirm';
   cancelText = 'Cancel';
   hideCancelButton = false;
+  isLoading = false;
 
+  private showLoadingOnConfirm = false;
   private modal: any;
-  private sub!: Subscription;
+  private subs: Subscription[] = [];
 
   constructor(private confirmModalService: ConfirmModalService) {}
 
   ngOnInit(): void {
-    this.sub = this.confirmModalService.open$.subscribe((options: ConfirmOptions) => {
-      this.title = options.title ?? 'Confirm';
-      this.message = options.message;
-      this.confirmText = options.confirmText ?? 'Confirm';
-      this.cancelText = options.cancelText ?? 'Cancel';
-      this.hideCancelButton = options.hideCancelButton ?? false;
-      this.modal = new (window as any).bootstrap.Modal(document.getElementById('confirmModal')!, { backdrop: 'static' });
-      this.modal.show();
-    });
+    this.subs.push(
+      this.confirmModalService.open$.subscribe((options: ConfirmOptions) => {
+        this.title = options.title ?? 'Confirm';
+        this.message = options.message;
+        this.confirmText = options.confirmText ?? 'Confirm';
+        this.cancelText = options.cancelText ?? 'Cancel';
+        this.hideCancelButton = options.hideCancelButton ?? false;
+        this.showLoadingOnConfirm = options.showLoadingOnConfirm ?? false;
+        this.isLoading = false;
+        this.modal = new (window as any).bootstrap.Modal(document.getElementById('confirmModal')!, { backdrop: 'static' });
+        this.modal.show();
+      }),
+
+      this.confirmModalService.loading$.subscribe(loading => {
+        this.isLoading = loading;
+      }),
+
+      this.confirmModalService.dismiss$.subscribe(() => {
+        this.hideModal();
+      })
+    );
   }
 
   onConfirm(): void {
-    this.hideModal();
-    this.confirmModalService.resolve(true);
+    if (this.showLoadingOnConfirm) {
+      // Resolve immediately so the caller's subscribe fires and can call setLoading(true),
+      // but keep the modal open — caller must call dismiss() when done.
+      this.confirmModalService.resolve(true);
+    } else {
+      this.hideModal();
+      this.confirmModalService.resolve(true);
+    }
   }
 
   onCancel(): void {
@@ -53,6 +73,6 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.sub?.unsubscribe();
+    this.subs.forEach(s => s.unsubscribe());
   }
 }

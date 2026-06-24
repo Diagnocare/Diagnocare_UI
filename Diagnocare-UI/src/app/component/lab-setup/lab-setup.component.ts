@@ -9,8 +9,9 @@ import { UnitService }             from 'src/app/services/unitServices/unit.serv
 import { PathologyService }        from 'src/app/services/pathologyServices/pathology.service';
 import { ConfirmModalService }     from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent }   from 'src/app/shared/confirm-modal/confirm-modal.component';
+import { TokenService }            from 'src/app/core/interceptors/token.service';
 
-export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'token';
+export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'grace';
 
 @Component({
   selector: 'app-lab-setup',
@@ -46,13 +47,13 @@ export class LabSetupComponent implements OnInit {
   editUnitName  = '';
   editUnitError = '';
 
-  // ── Token Expiry ────────────────────────────────────────────────────
-  tokenExpiryMinutes: number | null = null;
-  tokenExpiryInput:   number | null = null;
-  tokenExpirySaving   = false;
-  tokenExpiryLoading  = false;
-  tokenExpiryError    = '';
-  tokenExpirySuccess  = '';
+  // ── Grace Buffer (stored as token_expiry_in_minutes in DB) ──────────
+  graceBufferMinutes: number | null = null;
+  graceBufferInput:   number | null = null;
+  graceBufferSaving   = false;
+  graceBufferLoading  = false;
+  graceBufferError    = '';
+  graceBufferSuccess  = '';
 
   constructor(
     private samplingService:  SamplingLocationService,
@@ -60,6 +61,7 @@ export class LabSetupComponent implements OnInit {
     private unitService:      UnitService,
     private pathologyService: PathologyService,
     private confirmModal:     ConfirmModalService,
+    private tokenService:     TokenService,
     private router:           Router,
   ) {}
 
@@ -71,8 +73,8 @@ export class LabSetupComponent implements OnInit {
 
   switchTab(tab: LabSetupTab): void {
     this.activeTab = tab;
-    if (tab === 'token' && this.tokenExpiryMinutes === null && !this.tokenExpiryLoading) {
-      this.loadTokenExpiry();
+    if (tab === 'grace' && this.graceBufferMinutes === null && !this.graceBufferLoading) {
+      this.loadGraceBuffer();
     }
   }
 
@@ -277,48 +279,53 @@ export class LabSetupComponent implements OnInit {
     });
   }
 
-  // ── Token Expiry helpers ───────────────────────────────────────────
+  // ── Grace Buffer helpers (stored as token_expiry_in_minutes in DB) ──
 
-  private loadTokenExpiry(): void {
-    this.tokenExpiryLoading = true;
-    this.tokenExpiryError   = '';
+  private loadGraceBuffer(): void {
+    this.graceBufferLoading = true;
+    this.graceBufferError   = '';
     this.pathologyService.getPathology().subscribe({
       next: (data) => {
-        this.tokenExpiryMinutes = data.tokenExpiryMinutes ?? null;
-        this.tokenExpiryInput   = this.tokenExpiryMinutes;
-        this.tokenExpiryLoading = false;
+        // graceBufferMinutes is serialised from DB column token_expiry_in_minutes
+        this.graceBufferMinutes = data.graceBufferMinutes ?? 0;
+        this.graceBufferInput   = this.graceBufferMinutes;
+        this.graceBufferLoading = false;
+        // Sync into TokenService cache so the interceptor reads it immediately
+        this.tokenService.setGraceBufferMinutes(this.graceBufferMinutes);
       },
       error: () => {
-        this.tokenExpiryError   = 'Failed to load current token expiry. Please try again.';
-        this.tokenExpiryLoading = false;
+        this.graceBufferError   = 'Failed to load grace buffer setting. Please try again.';
+        this.graceBufferLoading = false;
       },
     });
   }
 
-  saveTokenExpiry(): void {
-    const minutes = this.tokenExpiryInput;
+  saveGraceBuffer(): void {
+    const minutes = this.graceBufferInput;
     if (minutes === null || minutes === undefined || isNaN(Number(minutes))) {
-      this.tokenExpiryError = 'Please enter a valid number of minutes.';
+      this.graceBufferError = 'Please enter a valid number of minutes.';
       return;
     }
-    if (minutes < 1) {
-      this.tokenExpiryError = 'Token expiry must be at least 1 minute.';
+    if (Number(minutes) < 0) {
+      this.graceBufferError = 'Grace buffer cannot be negative. Use 0 to disable.';
       return;
     }
-    this.tokenExpiryError   = '';
-    this.tokenExpirySuccess = '';
-    this.tokenExpirySaving  = true;
+    this.graceBufferError   = '';
+    this.graceBufferSuccess = '';
+    this.graceBufferSaving  = true;
 
-    this.pathologyService.updateTokenExpiry(Number(minutes)).subscribe({
+    this.pathologyService.updateGraceBuffer(Number(minutes)).subscribe({
       next: () => {
-        this.tokenExpiryMinutes = Number(minutes);
-        this.tokenExpirySuccess = 'Token expiry updated successfully.';
-        this.tokenExpirySaving  = false;
-        setTimeout(() => this.tokenExpirySuccess = '', 4000);
+        this.graceBufferMinutes = Number(minutes);
+        // Persist to TokenService cache so the interceptor can read it immediately
+        this.tokenService.setGraceBufferMinutes(Number(minutes));
+        this.graceBufferSuccess = 'Grace buffer updated successfully.';
+        this.graceBufferSaving  = false;
+        setTimeout(() => this.graceBufferSuccess = '', 4000);
       },
       error: () => {
-        this.tokenExpiryError  = 'Failed to save token expiry. Please try again.';
-        this.tokenExpirySaving = false;
+        this.graceBufferError  = 'Failed to save grace buffer. Please try again.';
+        this.graceBufferSaving = false;
       },
     });
   }

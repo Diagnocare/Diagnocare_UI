@@ -12,6 +12,7 @@ import { LoginService } from 'src/app/services/loginServices/login.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { LicenceService } from 'src/app/services/licenceServices/licence.service';
+import { PinService } from 'src/app/services/pinServices/pin.service';
 
 @Component({
   selector: 'app-header',
@@ -47,6 +48,10 @@ export class HeaderComponent implements OnInit {
   licenceDaysLeft: number | null = null;
   licenceExpiryDate: Date | null = null;
 
+  // ── PIN expiry state ────────────────────────────────────────────────────────
+  isPinExpiringSoon  = false;
+  pinDaysLeft: number | null = null;
+
   toggleMobileNav(): void {
     this.mobileNavOpen = !this.mobileNavOpen;
   }
@@ -58,7 +63,8 @@ export class HeaderComponent implements OnInit {
     private confirmModal: ConfirmModalService,
     private tokenService: TokenService,
     private loginService: LoginService,
-    private licenceSvc: LicenceService
+    private licenceSvc: LicenceService,
+    private pinService: PinService,
   ) {
     this.extractUserName();
     this.extractPathologyId();
@@ -77,6 +83,12 @@ export class HeaderComponent implements OnInit {
       this.licenceDaysLeft       = this.licenceSvc.daysLeft;
       this.licenceExpiryDate     = this.licenceSvc.expiryDate;
     });
+
+    // ── PIN expiry banner ────────────────────────────────────────────────────
+    if (this.userName) {
+      this.isPinExpiringSoon = this.pinService.isPinExpiringSoon(this.userName);
+      this.pinDaysLeft       = this.pinService.getPinDaysLeft(this.userName);
+    }
   }
 
   navigateToHome() {
@@ -194,14 +206,21 @@ export class HeaderComponent implements OnInit {
       title: 'Confirm Logout',
       message: 'Are you sure you want to logout?',
       confirmText: 'Logout',
-      cancelText: 'Cancel'
+      cancelText: 'Cancel',
+      showLoadingOnConfirm: true
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      // Await the backend call so ActiveSessionId is cleared in the DB
-      // before the login page loads. This prevents a spurious session-conflict
-      // dialog on the very next login attempt.
-      this.loginService.logout().subscribe(() => {
-        window.location.href = '/';
+      // Keep the modal open with a spinner while the backend clears ActiveSessionId.
+      this.confirmModal.setLoading(true);
+      this.loginService.logout().subscribe({
+        next: () => {
+          this.confirmModal.dismiss();
+          window.location.href = '/';
+        },
+        error: () => {
+          // Re-enable the modal so the user can try again or cancel.
+          this.confirmModal.setLoading(false);
+        }
       });
     });
   }

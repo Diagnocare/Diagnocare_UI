@@ -7,6 +7,8 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
 import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { CommonService } from 'src/app/shared/common.service';
@@ -36,7 +38,9 @@ import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
     AutocompleteInputDirective,
     LoadingSpinnerComponent,
     DatePickerComponent,
-    TpaDetailsModalComponent
+    TpaDetailsModalComponent,
+    FieldErrorComponent,
+    FormKeyboardDirective,
   ],
   providers: [],
   standalone: true,
@@ -63,6 +67,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   currentStep = 1;
+
+  /** Exposed for [tabFields] binding on the form element. */
+  readonly tabFields = tabOrderAdd;
 
   /** True once the user clicks "Confirm" in the Partial Payment modal. */
   paymentConfirmed = false;

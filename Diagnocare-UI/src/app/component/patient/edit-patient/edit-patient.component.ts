@@ -11,14 +11,15 @@ import { CommonService } from 'src/app/shared/common.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { salutation, ageGroup, gender, maritalStatus, relations, referredByType } from 'src/app/constant/enums';
 import { tabOrderEdit, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 @Component({
   selector: 'app-edit-patient',
   templateUrl: './edit-patient.component.html',
   styleUrls: ['./edit-patient.component.scss'],
   standalone: true,
-  imports: [ReactiveFormsModule,FormsModule,CommonModule,LoadingSpinnerComponent
-  ]
+  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective]
 })
 export class EditPatientComponent implements OnInit, OnDestroy {
   
@@ -26,6 +27,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   formSubmitted: boolean = false;
+  readonly tabFields = tabOrderEdit;
   componentTitle = "Edit Patient Form";
   param:string="";
   usertype:string="";
@@ -142,6 +144,11 @@ export class EditPatientComponent implements OnInit, OnDestroy {
   getTabIndex(controlName: string): number {
     const idx = tabOrderEdit.indexOf(controlName);
     return idx === -1 ? -1 : idx + 1;
+  }
+
+  isFieldInvalid(field: string): boolean {
+    const c = this.editPatientForm.get(field);
+    return !!(c?.invalid && (c.touched || c.dirty || this.formSubmitted));
   }
 
     // Removed duplicate loadPatient. Only the new version with patientDialingContact split is used.

@@ -18,6 +18,16 @@
   </span>
 </div>
 
+<!-- ── PIN Expiring Soon Banner ────────────────────────────────────────── -->
+<div class="dc-licence-banner dc-pin-expiry-warning" *ngIf="isPinExpiringSoon">
+  <i class="fa fa-key"></i>
+  <span>
+    Your session PIN expires in
+    <strong>{{ pinDaysLeft }} day{{ pinDaysLeft !== 1 ? 's' : '' }}</strong>.
+    <a class="dc-licence-banner-link" (click)="redirectionToModule({route:'change-pin'})">Change PIN now</a>
+  </span>
+</div>
+
 <header class="dc-header" [class.dc-header-expired]="isLicenceExpired">
 
   <!-- ── Brand ── -->
@@ -124,6 +134,12 @@
       <i class="fa fa-map-marker-alt"></i><span>Address</span>
       <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
     </a> -->
+
+    <!-- My Attendance — read-only self-service view for non-admin staff -->
+    <a *ngIf="access.myAttendance" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'my-attendance'}); $event.preventDefault()">
+      <i class="fa fa-calendar-check"></i><span>My Attendance</span>
+    </a>
 
     <!-- My Visits — for members who receive field-visit assignments -->
     <a *ngIf="access.myVisits" class="dc-nav-link" href="#"
@@ -258,6 +274,12 @@
   <a *ngIf="access.patientTestsLink" class="dc-mobile-item" href="#"
      (click)="redirectionToModule({route:'patient-tests'}); mobileNavOpen=false; $event.preventDefault()">
     <i class="fa fa-flask"></i> Patient Reports
+  </a>
+
+  <!-- My Attendance (mobile) -->
+  <a *ngIf="access.myAttendance" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'my-attendance'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-calendar-check"></i> My Attendance
   </a>
 
   <!-- My Visits (mobile) -->

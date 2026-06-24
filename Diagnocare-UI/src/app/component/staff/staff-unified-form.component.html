@@ -31,7 +31,8 @@
     </div>
 
     <div class="card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="off">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="off"
+            appFormKeyboard [tabFields]="tabFields">
 
         <!-- ── USER fields ──────────────────────────────────────────────── -->
         <ng-container *ngIf="formType === 'user'">
@@ -43,9 +44,7 @@
                      [class.is-invalid]="isInvalid('first_Name')"
                      placeholder="Enter first name"
                      (blur)="onNameBlur()" />
-              <small class="form-error" *ngIf="isInvalid('first_Name')">
-                First name is required (letters only).
-              </small>
+              <app-field-error [control]="form.get('first_Name')" label="First Name" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label required">Last Name</label>
@@ -53,9 +52,7 @@
                      [class.is-invalid]="isInvalid('last_Name')"
                      placeholder="Enter last name"
                      (blur)="onNameBlur()" />
-              <small class="form-error" *ngIf="isInvalid('last_Name')">
-                Last name is required (letters only).
-              </small>
+              <app-field-error [control]="form.get('last_Name')" label="Last Name" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 
@@ -65,9 +62,7 @@
               <input class="form-control" formControlName="user_Name"
                      [class.is-invalid]="isInvalid('user_Name')"
                      placeholder="Auto-generated or custom" />
-              <small class="form-error" *ngIf="isInvalid('user_Name')">
-                Username required (min 5 chars, must be unique).
-              </small>
+              <app-field-error [control]="form.get('user_Name')" label="Username" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label required">Role</label>
@@ -76,7 +71,7 @@
                 <option value="" disabled>-- Select Role --</option>
                 <option *ngFor="let r of userRoleOptions" [value]="r.id">{{ r.label }}</option>
               </select>
-              <small class="form-error" *ngIf="isInvalid('typeUserId')">Role is required.</small>
+              <app-field-error [control]="form.get('typeUserId')" label="Role" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 
@@ -86,16 +81,14 @@
               <input class="form-control" type="email" formControlName="email"
                      [class.is-invalid]="isInvalid('email')"
                      placeholder="Enter email address" />
-              <small class="form-error" *ngIf="isInvalid('email')">Valid email is required.</small>
+              <app-field-error [control]="form.get('email')" label="Email" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label required">Contact Phone</label>
               <input class="form-control" formControlName="contactPhone"
                      [class.is-invalid]="isInvalid('contactPhone')"
                      placeholder="10-digit number" />
-              <small class="form-error" *ngIf="isInvalid('contactPhone')">
-                10-digit phone number required.
-              </small>
+              <app-field-error [control]="form.get('contactPhone')" label="Contact Phone" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 
@@ -106,7 +99,7 @@
               <app-date-picker formControlName="effectiveFrom" inputClass="form-control"
                                [class.is-invalid]="isInvalid('effectiveFrom')"
                                placeholder="Select start date"></app-date-picker>
-              <small class="form-error" *ngIf="isInvalid('effectiveFrom')">Effective From date is required.</small>
+              <app-field-error [control]="form.get('effectiveFrom')" label="Effective From" [forceShow]="submitted"></app-field-error>
               <small class="form-hint" *ngIf="!isInvalid('effectiveFrom')">Date from which this user appears in attendance &amp; salary</small>
             </div>
             <div class="form-group" *ngIf="isEdit">
@@ -133,7 +126,7 @@
                      [class.is-invalid]="isInvalid('first_Name')"
                      placeholder="Enter first name"
                      (blur)="onNameBlur()" />
-              <small class="form-error" *ngIf="isInvalid('first_Name')">First name is required.</small>
+              <app-field-error [control]="form.get('first_Name')" label="First Name" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label required">Last Name</label>
@@ -141,7 +134,7 @@
                      [class.is-invalid]="isInvalid('last_Name')"
                      placeholder="Enter last name"
                      (blur)="onNameBlur()" />
-              <small class="form-error" *ngIf="isInvalid('last_Name')">Last name is required.</small>
+              <app-field-error [control]="form.get('last_Name')" label="Last Name" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 
@@ -150,12 +143,11 @@
             <input class="form-control" formControlName="user_Name"
                    [class.is-invalid]="isInvalid('user_Name')"
                    placeholder="Auto-generated or custom" />
+            <!-- Username-taken async error shown separately -->
             <small class="form-error" *ngIf="form.get('user_Name')?.errors?.['usernameTaken']">
               Username is already taken.
             </small>
-            <small class="form-error" *ngIf="isInvalid('user_Name') && !form.get('user_Name')?.errors?.['usernameTaken']">
-              Username required (min 5 chars).
-            </small>
+            <app-field-error [control]="form.get('user_Name')" label="Username" [forceShow]="submitted"></app-field-error>
           </div>
 
           <div class="form-row">
@@ -164,14 +156,14 @@
               <input class="form-control" formControlName="qualification"
                      [class.is-invalid]="isInvalid('qualification')"
                      [placeholder]="formType === 'doctor' ? 'e.g. MBBS, MD' : 'Optional'" />
-              <small class="form-error" *ngIf="isInvalid('qualification')">Qualification is required.</small>
+              <app-field-error [control]="form.get('qualification')" label="Qualification" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
               <label class="form-label" [class.required]="formType === 'doctor'">Position</label>
               <input class="form-control" formControlName="position"
                      [class.is-invalid]="isInvalid('position')"
                      [placeholder]="formType === 'doctor' ? 'e.g. Pathologist' : 'Optional'" />
-              <small class="form-error" *ngIf="isInvalid('position')">Position is required.</small>
+              <app-field-error [control]="form.get('position')" label="Position" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 
@@ -180,7 +172,6 @@
             <label class="form-label">Signature Image</label>
             <div class="signature-section">
 
-              <!-- Existing signature (edit mode) -->
               <ng-container *ngIf="isEdit && form.value.signature && !showSignatureInput">
                 <div class="signature-existing">
                   <div class="signature-existing-actions">
@@ -197,7 +188,6 @@
                 </div>
               </ng-container>
 
-              <!-- Upload zone -->
               <ng-container *ngIf="!isEdit || showSignatureInput || (isEdit && !form.value.signature)">
                 <input #fileInputRef type="file" accept="image/jpeg,image/jpg,image/png"
                        (change)="onSignatureFileChange($event)"
@@ -241,7 +231,7 @@
               <app-date-picker formControlName="effectiveFrom" inputClass="form-control"
                                [class.is-invalid]="isInvalid('effectiveFrom')"
                                placeholder="Select start date"></app-date-picker>
-              <small class="form-error" *ngIf="isInvalid('effectiveFrom')">Effective From date is required.</small>
+              <app-field-error [control]="form.get('effectiveFrom')" label="Effective From" [forceShow]="submitted"></app-field-error>
               <small class="form-hint" *ngIf="!isInvalid('effectiveFrom')">Date from which this person appears in attendance &amp; salary</small>
             </div>
             <div class="form-group" *ngIf="isEdit">
@@ -260,7 +250,7 @@
 
         <!-- Form Actions -->
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || isLoading">
+          <button type="submit" class="btn btn-primary" [disabled]="isLoading">
             <i class="fa" [ngClass]="isEdit ? 'fa-save' : 'fa-plus'"></i>
             {{ isEdit ? 'Save Changes' : 'Add ' + formTypeLabel }}
           </button>

@@ -78,7 +78,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     const today = this.localDateIso();
     // this.dateFrom = today;
     // fix hardcoded date to ISO format (yyyy-MM-dd)
-    this.dateFrom = '2025-11-01';
+    this.dateFrom = today;
     this.dateTo = today;
     this.loadPatients();
   }

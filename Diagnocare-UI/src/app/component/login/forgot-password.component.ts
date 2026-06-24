@@ -12,6 +12,8 @@ import { CommonService } from '../../shared/common.service';
 import { OtpResponse } from 'src/app/models/otpRequest/otpRequest';
 import { VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
 import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.service';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null => {
   const newPassword = group.get('newPassword')?.value as string | undefined;
@@ -27,7 +29,7 @@ const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule,OtpMfaDialogComponent]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, OtpMfaDialogComponent, FieldErrorComponent, FormKeyboardDirective]
 })
 export class ForgotPasswordComponent {
   private methodModal: any = null;

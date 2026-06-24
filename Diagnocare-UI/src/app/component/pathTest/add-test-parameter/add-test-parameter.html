@@ -27,7 +27,7 @@
       <div class="card-body">
         <app-loading-spinner [isLoading]="isLoading" message="Loading test parameters..."></app-loading-spinner>
 
-        <form [formGroup]="parameterform" (ngSubmit)="submit()">
+        <form [formGroup]="parameterform" (ngSubmit)="submit()" appFormKeyboard>
           <div class="table-container">
             <table class="data-table" formArrayName="parameters">
               <thead>

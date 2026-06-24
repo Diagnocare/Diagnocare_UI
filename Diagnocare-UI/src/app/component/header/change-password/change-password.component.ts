@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 
 @Component({
@@ -15,7 +16,7 @@ import { Role } from 'src/app/constant/enums';
   templateUrl: './change-password.component.html',
   styleUrls: ['../account-pages.shared.css', './change-password.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule, FormKeyboardDirective]
 })
 export class ChangePasswordComponent {
   oldPassword = '';

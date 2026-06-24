@@ -85,6 +85,8 @@ export const apiEndpoints = {
   downloadTemplate:"DownloadTemplate",
   getWeeklyAttendance:  'GetWeekly',
   getMonthly: 'GetMonthly',
+  getMyWeeklyAttendance: 'GetMyWeekly',
+  getMyMonthly:          'GetMyMonthly',
   generateSalary:      'Generate',
   generateReceiptPdf: 'GenerateReceiptPdf',
   getHolidaysByYear: 'GetHolidayCalendar',
@@ -95,7 +97,8 @@ export const apiEndpoints = {
   getSalaryConfig:          'GetConfig',
   saveSalaryConfig:         'SaveConfig',
   calculatePayableSalary:   'CalculatePayableSalary',
-  updateTokenExpiry:        'UpdateTokenExpiry',
+  /** Maps to DB column token_expiry_in_minutes — stores the PIN grace buffer duration */
+  updateGraceBuffer:        'UpdateGraceBuffer',
   getMFAStatus:             'status',          // GET  api/Mfa/status
   setupMFA:                 'setup',           // POST api/Mfa/setup
   confirmMfaSetup:          'confirm-setup',   // POST api/Mfa/confirm-setup

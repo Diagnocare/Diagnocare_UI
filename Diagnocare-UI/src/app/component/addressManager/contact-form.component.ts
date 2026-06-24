@@ -7,6 +7,8 @@ import { ContactAddressListDto } from 'src/app/models/contactAddress/contactAddr
 import { ContactAddressService } from 'src/app/services/contactAddressServices/contact-address.service';
 import { CommonService } from 'src/app/shared/common.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { InstitutionType } from 'src/app/constant/enums';
 
 @Component({
@@ -14,13 +16,30 @@ import { InstitutionType } from 'src/app/constant/enums';
   templateUrl: './contact-form.component.html',
   styleUrls: ['./contact-form.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent]
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective]
 })
 export class ContactFormComponent implements OnInit {
   contactForm: FormGroup;
   isEdit = false;
   contactId: number | null = null;
   isLoading = false;
+  submitted = false;
+
+  /** Tab order for keyboard navigation (Enter → next, Shift+Tab → previous). */
+  readonly tabFields = [
+    'institutionType',
+    'name',
+    'contactPerson',
+    'contactNumber',
+    'email',
+    'addressLine1',
+    'addressLine2',
+    'city',
+    'state',
+    'pinCode',
+    'country',
+    'commissionPercentage',
+  ];
   contactTypes = [
     { value: InstitutionType.Doctor,          label: 'Doctor' },
     { value: InstitutionType.Clinic,          label: 'Clinic' },
@@ -35,7 +54,7 @@ export class ContactFormComponent implements OnInit {
   private contactService = inject(ContactAddressService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private commonService = inject(CommonService);
+  readonly commonService = inject(CommonService);
 
   constructor() {
     this.contactForm = this.fb.group({
@@ -81,7 +100,11 @@ export class ContactFormComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.contactForm.invalid) return;
+    this.submitted = true;
+    if (this.contactForm.invalid) {
+      this.contactForm.markAllAsTouched();
+      return;
+    }
     this.isLoading = true;
     const formValue = this.contactForm.value;
     const contact: any = { ...formValue };

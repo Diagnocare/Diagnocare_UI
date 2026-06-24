@@ -15,7 +15,7 @@
     <app-stepper [steps]="steps" [currentStep]="currentStep"></app-stepper>
 
     <div class="registration-card">
-      <form [formGroup]="patientForm" (ngSubmit)="registerPatient()">
+      <form [formGroup]="patientForm" (ngSubmit)="registerPatient()" appFormKeyboard [tabFields]="tabFields">
 
         <!-- ═══════════════════════════════════════════════════════ STEP 1 -->
         <div *ngIf="currentStep === 1">
@@ -76,9 +76,7 @@
                       <input class="combo-input" formControlName="patient_Name" placeholder="Full Name"
                         [class.is-invalid]="isFieldInvalid('patient_Name')" [attr.tabindex]="getTabIndex('patient_Name')" />
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Name')">
-                  {{ getFieldError('patient_Name') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Name')" label="Patient Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -110,9 +108,7 @@
                     tabindex="-1">
                   </app-date-picker>
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('patient_DOB')">
-                  {{ getFieldError('patient_DOB') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_DOB')" label="Date of Birth" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
@@ -128,9 +124,7 @@
                   <option value="">-- Select --</option>
                   <option *ngFor="let entry of ageRange" [value]="entry">{{ entry }}</option>
                 </select>
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Age_Group')">
-                  {{ getFieldError('patient_Age_Group') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Age_Group')" label="Age Group" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -147,9 +141,7 @@
                     <span>{{ entry }}</span>
                   </label>
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Gender')">
-                  {{ getFieldError('patient_Gender') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Gender')" label="Gender" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
@@ -162,9 +154,7 @@
                     <span>{{ entry }}</span>
                   </label>
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Marital_Status')">
-                  {{ getFieldError('patient_Marital_Status') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Marital_Status')" label="Marital Status" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -178,9 +168,7 @@
                   <option value="">-- Select --</option>
                   <option *ngFor="let r of relations" [value]="r">{{ r }}</option>
                 </select>
-                <span class="field-error" *ngIf="isFieldInvalid('relation')">
-                  {{ getFieldError('relation') }}
-                </span>
+                <app-field-error [control]="patientForm.get('relation')" label="Relation" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
@@ -188,9 +176,7 @@
                   <input type="text" class="form-control" formControlName="relative_Name"
                     placeholder="Relative's full name"
                     [class.is-invalid]="isFieldInvalid('relative_Name')" [attr.tabindex]="getTabIndex('relative_Name')" />
-                <span class="field-error" *ngIf="isFieldInvalid('relative_Name')">
-                  {{ getFieldError('relative_Name') }}
-                </span>
+                <app-field-error [control]="patientForm.get('relative_Name')" label="Relative Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -208,9 +194,7 @@
                     placeholder="10-digit mobile number"
                     [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Contact')">
-                  {{ getFieldError('patient_Contact') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
@@ -218,9 +202,7 @@
                   <input type="text" class="form-control" formControlName="patient_Email"
                     placeholder="patient@example.com"
                     [class.is-invalid]="isFieldInvalid('patient_Email')" [attr.tabindex]="getTabIndex('patient_Email')" />
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Email')">
-                  {{ getFieldError('patient_Email') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Email')" label="Email" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -230,9 +212,7 @@
                   <input type="text" class="form-control" formControlName="patient_Address"
                     placeholder="Full address"
                     [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
-                <span class="field-error" *ngIf="isFieldInvalid('patient_Address')">
-                  {{ getFieldError('patient_Address') }}
-                </span>
+                <app-field-error [control]="patientForm.get('patient_Address')" label="Address" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
           </div>
@@ -259,9 +239,7 @@
                         [class.is-invalid]="isFieldInvalid('test_Name')" [attr.tabindex]="getTabIndex('test_Name')" />
                   <i class="fa fa-search test-browse-icon"></i>
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('test_Name')">
-                  {{ getFieldError('test_Name') }}
-                </span>
+                <app-field-error [control]="patientForm.get('test_Name')" label="Test Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group form-group--narrow">
@@ -279,9 +257,7 @@
                   <input type="text" class="form-control" formControlName="test_Amount"
                     placeholder="Auto-filled from test selection" readonly
                     [class.is-invalid]="isFieldInvalid('test_Amount')" [attr.tabindex]="getTabIndex('test_Amount')" />
-                <span class="field-error" *ngIf="isFieldInvalid('test_Amount')">
-                  {{ getFieldError('test_Amount') }}
-                </span>
+                <app-field-error [control]="patientForm.get('test_Amount')" label="Test Amount" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
@@ -310,9 +286,7 @@
                     </ul>
                   </div>
                 </div>
-                <span class="field-error" *ngIf="isFieldInvalid('referred_By')">
-                  {{ getFieldError('referred_By') }}
-                </span>
+                <app-field-error [control]="patientForm.get('referred_By')" label="Referred By" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -392,9 +366,7 @@
                   <input type="text" class="form-control" formControlName="net_Amount"
                     (change)="calculateDiscount()"
                     [class.is-invalid]="isFieldInvalid('net_Amount')" [attr.tabindex]="getTabIndex('net_Amount')" />
-                <span class="field-error" *ngIf="isFieldInvalid('net_Amount')">
-                  {{ getFieldError('net_Amount') }}
-                </span>
+                <app-field-error [control]="patientForm.get('net_Amount')" label="Net Amount" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
               <div class="form-group">
                 <label class="form-label required">Payment Type</label>
@@ -416,9 +388,7 @@
                   (change)="onPaymentModeChange()">
                   <option *ngFor="let entry of paymentMode" [value]="entry">{{ entry }}</option>
                 </select>
-                <span class="field-error" *ngIf="isFieldInvalid('payment_Mode')">
-                  {{ getFieldError('payment_Mode') }}
-                </span>
+                <app-field-error [control]="patientForm.get('payment_Mode')" label="Payment Mode" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <!-- Amount Paid: locked after partial payment is confirmed, editable (auto) for Full -->
@@ -436,9 +406,7 @@
                   readonly
                   [attr.tabindex]="getTabIndex('amount_Paid')"
                 />
-                <span class="field-error" *ngIf="isFieldInvalid('amount_Paid')">
-                  {{ getFieldError('amount_Paid') }}
-                </span>
+                <app-field-error [control]="patientForm.get('amount_Paid')" label="Amount Paid" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <!-- Amount Pending: always readonly, locked after confirmation -->

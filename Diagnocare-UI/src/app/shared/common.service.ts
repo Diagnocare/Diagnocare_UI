@@ -3,11 +3,15 @@ import { ValidatorFn, AbstractControl, ValidationErrors, FormGroup, AsyncValidat
 import { PathologyFormKeys, validationMessages } from '../constant/constants';
 import { Observable, map } from 'rxjs';
 import { InstitutionType } from '../constant/enums';
+import { TokenService } from '../core/interceptors/token.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CommonService {
+
+  constructor(private tokenService: TokenService) {}
+
 isFormDisabled(arg0: FormGroup<any>) {
 throw new Error('Method not implemented.');
 }
@@ -119,9 +123,8 @@ throw new Error('Method not implemented.');
 
       return invalidControls;
     }
- getAccessToken() {
-    const token = sessionStorage.getItem('authToken');
-    return token ?? '';
+ getAccessToken(): string {
+    return this.tokenService.getToken() ?? '';
   }
 
   stringOnlyValidator(): ValidatorFn {
@@ -157,6 +160,47 @@ throw new Error('Method not implemented.');
 
       };
     }
+
+  // ── Centralised control-level helpers ─────────────────────────────────────
+
+  /**
+   * Returns a human-readable error message for a single reactive form control.
+   *
+   * @param control  The AbstractControl to inspect (may be null/undefined)
+   * @param label    Display name of the field, e.g. 'Email Address'
+   *
+   * Used by FieldErrorComponent; can also be called directly in templates:
+   *   {{ cs.getControlError(form.get('email'), 'Email') }}
+   */
+  getControlError(control: AbstractControl | null | undefined, label: string): string {
+    if (!control?.errors) return '';
+    const e = control.errors;
+    if (e['required'])         return `${label} is required.`;
+    if (e['email'])            return 'Please enter a valid email address.';
+    if (e['minlength'])        return `${label} must be at least ${e['minlength'].requiredLength} characters.`;
+    if (e['maxlength'])        return `${label} must not exceed ${e['maxlength'].requiredLength} characters.`;
+    if (e['pattern'])          return `${label} format is invalid.`;
+    if (e['stringOnly'])       return `${label} must contain letters only.`;
+    if (e['noFutureDate'])     return `${label} cannot be a future date.`;
+    if (e['min'])              return `${label} must be at least ${e['min'].min}.`;
+    if (e['max'])              return `${label} must not exceed ${e['max'].max}.`;
+    if (e['passwordMismatch']) return 'Passwords do not match.';
+    return `${label} is invalid.`;
+  }
+
+  /**
+   * Returns true when a control should display its error state.
+   *
+   * @param control    The AbstractControl to check
+   * @param forceShow  Pass true after a submit attempt to force-reveal errors
+   *                   on untouched controls (e.g. bound to a "submitted" flag)
+   */
+  isControlInvalid(control: AbstractControl | null | undefined, forceShow = false): boolean {
+    if (!control) return false;
+    return !!(control.invalid && (control.touched || control.dirty || forceShow));
+  }
+
+  // ── Form-level helpers (existing) ──────────────────────────────────────────
 
     getFormValidationErrors(form: FormGroup): string[] {
       const messages: string[] = [];

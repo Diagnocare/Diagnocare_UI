@@ -95,9 +95,14 @@ import { HolidayComponent } from './component/holiday/holiday.component';
 import { VisitScheduleComponent } from './component/visit-schedule/visit-schedule.component';
 import { MyVisitsComponent }      from './component/my-visits/my-visits.component';
 
+// My Attendance (self-service read-only view for non-admin staff)
+import { MyAttendanceComponent } from './component/my-attendance/my-attendance.component';
+
 // Role guard
 import { roleGuard } from './core/guards/role.guard';
 import { Role } from './constant/enums';
+import { pinExpiryGuard } from './core/guards/pin-expiry.guard';
+import { ChangePinComponent } from './component/header/change-pin/change-pin.component';
 import { RegisterPathologyComponent } from './component/pathology/register-pathology/register-pathology.component';
 import { StaffManagementComponent } from './component/staff/staff-management.component';
 import { StaffUnifiedFormComponent } from './component/staff/staff-unified-form.component';
@@ -119,7 +124,7 @@ export const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
-    canActivate: [authGuard, licenceGuard],
+    canActivate: [authGuard, licenceGuard, pinExpiryGuard],
     children: [
       // Pathology dashboard — Admin / User / Assistant only
       { path: 'pathology', title: 'Pathology', component: PathologyHomeComponent,
@@ -213,11 +218,17 @@ export const routes: Routes = [
         canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id)] },
       { path: 'my-visits', title: 'My Visits Today', component: MyVisitsComponent },
 
+      // My Attendance — read-only self-service view (doctors, collection boys, lab staff)
+      { path: 'my-attendance', title: 'My Attendance', component: MyAttendanceComponent,
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+
       // Account / Header pages
       { path: 'profile', title: 'Profile', component: ProfileComponent },
       { path: 'settings', title: 'Settings', component: SettingsComponent },
       { path: 'change-password', title: 'Change Password', component: ChangePasswordComponent },
       { path: 'setup-mfa', title: 'Authenticator App', component: SetupMfaComponent },
+      // PIN change — also reachable as forced flow when PIN has expired (?reason=expired)
+      { path: 'change-pin', title: 'Change PIN', component: ChangePinComponent },
 
       // Receipt
       { path: 'receipt/:id', title: 'Receipt', component: BillReceipt },

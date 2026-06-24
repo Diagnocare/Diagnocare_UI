@@ -9,8 +9,11 @@
         {{ message }}
       </div>
       <div class="modal-footer">
-        <button *ngIf="!hideCancelButton" type="button" class="btn btn-secondary" (click)="onCancel()">{{ cancelText }}</button>
-        <button type="button" class="btn btn-danger" (click)="onConfirm()">{{ confirmText }}</button>
+        <button *ngIf="!hideCancelButton" type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isLoading">{{ cancelText }}</button>
+        <button type="button" class="btn btn-danger" (click)="onConfirm()" [disabled]="isLoading">
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          {{ confirmText }}
+        </button>
       </div>
     </div>
   </div>

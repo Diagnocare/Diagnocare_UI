@@ -6,14 +6,15 @@ import { takeUntil } from 'rxjs/operators';
 import { ToastrService } from 'ngx-toastr';
 
 import { PathologyService }        from 'src/app/services/pathologyServices/pathology.service';
-import { PathologyLogoService }    from 'src/app/services/pathologyServices/pathology-logo.service';
 import { PathologyEditDto }        from 'src/app/models/pathology/pathology-edit.dto';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
+import { FieldErrorComponent }     from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective }   from 'src/app/shared/directives/form-keyboard.directive';
 
 @Component({
   selector: 'app-lab-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent],
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective],
   templateUrl: './lab-profile.component.html',
   styleUrls: ['./lab-profile.component.scss'],
 })
@@ -22,8 +23,21 @@ export class LabProfileComponent implements OnInit, OnDestroy {
   form!: FormGroup;
   loadState: 'loading' | 'loaded' | 'error' = 'loading';
   isSaving = false;
+  submitted = false;
 
-  /** Preview URL for the logo (read from / written to PathologyLogoService). */
+  /** Tab order for keyboard navigation across all editable lab-profile fields. */
+  readonly tabFields = [
+    'path_Name', 'path_Branch', 'path_Motto', 'path_Tagline',
+    'path_Address1', 'path_Address2', 'path_City', 'path_State',
+    'path_Country', 'path_Pincode',
+    'path_ContactNo', 'path_AltContactNo', 'path_Email', 'path_Website',
+    'path_GSTNo', 'path_PANNo', 'path_RegNo', 'path_NABLNo',
+    'path_DirectorName', 'path_LabInCharge',
+    'path_ReportHeader', 'path_ReportFooter', 'path_SignatoryName',
+    'path_CountryCode', 'path_Currency',
+  ];
+
+  /** Preview URL for the logo — loaded from DB via GetById, updated on upload. */
   logoPreview: string | null = null;
 
   // Licence info (read-only display)
@@ -37,7 +51,6 @@ export class LabProfileComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private pathologyService: PathologyService,
-    private logoService:      PathologyLogoService,
     private toastr:           ToastrService,
   ) {}
 
@@ -129,8 +142,15 @@ export class LabProfileComponent implements OnInit, OnDestroy {
             path_Currency:      data.path_Currency       ?? 'INR',
           });
 
-          // Logo is stored locally under key 'pathology_logo' — not in the DB
-          this.logoPreview = this.logoService.get();
+          // Load logo from the DB via GetById — path_Logo is a raw base64 string
+          const rawLogo = data.path_Logo as string | null | undefined;
+          if (rawLogo) {
+            this.logoPreview = rawLogo.startsWith('data:')
+              ? rawLogo
+              : `data:image/png;base64,${rawLogo}`;
+          } else {
+            this.logoPreview = null;
+          }
 
           // Licence info — read-only display
           this.licenseKey    = (data as any).licenseKey    ?? null;
@@ -164,20 +184,25 @@ export class LabProfileComponent implements OnInit, OnDestroy {
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
       this.logoPreview = dataUrl;
-      // Persist locally as 'pathology_logo' — survives page reloads
-      this.logoService.save(dataUrl);
+      // Upload logo to the database via the dedicated endpoint
+      this.pathologyService.uploadLogo(dataUrl)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next:  () => this.toastr.success('Logo uploaded successfully.'),
+          error: () => this.toastr.error('Failed to upload logo. Please try again.'),
+        });
     };
     reader.readAsDataURL(file);
   }
 
   removeLogo(): void {
     this.logoPreview = null;
-    this.logoService.remove();
   }
 
   // ── Save ──────────────────────────────────────────────────────────
 
   save(): void {
+    this.submitted = true;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toastr.warning('Please fix the highlighted fields before saving.');
@@ -185,9 +210,7 @@ export class LabProfileComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving = true;
-    // Logo is stored locally (localStorage key 'pathology_logo') — exclude from the backend DTO
-    const { path_Logo, ...formValue } = this.form.value as any;
-    const dto: PathologyEditDto = formValue;
+    const dto: PathologyEditDto = this.form.value;
 
     this.pathologyService.updatePathology(dto).pipe(takeUntil(this.destroy$)).subscribe({
       next:  () => this.onSaveSuccess(),
@@ -207,10 +230,14 @@ export class LabProfileComponent implements OnInit, OnDestroy {
 
   // ── Template helpers ──────────────────────────────────────────────
 
+  /** @deprecated Use <app-field-error> instead. Kept for backward compat. */
   hasError(field: string): boolean {
     const c = this.form.get(field);
-    return !!(c?.invalid && c?.touched);
+    return !!(c?.invalid && (c?.touched || this.submitted));
   }
+
+  /** Expose for template use with [class.is-error]. */
+  isInvalid(field: string): boolean { return this.hasError(field); }
 
   get formattedLicenseExpiry(): string {
     if (!this.licenseExpiry) return '—';

@@ -13,13 +13,14 @@ import { LoginService } from 'src/app/services/loginServices/login.service';
 import { OtpChannel, VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
 import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
   standalone: true,
   styleUrls: ['./login.component.css'],
-  imports: [ReactiveFormsModule, CommonModule, RouterModule, OtpMfaDialogComponent],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, OtpMfaDialogComponent, FormKeyboardDirective],
 })
 export class LoginComponent implements OnInit, OnDestroy {
 

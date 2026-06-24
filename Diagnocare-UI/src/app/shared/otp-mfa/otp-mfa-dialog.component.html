@@ -50,7 +50,7 @@
         </button>
         <button type="button" class="otp-btn otp-btn-ghost otp-btn-full otp-btn-mt"
                 (click)="onBack()">
-          <i class="fa fa-sign-in"></i> Back to Login
+          <i class="fa fa-sign-in"></i> {{ backLabel }}
         </button>
       </div>
 
@@ -90,7 +90,7 @@
 
         <div class="otp-step-actions otp-step-actions--single">
           <button type="button" class="otp-btn otp-btn-ghost" (click)="onBack()">
-            <i class="fa fa-arrow-left"></i> Back to Login
+            <i class="fa fa-arrow-left"></i> {{ backLabel }}
           </button>
         </div>
       </div>
@@ -204,6 +204,11 @@
             <i class="fa fa-info-circle"></i>
             Code refreshes every 30 seconds — use the current one shown in your app.
           </p>
+
+          <!-- Verify error from parent (e.g. wrong OTP in profile/settings flow) -->
+          <div *ngIf="verifyError" class="otp-verify-error">
+            <i class="fa fa-exclamation-circle"></i> {{ verifyError }}
+          </div>
 
           <button type="submit" class="otp-btn otp-btn-primary otp-btn-full"
                   [disabled]="isSubmitting">
