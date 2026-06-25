@@ -1,85 +1,385 @@
-<div class="dashboard">
+<div class="ph-root">
 
-  <!-- ── Welcome hero ────────────────────────────────────────────────────── -->
-  <section class="hero">
-    <div class="hero__left">
-      <p class="hero__greeting">{{ greeting }},</p>
-      <h1 class="hero__name">{{ userName }}</h1>
-      <div class="hero__meta">
-        <span class="role-badge">{{ userRoleDisplay }}</span>
-        <span class="hero__date"><i class="fa fa-calendar"></i> {{ todayDisplay }}</span>
-      </div>
-      <p class="hero__tagline">Here's what's available for you today.</p>
+  <!-- ── Expiry banners ──────────────────────────────────────────────────── -->
+  <div class="ph-expiry-banner ph-banner-warn" *ngIf="showExpiryBanner && !isLicenseExpired">
+    <span class="ph-banner-icon"><i class="fas fa-clock"></i></span>
+    <span>
+      Your licence expires on <strong>{{ expiryDate }}</strong> —
+      only <strong>{{ daysUntilExpiry }} day{{ daysUntilExpiry !== 1 ? 's' : '' }}</strong> left.
+      Contact your administrator to renew.
+    </span>
+  </div>
+
+  <!-- ── HERO ────────────────────────────────────────────────────────────── -->
+  <section class="ph-hero">
+    <div class="ph-hero-mask">
+      <div class="ph-blob ph-blob-1"></div>
+      <div class="ph-blob ph-blob-2"></div>
+      <div class="ph-blob ph-blob-3"></div>
+      <span class="ph-particle" *ngFor="let s of particleStyles" [style]="s"></span>
     </div>
-    <div class="hero__right">
-      <div class="hero__brand">
-        <div class="hero__brand-icon"><i class="fa fa-heartbeat"></i></div>
-        <div>
-          <div class="hero__brand-name">Diagno<span>care</span></div>
-          <div class="hero__brand-sub">Pathology Management System</div>
+
+    <div class="ph-hero-inner">
+
+      <!-- Left: greeting + chips + KPI row -->
+      <div class="ph-hero-left">
+        <div class="ph-hero-badge">
+          <i class="fas fa-sun"></i> {{ greeting }}
+        </div>
+
+        <h1 class="ph-hero-title">
+          Welcome back,<br>
+          <span class="ph-accent">{{ userName }}.</span>
+        </h1>
+
+        <p class="ph-hero-tagline">Here's what's happening at your lab today.</p>
+
+        <div class="ph-chips">
+          <div class="ph-chip ph-chip-role" *ngIf="userRoleDisplay">
+            <i class="fas fa-user-shield"></i> {{ userRoleDisplay }}
+          </div>
+          <div class="ph-chip ph-chip-lic" *ngIf="!isLicenseExpired && daysUntilExpiry > 0">
+            <i class="fas fa-certificate"></i>
+            Licence Active · {{ daysUntilExpiry }} day{{ daysUntilExpiry !== 1 ? 's' : '' }} left
+          </div>
+          <div class="ph-chip ph-chip-expired" *ngIf="isLicenseExpired">
+            <i class="fas fa-lock"></i> Licence Expired
+          </div>
+          <div class="ph-chip">
+            <i class="fas fa-calendar-alt"></i> {{ todayDisplay }}
+          </div>
+        </div>
+
+        <!-- KPI cards — slide down into content area -->
+        <div class="ph-kpi-row">
+          <div class="ph-kpi ph-kpi-d1">
+            <div class="ph-kpi-icon ph-kpi-blue"><i class="fas fa-user-plus"></i></div>
+            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-lbl">Patients Today</div>
+          </div>
+          <div class="ph-kpi ph-kpi-d2">
+            <div class="ph-kpi-icon ph-kpi-green"><i class="fas fa-file-medical-alt"></i></div>
+            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-lbl">Reports Done</div>
+          </div>
+          <div class="ph-kpi ph-kpi-d3">
+            <div class="ph-kpi-icon ph-kpi-purple"><i class="fas fa-rupee-sign"></i></div>
+            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-lbl">Revenue Today</div>
+          </div>
+          <div class="ph-kpi ph-kpi-d4">
+            <div class="ph-kpi-icon ph-kpi-orange"><i class="fas fa-hourglass-half"></i></div>
+            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-lbl">Tests Pending</div>
+          </div>
         </div>
       </div>
-      <div class="hero__stats">
-        <div class="hero__stat">
-          <i class="fa fa-shield"></i>
-          <span>Secure</span>
-        </div>
-        <div class="hero__stat">
-          <i class="fa fa-bolt"></i>
-          <span>Fast</span>
-        </div>
-        <div class="hero__stat">
-          <i class="fa fa-line-chart"></i>
-          <span>Insightful</span>
+
+      <!-- Right: animated live-activity card -->
+      <div class="ph-hero-visual">
+        <div class="ph-vis-card">
+          <div class="ph-vis-header">
+            <div class="ph-vis-dots">
+              <span class="ph-vdot" style="background:#ff5f57;"></span>
+              <span class="ph-vdot" style="background:#febc2e;"></span>
+              <span class="ph-vdot" style="background:#28c840;"></span>
+            </div>
+            <span class="ph-vis-title">Live Activity</span>
+            <span></span>
+          </div>
+
+          <div class="ph-vis-activity">
+            <div class="ph-vis-row">
+              <span class="ph-vdot2" style="background:#00b894;"></span>
+              <span class="ph-vis-name">Rahul Verma</span>
+              <span class="ph-vis-badge vb-done">Report Ready</span>
+            </div>
+            <div class="ph-vis-row ph-vr-d1">
+              <span class="ph-vdot2" style="background:#1e88e5;"></span>
+              <span class="ph-vis-name">Priya Mehta</span>
+              <span class="ph-vis-badge vb-prog">In Lab</span>
+            </div>
+            <div class="ph-vis-row ph-vr-d2">
+              <span class="ph-vdot2" style="background:#ffc107;"></span>
+              <span class="ph-vis-name">Suresh Kumar</span>
+              <span class="ph-vis-badge vb-wait">Pending</span>
+            </div>
+          </div>
+
+          <div class="ph-vis-spark">
+            <div class="ph-spark-lbl">Tests This Week</div>
+            <div class="ph-spark-bars">
+              <span class="ph-spark-bar" style="height:20px;background:rgba(30,136,229,.5); animation-delay:.1s;"></span>
+              <span class="ph-spark-bar" style="height:30px;background:rgba(30,136,229,.55);animation-delay:.2s;"></span>
+              <span class="ph-spark-bar" style="height:26px;background:rgba(0,184,148,.55); animation-delay:.3s;"></span>
+              <span class="ph-spark-bar" style="height:36px;background:rgba(30,136,229,.6); animation-delay:.4s;"></span>
+              <span class="ph-spark-bar" style="height:32px;background:rgba(0,184,148,.65); animation-delay:.5s;"></span>
+              <span class="ph-spark-bar" style="height:22px;background:rgba(30,136,229,.45);animation-delay:.6s;"></span>
+              <span class="ph-spark-bar" style="height:38px;background:rgba(0,184,148,.7); animation-delay:.7s;"></span>
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
   </section>
 
-  <!-- ── Licence expired notice (replaces action cards) ─────────────────── -->
-  <section class="expired-notice" *ngIf="isLicenseExpired">
-    <div class="expired-notice__card">
-      <div class="expired-notice__icon"><i class="fa fa-lock"></i></div>
+  <!-- ── Licence expired full-block notice ────────────────────────────── -->
+  <section class="ph-expired" *ngIf="isLicenseExpired">
+    <div class="ph-expired-card">
+      <div class="ph-expired-icon"><i class="fas fa-lock"></i></div>
       <h2>Access Restricted</h2>
       <p>Your pathology licence has expired. All system features are currently unavailable.</p>
       <p>Please contact your system administrator to renew the licence and restore full access.</p>
     </div>
   </section>
 
-  <!-- ── Quick-action cards ──────────────────────────────────────────────── -->
-  <section class="actions" *ngIf="!isLicenseExpired">
+  <!-- ── MAIN CONTENT ──────────────────────────────────────────────────── -->
+  <div class="ph-content" *ngIf="!isLicenseExpired">
 
-    <ng-container *ngFor="let group of cardGroups">
-      <div class="actions__group" *ngIf="group.cards.length > 0">
-        <h2 class="actions__group-title">
-          <i class="fa" [class]="group.icon"></i> {{ group.label }}
-        </h2>
-        <div class="actions__grid">
-          <div class="action-card" *ngFor="let card of group.cards" (click)="navigate(card.route)" [class]="'action-card--' + card.color">
-            <div class="action-card__icon">
-              <i class="fa" [class]="card.icon"></i>
+    <!-- Workflow infographic -->
+    <section class="ph-workflow">
+      <p class="ph-eyebrow"><i class="fas fa-route"></i> Daily Workflow</p>
+      <h2 class="ph-section-heading">From Walk-In to Report Delivery</h2>
+      <p class="ph-section-sub">A fully digital, streamlined flow your team runs every day.</p>
+
+      <div class="ph-steps-wrap">
+        <div class="ph-steps-connector">
+          <div class="ph-steps-fill"></div>
+          <div class="ph-steps-dot"></div>
+        </div>
+        <div class="ph-steps-grid">
+
+          <div class="ph-step-card">
+            <div class="ph-step-num">1</div>
+            <div class="ph-step-icon" style="background:rgba(30,136,229,.12);">
+              <i class="fas fa-user-plus" style="color:#1e88e5;"></i>
             </div>
-            <div class="action-card__body">
-              <h3>{{ card.title }}</h3>
-              <p>{{ card.description }}</p>
-            </div>
-            <div class="action-card__arrow">
-              <i class="fa fa-arrow-right"></i>
-            </div>
+            <h4>Register Patient</h4>
+            <p>Demographics, test assignment, and payment at intake.</p>
+            <div class="ph-step-pulse" style="background:linear-gradient(90deg,#1e88e5,#64b5f6);"></div>
           </div>
+
+          <div class="ph-step-card">
+            <div class="ph-step-num">2</div>
+            <div class="ph-step-icon" style="background:rgba(108,92,231,.12);">
+              <i class="fas fa-microscope" style="color:#6c5ce7;"></i>
+            </div>
+            <h4>Process Samples</h4>
+            <p>Enter values with automatic out-of-range flagging.</p>
+            <div class="ph-step-pulse" style="background:linear-gradient(90deg,#6c5ce7,#a29bfe);"></div>
+          </div>
+
+          <div class="ph-step-card">
+            <div class="ph-step-num">3</div>
+            <div class="ph-step-icon" style="background:rgba(0,184,148,.12);">
+              <i class="fas fa-file-medical-alt" style="color:#00b894;"></i>
+            </div>
+            <h4>Generate Report</h4>
+            <p>Branded PDF with logo, signature, and ranges in one click.</p>
+            <div class="ph-step-pulse" style="background:linear-gradient(90deg,#00b894,#55efc4);"></div>
+          </div>
+
+          <div class="ph-step-card">
+            <div class="ph-step-num">4</div>
+            <div class="ph-step-icon" style="background:rgba(253,124,58,.12);">
+              <i class="fas fa-paper-plane" style="color:#fd7c3a;"></i>
+            </div>
+            <h4>Deliver</h4>
+            <p>Print or download the report and hand it off immediately.</p>
+            <div class="ph-step-pulse" style="background:linear-gradient(90deg,#fd7c3a,#fdcb6e);"></div>
+          </div>
+
         </div>
       </div>
-    </ng-container>
+    </section>
 
-  </section>
+    <!-- Video / Tutorial -->
+    <section class="ph-video-section">
+      <div class="ph-video-left">
+        <p class="ph-video-eyebrow"><i class="fas fa-play-circle"></i> Platform Tutorial</p>
+        <h2 class="ph-video-heading">New to DiagnoCare?<br>Watch the Walkthrough.</h2>
+        <p class="ph-video-sub">
+          A 3-minute guided tour of patient registration, test entry, PDF reports, and billing.
+        </p>
+        <ul class="ph-vb-list">
+          <li class="ph-vb-item">
+            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
+            Register a patient and assign tests in under 60 seconds
+          </li>
+          <li class="ph-vb-item">
+            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
+            Enter lab values with live out-of-range highlighting
+          </li>
+          <li class="ph-vb-item">
+            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
+            Generate and print a branded PDF report with one click
+          </li>
+          <li class="ph-vb-item">
+            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
+            Track daily revenue and analytics on the dashboard
+          </li>
+        </ul>
+      </div>
 
-  <!-- ── Footer info row ─────────────────────────────────────────────────── -->
-  <footer class="dash-footer">
-    <span><i class="fa fa-circle" [class.text-success]="!isLicenseExpired" [class.text-danger]="isLicenseExpired"></i>
-      Licence {{ isLicenseExpired ? 'Expired' : 'Active' }}
-      <ng-container *ngIf="!isLicenseExpired && expiryDate"> · Expires {{ expiryDate }}</ng-container>
-    </span>
+      <div class="ph-video-right">
+        <div class="ph-video-bg">
+          <svg class="ph-flask-svg" viewBox="0 0 160 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="64" y="4" width="32" height="12" rx="4" fill="#90caf9"/>
+            <rect x="72" y="4" width="16" height="70" rx="3" fill="#64b5f6"/>
+            <path d="M50 74 L30 160 Q28 180 50 182 L110 182 Q132 180 130 160 L110 74 Z" fill="#1e88e5" opacity=".7"/>
+            <path d="M58 130 Q80 118 102 130 L108 158 Q80 170 52 158 Z" fill="#00b894" opacity=".5"/>
+            <circle cx="62" cy="145" r="6" fill="rgba(255,255,255,.4)"/>
+            <circle cx="95" cy="138" r="4" fill="rgba(255,255,255,.3)"/>
+            <circle cx="80" cy="155" r="5" fill="rgba(255,255,255,.35)"/>
+          </svg>
+        </div>
+        <div class="ph-vid-pills">
+          <div class="ph-vdp">
+            <span class="ph-vdp-dot" style="background:#00b894;"></span> CBC Panel · Normal
+          </div>
+          <div class="ph-vdp ph-vdp-d1">
+            <span class="ph-vdp-dot" style="background:#ffc107;"></span> LFT · Elevated AST ⚠
+          </div>
+          <div class="ph-vdp ph-vdp-d2">
+            <span class="ph-vdp-dot" style="background:#1e88e5;"></span> Thyroid · Processing
+          </div>
+        </div>
+        <button class="ph-play-btn" (click)="openVideo()" type="button">
+          <i class="fas fa-play"></i>
+        </button>
+        <div class="ph-vid-duration">
+          <i class="fas fa-circle" style="font-size:.45rem;color:#e74c3c;"></i>
+          Tutorial Walkthrough · 3 min 24 sec
+        </div>
+      </div>
+    </section>
+
+    <!-- Module showcase -->
+    <section class="ph-showcase">
+      <p class="ph-eyebrow"><i class="fas fa-th-large"></i> Module Gallery</p>
+      <h2 class="ph-section-heading">Every Module, at a Glance</h2>
+      <p class="ph-section-sub">Visual previews of the key screens your team works with every day.</p>
+
+      <div class="ph-showcase-grid">
+
+        <div class="ph-sc-item ph-sc-tall">
+          <div class="ph-sc-bg" style="background:linear-gradient(145deg,#0d2244,#1565c0);">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="40" width="160" height="120" rx="12" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+              <circle cx="60" cy="80" r="22" fill="rgba(255,255,255,.1)"/>
+              <circle cx="60" cy="74" r="10" fill="rgba(255,255,255,.2)"/>
+              <path d="M38 102 Q60 88 82 102" stroke="rgba(255,255,255,.25)" stroke-width="2" fill="none"/>
+              <rect x="95" y="66" width="70" height="8" rx="4" fill="rgba(255,255,255,.2)"/>
+              <rect x="95" y="82" width="50" height="6" rx="3" fill="rgba(255,255,255,.12)"/>
+              <rect x="95" y="95" width="60" height="6" rx="3" fill="rgba(255,255,255,.12)"/>
+              <rect x="20" y="126" width="45" height="24" rx="6" fill="rgba(0,184,148,.4)"/>
+              <rect x="74" y="126" width="45" height="24" rx="6" fill="rgba(30,136,229,.3)"/>
+              <rect x="128" y="126" width="52" height="24" rx="6" fill="rgba(108,92,231,.3)"/>
+            </svg>
+          </div>
+          <div class="ph-sc-icon-wrap" style="background:linear-gradient(135deg,#1e88e5,#1565c0);"><i class="fas fa-user-plus"></i></div>
+          <div class="ph-sc-overlay">
+            <span class="ph-sc-tag">Patients</span>
+            <div class="ph-sc-title">Patient Registration</div>
+            <div class="ph-sc-desc">Smart intake · instant test assignment</div>
+          </div>
+        </div>
+
+        <div class="ph-sc-item">
+          <div class="ph-sc-bg" style="background:linear-gradient(145deg,#2d1b69,#6c5ce7);">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="30" y="20" width="140" height="160" rx="8" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+              <rect x="44" y="36" width="80" height="8" rx="4" fill="rgba(255,255,255,.3)"/>
+              <rect x="44" y="52" width="60" height="5" rx="2.5" fill="rgba(255,255,255,.15)"/>
+              <rect x="44" y="80" width="90" height="5" rx="2.5" fill="rgba(255,255,255,.12)"/>
+              <rect x="44" y="94" width="100" height="5" rx="2.5" fill="rgba(255,255,255,.1)"/>
+              <rect x="44" y="124" width="80" height="5" rx="2.5" fill="rgba(255,255,255,.12)"/>
+              <rect x="44" y="138" width="112" height="5" rx="2.5" fill="rgba(255,255,255,.1)"/>
+              <circle cx="148" cy="162" r="16" fill="rgba(255,255,255,.15)"/>
+              <path d="M140 162 L146 168 L158 156" stroke="rgba(255,255,255,.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="ph-sc-icon-wrap" style="background:linear-gradient(135deg,#6c5ce7,#4834d4);"><i class="fas fa-file-pdf"></i></div>
+          <div class="ph-sc-overlay">
+            <span class="ph-sc-tag">Reports</span>
+            <div class="ph-sc-title">PDF Report Engine</div>
+            <div class="ph-sc-desc">Branded, signed, print-ready</div>
+          </div>
+        </div>
+
+        <div class="ph-sc-item">
+          <div class="ph-sc-bg" style="background:linear-gradient(145deg,#004d40,#00b894);">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="30" y="140" width="22" height="40" rx="4" fill="rgba(255,255,255,.2)"/>
+              <rect x="60" y="110" width="22" height="70" rx="4" fill="rgba(255,255,255,.3)"/>
+              <rect x="90" y="90"  width="22" height="90" rx="4" fill="rgba(255,255,255,.4)"/>
+              <rect x="120" y="120" width="22" height="60" rx="4" fill="rgba(255,255,255,.3)"/>
+              <rect x="150" y="80" width="22" height="100" rx="4" fill="rgba(255,255,255,.5)"/>
+              <polyline points="41,130 71,98 101,80 131,108 161,68" stroke="rgba(255,255,255,.6)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="41"  cy="130" r="4" fill="white"/>
+              <circle cx="71"  cy="98"  r="4" fill="white"/>
+              <circle cx="101" cy="80"  r="4" fill="white"/>
+              <circle cx="131" cy="108" r="4" fill="white"/>
+              <circle cx="161" cy="68"  r="4" fill="white"/>
+            </svg>
+          </div>
+          <div class="ph-sc-icon-wrap" style="background:linear-gradient(135deg,#00b894,#00695c);"><i class="fas fa-chart-line"></i></div>
+          <div class="ph-sc-overlay">
+            <span class="ph-sc-tag">Analytics</span>
+            <div class="ph-sc-title">Revenue Dashboards</div>
+            <div class="ph-sc-desc">Doctor-wise · panel-wise · charts</div>
+          </div>
+        </div>
+
+        <div class="ph-sc-item">
+          <div class="ph-sc-bg" style="background:linear-gradient(145deg,#7f1d1d,#fd7c3a);">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="30" y="30" width="140" height="140" rx="10" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+              <rect x="44" y="48" width="40" height="8" rx="4" fill="rgba(255,255,255,.3)"/>
+              <rect x="90" y="48" width="40" height="8" rx="4" fill="rgba(255,255,255,.15)"/>
+              <rect x="44" y="70" width="80" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/>
+              <rect x="130" y="70" width="26" height="5" rx="2.5" fill="rgba(255,255,255,.25)"/>
+              <rect x="44"  y="84" width="80" height="5" rx="2.5" fill="rgba(255,255,255,.15)"/>
+              <rect x="130" y="84" width="26" height="5" rx="2.5" fill="rgba(255,255,255,.2)"/>
+              <rect x="44"  y="116" width="112" height="1" rx="1" fill="rgba(255,255,255,.2)"/>
+              <rect x="44"  y="124" width="60"  height="8" rx="4" fill="rgba(255,255,255,.3)"/>
+              <rect x="118" y="124" width="38"  height="8" rx="4" fill="rgba(255,255,255,.5)"/>
+              <rect x="44"  y="144" width="112" height="10" rx="5" fill="rgba(255,255,255,.2)"/>
+            </svg>
+          </div>
+          <div class="ph-sc-icon-wrap" style="background:linear-gradient(135deg,#fd7c3a,#c0562a);"><i class="fas fa-receipt"></i></div>
+          <div class="ph-sc-overlay">
+            <span class="ph-sc-tag">Billing</span>
+            <div class="ph-sc-title">Billing & Receipts</div>
+            <div class="ph-sc-desc">Itemised bills · audit trails</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    </div><!-- /ph-content -->
+
+  <!-- Footer -->
+  <footer class="ph-footer">
     <span>Diagnocare &copy; {{ currentYear }}</span>
   </footer>
 
+</div>
+
+<!-- Video modal (outside ph-root so it can be truly full-screen) -->
+<div class="ph-video-modal" *ngIf="isVideoOpen" (click)="closeVideo()">
+  <div class="ph-modal-inner" (click)="$event.stopPropagation()">
+    <button class="ph-modal-close" type="button" (click)="closeVideo()">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="ph-modal-frame">
+      <!-- Replace YOUR_VIDEO_ID with your actual embed ID -->
+      <iframe width="100%" height="100%"
+        src="https://www.youtube.com/embed/YOUR_VIDEO_ID?autoplay=1"
+        frameborder="0" allowfullscreen allow="autoplay">
+      </iframe>
+    </div>
+  </div>
 </div>

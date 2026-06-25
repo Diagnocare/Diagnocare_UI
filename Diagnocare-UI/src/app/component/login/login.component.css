@@ -482,6 +482,16 @@
 
 .lp-se-close:hover { opacity: 1; }
 
+/* Account-locked variant — red instead of amber */
+.lp-lockout-banner {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  border-left-color: #ef4444;
+}
+.lp-lockout-banner .lp-se-icon { color: #dc2626; }
+.lp-lockout-banner .lp-se-text strong { color: #991b1b; }
+.lp-lockout-banner .lp-se-text span   { color: #b91c1c; }
+
 /* ══════════════════════════════════════════════════════════════════════
    SESSION CONFLICT DIALOG
 ══════════════════════════════════════════════════════════════════════ */

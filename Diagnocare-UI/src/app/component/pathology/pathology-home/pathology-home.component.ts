@@ -45,6 +45,12 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   cardGroups: CardGroup[] = [];
 
+  /** Inline style strings for floating hero particles (generated once on init). */
+  particleStyles: string[] = [];
+
+  /** Controls the video tutorial modal. */
+  isVideoOpen = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -58,7 +64,32 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     this.buildGreeting();
     this.buildCards();
     this.checkPathologyExpiry();
+    this.initParticles();
   }
+
+  // ── Licence progress ────────────────────────────────────────────────────
+
+  /**
+   * Percentage of licence days remaining (0–100).
+   * Assumes a 365-day full licence; clamps to [0, 100].
+   */
+  get licenceProgressPct(): number {
+    if (this.daysUntilExpiry <= 0) return 0;
+    return Math.min(100, Math.round((this.daysUntilExpiry / 365) * 100));
+  }
+
+  // ── Video modal ─────────────────────────────────────────────────────────
+
+  openVideo(): void  { this.isVideoOpen = true;  }
+  closeVideo(): void { this.isVideoOpen = false; }
+
+  // ── Navigation ──────────────────────────────────────────────────────────
+
+  navigate(route: string): void {
+    this.router.navigate([route]);
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────
 
   private loadUserInfo(): void {
     this.userRole        = this.tokenService.getUserRole();
@@ -74,10 +105,10 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     else if (hour < 17) this.greeting = 'Good Afternoon';
     else                this.greeting = 'Good Evening';
 
-    const now = new Date();
+    const now     = new Date();
     const weekday = now.toLocaleDateString('en-IN', { weekday: 'long' });
-    const dd = now.getDate().toString().padStart(2, '0');
-    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dd      = now.getDate().toString().padStart(2, '0');
+    const mm      = (now.getMonth() + 1).toString().padStart(2, '0');
     this.todayDisplay = `${weekday}, ${dd}-${mm}-${now.getFullYear()}`;
   }
 
@@ -198,16 +229,12 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     ];
 
     this.cardGroups = [
-      { label: 'Patient Management', icon: 'fa-user-md',     cards: patientCards },
-      { label: 'Laboratory',         icon: 'fa-flask',        cards: labCards     },
-      { label: 'Administration',     icon: 'fa-users',        cards: adminCards   },
-      { label: 'System',             icon: 'fa-cog',          cards: systemCards  },
-      { label: 'Account',            icon: 'fa-id-badge',     cards: accountCards },
+      { label: 'Patient Management', icon: 'fa-user-md',  cards: patientCards },
+      { label: 'Laboratory',         icon: 'fa-flask',     cards: labCards     },
+      { label: 'Administration',     icon: 'fa-users',     cards: adminCards   },
+      { label: 'System',             icon: 'fa-cog',       cards: systemCards  },
+      { label: 'Account',            icon: 'fa-id-badge',  cards: accountCards },
     ].filter(g => g.cards.length > 0);
-  }
-
-  navigate(route: string): void {
-    this.router.navigate([route]);
   }
 
   private checkPathologyExpiry(): void {
@@ -220,9 +247,14 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             expiryDate.setHours(0, 0, 0, 0);
-            this.daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            this.daysUntilExpiry = Math.ceil(
+              (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            );
             const ed = expiryDate;
-            this.expiryDate = `${ed.getDate().toString().padStart(2,'0')}-${(ed.getMonth()+1).toString().padStart(2,'0')}-${ed.getFullYear()}`;
+            this.expiryDate =
+              `${ed.getDate().toString().padStart(2, '0')}-` +
+              `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
+              `${ed.getFullYear()}`;
 
             if (this.daysUntilExpiry <= 0) {
               this.isLicenseExpired = true;
@@ -233,6 +265,23 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         },
         error: () => {}
       });
+  }
+
+  /**
+   * Generates inline-style strings for the floating hero particles.
+   * Called once in ngOnInit so positions are stable across re-renders.
+   */
+  private initParticles(): void {
+    this.particleStyles = Array.from({ length: 22 }, () => {
+      const size = (Math.random() * 2.5 + 1).toFixed(1);
+      return [
+        `left:${(Math.random() * 100).toFixed(1)}%`,
+        `width:${size}px`,
+        `height:${size}px`,
+        `animation-duration:${(Math.random() * 14 + 9).toFixed(1)}s`,
+        `animation-delay:${(Math.random() * 14).toFixed(1)}s`,
+      ].join(';');
+    });
   }
 
   ngOnDestroy(): void {

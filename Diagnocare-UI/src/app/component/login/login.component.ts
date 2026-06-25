@@ -62,6 +62,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   maskedEmail         = '';
   otpChannel: OtpChannel | '' = '';
 
+  // ── Account lockout state ──────────────────────────────────────────────────
+
+  isAccountLocked  = false;
+  lockedUntil: Date | null = null;
+
   // ── Session terminated banner (shown when redirected with ?reason=session_terminated)
   sessionTerminatedBanner = false;
 
@@ -262,6 +267,24 @@ export class LoginComponent implements OnInit, OnDestroy {
         // It stays true until openOtpDialog() — which covers the full
         // getUserDetails → generateOtp chain — preventing double-clicks.
         this.id = response.user_Id;
+
+        // ── Account locked ─────────────────────────────────────────────────
+        if (response?.accountLocked === true) {
+          this.isSubmitting   = false;
+          this.isAccountLocked = true;
+          this.lockedUntil    = response.lockedUntil ? new Date(response.lockedUntil) : null;
+          this.toastr.error(
+            'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+            'Access Denied',
+            { timeOut: 6000 }
+          );
+          return;
+        }
+
+        // Clear lockout state on any other response (successful or bad-credentials)
+        this.isAccountLocked = false;
+        this.lockedUntil     = null;
+
         if (response?.success === false) {
           this.isSubmitting = false;
           this.toastr.error(response.message || 'Invalid credentials');
@@ -333,7 +356,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isSubmitting = false;
-        this.toastr.error('An error occurred. Please check your credentials.');
+        this.toastr.error('Invalid credentials');
       },
     });
   }
@@ -364,7 +387,16 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (resp) => {
         this.isVerifyingOtp = false;
         if (!resp?.success) {
-          this.toastr.error(resp?.message || 'Invalid code. Please try again.');
+          const msg = (resp as any)?.message || 'Invalid code. Please try again.';
+          // Lockout detected from verification response — close dialog, show lockout banner
+          if (msg.toLowerCase().includes('locked')) {
+            this.isAccountLocked = true;
+            this.lockedUntil     = null;   // exact time not returned by verify endpoint
+            this.closeOtpDialog();
+            this.toastr.error(msg, 'Access Denied', { timeOut: 6000 });
+            return;
+          }
+          this.toastr.error(msg);
           return;
         }
         this.handleSuccessfulLogin(resp);
@@ -449,6 +481,22 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   onChannelChange(_channel: string): void { /* handled inside the dialog */ }
+
+  /**
+   * Called when the OTP dialog emits (lockoutDetected) — i.e. the dialog
+   * detected a lockout from a backend resend/send response on its own.
+   * Close the dialog and surface the lockout banner on the login page.
+   */
+  onDialogLockoutDetected(): void {
+    this.isAccountLocked = true;
+    this.lockedUntil     = null;   // dialog detected it; exact time unavailable here
+    this.closeOtpDialog();
+    this.toastr.error(
+      'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+      'Access Denied',
+      { timeOut: 6000 }
+    );
+  }
 
   // ── Session conflict dialog handlers ───────────────────────────────────────
 
@@ -577,6 +625,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   // ── Dialog helpers ─────────────────────────────────────────────────────────
 
   private openOtpDialog(): void {
+    // Never open the dialog while the account is locked — the lockout banner
+    // on the login page already shows the countdown.
+    if (this.isAccountLocked) return;
     this.isSubmitting              = false;   // clear loading state — dialog is now taking over
     this.isForcingLogin            = false;
     this.showSessionConflictDialog = false;

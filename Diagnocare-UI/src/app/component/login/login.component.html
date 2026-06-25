@@ -79,6 +79,15 @@
         <p class="lp-card-sub">Enter your credentials to continue</p>
       </div>
 
+      <!-- Account locked banner -->
+      <div class="lp-session-ended-banner lp-lockout-banner" *ngIf="isAccountLocked">
+        <div class="lp-se-icon"><i class="fa fa-lock"></i></div>
+        <div class="lp-se-text">
+          <strong>Account Locked</strong>
+          <span>Your account is locked due to multiple failed attempts. Please try again after 15 minutes.</span>
+        </div>
+      </div>
+
       <!-- Session terminated banner -->
       <div class="lp-session-ended-banner" *ngIf="sessionTerminatedBanner">
         <div class="lp-se-icon"><i class="fa fa-exclamation-circle"></i></div>
@@ -238,6 +247,8 @@
   [hasMfa]="hasMfa"
   [userId]="loginForm.get('userId')?.value"
   [id]="id"
+  [lockoutEnd]="lockedUntil"
   (verify)="onOtpVerify($event)"
   (channelChange)="onChannelChange($event)"
+  (lockoutDetected)="onDialogLockoutDetected()"
 ></app-otp-mfa-dialog>

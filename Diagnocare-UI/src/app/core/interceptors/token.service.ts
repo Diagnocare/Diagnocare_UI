@@ -85,7 +85,7 @@ export class TokenService {
    */
   private generateUUID(): string {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return this.generateUUID();
+      return crypto.randomUUID();
     }
     // RFC 4122 §4.4 compliant fallback
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {

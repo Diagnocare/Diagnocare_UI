@@ -31,7 +31,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() userId: string      = '';
   @Input() type: 'otp' | 'mfa' = 'otp';
   @Input() channelOptions: Array<{ label: string; value: string }> = [];
-  @Input() resendSeconds       = 60;
+  @Input() resendSeconds       = 10;
   @Input() showMethodSelect    = false;
   /** True when the user's preferred loginType is 3 (Google Authenticator / TOTP). */
   @Input() isTotpMode          = false;
@@ -44,6 +44,13 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() resendDisabled      = false;
   @Input() id: number          = 0;
   /**
+   * When set to a future Date, the dialog switches to a lockout view:
+   * method picker, OTP input, and Resend button are all hidden/disabled.
+   * Pass `lockedUntil` from the parent component after receiving an
+   * `accountLocked` response from the backend.
+   */
+  @Input() lockoutEnd: Date | null = null;
+  /**
    * When provided, this function is called instead of loginService.generateOtp().
    * Allows reusing the dialog outside the login flow (e.g. Settings PIN setup).
    * Receives the selected method ('phone' | 'email') and must return an Observable.
@@ -55,10 +62,16 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() verifyError = '';
 
   // ── Outputs ───────────────────────────────────────────────────────
-  @Output() verify        = new EventEmitter<{ code: string; authType: number }>();
-  @Output() channelChange = new EventEmitter<string>();
-  @Output() close         = new EventEmitter<void>();
-  @Output() back          = new EventEmitter<void>();
+  @Output() verify           = new EventEmitter<{ code: string; authType: number }>();
+  @Output() channelChange    = new EventEmitter<string>();
+  @Output() close            = new EventEmitter<void>();
+  @Output() back             = new EventEmitter<void>();
+  /**
+   * Emitted whenever the dialog detects a lockout from a backend API response
+   * (resend or send OTP returning "Account is locked").
+   * The parent should close the dialog and show the lockout banner.
+   */
+  @Output() lockoutDetected  = new EventEmitter<void>();
 
   // ── Form ──────────────────────────────────────────────────────────
   form: FormGroup;
@@ -69,6 +82,13 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   /** Non-empty while the "method unavailable" message screen is showing. */
   unavailableTitle   = '';
   unavailableMessage = '';
+  /**
+   * Set to true when a backend API response (resend / send OTP) explicitly
+   * indicates the account is locked, even if the parent hasn't yet updated
+   * the [lockoutEnd] input.  Complements the input-based isLocked check so
+   * the dialog enforces lockout regardless of whether the parent is aware.
+   */
+  private lockedFromBackend = false;
 
   pendingMethod   = '';
   resendRemaining = 0;
@@ -112,7 +132,70 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Lockout helpers ───────────────────────────────────────────────
+
+  /**
+   * True when the account is locked — either because:
+   *   a) the parent passed a future [lockoutEnd] date, OR
+   *   b) a backend API call returned an "Account is locked" response.
+   * The getter is intentionally cheap (no async / no HTTP) so it can be
+   * called freely from the template.
+   */
+  get isLocked(): boolean {
+    return this.lockedFromBackend ||
+           (this.lockoutEnd != null && this.lockoutEnd > new Date());
+  }
+
+  /** Formatted lockout end time shown in the lockout message panel. */
+  get lockoutUntilLabel(): string {
+    if (!this.lockoutEnd) return '';
+    return this.lockoutEnd.toLocaleTimeString([], {
+      hour:   '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  /**
+   * Human-readable lockout message shown in the lockout view.
+   * Uses the exact time when available; falls back to a generic message
+   * when lockout was detected from a backend response without a timestamp.
+   */
+  get lockoutMessage(): string {
+    if (this.lockoutEnd) {
+      return `Your account is locked due to multiple failed attempts. Please try again after 15 minutes (at ${this.lockoutUntilLabel}). OTP and MFA are disabled during this period.`;
+    }
+    return 'Your account is locked due to multiple failed attempts. Please try again after 15 minutes. OTP and MFA are disabled during this period.';
+  }
+
+  /** Returns true when a backend response message signals an account lockout. */
+  private isLockoutResponse(resp: any): boolean {
+    return typeof resp?.message === 'string' &&
+           resp.message.toLowerCase().includes('locked');
+  }
+
+  /**
+   * Switches the dialog into lockout mode based on a backend response.
+   * Stops the resend timer, hides all OTP UI, and notifies the parent.
+   */
+  private applyBackendLockout(): void {
+    this.lockedFromBackend = true;
+    this.clearResendTimer();
+    this.resendRemaining  = 0;
+    this.showOtpInput     = false;
+    this.showMethodPicker = false;
+    this.activeTotpMode   = false;
+    this.lockoutDetected.emit();
+  }
+
   ngOnInit(): void {
+    if (this.isLocked) {
+      // Account locked — keep all OTP/method UI hidden.
+      this.showMethodPicker = false;
+      this.showOtpInput     = false;
+      this.activeTotpMode   = false;
+      return;
+    }
     this.activeTotpMode  = this.isTotpMode;
     this.showMethodPicker = this.showMethodSelect && !this.showOtpInput && !this.isTotpMode;
     this.startResendTimer();
@@ -231,12 +314,23 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   // ── OTP send ──────────────────────────────────────────────────────
 
   sendOtpRequest(): void {
-    if (!this.userId || !this.selectedMethod) return;
-    this.showOtpInput = true;
+    if (this.isLocked || !this.userId || !this.selectedMethod) return;
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
       : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
-    sender$.subscribe({ next: () => this.startResendTimer() });
+    sender$.subscribe({
+      next: (resp: any) => {
+        if (resp?.success === false) {
+          if (this.isLockoutResponse(resp)) {
+            this.applyBackendLockout();
+          }
+          // OTP not sent — leave showOtpInput = false and don't start the timer
+          return;
+        }
+        this.showOtpInput = true;
+        this.startResendTimer();
+      },
+    });
   }
 
   // ── Getters ───────────────────────────────────────────────────────
@@ -267,6 +361,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   // ── Events ────────────────────────────────────────────────────────
 
   onVerify(): void {
+    if (this.isLocked) return;
     this.verify.emit({ code: this.buildCode(), authType: this.currentAuthType });
   }
 
@@ -282,13 +377,23 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   }
 
   onResend(): void {
-    if (!this.userId || !this.selectedMethod) return;
+    if (this.isLocked || !this.userId || !this.selectedMethod) return;
+    this.clearDigits();
+    this.focusInput(0);
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
       : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
     sender$.subscribe({
-      next: () => {
-        this.resendRemaining = this.resendSeconds;
+      next: (resp: any) => {
+        if (resp?.success === false) {
+          if (this.isLockoutResponse(resp)) {
+            // Account locked — enter lockout view; DO NOT start the resend timer
+            this.applyBackendLockout();
+          }
+          // OTP not sent — don't start timer regardless
+          return;
+        }
+        // OTP sent successfully — start the cooldown timer
         this.startResendTimer();
       },
     });
@@ -316,11 +421,14 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     if (event.key === 'Backspace') {
       const input = event.target as HTMLInputElement;
       if (input.value) {
+        // Box is filled — clear it and stay on this box.
         event.preventDefault();
         this.digits.at(index).setValue('');
         input.value = '';
         this.form.get('code')?.setValue(this.buildCode(), { emitEvent: false });
+        return;   // do NOT move focus; a second backspace will navigate back
       }
+      // Box is already empty — move to the previous box.
       if (index > 0) this.focusInput(index - 1);
     }
   }

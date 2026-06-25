@@ -70,6 +70,10 @@ export class ForgotPasswordComponent {
   // Flow customisation
   isExpiredFlow = false;
 
+  // Account lockout state
+  isAccountLocked = false;
+  lockedUntil: Date | null = null;
+
 
   constructor(
     private fb: FormBuilder,
@@ -148,7 +152,16 @@ export class ForgotPasswordComponent {
             this.isOtpVerified = true;
           }
         } else {
-          this.toastr.error(resp?.message || 'Invalid OTP. Please try again.');
+          const msg = (resp as any)?.message || 'Invalid OTP. Please try again.';
+          // Lockout detected from verify response — close dialog, show lockout banner
+          if (msg.toLowerCase().includes('locked')) {
+            this.isAccountLocked = true;
+            this.lockedUntil     = null;
+            this.closeOtpDialog();
+            this.toastr.error(msg, 'Access Denied', { timeOut: 6000 });
+            return;
+          }
+          this.toastr.error(msg);
         }
       },
       error: () => {
@@ -157,6 +170,22 @@ export class ForgotPasswordComponent {
       },
     });
   }
+
+  /**
+   * Called when the OTP dialog emits (lockoutDetected) — the dialog detected
+   * a lockout internally (from a failed resend/send response).
+   */
+  onDialogLockoutDetected(): void {
+    this.isAccountLocked = true;
+    this.lockedUntil     = null;
+    this.closeOtpDialog();
+    this.toastr.error(
+      'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+      'Access Denied',
+      { timeOut: 6000 }
+    );
+  }
+
   onOtpResend() {
     this._otpManager.resendOtp(this.id, this.verifiedUserId).subscribe({
       next: () => {
@@ -221,14 +250,31 @@ export class ForgotPasswordComponent {
     // Use checkUserExists (no password hashing) — forgot password only needs to
     // confirm the userId is valid before sending an OTP.
     this.loginService.checkUserExists(userId).subscribe({
-      next: (resp: MemberDto & { success?: boolean; message?: string; token?: string }) => {
+      next: (resp: MemberDto & { success?: boolean; message?: string; token?: string; accountLocked?: boolean; lockedUntil?: string }) => {
+        // Account locked — block the OTP flow entirely.
+        if ((resp as any)?.accountLocked === true) {
+          this.isAccountLocked = true;
+          this.lockedUntil = (resp as any).lockedUntil ? new Date((resp as any).lockedUntil) : null;
+          this.toastr.error(
+            'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+            'Access Denied',
+            { timeOut: 6000 }
+          );
+          this.isSubmitting = false;
+          return;
+        }
+
+        // Clear any stale lockout state on a valid response.
+        this.isAccountLocked = false;
+        this.lockedUntil = null;
+
         // Handle explicit invalid credentials response
         if (resp && resp.success === false && resp.message === 'Invalid credentials') {
           this.toastr.error('Invalid credential');
           this.isSubmitting = false;
           return;
         }
-        
+
         if (resp) {
           // Backend serialises User_Id as "user_Id" (camelCase); resp.id is always undefined
           this.id = (resp as any).user_Id ?? resp.id ?? 0;
@@ -378,6 +424,10 @@ export class ForgotPasswordComponent {
             next: (resp) => {
               this.isSubmitting = false;
               if (resp?.success === false) {
+                // Mark lockout if the backend says the account is locked.
+                if (resp.message?.toLowerCase().includes('locked')) {
+                  this.isAccountLocked = true;
+                }
                 this.toastr.error(resp.message || 'Failed to send OTP. Please try again.');
               } else {
                 this.otpShowMethodSelect = false;
