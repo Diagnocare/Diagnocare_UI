@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,7 +8,8 @@ import { PinModalService, PinModalMode } from './pin-modal.service';
 import { PinService }      from 'src/app/services/pinServices/pin.service';
 import { TokenService }    from 'src/app/core/interceptors/token.service';
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS     = 3;
+const MODAL_TIMEOUT_S  = 30; // 5 minutes
 
 /**
  * PinModalComponent
@@ -24,6 +25,11 @@ const MAX_ATTEMPTS = 3;
  *  setup-required — no PIN is configured; inform the user and offer two options.
  *                   "Go to Settings" → resolve(true)  ← interceptor refreshes + navigates
  *                   "Log Out"        → resolve(false) ← interceptor logs out
+ *
+ * Timer:
+ *  The modal has a 5-minute countdown. If the user does not act in time:
+ *   • The countdown reaches zero → isTimedOut = true → auto-logout after 2 s.
+ *  A correct PIN stops the timer and refreshes the session immediately.
  *
  * Must be included in AppComponent template so it lives for the entire session.
  */
@@ -46,6 +52,11 @@ export class PinModalComponent implements OnInit, OnDestroy {
   isLockedOut    = false;
   showPin        = false;
 
+  // ── Countdown timer ────────────────────────────────────────────────────────
+  timeRemaining  = MODAL_TIMEOUT_S;
+  isTimedOut     = false;
+  private countdownInterval: ReturnType<typeof setInterval> | null = null;
+
   private modal: any;
   private sub!: Subscription;
 
@@ -54,6 +65,8 @@ export class PinModalComponent implements OnInit, OnDestroy {
     private pinService:      PinService,
     private tokenService:    TokenService,
     private router:          Router,
+    private ngZone:          NgZone,
+    private cdr:             ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -74,9 +87,11 @@ export class PinModalComponent implements OnInit, OnDestroy {
     // Suppress the loading spinner while the PIN modal is active.
     // Class is removed in closeModal() regardless of resolution path.
     document.body.classList.add('pin-modal-open');
+    this.startCountdown();
   }
 
   private closeModal(): void {
+    this.stopCountdown();
     this.modal?.hide();
     document.body.classList.remove('modal-open');
     document.body.classList.remove('pin-modal-open');
@@ -85,10 +100,51 @@ export class PinModalComponent implements OnInit, OnDestroy {
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
   }
 
+  // ── Countdown timer ────────────────────────────────────────────────────────
+
+  private startCountdown(): void {
+    this.stopCountdown();
+    // Run the interval inside Angular's zone so each tick triggers change
+    // detection and the countdown renders in the DOM.  Bootstrap modal events
+    // (show/hide) can fire outside the zone, which would otherwise freeze the
+    // displayed timer at its initial value.
+    this.ngZone.run(() => {
+      this.countdownInterval = setInterval(() => {
+        this.timeRemaining--;
+        if (this.timeRemaining <= 0) {
+          this.stopCountdown();
+          this.isTimedOut = true;
+          // Give the user 2 s to read the "timed out" message, then log out.
+          setTimeout(() => this.resolveWith(false), 2000);
+        }
+        this.cdr.detectChanges();   // guarantee re-render on every tick
+      }, 1000);
+    });
+  }
+
+  private stopCountdown(): void {
+    if (this.countdownInterval !== null) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+  }
+
+  /** Formatted MM:SS label shown in the timer pill. */
+  get timeDisplay(): string {
+    const m = Math.floor(this.timeRemaining / 60);
+    const s = this.timeRemaining % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  /** True when less than 60 seconds remain — triggers red urgent styling. */
+  get timerUrgent(): boolean {
+    return this.timeRemaining <= 60 && !this.isTimedOut;
+  }
+
   // ── PIN entry actions ──────────────────────────────────────────────────────
 
   async onSubmit(): Promise<void> {
-    if (!this.pin || this.isVerifying || this.isLockedOut) return;
+    if (!this.pin || this.isVerifying || this.isLockedOut || this.isTimedOut) return;
 
     const userId = this.tokenService.getUserId();
     if (!userId) {
@@ -103,6 +159,8 @@ export class PinModalComponent implements OnInit, OnDestroy {
     this.isVerifying = false;
 
     if (correct) {
+      // PIN verified — stop the countdown and refresh the session.
+      this.stopCountdown();
       this.closeModal();
       this.pinModalService.resolve(true);
       return;
@@ -113,6 +171,7 @@ export class PinModalComponent implements OnInit, OnDestroy {
 
     if (this.attemptsLeft <= 0) {
       this.isLockedOut = true;
+      this.stopCountdown();
       this.errorMessage = 'Too many incorrect attempts. You will be logged out.';
       setTimeout(() => this.resolveWith(false), 2000);
     } else {
@@ -131,6 +190,7 @@ export class PinModalComponent implements OnInit, OnDestroy {
   // ── Setup-required actions ─────────────────────────────────────────────────
 
   onGoToSettings(): void {
+    this.stopCountdown();
     this.closeModal();
     this.pinModalService.resolve(true);   // interceptor will refresh token then navigate
   }
@@ -153,6 +213,8 @@ export class PinModalComponent implements OnInit, OnDestroy {
     this.isVerifying   = false;
     this.isLockedOut   = false;
     this.showPin       = false;
+    this.timeRemaining = MODAL_TIMEOUT_S;
+    this.isTimedOut    = false;
   }
 
   get attemptsDisplay(): string {
@@ -161,6 +223,7 @@ export class PinModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopCountdown();
     this.sub?.unsubscribe();
   }
 }

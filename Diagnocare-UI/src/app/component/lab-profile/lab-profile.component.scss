@@ -368,3 +368,28 @@
   .lp-licence-grid    { grid-template-columns: 1fr; }
   .lp-licence-item--full { grid-column: span 1; }
 }
+
+// ══ THEME OVERRIDES ══════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .profile-card        { background: #1e293b !important; border-color: #334155 !important; }
+  .profile-card-header { background: #0f172a !important; border-bottom-color: #334155 !important; }
+  .field-input         { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+}
+:host-context(html[data-theme="midnight"]) {
+  .profile-card        { background: #0d1117 !important; border-color: #21262d !important; }
+  .profile-card-header { background: #020408 !important; border-bottom-color: #21262d !important; }
+  .field-input         { background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important; }
+}
+:host-context(html[data-theme="warm"]) {
+  .profile-card        { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+  .profile-card-header { background: #fef9f0 !important; border-bottom-color: #ddc9a8 !important; }
+  .field-input         { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .profile-card        { background: #1e293b !important; border-color: #334155 !important; }
+    .profile-card-header { background: #0f172a !important; border-bottom-color: #334155 !important; }
+    .field-input         { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+  }
+}

@@ -317,14 +317,47 @@
   .columns {
     flex-direction: column;
   }
-  
+
   .col-md-4 {
     flex: 0 0 100%;
     min-width: 100%;
   }
-  
+
   .card {
     height: auto;
     min-height: 18.75em;
+  }
+}
+
+/* ══ THEME OVERRIDES ══════════════════════════════════════════════ */
+
+:host-context(html[data-theme="dark"]) {
+  .list-item {
+    &:nth-child(odd)  { background: #1e293b !important; }
+    &:nth-child(even) { background: #1a2538 !important; }
+    &:hover { background: #0c2340 !important; }
+  }
+}
+:host-context(html[data-theme="midnight"]) {
+  .list-item {
+    &:nth-child(odd)  { background: #0d1117 !important; }
+    &:nth-child(even) { background: #0a0e14 !important; }
+    &:hover { background: #041f30 !important; }
+  }
+}
+:host-context(html[data-theme="warm"]) {
+  .list-item {
+    &:nth-child(odd)  { background: #fffdf7 !important; }
+    &:nth-child(even) { background: #fdf6ea !important; }
+    &:hover { background: #fbefd8 !important; }
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .list-item {
+      &:nth-child(odd)  { background: #1e293b !important; }
+      &:nth-child(even) { background: #1a2538 !important; }
+      &:hover { background: #0c2340 !important; }
+    }
   }
 }

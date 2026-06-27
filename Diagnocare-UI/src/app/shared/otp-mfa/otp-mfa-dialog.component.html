@@ -30,10 +30,39 @@
           </p>
         </div>
       </div>
+      <!-- Session countdown timer -->
+      <div class="otp-session-timer"
+           [class.otp-session-urgent]="sessionUrgent"
+           [class.otp-session-expired]="sessionExpiredFlag"
+           *ngIf="!isLocked">
+        <!-- Mini circular ring -->
+        <div class="otp-session-ring-wrap" *ngIf="!sessionExpiredFlag">
+          <svg class="otp-session-ring-svg" viewBox="0 0 24 24">
+            <circle class="otp-ring-track" cx="12" cy="12" r="9"/>
+            <circle class="otp-ring-progress"
+                    [class.otp-ring-progress--urgent]="sessionUrgent"
+                    cx="12" cy="12" r="9"
+                    [style.stroke-dashoffset]="56.5 - (sessionRemaining / sessionSeconds) * 56.5"/>
+          </svg>
+        </div>
+        <i class="fa fa-ban" *ngIf="sessionExpiredFlag"></i>
+        <span *ngIf="!sessionExpiredFlag">{{ sessionRemainingLabel }}</span>
+        <span *ngIf="sessionExpiredFlag">Expired</span>
+      </div>
+
       <button type="button" class="otp-close-btn" (click)="onClose()"
               aria-label="Close" title="Cancel verification">
         <i class="fa fa-times"></i>
       </button>
+    </div>
+
+    <!-- Session progress bar (thin strip depletes left→right over 5 min) -->
+    <div class="otp-session-progress-bar" *ngIf="!isLocked">
+      <div class="otp-session-progress-fill"
+           [class.otp-session-progress-urgent]="sessionUrgent"
+           [class.otp-session-progress-expired]="sessionExpiredFlag"
+           [style.width.%]="sessionExpiredFlag ? 0 : (sessionRemaining / sessionSeconds) * 100">
+      </div>
     </div>
 
     <!-- Body -->

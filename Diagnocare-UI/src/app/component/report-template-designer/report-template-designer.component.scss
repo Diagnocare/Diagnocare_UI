@@ -435,3 +435,24 @@
     flex-direction: column;
   }
 }
+
+// ══ THEME OVERRIDES ══════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .editor-tab.active    { background: #1e293b !important; }
+  .placeholder-panel    { background: #1a1025 !important; border-bottom-color: #3b2060 !important; }
+}
+:host-context(html[data-theme="midnight"]) {
+  .editor-tab.active    { background: #0d1117 !important; }
+  .placeholder-panel    { background: #0e0814 !important; border-bottom-color: #2a1545 !important; }
+}
+:host-context(html[data-theme="warm"]) {
+  .editor-tab.active    { background: #fffdf7 !important; }
+  .placeholder-panel    { background: #fef9f0 !important; border-bottom-color: #ddc9a8 !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .editor-tab.active { background: #1e293b !important; }
+    .placeholder-panel { background: #1a1025 !important; }
+  }
+}

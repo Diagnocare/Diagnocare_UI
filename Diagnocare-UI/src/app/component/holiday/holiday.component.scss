@@ -672,6 +672,100 @@ $col-action: 2.5em;
   padding: 0.2em 0.75em;
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  THEME OVERRIDES
+// ══════════════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .month-card       { background: #1e293b !important; }
+  .month-header     { border-bottom-color: #334155 !important; }
+  .month-count      { background: #431407 !important; color: #fdba74 !important; }
+  .admin-hint       { background: #431407 !important; border-color: #92400e !important; color: #fdba74 !important; }
+  .modal-panel      { background: #1e293b !important; }
+  .modal-footer     { background: #0f172a !important; border-top-color: #334155 !important; }
+  .bulk-row         { background: #0f172a !important; &:hover { background: #273548 !important; } }
+  .bulk-row-invalid { border-color: #7f1d1d !important; background: #450a0a !important; }
+  .bulk-row-duplicate { border-color: #92400e !important; background: #431407 !important; }
+  .bulk-count-chip  { background: #0f172a !important; }
+  .holiday-table {
+    tbody tr:nth-child(odd)  { background-color: #1e293b !important; }
+    tbody tr:nth-child(even) { background-color: #273548 !important; }
+    tbody tr:hover,
+    tbody tr:nth-child(odd):hover,
+    tbody tr:nth-child(even):hover { background-color: #1e3a5f !important; }
+    td { border-bottom-color: #334155 !important; }
+  }
+  .date-badge       { background: #1e3a5f !important; }
+  .day-badge        { background: #273548 !important; color: #e2e8f0 !important; }
+  .day-badge.day-weekend { background: #431407 !important; color: #fdba74 !important; }
+  .cal-cell.clickable:hover:not(.out-of-month) { background: #273548 !important; }
+  .cal-cell.is-holiday                          { background: #431407 !important;
+                                                   .day-num { color: #fdba74 !important; } }
+  .cal-cell.is-holiday:hover                    { background: #78350f !important; }
+}
+
+:host-context(html[data-theme="midnight"]) {
+  .month-card       { background: #0d1117 !important; }
+  .month-header     { border-bottom-color: #21262d !important; }
+  .month-count      { background: #2d0f04 !important; color: #fbbf24 !important; }
+  .admin-hint       { background: #2d0f04 !important; border-color: #78350f !important; color: #fbbf24 !important; }
+  .modal-panel      { background: #0d1117 !important; }
+  .modal-footer     { background: #020408 !important; border-top-color: #21262d !important; }
+  .bulk-row         { background: #020408 !important; &:hover { background: #161b22 !important; } }
+  .holiday-table {
+    tbody tr:nth-child(odd)  { background-color: #0d1117 !important; }
+    tbody tr:nth-child(even) { background-color: #161b22 !important; }
+    tbody tr:hover,
+    tbody tr:nth-child(odd):hover,
+    tbody tr:nth-child(even):hover { background-color: #11162a !important; }
+    td { border-bottom-color: #21262d !important; }
+  }
+  .date-badge       { background: #11162a !important; }
+  .day-badge        { background: #161b22 !important; color: #cdd6f4 !important; }
+  .day-badge.day-weekend { background: #2d0f04 !important; color: #fbbf24 !important; }
+  .cal-cell.clickable:hover:not(.out-of-month) { background: #161b22 !important; }
+  .cal-cell.is-holiday { background: #2d0f04 !important;
+                          .day-num { color: #fbbf24 !important; } }
+}
+
+:host-context(html[data-theme="warm"]) {
+  .month-card       { background: #fffdf7 !important; }
+  .month-header     { border-bottom-color: #ddc9a8 !important; }
+  .month-count      { background: #fef3c7 !important; color: #92400e !important; }
+  .admin-hint       { background: #fef9e7 !important; border-color: #f5c842 !important; color: #7c4a18 !important; }
+  .modal-panel      { background: #fffdf7 !important; }
+  .modal-footer     { background: #fef9f0 !important; border-top-color: #ddc9a8 !important; }
+  .bulk-row         { background: #fef9f0 !important; &:hover { background: #fdf3e3 !important; } }
+  .holiday-table {
+    tbody tr:nth-child(odd)  { background-color: #fffdf7 !important; }
+    tbody tr:nth-child(even) { background-color: #fef9f0 !important; }
+    tbody tr:hover,
+    tbody tr:nth-child(odd):hover,
+    tbody tr:nth-child(even):hover { background-color: #fdf3e3 !important; }
+    td { border-bottom-color: #ddc9a8 !important; }
+  }
+  .date-badge       { background: #fef3e2 !important; color: #9c5a28 !important; }
+  .day-badge        { background: #fef9f0 !important; color: #3d2b1f !important; }
+  .cal-cell.clickable:hover:not(.out-of-month) { background: #fef9f0 !important; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .month-card   { background: #1e293b !important; }
+    .month-count  { background: #431407 !important; color: #fdba74 !important; }
+    .admin-hint   { background: #431407 !important; border-color: #92400e !important; color: #fdba74 !important; }
+    .modal-panel  { background: #1e293b !important; }
+    .modal-footer { background: #0f172a !important; border-top-color: #334155 !important; }
+    .holiday-table {
+      tbody tr:nth-child(odd)  { background-color: #1e293b !important; }
+      tbody tr:nth-child(even) { background-color: #273548 !important; }
+      td { border-bottom-color: #334155 !important; }
+    }
+    .date-badge { background: #1e3a5f !important; }
+    .day-badge  { background: #273548 !important; color: #e2e8f0 !important; }
+  }
+}
+
 // ── Responsive ─────────────────────────────────────────────────────
 @media (max-width: 48em) {
   .controls-bar { padding: 0.75em 1em; gap: 0.75em; }

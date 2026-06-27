@@ -13,22 +13,47 @@
 
         <div class="pam-body">
           <!-- Icon -->
-          <div class="pam-icon-wrap pam-icon-wrap--lock">
-            <i class="fa" [class.fa-lock]="!isLockedOut" [class.fa-ban]="isLockedOut"></i>
+          <div class="pam-icon-wrap"
+               [class.pam-icon-wrap--lock]="!isLockedOut && !isTimedOut"
+               [class.pam-icon-wrap--danger]="isLockedOut || isTimedOut">
+            <i class="fa"
+               [class.fa-lock]="!isLockedOut && !isTimedOut"
+               [class.fa-ban]="isLockedOut"
+               [class.fa-clock-o]="isTimedOut && !isLockedOut"></i>
           </div>
 
           <!-- Status badge -->
-          <div class="pam-badge pam-badge--expired">Session Expired</div>
-
+          <div class="pam-badge pam-badge--expired">Session Expired
+		   <div class="pam-ring-inner">
+                <i class="fa fa-clock-o pam-ring-icon"></i>
+                <span class="pam-ring-time">{{ timeDisplay }}</span>
+                <span class="pam-ring-sublabel">remaining</span>
+			</div>
+		</div>
           <!-- Title -->
           <h5 class="pam-title" id="pinAuthModalLabel">
-            {{ isLockedOut ? 'Too Many Attempts' : 'Verify Your Identity' }}
+            <ng-container *ngIf="isLockedOut">Too Many Attempts</ng-container>
+            <ng-container *ngIf="isTimedOut && !isLockedOut">Session Timed Out</ng-container>
+            <ng-container *ngIf="!isLockedOut && !isTimedOut">Verify Your Identity</ng-container>
           </h5>
           <p class="pam-subtitle">
-            {{ isLockedOut
-              ? 'You will be logged out for security.'
-              : 'Enter your PIN to securely renew your session.' }}
+            <ng-container *ngIf="isLockedOut">You will be logged out for security.</ng-container>
+            <ng-container *ngIf="isTimedOut && !isLockedOut">You took too long. You will be logged out.</ng-container>
+            <ng-container *ngIf="!isLockedOut && !isTimedOut">Enter your PIN to securely renew your session.</ng-container>
           </p>
+
+          <!-- Circular countdown ring (visible while active and not locked/timed out) -->
+          <div class="pam-timer-wrap" *ngIf="!isLockedOut && !isTimedOut">
+            <div class="pam-timer-ring" [class.pam-timer-ring--urgent]="timerUrgent">
+              <svg class="pam-ring-svg" viewBox="0 0 80 80">
+                <circle class="pam-ring-track" cx="40" cy="40" r="34"/>
+                <circle class="pam-ring-progress"
+                        [class.pam-ring-progress--urgent]="timerUrgent"
+                        cx="40" cy="40" r="34"
+                        [style.stroke-dashoffset]="213.6 - (timeRemaining / 300) * 213.6"/>
+              </svg>
+            </div>
+          </div>
 
           <!-- Lockout banner -->
           <div class="pam-lockout" *ngIf="isLockedOut">
@@ -36,8 +61,14 @@
             Logging you out…
           </div>
 
+          <!-- Timeout banner -->
+          <div class="pam-timeout" *ngIf="isTimedOut && !isLockedOut">
+            <i class="fa fa-clock-o"></i>
+            Time expired — logging you out…
+          </div>
+
           <!-- PIN input -->
-          <ng-container *ngIf="!isLockedOut">
+          <ng-container *ngIf="!isLockedOut && !isTimedOut">
             <div class="pam-input-group" [class.pam-input-group--error]="!!errorMessage">
               <input
                 id="pinInput"
@@ -75,7 +106,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="pam-footer" *ngIf="!isLockedOut">
+        <div class="pam-footer" *ngIf="!isLockedOut && !isTimedOut">
           <button type="button" class="pam-btn pam-btn-logout" (click)="onCancel()" [disabled]="isVerifying">
             <i class="fa fa-sign-out-alt"></i> Log Out
           </button>
@@ -95,21 +126,57 @@
 
         <div class="pam-body">
           <!-- Icon -->
-          <div class="pam-icon-wrap pam-icon-wrap--warn">
-            <i class="fa fa-shield-alt"></i>
+          <div class="pam-icon-wrap"
+               [class.pam-icon-wrap--warn]="!isTimedOut"
+               [class.pam-icon-wrap--danger]="isTimedOut">
+            <i class="fa"
+               [class.fa-shield-alt]="!isTimedOut"
+               [class.fa-clock-o]="isTimedOut"></i>
           </div>
 
           <!-- Status badge -->
           <div class="pam-badge pam-badge--setup">PIN Required</div>
 
           <!-- Title -->
-          <h5 class="pam-title" id="pinAuthModalLabel">Set Up a PIN</h5>
+          <h5 class="pam-title" id="pinAuthModalLabel">
+            <ng-container *ngIf="!isTimedOut">Set Up a PIN</ng-container>
+            <ng-container *ngIf="isTimedOut">Session Timed Out</ng-container>
+          </h5>
           <p class="pam-subtitle">
-            Your session has expired. A PIN is required to securely renew it.
+            <ng-container *ngIf="!isTimedOut">Your session has expired. A PIN is required to securely renew it.</ng-container>
+            <ng-container *ngIf="isTimedOut">You took too long. You will be logged out.</ng-container>
           </p>
 
+          <!-- Circular countdown ring -->
+          <div class="pam-timer-wrap" *ngIf="!isTimedOut">
+            <div class="pam-timer-ring" [class.pam-timer-ring--urgent]="timerUrgent">
+              <svg class="pam-ring-svg" viewBox="0 0 80 80">
+                <circle class="pam-ring-track" cx="40" cy="40" r="34"/>
+                <circle class="pam-ring-progress"
+                        [class.pam-ring-progress--urgent]="timerUrgent"
+                        cx="40" cy="40" r="34"
+                        [style.stroke-dashoffset]="213.6 - (timeRemaining / 300) * 213.6"/>
+              </svg>
+              <div class="pam-ring-inner">
+                <i class="fa fa-clock-o pam-ring-icon"></i>
+                <span class="pam-ring-time">{{ timeDisplay }}</span>
+                <span class="pam-ring-sublabel">remaining</span>
+              </div>
+            </div>
+            <p class="pam-timer-hint" [class.pam-timer-hint--urgent]="timerUrgent">
+              <ng-container *ngIf="!timerUrgent">Session will expire in {{ timeDisplay }}</ng-container>
+              <ng-container *ngIf="timerUrgent">⚠ Less than 1 minute — act now!</ng-container>
+            </p>
+          </div>
+
+          <!-- Timeout banner -->
+          <div class="pam-timeout" *ngIf="isTimedOut">
+            <i class="fa fa-clock-o"></i>
+            Time expired — logging you out…
+          </div>
+
           <!-- Info box -->
-          <div class="pam-setup-info">
+          <div class="pam-setup-info" *ngIf="!isTimedOut">
             <i class="fa fa-info-circle"></i>
             <span>
               Go to <strong>Settings → Session PIN</strong> to set up your PIN.
@@ -119,7 +186,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="pam-footer">
+        <div class="pam-footer" *ngIf="!isTimedOut">
           <button type="button" class="pam-btn pam-btn-logout" (click)="onLogOut()">
             <i class="fa fa-sign-out-alt"></i> Log Out
           </button>

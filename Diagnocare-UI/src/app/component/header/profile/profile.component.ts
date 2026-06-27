@@ -35,6 +35,8 @@ export class ProfileComponent implements OnInit {
   newEmail: string    = '';
   newPhone: string    = '';
   otpCode: string     = '';
+  /** 6 individual digit boxes for OTP entry. */
+  otpDigits: string[] = ['', '', '', '', '', ''];
 
   otpSending: boolean   = false;
   otpVerifying: boolean = false;
@@ -168,14 +170,74 @@ export class ProfileComponent implements OnInit {
   }
 
   cancelEdit() {
-    this.editField = null;
-    this.editStep  = null;
-    this.otpCode   = '';
-    this.newEmail  = '';
-    this.newPhone  = '';
-    this.otpSent   = false;
-    this.errorMsg  = '';
+    this.editField  = null;
+    this.editStep   = null;
+    this.otpCode    = '';
+    this.otpDigits  = ['', '', '', '', '', ''];
+    this.newEmail   = '';
+    this.newPhone   = '';
+    this.otpSent    = false;
+    this.errorMsg   = '';
     this.clearCountdown();
+  }
+
+  // ── OTP digit-box handlers ───────────────────────────────────────────────────
+
+  onOtpDigitInput(index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const val   = input.value.replace(/\D/g, '').slice(-1);
+    input.value        = val;
+    this.otpDigits[index] = val;
+    this.otpCode       = this.otpDigits.join('');
+    if (val && index < 5) {
+      const next = document.querySelectorAll<HTMLInputElement>('.prof-otp-box')[index + 1];
+      if (next) { next.focus(); next.select(); }
+    }
+    if (this.otpDigits.every(d => d.length === 1)) {
+      setTimeout(() => this.verifyAndSave(), 80);
+    }
+  }
+
+  onOtpDigitKeydown(index: number, event: KeyboardEvent): void {
+    if (event.key === 'Backspace') {
+      const input = event.target as HTMLInputElement;
+      if (input.value) {
+        event.preventDefault();
+        this.otpDigits[index] = '';
+        input.value = '';
+        this.otpCode = this.otpDigits.join('');
+      } else if (index > 0) {
+        const prev = document.querySelectorAll<HTMLInputElement>('.prof-otp-box')[index - 1];
+        if (prev) { prev.focus(); prev.select(); }
+      }
+    }
+  }
+
+  onOtpDigitPaste(event: ClipboardEvent): void {
+    const pasted = (event.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    event.preventDefault();
+    pasted.split('').forEach((d, i) => { this.otpDigits[i] = d; });
+    this.otpCode = this.otpDigits.join('');
+    const boxes = document.querySelectorAll<HTMLInputElement>('.prof-otp-box');
+    boxes.forEach((b, i) => { b.value = this.otpDigits[i] || ''; });
+    const focusIdx = Math.min(pasted.length, 5);
+    if (boxes[focusIdx]) { boxes[focusIdx].focus(); boxes[focusIdx].select(); }
+    if (pasted.length === 6) setTimeout(() => this.verifyAndSave(), 80);
+  }
+
+  /** Circular SVG progress for resend countdown (0–60). */
+  get resendCircleOffset(): number {
+    const total = 60;
+    return 100 - (this.resendCountdown / total) * 100;
+  }
+
+  /** Go back to the input step and reset OTP digit state. */
+  goBackToInput(): void {
+    this.editStep  = 'input';
+    this.otpCode   = '';
+    this.otpDigits = ['', '', '', '', '', ''];
+    this.errorMsg  = '';
   }
 
   // ── OTP flow ─────────────────────────────────────────────────────────────────
@@ -328,6 +390,7 @@ export class ProfileComponent implements OnInit {
     this.editField  = null;
     this.editStep   = null;
     this.otpCode    = '';
+    this.otpDigits  = ['', '', '', '', '', ''];
     this.newEmail   = '';
     this.newPhone   = '';
     this.otpSent    = false;

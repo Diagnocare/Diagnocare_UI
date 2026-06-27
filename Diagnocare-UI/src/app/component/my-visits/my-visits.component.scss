@@ -461,3 +461,81 @@
 @media (min-width: 1200px) {
   .mv-body { max-width: 720px; }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  THEME OVERRIDES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── dark ──────────────────────────────────────────────────────────────────────
+:host-context(html[data-theme="dark"]) {
+  .mv-empty            { background: #1e293b !important; }
+  .mv-panel            { background: #1e293b !important; box-shadow: 0 4px 20px rgba(0,0,0,.4) !important; }
+  .mv-stat strong      { color: #e2e8f0 !important; }
+  .mv-pct              { color: #e2e8f0 !important; }
+  .mv-progress-bar-track { background: #334155 !important; }
+  .mv-card             { background: #1e293b !important;
+                         &--done      { background: #0f2419 !important; .mvc-topbar { background: #0f2419 !important; } }
+                         &--cancelled { background: #1a0a0a !important; .mvc-topbar { background: #1a0a0a !important; } } }
+  .mvc-topbar          { background: #0f172a !important; border-bottom-color: #273548 !important; }
+  .mvc-contact-name    { color: #e2e8f0 !important; }
+  .mvc-address-row     { color: #94a3b8 !important; }
+  .mvc-meta-row        { color: #94a3b8 !important; }
+  .mvc-seq             { background: #273548 !important; color: #94a3b8 !important; }
+  .mvc-done-bar        { background: #0f2419 !important; border-color: #166534 !important;
+                         &:hover { background: #0a1f12 !important; } }
+  .mv-empty h3         { color: #e2e8f0 !important; }
+}
+
+// ── midnight ───────────────────────────────────────────────────────────────────
+:host-context(html[data-theme="midnight"]) {
+  .mv-empty            { background: #0d1117 !important; }
+  .mv-panel            { background: #0d1117 !important; box-shadow: 0 4px 20px rgba(0,0,0,.5) !important; }
+  .mv-stat strong      { color: #cdd6f4 !important; }
+  .mv-pct              { color: #cdd6f4 !important; }
+  .mv-progress-bar-track { background: #21262d !important; }
+  .mv-card             { background: #0d1117 !important;
+                         &--done      { background: #061208 !important; .mvc-topbar { background: #061208 !important; } }
+                         &--cancelled { background: #0e0404 !important; .mvc-topbar { background: #0e0404 !important; } } }
+  .mvc-topbar          { background: #020408 !important; border-bottom-color: #161b22 !important; }
+  .mvc-contact-name    { color: #cdd6f4 !important; }
+  .mvc-address-row     { color: #6e7681 !important; }
+  .mvc-meta-row        { color: #6e7681 !important; }
+  .mvc-seq             { background: #161b22 !important; color: #a6adc8 !important; }
+  .mvc-done-bar        { background: #061208 !important; border-color: #0d3318 !important; }
+  .mv-empty h3         { color: #cdd6f4 !important; }
+}
+
+// ── warm ──────────────────────────────────────────────────────────────────────
+:host-context(html[data-theme="warm"]) {
+  .mv-empty            { background: #fffdf7 !important; }
+  .mv-panel            { background: #fffdf7 !important; }
+  .mv-stat strong      { color: #3d2b1f !important; }
+  .mv-pct              { color: #3d2b1f !important; }
+  .mv-progress-bar-track { background: #e8d9c0 !important; }
+  .mv-card             { background: #fffdf7 !important;
+                         &--done      { background: #f0fdf4 !important; .mvc-topbar { background: #f0fdf4 !important; } }
+                         &--cancelled { background: #fef8f5 !important; .mvc-topbar { background: #fef8f5 !important; } } }
+  .mvc-topbar          { background: #fef9f0 !important; border-bottom-color: #e8d9c0 !important; }
+  .mvc-contact-name    { color: #3d2b1f !important; }
+  .mvc-address-row     { color: #7a5c4e !important; }
+  .mvc-meta-row        { color: #7a5c4e !important; }
+  .mvc-seq             { background: #e8d9c0 !important; color: #7a5c4e !important; }
+  .mvc-done-bar        { background: #f0fdf4 !important; border-color: #bbf7d0 !important; }
+  .mv-empty h3         { color: #3d2b1f !important; }
+}
+
+// ── system (OS dark) ──────────────────────────────────────────────────────────
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .mv-empty          { background: #1e293b !important; }
+    .mv-panel          { background: #1e293b !important; }
+    .mv-stat strong    { color: #e2e8f0 !important; }
+    .mv-pct            { color: #e2e8f0 !important; }
+    .mv-progress-bar-track { background: #334155 !important; }
+    .mv-card           { background: #1e293b !important; }
+    .mvc-topbar        { background: #0f172a !important; border-bottom-color: #273548 !important; }
+    .mvc-contact-name  { color: #e2e8f0 !important; }
+    .mvc-address-row, .mvc-meta-row { color: #94a3b8 !important; }
+    .mvc-seq           { background: #273548 !important; color: #94a3b8 !important; }
+  }
+}

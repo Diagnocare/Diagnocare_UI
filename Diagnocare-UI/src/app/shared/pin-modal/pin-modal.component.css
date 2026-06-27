@@ -52,6 +52,11 @@
   box-shadow: 0 0.5rem 1.5rem rgba(245, 158, 11, 0.35);
 }
 
+.pam-icon-wrap--danger {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  box-shadow: 0 0.5rem 1.5rem rgba(239, 68, 68, 0.35);
+}
+
 .pam-icon-wrap i {
   font-size: 1.5rem;
   color: #fff;
@@ -203,6 +208,126 @@
   font-size: 0.75rem;
   color: #ef4444;
   margin-left: 0.25rem;
+  font-weight: 500;
+}
+
+/* ── Circular countdown ring ─────────────────────────────────────────────── */
+.pam-timer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.pam-timer-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.pam-ring-svg {
+  width: 80px;
+  height: 80px;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.pam-ring-track {
+  fill: none;
+  stroke: #dde4ef;   /* visible light-grey track so the ring outline is clear */
+  stroke-width: 5;
+}
+
+.pam-ring-progress {
+  fill: none;
+  stroke: #1e5ba8;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 213.6;
+  transition: stroke-dashoffset 1s linear, stroke 0.4s;
+}
+
+.pam-ring-progress--urgent { stroke: #dc2626; }
+
+.pam-ring-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  pointer-events: none;
+}
+
+.pam-ring-icon {
+  font-size: 0.68rem;
+  color: #1e5ba8;
+  margin-bottom: 2px;
+  transition: color 0.4s;
+}
+
+.pam-ring-time {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e5ba8;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  transition: color 0.4s;
+}
+
+.pam-ring-sublabel {
+  font-size: 0.5rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin-top: 3px;
+}
+
+/* Urgent state */
+.pam-timer-ring--urgent .pam-ring-icon,
+.pam-timer-ring--urgent .pam-ring-time { color: #dc2626; }
+.pam-timer-ring--urgent .pam-ring-track { stroke: rgba(220, 38, 38, 0.1); }
+.pam-timer-ring--urgent {
+  animation: pam-timer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes pam-timer-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+/* Hint text below the ring */
+.pam-timer-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.pam-timer-hint--urgent {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ── Timeout banner ─────────────────────────────────────────────────────────── */
+.pam-timeout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.6rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
   font-weight: 500;
 }
 

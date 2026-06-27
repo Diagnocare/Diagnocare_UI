@@ -76,6 +76,102 @@
   margin: 0;
 }
 
+/* ── Session countdown timer (header pill) ──────────────────────────── */
+.otp-session-timer {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 0.28rem 0.75rem 0.28rem 0.45rem;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+  white-space: nowrap;
+}
+
+/* Mini ring SVG */
+.otp-session-ring-wrap {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.otp-session-ring-svg {
+  width: 18px;
+  height: 18px;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.otp-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 2.5;
+}
+
+.otp-ring-progress {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 56.5;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.otp-ring-progress--urgent { stroke: #fca5a5; }
+
+/* Urgent state */
+.otp-session-timer.otp-session-urgent {
+  background: rgba(220, 38, 38, 0.38);
+  border-color: rgba(252, 165, 165, 0.65);
+  color: #fecaca;
+  animation: otp-timer-pulse 1s ease-in-out infinite;
+}
+
+.otp-session-timer.otp-session-urgent .otp-ring-track { stroke: rgba(252,165,165,0.22); }
+
+/* Expired state */
+.otp-session-timer.otp-session-expired {
+  background: rgba(220, 38, 38, 0.55);
+  border-color: #fca5a5;
+  color: #fecaca;
+}
+
+@keyframes otp-timer-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* ── Session progress bar (thin strip below header) ─────────────────── */
+.otp-session-progress-bar {
+  height: 3px;
+  background: rgba(30, 91, 168, 0.12);
+  overflow: hidden;
+}
+
+.otp-session-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #1E5BA8);
+  transition: width 1s linear, background 0.5s;
+  border-radius: 0 2px 2px 0;
+}
+
+.otp-session-progress-fill.otp-session-progress-urgent {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.otp-session-progress-fill.otp-session-progress-expired {
+  width: 0% !important;
+  background: #dc2626;
+  transition: none;
+}
+
 /* Close button */
 .otp-close-btn {
   width: 2rem;

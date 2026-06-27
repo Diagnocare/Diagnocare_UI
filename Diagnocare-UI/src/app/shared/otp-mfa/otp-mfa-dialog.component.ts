@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
+import { Router } from '@angular/router';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 
@@ -72,6 +73,12 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
    * The parent should close the dialog and show the lockout banner.
    */
   @Output() lockoutDetected  = new EventEmitter<void>();
+  /**
+   * Emitted when the 5-minute session timer expires.
+   * The parent can listen to this to close the dialog and update UI state.
+   * The component also auto-calls logout and navigates to /login.
+   */
+  @Output() sessionExpired   = new EventEmitter<void>();
 
   // ── Form ──────────────────────────────────────────────────────────
   form: FormGroup;
@@ -93,6 +100,12 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   pendingMethod   = '';
   resendRemaining = 0;
   private timerId: any = null;
+
+  // ── Session timer (5 minutes) ─────────────────────────────────────
+  readonly sessionSeconds     = 300; // 5 minutes
+  sessionRemaining            = 300;
+  sessionExpiredFlag          = false;
+  private sessionTimerId: any = null;
 
   // ── Static method definitions (always all shown) ──────────────────
   readonly methods: MethodDef[] = [
@@ -122,7 +135,13 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     },
   ];
 
-  constructor(private fb: FormBuilder, private loginService: LoginService) {
+  constructor(
+    private fb: FormBuilder,
+    private loginService: LoginService,
+    private router: Router,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
+  ) {
     this.form = this.fb.group({
       code:   [''],
       digits: this.fb.array(
@@ -189,6 +208,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.startSessionTimer();
     if (this.isLocked) {
       // Account locked — keep all OTP/method UI hidden.
       this.showMethodPicker = false;
@@ -203,6 +223,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearResendTimer();
+    this.clearSessionTimer();
   }
 
   // ── Validity helpers ──────────────────────────────────────────────
@@ -462,6 +483,55 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   clearResendTimer(): void {
     if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+  }
+
+  // ── Session timer ─────────────────────────────────────────────────
+
+  /** Formatted mm:ss countdown shown in the dialog header. */
+  get sessionRemainingLabel(): string {
+    const m = Math.floor(this.sessionRemaining / 60).toString().padStart(2, '0');
+    const s = (this.sessionRemaining % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  /** True when the session is in the final 60 seconds (shows red). */
+  get sessionUrgent(): boolean {
+    return this.sessionRemaining <= 60 && !this.sessionExpiredFlag;
+  }
+
+  startSessionTimer(): void {
+    this.clearSessionTimer();
+    this.sessionRemaining   = this.sessionSeconds;
+    this.sessionExpiredFlag = false;
+    // Wrap in ngZone.run() so each tick triggers Angular change detection
+    // even when called from outside the zone (e.g. login/interceptor context).
+    this.ngZone.run(() => {
+      this.sessionTimerId = setInterval(() => {
+        if (this.sessionRemaining > 0) {
+          this.sessionRemaining--;
+        } else {
+          this.onSessionExpired();
+        }
+        this.cdr.detectChanges();   // force re-render of ring + progress bar
+      }, 1000);
+    });
+  }
+
+  clearSessionTimer(): void {
+    if (this.sessionTimerId) { clearInterval(this.sessionTimerId); this.sessionTimerId = null; }
+  }
+
+  private onSessionExpired(): void {
+    this.clearSessionTimer();
+    this.clearResendTimer();
+    this.sessionExpiredFlag = true;
+    this.sessionExpired.emit();
+    // Auto logout — call the service then navigate to login
+    try {
+      this.loginService.logout().subscribe({ complete: () => this.router.navigate(['/login']) });
+    } catch {
+      this.router.navigate(['/login']);
+    }
   }
 
   private clearDigits(): void {

@@ -523,3 +523,42 @@
 @media (max-width: 360px) {
   .page-inner { padding-left: 0.75em; padding-right: 0.75em; }
 }
+
+// ══ THEME OVERRIDES ══════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .config-card { background: #1e293b !important; box-shadow: 0 4px 20px rgba(0,0,0,.4) !important; }
+  .item-row    { border-color: #273548 !important;
+                 &:nth-child(odd)  { background: #1e293b !important; }
+                 &:nth-child(even) { background: #1a2538 !important; }
+                 &:hover:not(.is-editing) { background: #0c2340 !important; border-color: #334155 !important; }
+                 &.is-editing { background: #0f172a !important; border-color: #3b82f6 !important; } }
+  .item-input  { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+}
+:host-context(html[data-theme="midnight"]) {
+  .config-card { background: #0d1117 !important; box-shadow: 0 4px 20px rgba(0,0,0,.5) !important; }
+  .item-row    { border-color: #161b22 !important;
+                 &:nth-child(odd)  { background: #0d1117 !important; }
+                 &:nth-child(even) { background: #0a0e14 !important; }
+                 &:hover:not(.is-editing) { background: #041f30 !important; border-color: #21262d !important; }
+                 &.is-editing { background: #020408 !important; border-color: #3b82f6 !important; } }
+  .item-input  { background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important; }
+}
+:host-context(html[data-theme="warm"]) {
+  .config-card { background: #fffdf7 !important; }
+  .item-row    { border-color: #e8d9c0 !important;
+                 &:nth-child(odd)  { background: #fffdf7 !important; }
+                 &:nth-child(even) { background: #fdf6ea !important; }
+                 &:hover:not(.is-editing) { background: #fbefd8 !important; border-color: #ddc9a8 !important; }
+                 &.is-editing { background: #fef9f0 !important; border-color: #c47028 !important; } }
+  .item-input  { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .config-card { background: #1e293b !important; }
+    .item-row    { &:nth-child(odd) { background: #1e293b !important; }
+                   &:nth-child(even) { background: #1a2538 !important; }
+                   &:hover:not(.is-editing) { background: #0c2340 !important; } }
+    .item-input  { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+  }
+}

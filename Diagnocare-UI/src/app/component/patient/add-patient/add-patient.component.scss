@@ -838,3 +838,35 @@ textarea.form-control {
     font-size: 0.9em;
   }
 }
+
+// ══ THEME OVERRIDES ══════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .registration-card       { background: #1e293b !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; }
+  .step-header             { border-bottom-color: #273548 !important; }
+  .combo-input             { background: #0f172a !important; color: #e2e8f0 !important; }
+  .referred-by-suggestions { background: #1e293b !important; border-color: #334155 !important; }
+  .card                    { background: #1e293b !important; border-color: #273548 !important; }
+}
+:host-context(html[data-theme="midnight"]) {
+  .registration-card       { background: #0d1117 !important; box-shadow: 0 4px 24px rgba(0,0,0,.5) !important; }
+  .step-header             { border-bottom-color: #161b22 !important; }
+  .combo-input             { background: #020408 !important; color: #cdd6f4 !important; }
+  .referred-by-suggestions { background: #0d1117 !important; border-color: #21262d !important; }
+  .card                    { background: #0d1117 !important; border-color: #161b22 !important; }
+}
+:host-context(html[data-theme="warm"]) {
+  .registration-card       { background: #fffdf7 !important; }
+  .step-header             { border-bottom-color: #e8d9c0 !important; }
+  .combo-input             { background: #fef9f0 !important; color: #3d2b1f !important; }
+  .referred-by-suggestions { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+  .card                    { background: #fffdf7 !important; border-color: #e8d9c0 !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .registration-card       { background: #1e293b !important; }
+    .combo-input             { background: #0f172a !important; color: #e2e8f0 !important; }
+    .referred-by-suggestions { background: #1e293b !important; border-color: #334155 !important; }
+    .card                    { background: #1e293b !important; }
+  }
+}

@@ -535,3 +535,138 @@
     margin: 0 auto;
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  THEME OVERRIDES  (:host-context beats [_ngcontent] view-encapsulation)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── dark ──────────────────────────────────────────────────────────────────────
+:host-context(html[data-theme="dark"]) {
+  .vs-calendar-panel, .vs-detail-panel { background: #1e293b !important; }
+  .cal-nav-btn        { border-color: #334155 !important; color: #94a3b8 !important;
+                         &:hover { background: #273548 !important; } }
+  .cal-month-label    { color: #e2e8f0 !important; }
+  .cal-dow            { color: #475569 !important; }
+  .cal-day-num        { color: #e2e8f0 !important; }
+  .cal-cell:hover     { background: #273548 !important; }
+  .cal-cell.selected  { background: #082f49 !important; outline-color: #0891b2 !important; }
+  .cal-legend         { color: #475569 !important; }
+  .detail-header      { border-bottom-color: #334155 !important; }
+  .detail-title       { color: #e2e8f0 !important; }
+  .assign-form-box    { background: #0f172a !important; border-color: #334155 !important; }
+  .form-box-title     { color: #38bdf8 !important; }
+  .type-chip          { background: #0f172a !important; border-color: #334155 !important; color: #94a3b8 !important;
+                         &:hover { border-color: #0891b2 !important; color: #38bdf8 !important; background: #082f49 !important; } }
+  .contact-suggestions { background: #1e293b !important; border-color: #334155 !important; }
+  .contact-suggestion-item { border-bottom-color: #273548 !important;
+                              &:hover { background: #082f49 !important; }
+                              .suggestion-name { color: #e2e8f0 !important; }
+                              .suggestion-meta { color: #64748b !important; } }
+  .visit-card         { border-color: #334155 !important;
+                         &:hover { box-shadow: 0 2px 10px rgba(0,0,0,.35) !important; } }
+  .vc-name            { color: #e2e8f0 !important; }
+  .vc-meta, .vc-member, .vc-notes { color: #64748b !important; }
+  .vc-member          { color: #94a3b8 !important; }
+  .vc-filter-chip     { background: #0f172a !important; border-color: #334155 !important; color: #64748b !important; }
+  .vc-filter-count    { background: #273548 !important; color: #94a3b8 !important; }
+  .vc-evidence        { border-top-color: #334155 !important; }
+  .vc-evidence-row    { color: #64748b !important; }
+  .vc-evidence-photo img { border-color: #334155 !important; }
+  .empty-state        { color: #475569 !important; }
+  .btn-outline        { background: #0f172a !important; border-color: #0891b2 !important; color: #38bdf8 !important;
+                         &:hover { background: #082f49 !important; } }
+}
+
+// ── midnight ───────────────────────────────────────────────────────────────────
+:host-context(html[data-theme="midnight"]) {
+  .vs-calendar-panel, .vs-detail-panel { background: #0d1117 !important; }
+  .cal-nav-btn        { border-color: #21262d !important; color: #a6adc8 !important;
+                         &:hover { background: #161b22 !important; } }
+  .cal-month-label    { color: #cdd6f4 !important; }
+  .cal-dow            { color: #30363d !important; }
+  .cal-day-num        { color: #cdd6f4 !important; }
+  .cal-cell:hover     { background: #161b22 !important; }
+  .cal-cell.selected  { background: #041f30 !important; outline-color: #0891b2 !important; }
+  .cal-legend         { color: #30363d !important; }
+  .detail-header      { border-bottom-color: #21262d !important; }
+  .detail-title       { color: #cdd6f4 !important; }
+  .assign-form-box    { background: #020408 !important; border-color: #21262d !important; }
+  .form-box-title     { color: #38bdf8 !important; }
+  .type-chip          { background: #020408 !important; border-color: #21262d !important; color: #a6adc8 !important;
+                         &:hover { border-color: #0891b2 !important; color: #38bdf8 !important; background: #041f30 !important; } }
+  .contact-suggestions { background: #0d1117 !important; border-color: #21262d !important; }
+  .contact-suggestion-item { border-bottom-color: #161b22 !important;
+                              &:hover { background: #041f30 !important; }
+                              .suggestion-name { color: #cdd6f4 !important; }
+                              .suggestion-meta { color: #6e7681 !important; } }
+  .visit-card         { border-color: #21262d !important; }
+  .vc-name            { color: #cdd6f4 !important; }
+  .vc-meta, .vc-member, .vc-notes { color: #6e7681 !important; }
+  .vc-member          { color: #a6adc8 !important; }
+  .vc-filter-chip     { background: #020408 !important; border-color: #21262d !important; color: #6e7681 !important; }
+  .vc-filter-count    { background: #161b22 !important; color: #a6adc8 !important; }
+  .vc-evidence        { border-top-color: #21262d !important; }
+  .vc-evidence-row    { color: #6e7681 !important; }
+  .vc-evidence-photo img { border-color: #21262d !important; }
+  .empty-state        { color: #30363d !important; }
+  .btn-outline        { background: #020408 !important; border-color: #0891b2 !important; color: #38bdf8 !important;
+                         &:hover { background: #041f30 !important; } }
+}
+
+// ── warm ──────────────────────────────────────────────────────────────────────
+:host-context(html[data-theme="warm"]) {
+  .vs-calendar-panel, .vs-detail-panel { background: #fffdf7 !important; }
+  .cal-nav-btn        { border-color: #ddc9a8 !important; color: #7a5c4e !important;
+                         &:hover { background: #fef9f0 !important; } }
+  .cal-month-label    { color: #3d2b1f !important; }
+  .cal-dow            { color: #9e8272 !important; }
+  .cal-day-num        { color: #3d2b1f !important; }
+  .cal-cell:hover     { background: #fef9f0 !important; }
+  .cal-cell.selected  { background: #fdf3e3 !important; outline-color: #c47028 !important; }
+  .cal-legend         { color: #9e8272 !important; }
+  .detail-header      { border-bottom-color: #ddc9a8 !important; }
+  .detail-title       { color: #3d2b1f !important; }
+  .assign-form-box    { background: #fef9f0 !important; border-color: #ddc9a8 !important; }
+  .form-box-title     { color: #9c5a28 !important; }
+  .type-chip          { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #7a5c4e !important;
+                         &:hover { border-color: #c47028 !important; color: #9c5a28 !important; background: #fdf3e3 !important; } }
+  .contact-suggestions { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+  .contact-suggestion-item { border-bottom-color: #f5ede0 !important;
+                              &:hover { background: #fdf3e3 !important; }
+                              .suggestion-name { color: #3d2b1f !important; }
+                              .suggestion-meta { color: #9e8272 !important; } }
+  .visit-card         { border-color: #ddc9a8 !important; }
+  .vc-name            { color: #3d2b1f !important; }
+  .vc-meta, .vc-member, .vc-notes { color: #9e8272 !important; }
+  .vc-filter-chip     { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #7a5c4e !important; }
+  .vc-filter-count    { background: #ddc9a8 !important; color: #5c3d2a !important; }
+  .vc-evidence        { border-top-color: #ddc9a8 !important; }
+  .vc-evidence-row    { color: #7a5c4e !important; }
+  .vc-evidence-photo img { border-color: #ddc9a8 !important; }
+  .empty-state        { color: #9e8272 !important; }
+  .btn-outline        { background: #fffdf7 !important; border-color: #c47028 !important; color: #9c5a28 !important;
+                         &:hover { background: #fdf3e3 !important; } }
+}
+
+// ── system (OS dark) — mirrors dark ───────────────────────────────────────────
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .vs-calendar-panel, .vs-detail-panel { background: #1e293b !important; }
+    .cal-nav-btn     { border-color: #334155 !important; color: #94a3b8 !important; }
+    .cal-month-label { color: #e2e8f0 !important; }
+    .cal-dow         { color: #475569 !important; }
+    .cal-day-num     { color: #e2e8f0 !important; }
+    .cal-cell:hover  { background: #273548 !important; }
+    .cal-cell.selected { background: #082f49 !important; }
+    .detail-header   { border-bottom-color: #334155 !important; }
+    .detail-title    { color: #e2e8f0 !important; }
+    .assign-form-box { background: #0f172a !important; border-color: #334155 !important; }
+    .type-chip       { background: #0f172a !important; border-color: #334155 !important; color: #94a3b8 !important; }
+    .contact-suggestions { background: #1e293b !important; border-color: #334155 !important; }
+    .contact-suggestion-item .suggestion-name { color: #e2e8f0 !important; }
+    .visit-card      { border-color: #334155 !important; }
+    .vc-name         { color: #e2e8f0 !important; }
+    .vc-filter-chip  { background: #0f172a !important; border-color: #334155 !important; color: #64748b !important; }
+    .vc-evidence     { border-top-color: #334155 !important; }
+  }
+}
