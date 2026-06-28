@@ -5,6 +5,6 @@ export const environment = {
   loginUIUrl: 'http://diagnocaredev/',
   basicAuth: {
     username: 'Admin',
-    password: 'OwJ3dA38hJuNHsEBTxXju6JB5qAZNNiTvWDrnZOBSXY=',
+    password: 'ggDgc+q0Y4xNWOadnfALUOEEi/ijWn4I0fd06Keor5Y=',
   },
 };
