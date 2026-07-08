@@ -94,18 +94,19 @@
 
 .cal-badge {
   font-size: .65rem;
-  font-weight: 700;
-  background: #fbbf24;
-  color: #78350f;
+  font-weight: 800;
+  background: #f59e0b;          // pending — solid amber
+  color: #fff;
   border-radius: 10px;
-  padding: 1px 5px;
+  padding: 1px 6px;
   min-width: 18px;
   text-align: center;
   margin-left: 1em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 
   &--all-done {
-    background: #d1fae5;
-    color: #065f46;
+    background: #16a34a;        // all done — solid green (clearly visible)
+    color: #fff;
   }
 }
 
@@ -121,7 +122,7 @@
 .leg-dot {
   width: 10px; height: 10px; border-radius: 50%;
   &--pending  { background: #fbbf24; }
-  &--done     { background: #6ee7b7; }
+  &--done     { background: #16a34a; }
   &--today    { background: #0891b2; }
 }
 

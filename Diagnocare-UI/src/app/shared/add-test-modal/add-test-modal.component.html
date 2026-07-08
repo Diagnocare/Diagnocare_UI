@@ -10,7 +10,7 @@
         <h1>Add New Test</h1>
         <p class="subtitle">Patient&nbsp;<strong>{{ patientId }}</strong> &mdash; Select tests and complete payment</p>
       </div>
-      <button class="btn btn-outline atm-close-page-btn" type="button" (click)="cancel()" title="Cancel">
+      <button class="dc-btn dc-btn--cancel atm-close-page-btn" type="button" (click)="cancel()" title="Cancel">
         <i class="fa fa-times"></i> Cancel
       </button>
     </div>
@@ -167,7 +167,11 @@
               <div class="form-group">
                 <label class="form-label">Discount (%)</label>
                 <input type="number" class="form-control" formControlName="discount"
-                       (change)="calculateNetAmount()" placeholder="0" min="0" max="100" />
+                       (change)="calculateNetAmount()" placeholder="0" min="0" [max]="maxDiscountPercent" />
+                <small class="text-danger"
+                       *ngIf="form.get('discount')?.errors?.['maxExceeded']">
+                  Discount cannot exceed {{ maxDiscountPercent }}%. (100% discount is not allowed.)
+                </small>
               </div>
             </div>
 
@@ -296,7 +300,7 @@
               Next <i class="fa fa-arrow-right"></i>
             </button>
             <!-- Step 2: Submit -->
-            <button type="submit" class="btn btn-success" *ngIf="currentStep === 2"
+            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 2"
                     [disabled]="!isStep2Valid || isSaving">
               <i class="fa fa-spinner fa-spin" *ngIf="isSaving"></i>
               <i class="fa fa-check" *ngIf="!isSaving"></i>
@@ -482,9 +486,16 @@
           <label class="form-label">Amount Pending (₹)</label>
           <input type="text" class="form-control" formControlName="amount_Pending" readonly />
         </div>
+        <small class="amount-pending-hint">Calculated automatically as Net &minus; Paid</small>
+
+        <!-- Cash Change Calculator -->
+        <app-payment-calculator
+          [requiredAmount]="form.get('amount_Paid')?.value || 0"
+          [resetTrigger]="showPartialPaymentPanel">
+        </app-payment-calculator>
       </div>
       <div class="modal-footer-actions">
-        <button type="button" class="btn btn-back" (click)="cancelPartialPayment()">Cancel</button>
+        <button type="button" class="btn btn-cancel" (click)="cancelPartialPayment()">Cancel</button>
         <button type="button" class="btn btn-primary" (click)="confirmPartialPayment()"
                 [disabled]="!!amountPaidError || !form.get('amount_Paid')?.value">
           <i class="fa fa-check"></i> Confirm Partial Payment

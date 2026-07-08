@@ -69,6 +69,22 @@
 .pin-match-ok  { color: #16a34a; }
 .pin-match-err { color: #dc2626; }
 
+/* ── Forgot PIN link ─────────────────────────────────────────────────────────── */
+.pin-forgot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .45rem;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--dc-primary, #4f46e5);
+}
+.pin-forgot-link:hover { text-decoration: underline; }
+
 /* ── Messages ─────────────────────────────────────────────────────────────────── */
 .msg {
   border-radius: .4rem;

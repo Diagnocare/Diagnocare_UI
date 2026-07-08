@@ -19,6 +19,13 @@ import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.c
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import {
+  calculatePatientStatus,
+  hasPendingTests,
+  resolvePaymentStatus,
+  getPaymentBadgeLabel as paymentBadgeLabel,
+  getPaymentStatusClass as paymentStatusClass
+} from 'src/app/utilities/patient-status.util';
 
 @Component({
   selector: 'app-patient-test-list',
@@ -160,21 +167,12 @@ export class PatientTestListComponent implements OnInit {
     if (this.showAllTests) {
       filtered = [...this.allPatientTests];
     } else {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - this.RECENT_DAYS);
-      cutoff.setHours(0, 0, 0, 0);
-
+      // Default view shows only outstanding work: Pending / Partial reports
+      // (plus just-cancelled bookings so their settled payment status is visible).
+      // Completed reports are hidden here and reached via the "All Reports" toggle.
       filtered = this.allPatientTests.filter(test => {
-        // Always show tests that are not yet completed (Pending / Partial)
         const status = (test.is_Report_Generated || 'Pending').trim();
-        if (status !== 'Completed') return true;
-
-        // For completed tests: only show if registered within the last 15 days
-        if (!test.registration_Date) return true;
-        const testDate = this.parseDMMMYYYY(test.registration_Date);
-        if (!testDate) return true;   // unparseable → include (fail-safe)
-
-        return testDate >= cutoff;
+        return status !== 'Completed';
       });
     }
 
@@ -347,20 +345,18 @@ export class PatientTestListComponent implements OnInit {
    * that may not include payment_Status.
    */
   getPaymentStatus(test: patientTest): string {
-    if (!test.bill_Reciept) return 'Pending';
-    const status = (test.bill_Reciept.payment_Status || '').trim();
-    if (status) return status;
-    // Fallback: derive from pending amount
-    return (test.bill_Reciept.amount_Pending || 0) > 0 ? 'Partial' : 'Paid';
+    // Delegates to the shared resolver so cancelled bookings show
+    // "Payment Settled" / "Payment Not Needed" consistently everywhere.
+    return resolvePaymentStatus(test);
+  }
+
+  /** Full badge text, e.g. "Payment : Paid" or "Payment Settled". */
+  getPaymentBadgeLabel(test: patientTest): string {
+    return paymentBadgeLabel(test);
   }
 
   getPaymentStatusClass(test: patientTest): string {
-    const status = this.getPaymentStatus(test);
-    switch (status) {
-      case 'Paid':    return 'badge-success';
-      case 'Partial': return 'badge-warning';
-      default:        return 'badge-danger';
-    }
+    return paymentStatusClass(test);
   }
 
   // ── Payment Modal ──────────────────────────────────────────────────────
@@ -783,7 +779,7 @@ export class PatientTestListComponent implements OnInit {
         if (refundItems.length === 0) {
           const n = bookingCancels.length;
           this.toastr.success(`${n} booking${n > 1 ? 's' : ''} cancelled.`, 'Cancelled');
-          this.loadPatientTests();
+          this.updatePatientStatusAfterCancellation();
           return;
         }
 
@@ -802,19 +798,59 @@ export class PatientTestListComponent implements OnInit {
               `${n} booking${n > 1 ? 's' : ''} cancelled. ₹${totalEligibleRefund.toFixed(2)} refunded.`,
               'Cancelled & Refunded'
             );
-            this.loadPatientTests();
+            this.updatePatientStatusAfterCancellation();
           },
           error: () => {
             this.toastr.warning(
               'Booking(s) cancelled but refund failed. Please retry from the Receipts page.',
               'Partial Success'
             );
-            this.loadPatientTests();
+            this.updatePatientStatusAfterCancellation();
           }
         });
       },
       error: (err: Error) => {
         this.cancelModalRef?.setError(err.message || 'Failed to cancel. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Updates the patient status after booking cancellation.
+   * If there are no pending tests remaining, automatically updates patient status to "Completed".
+   * Refreshes the UI without requiring a manual page reload.
+   */
+  private updatePatientStatusAfterCancellation(): void {
+    // Reload patient tests to get updated data
+    this.testReportService.getAllPatientTests(this.patientId).subscribe({
+      next: (updatedTests: patientTest[]) => {
+        this.allPatientTests = updatedTests;
+
+        // Calculate new patient status based on updated tests
+        const newStatus = calculatePatientStatus(updatedTests);
+
+        // Only update if there are no pending tests (status should be Completed)
+        if (newStatus === 'Completed' && hasPendingTests(updatedTests) === false) {
+          this.patientService.updatePatientStatus(this.patientId, newStatus).subscribe({
+            next: () => {
+              // Status updated successfully
+              this.filterTests();
+              this.toastr.info('Patient status updated to Completed', 'Status Update');
+            },
+            error: (err) => {
+              // Log error but continue (status update is non-critical)
+              console.warn('Failed to update patient status:', err);
+              this.filterTests();
+            }
+          });
+        } else {
+          // Just refresh the view without updating status
+          this.filterTests();
+        }
+      },
+      error: (error) => {
+        console.error('Failed to reload patient tests:', error);
+        this.loadPatientTests();
       }
     });
   }

@@ -1,5 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+
+/** sessionStorage key for the cached profile photo data-URL (shared with change-password). */
+const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${userName}`;
+
+/** Derive a MIME type from the image file name returned by the API. */
+function mimeFromFileName(fileName?: string | null): string {
+  const ext = (fileName ?? '').split('.').pop()?.toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
 import { FormsModule } from '@angular/forms';
 import { CommonService } from 'src/app/shared/common.service';
 import { jwtDecode } from 'jwt-decode';
@@ -78,31 +90,32 @@ export class ProfileComponent implements OnInit {
   // ── User / image ─────────────────────────────────────────────────────────────
 
   getUserDetails() {
+    // Check sessionStorage cache first — avoids a redundant API call on revisit.
+    const cached = sessionStorage.getItem(PROFILE_PHOTO_CACHE_KEY(this.userName));
+
     this.headerService.getUserDetails(this.userName).subscribe(
       (data: any) => {
         this.user = data as MemberDto;
-        if (this.user && typeof this.user.id !== 'undefined') {
-          this.fetchProfileImage();
+
+        if (cached) {
+          // Use cached data URL immediately — no extra network call needed.
+          this.user.profilePhoto = cached;
+        } else {
+          // GetUserDetails now includes ProfileImage (base64) and ProfileImageFileName.
+          // Use them directly instead of making a second API call.
+          const b64: string | null = data?.profileImage ?? null;
+          if (b64) {
+            const mime = mimeFromFileName(data?.profileImageFileName);
+            const dataUrl = `data:${mime};base64,${b64}`;
+            this.user.profilePhoto = dataUrl;
+            try { sessionStorage.setItem(PROFILE_PHOTO_CACHE_KEY(this.userName), dataUrl); } catch {}
+          } else {
+            this.user.profilePhoto = '/assets/defaultPic.jpg';
+          }
         }
       },
       (err: any) => console.error('Failed to fetch user details', err)
     );
-  }
-
-  fetchProfileImage() {
-    if (!this.user) return;
-    this.headerService.getProfileImage(this.userName).subscribe({
-      next: (blob: Blob) => {
-        if (blob instanceof Blob && blob.size > 0 && blob.type !== 'application/json') {
-          const reader = new FileReader();
-          reader.onload = (e: any) => { this.user!.profilePhoto = e.target.result; };
-          reader.readAsDataURL(blob);
-        } else {
-          this.user!.profilePhoto = '/assets/defaultPic.jpg';
-        }
-      },
-      error: () => {}
-    });
   }
 
   onProfilePicChange(event: any) {
@@ -143,7 +156,9 @@ export class ProfileComponent implements OnInit {
       this.headerService.uploadProfilePhoto(this.userName, this.selectedFile!).subscribe({
         next: (res: any) => {
           this.previewAvailable = false;
-          if (res.url) this.user!.profilePhoto = res.url;
+          // Evict the cache so the next getUserDetails call picks up the new image.
+          sessionStorage.removeItem(PROFILE_PHOTO_CACHE_KEY(this.userName));
+          // The preview was already set to the new image via onProfilePicChange — keep it.
           window.dispatchEvent(new CustomEvent('diagnocare-profile-updated'));
         },
         error: () => {

@@ -10,7 +10,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5em;
   cursor: pointer;
   user-select: none;
   min-height: 38px;

@@ -182,13 +182,41 @@ export class PinService {
 
   /**
    * Returns the SHA-256 hex digest of the input string.
-   * Async because Web Crypto API is promise-based.
+   * Uses the Web Crypto API when available (HTTPS / localhost).
+   * Falls back to a deterministic pure-JS hash when running over plain HTTP
+   * (where crypto.subtle is undefined by browser security policy).
    */
   private async sha256(value: string): Promise<string> {
-    const data = new TextEncoder().encode(value);
-    const buf  = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const data = new TextEncoder().encode(value);
+      const buf  = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+    // Fallback for non-secure contexts (plain HTTP).
+    // Not cryptographically strong, but deterministic — sufficient for
+    // local-storage PIN comparison on the user's own device.
+    return this.fallbackHash(value);
+  }
+
+  /**
+   * Simple deterministic hash used when Web Crypto is unavailable.
+   * Produces a 64-char hex string so its output is the same length as SHA-256.
+   */
+  private fallbackHash(value: string): string {
+    // Two independent djb2 passes seeded differently to widen the output.
+    const pass = (str: string, seed: number): number => {
+      let h = seed;
+      for (let i = 0; i < str.length; i++) {
+        h = Math.imul(31, h) ^ str.charCodeAt(i);
+      }
+      return h >>> 0; // unsigned 32-bit
+    };
+    const segments: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      segments.push(pass(value + i, 0x811c9dc5 + i * 0x01000193).toString(16).padStart(8, '0'));
+    }
+    return segments.join('');
   }
 }

@@ -6,6 +6,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ContactAddressListDto } from 'src/app/models/contactAddress/contactAddress-list.dto';
 import { ContactAddressService } from 'src/app/services/contactAddressServices/contact-address.service';
 import { CommonService } from 'src/app/shared/common.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
@@ -62,13 +63,13 @@ export class ContactFormComponent implements OnInit {
       name: ['', Validators.required],
       institutionType: [null, Validators.required],
       contactPerson: [''],
-      contactNumber: [''],
+      contactNumber: ['', AppValidators.contactNumber()],
       email: ['', Validators.email],
       addressLine1: [''],
       addressLine2: [''],
       city: [''],
       state: [''],
-      pinCode: ['', Validators.pattern(/^\d{6}$/)],
+      pinCode: ['', AppValidators.pincode()],
       country: [''],
       isActive: [true],
       commissionPercentage: [null, [Validators.min(0), Validators.max(100)]]

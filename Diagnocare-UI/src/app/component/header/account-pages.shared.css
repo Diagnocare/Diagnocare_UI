@@ -12,8 +12,12 @@
 ══════════════════════════════════════════════════════ */
 
 /* ── Page wrapper ──────────────────────────────────── */
+/* Centered, width-constrained content so account pages stay
+   balanced instead of hugging the left edge on wide screens. */
 .acct-page {
   padding: 1em 1.5em 4em;
+  max-width: 820px;
+  margin-inline: auto;
 }
 
 /* ── Page-level header (gradient banner) ───────────── */

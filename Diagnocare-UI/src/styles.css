@@ -3,6 +3,21 @@
 /* @import "~font-awesome/css/font-awesome.css"; */
 @import "~@fortawesome/fontawesome-free/css/all.css";
 
+/* Always reserve the vertical scrollbar gutter so centered layouts (e.g. the
+   account pages) don't shift left/right when navigating between a short page
+   (no scrollbar) and a tall page (scrollbar). */
+html { overflow-y: scroll; }
+
+/* Suppress the browser's native password reveal ("eye") and clear ("×") icons.
+   Edge/IE add these to password inputs automatically; since the app renders its
+   own eye-toggle button, the native one would appear as a duplicate. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    THEME TOKENS
    Applies via html[data-theme="<name>"].  Light is the default :root below.
@@ -238,7 +253,7 @@ html[data-theme="midnight"] h4, html[data-theme="midnight"] h5, html[data-theme=
 
 html[data-theme="warm"]     p, html[data-theme="warm"]     span, html[data-theme="warm"]     li,
 html[data-theme="warm"]     h1, html[data-theme="warm"]    h2, html[data-theme="warm"]     h3,
-html[data-theme="warm"]     h4, html[data-theme="warm"]    h5, html[data-theme="warm"]     h6 { color: #3d2b1f !important; }
+html[data-theme="warm"]     h4, html[data-theme="warm"]    h5, html[data-theme="warm"]     h6 { color: #cdd6f4  !important; }
 
 /* Exception: text inside gradient banners stays white */
 html[data-theme="dark"]     .acct-card-header *, html[data-theme="dark"]     .acct-header *,
@@ -721,13 +736,14 @@ body:has(#pinAuthModal.show) .spinner-container {
   --secondary-color: #667eea;
   --accent-color: #764ba2;
 
-  /* Button gradients */
+  /* Button gradients — aligned to the canonical .dc-btn palette so legacy
+     .btn-primary / .btn-danger match the new system app-wide. */
   --btn-success:       linear-gradient(135deg, #4CAF50, #45a049);
   --btn-success-hover: linear-gradient(135deg, #45a049, #4CAF50);
-  --btn-primary:       linear-gradient(135deg, #2196F3, #1976D2);
-  --btn-primary-hover: linear-gradient(135deg, #1976D2, #2196F3);
-  --btn-danger:        linear-gradient(135deg, #f44336, #d32f2f);
-  --btn-danger-hover:  linear-gradient(135deg, #d32f2f, #f44336);
+  --btn-primary:       linear-gradient(135deg, #1e5ba8, #667eea);
+  --btn-primary-hover: linear-gradient(135deg, #1a4f93, #5a6fd6);
+  --btn-danger:        linear-gradient(135deg, #dc3545, #c02333);
+  --btn-danger-hover:  linear-gradient(135deg, #c02333, #a71d2f);
   --btn-warning:       linear-gradient(135deg, #ff9800, #f57c00);
   --btn-warning-hover: linear-gradient(135deg, #f57c00, #ff9800);
 
@@ -968,28 +984,56 @@ body:has(#pinAuthModal.show) .spinner-container {
   transform: translateY(-1px);
 }
 
-/* ── Cancel / Back — consistent red outline across ALL pages ──────────────── */
+/* ── Primary actions on the dark gradient banner → solid white pill ────────── */
 /*
- * Use .btn-cancel for every Back / Cancel / Close action.
- * Soft outlined red — clearly "exit" without looking as aggressive as
- * .btn-danger (the solid gradient reserved for destructive Delete actions).
+ * A brand-blue primary button has low contrast on the blue→purple page-header
+ * gradient. Inside the banner, render primary actions (Add / Save / Search) as
+ * a solid white pill with brand-blue text so they stand out clearly. Purely
+ * scoped to the header — buttons elsewhere keep the standard blue fill.
+ */
+.page-header .btn-primary,        .header-actions .btn-primary,        .header-actions-group .btn-primary,
+.page-header .dc-btn--save,       .header-actions .dc-btn--save,       .header-actions-group .dc-btn--save,
+.page-header .dc-btn--add,        .header-actions .dc-btn--add,        .header-actions-group .dc-btn--add,
+.page-header .dc-btn--search,     .header-actions .dc-btn--search,     .header-actions-group .dc-btn--search {
+  background: #ffffff;
+  color: #1e5ba8;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.page-header .btn-primary:hover:not(:disabled),        .header-actions .btn-primary:hover:not(:disabled),        .header-actions-group .btn-primary:hover:not(:disabled),
+.page-header .dc-btn--save:hover:not(:disabled),       .header-actions .dc-btn--save:hover:not(:disabled),       .header-actions-group .dc-btn--save:hover:not(:disabled),
+.page-header .dc-btn--add:hover:not(:disabled),        .header-actions .dc-btn--add:hover:not(:disabled),        .header-actions-group .dc-btn--add:hover:not(:disabled),
+.page-header .dc-btn--search:hover:not(:disabled),     .header-actions .dc-btn--search:hover:not(:disabled),     .header-actions-group .dc-btn--search:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+  color: #17457f;
+  border-color: #ffffff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+  filter: none;
+}
+
+/* ── Cancel / Close — neutral light grey across ALL pages ─────────────────── */
+/*
+ * Use .btn-cancel for every Cancel / Close action (matches .dc-btn--cancel).
+ * Neutral grey — clearly "exit" without competing with the red reserved for
+ * destructive Delete actions (.btn-danger / .dc-btn--delete).
  *
- * Pairing rule:  [Cancel / Back]  btn-cancel   +   [Save / Submit]  btn-primary/btn-success
- *                [Yes, Delete]    btn-danger   +   [Cancel]         btn-cancel
+ * Pairing rule:  [Cancel / Close]  btn-cancel   +   [Save / Submit]  btn-primary
+ *                [Yes, Delete]     btn-danger   +   [Cancel]         btn-cancel
  */
 .btn-cancel {
-  background: #fff1f0;
-  border: 1.5px solid #fca5a5;
-  color: #dc2626;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  color: #475569;
 }
 .btn-cancel:hover:not(:disabled) {
-  background: #fee2e2;
-  border-color: #ef4444;
-  color: #b91c1c;
-  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.18);
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #334155;
+  box-shadow: 0 2px 6px rgba(71, 85, 105, 0.15);
 }
 .btn-cancel:active:not(:disabled) {
-  background: #fecaca;
+  background: #e2e8f0;
   transform: translateY(0);
 }
 
@@ -1012,6 +1056,160 @@ body:has(#pinAuthModal.show) .spinner-container {
 .btn-lg {
   padding: 0.875em 1.75em;
   font-size: 1em;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE CANONICAL BUTTON SYSTEM  (.dc-btn)
+   ──────────────────────────────────────────────────────────────────────────────
+   ONE consistent pattern per action, used app-wide. Compose a base class with a
+   single intent modifier:
+
+     <button class="dc-btn dc-btn--save">   Save / Update / Submit / Confirm / Add
+     <button class="dc-btn dc-btn--delete"> Delete / Remove
+     <button class="dc-btn dc-btn--cancel"> Cancel / Back / Close
+     <button class="dc-btn dc-btn--search"> Search / Apply / Filter
+     <button class="dc-btn dc-btn--clear">  Clear / Reset
+
+   Aliases (--update, --submit, --confirm, --add, --remove, --close, --reset,
+   --apply, --filter) map onto the five patterns so intent-named classes read
+   naturally. Add .dc-btn--sm / .dc-btn--block for size/width.
+
+   Palette (approved):
+     save   = brand-blue gradient + white
+     delete = solid red + white
+     cancel = light grey + dark text
+     search = brand-blue solid + white
+     clear  = outline (grey border, transparent)
+   ══════════════════════════════════════════════════════════════════════════════ */
+.dc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  font-family: inherit;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.1;
+  padding: 0.6em 1.2em;
+  border: 1.5px solid transparent;
+  border-radius: 0.5em;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease,
+              box-shadow 0.15s ease, transform 0.15s ease;
+}
+.dc-btn:disabled,
+.dc-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+.dc-btn i { font-size: 0.95em; }
+.dc-btn--sm { padding: 0.4em 0.85em; font-size: 0.82em; }
+.dc-btn--block { width: 100%; }
+
+/* ── Save / positive primary — brand blue gradient ───────────────────────── */
+.dc-btn--save,
+.dc-btn--update,
+.dc-btn--submit,
+.dc-btn--confirm,
+.dc-btn--add {
+  background: linear-gradient(135deg, #1e5ba8, #667eea);
+  color: #fff;
+}
+.dc-btn--save:hover:not(:disabled),
+.dc-btn--update:hover:not(:disabled),
+.dc-btn--submit:hover:not(:disabled),
+.dc-btn--confirm:hover:not(:disabled),
+.dc-btn--add:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 3px 10px rgba(30, 91, 168, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Delete / Remove — solid red + white ─────────────────────────────────── */
+.dc-btn--delete,
+.dc-btn--remove {
+  background: #dc3545;
+  color: #fff;
+}
+.dc-btn--delete:hover:not(:disabled),
+.dc-btn--remove:hover:not(:disabled) {
+  background: #c02333;
+  box-shadow: 0 3px 10px rgba(220, 53, 69, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Search / Apply / Filter — brand blue solid + white ──────────────────── */
+.dc-btn--search,
+.dc-btn--apply,
+.dc-btn--filter {
+  background: #1e5ba8;
+  color: #fff;
+}
+.dc-btn--search:hover:not(:disabled),
+.dc-btn--apply:hover:not(:disabled),
+.dc-btn--filter:hover:not(:disabled) {
+  background: #184a89;
+  box-shadow: 0 3px 10px rgba(30, 91, 168, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ── Cancel / Back / Close — neutral light grey + dark text ───────────────── */
+.dc-btn--cancel,
+.dc-btn--back,
+.dc-btn--close {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+.dc-btn--cancel:hover:not(:disabled),
+.dc-btn--back:hover:not(:disabled),
+.dc-btn--close:hover:not(:disabled) {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* ── Clear / Reset — outline (grey border, transparent) ──────────────────── */
+.dc-btn--clear,
+.dc-btn--reset {
+  background: transparent;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+.dc-btn--clear:hover:not(:disabled),
+.dc-btn--reset:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #334155;
+}
+
+/* ── Theme overrides for the light-surfaced variants (cancel/clear) ──────── */
+html[data-theme="dark"]     .dc-btn--cancel, html[data-theme="dark"]     .dc-btn--back,
+html[data-theme="dark"]     .dc-btn--close,  html[data-theme="dark"]     .dc-btn--clear,
+html[data-theme="dark"]     .dc-btn--reset,
+html[data-theme="midnight"] .dc-btn--cancel, html[data-theme="midnight"] .dc-btn--back,
+html[data-theme="midnight"] .dc-btn--close,  html[data-theme="midnight"] .dc-btn--clear,
+html[data-theme="midnight"] .dc-btn--reset {
+  background: #1e293b;
+  color: #cbd5e1;
+  border-color: #334155;
+}
+html[data-theme="dark"]     .dc-btn--cancel:hover:not(:disabled), html[data-theme="dark"]     .dc-btn--clear:hover:not(:disabled),
+html[data-theme="midnight"] .dc-btn--cancel:hover:not(:disabled), html[data-theme="midnight"] .dc-btn--clear:hover:not(:disabled) {
+  background: #334155;
+  color: #e2e8f0;
+}
+html[data-theme="warm"] .dc-btn--cancel, html[data-theme="warm"] .dc-btn--back,
+html[data-theme="warm"] .dc-btn--close,  html[data-theme="warm"] .dc-btn--clear,
+html[data-theme="warm"] .dc-btn--reset {
+  background: #fdf8f0;
+  color: #7a5c4e;
+  border-color: #ddc9a8;
 }
 
 /* ── Delete / Confirm pages ─────────────────────────────────────────────── */
@@ -1397,6 +1595,7 @@ input.ng-invalid.ng-touched {
 .badge-warning { background-color: #fff3e0; color: #e65100; }
 .badge-info    { background-color: #e3f2fd; color: #1565c0; }
 .badge-primary { background-color: #e8eaf6; color: #3949ab; }
+.badge-secondary { background-color: #e8eaf6; color: #dc2626; }
 
 /* ── Table action buttons ─────────────────────────────────────────────────── */
 /*

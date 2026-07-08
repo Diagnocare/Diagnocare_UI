@@ -23,13 +23,7 @@
           </div>
 
           <!-- Status badge -->
-          <div class="pam-badge pam-badge--expired">Session Expired
-		   <div class="pam-ring-inner">
-                <i class="fa fa-clock-o pam-ring-icon"></i>
-                <span class="pam-ring-time">{{ timeDisplay }}</span>
-                <span class="pam-ring-sublabel">remaining</span>
-			</div>
-		</div>
+          <div class="pam-badge pam-badge--expired">Session Expired</div>
           <!-- Title -->
           <h5 class="pam-title" id="pinAuthModalLabel">
             <ng-container *ngIf="isLockedOut">Too Many Attempts</ng-container>
@@ -52,6 +46,11 @@
                         cx="40" cy="40" r="34"
                         [style.stroke-dashoffset]="213.6 - (timeRemaining / 300) * 213.6"/>
               </svg>
+              <div class="pam-ring-inner">
+                <i class="fa fa-clock-o pam-ring-icon"></i>
+                <span class="pam-ring-time">{{ timeDisplay }}</span>
+                <span class="pam-ring-sublabel">remaining</span>
+              </div>
             </div>
           </div>
 
@@ -75,9 +74,11 @@
                 class="pam-input"
                 [type]="showPin ? 'text' : 'password'"
                 inputmode="numeric"
+                pattern="[0-9]*"
                 maxlength="6"
                 placeholder="Enter PIN"
-                [(ngModel)]="pin"
+                [ngModel]="pin"
+                (ngModelChange)="pin = onlyDigits($event)"
                 (keyup.enter)="onSubmit()"
                 [disabled]="isVerifying"
                 autocomplete="off"
@@ -89,12 +90,6 @@
                 [title]="showPin ? 'Hide PIN' : 'Show PIN'">
                 <i class="fa" [class.fa-eye]="!showPin" [class.fa-eye-slash]="showPin"></i>
               </button>
-            </div>
-
-            <!-- Error message -->
-            <div class="pam-error" *ngIf="errorMessage">
-              <i class="fa fa-exclamation-circle"></i>
-              {{ errorMessage }}
             </div>
 
             <!-- Attempt dots -->

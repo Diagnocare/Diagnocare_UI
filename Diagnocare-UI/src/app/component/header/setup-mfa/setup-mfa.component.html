@@ -1,10 +1,19 @@
-<div class="acct-page">
-
-  <!-- PAGE HEADER -->
+<!-- Standalone page: full wrapper + gradient header banner -->
+<div class="acct-page" *ngIf="!embedded">
   <div class="acct-header">
     <h2 class="acct-title"><i class="fa fa-mobile-alt"></i> Authenticator App</h2>
     <p class="acct-subtitle">Secure your account with a time-based one-time password (TOTP)</p>
   </div>
+  <ng-container *ngTemplateOutlet="mfaBody"></ng-container>
+</div>
+
+<!-- Embedded (e.g. inside Settings): render only the body cards -->
+<ng-container *ngIf="embedded" [ngTemplateOutlet]="mfaBody"></ng-container>
+
+<!-- ══════════════════════════════════════
+     BODY — all MFA state cards (shared by both modes)
+══════════════════════════════════════ -->
+<ng-template #mfaBody>
 
   <!-- LOADING -->
   <div *ngIf="state === 'loading'" class="acct-card">
@@ -54,13 +63,13 @@
         </div>
       </div>
 
-      <div class="divider"><span>manage</span></div>
+      <div class="divider"><span>Manage</span></div>
 
       <div class="action-row">
-        <button class="btn-reconfigure" (click)="beginSetup()">
+        <button class="dc-btn dc-btn--save" (click)="beginSetup()">
           <i class="fa fa-sync-alt"></i> Reconfigure
         </button>
-        <button class="btn-danger" (click)="disableMFA()">
+        <button class="dc-btn dc-btn--delete" (click)="disableMFA()">
           <i class="fa fa-times-circle"></i> Remove MFA
         </button>
       </div>
@@ -120,7 +129,7 @@
       <div *ngIf="error" class="msg msg-error">{{ error }}</div>
 
       <div class="action-row">
-        <button class="btn-continue" (click)="proceedToVerify()">
+        <button class="dc-btn dc-btn--save" (click)="proceedToVerify()">
           <i class="fa fa-arrow-right"></i> Continue to Verify
         </button>
       </div>
@@ -166,11 +175,11 @@
       <div *ngIf="error" class="msg msg-error">{{ error }}</div>
 
       <div class="action-row">
-        <button class="btn-danger" (click)="confirmDisable()" [disabled]="disabling">
+        <button class="dc-btn dc-btn--delete" (click)="confirmDisable()" [disabled]="disabling">
           <i class="fa" [class.fa-times-circle]="!disabling" [class.fa-spinner]="disabling" [class.fa-spin]="disabling"></i>
           {{ disabling ? 'Removing…' : 'Confirm Remove' }}
         </button>
-        <button class="btn-cancel" (click)="cancelDisable()" [disabled]="disabling">
+        <button class="dc-btn dc-btn--cancel" (click)="cancelDisable()" [disabled]="disabling">
           <i class="fa fa-arrow-left"></i> Cancel
         </button>
       </div>
@@ -227,15 +236,15 @@
       <div *ngIf="error" class="msg msg-error">{{ error }}</div>
 
       <div class="action-row">
-        <button class="btn-save" (click)="verifyAndActivate()" [disabled]="verifying">
+        <button class="dc-btn dc-btn--save" (click)="verifyAndActivate()" [disabled]="verifying">
           <i class="fa" [class.fa-check]="!verifying" [class.fa-spinner]="verifying" [class.fa-spin]="verifying"></i>
           {{ verifying ? 'Verifying…' : 'Verify & Activate' }}
         </button>
-        <button class="btn-cancel" (click)="goBack()">
+        <button class="dc-btn dc-btn--cancel" (click)="goBack()">
           <i class="fa fa-arrow-left"></i> Back
         </button>
       </div>
     </div>
   </div>
 
-</div>
+</ng-template>

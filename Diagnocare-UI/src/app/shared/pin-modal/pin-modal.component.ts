@@ -9,7 +9,7 @@ import { PinService }      from 'src/app/services/pinServices/pin.service';
 import { TokenService }    from 'src/app/core/interceptors/token.service';
 
 const MAX_ATTEMPTS     = 3;
-const MODAL_TIMEOUT_S  = 30; // 5 minutes
+const MODAL_TIMEOUT_S  = 300; // 5 minutes
 
 /**
  * PinModalComponent
@@ -185,6 +185,11 @@ export class PinModalComponent implements OnInit, OnDestroy {
 
   toggleShowPin(): void {
     this.showPin = !this.showPin;
+  }
+
+  /** Strips any non-digit characters so the PIN field accepts numbers only. */
+  onlyDigits(value: string): string {
+    return (value || '').replace(/\D/g, '');
   }
 
   // ── Setup-required actions ─────────────────────────────────────────────────

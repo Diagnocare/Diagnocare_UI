@@ -7,6 +7,8 @@ import { PathologyRegisterDto } from 'src/app/models/pathology/pathology-registe
 import { PathologyRegisterResponseDto } from 'src/app/models/pathology/pathology-register-response.dto';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
+import { VALIDATION_PATTERNS } from 'src/app/shared/validators/validation-patterns';
 
 @Component({
   selector: 'app-register-pathology',
@@ -47,8 +49,8 @@ export class RegisterPathologyComponent implements OnInit {
       path_City:      ['', [Validators.required, Validators.maxLength(80)]],
       path_State:     ['', [Validators.required, Validators.maxLength(80)]],
       path_Country:   ['India', [Validators.required, Validators.maxLength(80)]],
-      path_Pincode:   ['', [Validators.pattern('^[0-9]{4,10}$')]],
-      path_ContactNo: ['', [Validators.required, Validators.pattern('^[0-9]{7,15}$')]],
+      path_Pincode:   ['', [Validators.pattern(VALIDATION_PATTERNS.pincodeIntl)]],
+      path_ContactNo: ['', [Validators.required, AppValidators.contactNumber()]],
       path_Email:     ['', [Validators.required, Validators.email]],
       license_Type:   ['Trial', Validators.required],
     });

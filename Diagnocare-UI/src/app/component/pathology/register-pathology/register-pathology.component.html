@@ -190,7 +190,7 @@
               <label class="rp-label">Contact Number <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_ContactNo')">
                 <span class="rp-input-icon"><i class="fas fa-phone"></i></span>
-                <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" />
+                <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" maxlength="10" inputmode="numeric" />
               </div>
               <app-field-error [control]="form.get('path_ContactNo')" label="Contact Number" [forceShow]="submitted"></app-field-error>
             </div>

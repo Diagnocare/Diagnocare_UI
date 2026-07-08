@@ -5,8 +5,8 @@
     <div class="header-left">
       <h1>Patient Test Results</h1>
       <p class="subtitle" *ngIf="!showPatientIdInput">
-        <span *ngIf="!showAllTests">Last {{ RECENT_DAYS }} days &amp; pending reports</span>
-        <span *ngIf="showAllTests">Full test history</span>
+        <span *ngIf="!showAllTests">Pending &amp; partial reports</span>
+        <span *ngIf="showAllTests">Full test history (incl. completed)</span>
         <span *ngIf="patientId"> &mdash; Patient&nbsp;<strong>{{ patientId }}</strong></span>
       </p>
       <p class="subtitle" *ngIf="showPatientIdInput">View all patient test records</p>
@@ -153,7 +153,7 @@
 
               <!-- Payment badge -->
               <span class="badge" [ngClass]="getPaymentStatusClass(test)">
-                Payment : {{ getPaymentStatus(test) }}
+                {{ getPaymentBadgeLabel(test) }}
               </span>
 
               <!-- Urgent badge -->
@@ -372,7 +372,7 @@
             </div>
 
             <div class="card-footer">
-              <button class="btn btn-success"
+              <button class="btn btn-primary"
                       *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
                       (click)="openParameterView(detail, $event)">
                 <i class="fa fa-file-text"></i> Test Result
@@ -432,7 +432,7 @@
         </p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-success" (click)="saveTestReport()">
+        <button class="btn btn-primary" (click)="saveTestReport()">
           <i class="fa fa-save"></i> Save Report
         </button>
         <!-- Pay Now — payment not yet complete -->

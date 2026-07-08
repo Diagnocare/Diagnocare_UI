@@ -9,6 +9,7 @@ import { PinModalComponent }    from './shared/pin-modal/pin-modal.component';
 import { TokenService }         from './core/interceptors/token.service';
 import { LoginService }         from './services/loginServices/login.service';
 import { SessionSignalRService } from './services/sessionSignalR/session-signalr.service';
+import { SessionLockService }   from './core/services/session-lock.service';
 import { ThemeService }         from './services/themeServices/theme.service';
 import { PathologyService }     from './services/pathologyServices/pathology.service';
 
@@ -56,7 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'diagnocare';
 
   private sessionPollTimer: ReturnType<typeof setInterval> | null = null;
-  private static readonly POLL_INTERVAL_MS = 30_000;
+  private static readonly POLL_INTERVAL_MS = 300_000;
   private sessionKickedSub: Subscription | null = null;
 
   constructor(
@@ -64,6 +65,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private loginService:    LoginService,
     private router:          Router,
     private sessionSignalR:  SessionSignalRService,
+    private sessionLock:     SessionLockService,
     private themeService:    ThemeService,
     private pathologyService:PathologyService,
   ) {}
@@ -120,9 +122,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Fetches the pathology grace buffer setting and caches it in TokenService.
-   * Errors are silently ignored — the interceptor defaults to 0 (grace disabled)
-   * if the value is not cached.
+   * Fetches pathology policy settings and caches them in TokenService so
+   * they are available without waiting for the lab-setup page to open.
+   * Errors are silently ignored — sensible defaults apply:
+   *   graceBufferMinutes   → 0   (grace disabled)
+   *   maxDiscountPercent   → 50
+   *   sessionLockoutMinutes→ 30 minutes
    */
   private fetchAndCacheGraceBuffer(): void {
     this.pathologyService.getPathology().subscribe({
@@ -130,8 +135,14 @@ export class AppComponent implements OnInit, OnDestroy {
         if (data?.graceBufferMinutes !== undefined) {
           this.tokenService.setGraceBufferMinutes(data.graceBufferMinutes);
         }
+        if (data?.maxDiscountPercent !== undefined) {
+          this.tokenService.setMaxDiscountPercent(data.maxDiscountPercent);
+        }
+        if (data?.sessionLockoutMinutes !== undefined) {
+          this.tokenService.setSessionLockoutMinutes(data.sessionLockoutMinutes);
+        }
       },
-      error: () => { /* silently ignore — grace buffer defaults to 0 */ },
+      error: () => { /* silently ignore — defaults apply */ },
     });
   }
 
@@ -144,11 +155,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private startSessionServices(): void {
     this.sessionSignalR.start();
+    this.sessionLock.start();
     this.startSessionPoll();
   }
 
   private stopSessionServices(): void {
     this.sessionSignalR.stop();
+    this.sessionLock.stop();
     this.stopSessionPoll();
   }
 

@@ -383,7 +383,9 @@ export class TokenService {
 
   // ── Grace buffer ───────────────────────────────────────────────────────────
 
-  private readonly GRACE_BUFFER_KEY = 'diagnocare_grace_buffer_minutes';
+  private readonly GRACE_BUFFER_KEY         = 'diagnocare_grace_buffer_minutes';
+  private readonly MAX_DISCOUNT_KEY         = 'diagnocare_max_discount_percent';
+  private readonly SESSION_LOCKOUT_KEY      = 'diagnocare_session_lockout_minutes';
 
   /**
    * Persist the pathology-configured grace buffer (in minutes) to localStorage.
@@ -418,6 +420,42 @@ export class TokenService {
    *   • Grace buffer is 0 (disabled)
    *   • Token expired longer ago than the grace window
    */
+  // ── Max discount ───────────────────────────────────────────────────────────
+
+  /** Persist the admin-configured maximum discount percentage. */
+  setMaxDiscountPercent(percent: number): void {
+    localStorage.setItem(this.MAX_DISCOUNT_KEY, String(percent));
+  }
+
+  /**
+   * Returns the maximum discount percentage allowed (0–99).
+   * Default 50 if not yet configured.
+   */
+  getMaxDiscountPercent(): number {
+    const raw = localStorage.getItem(this.MAX_DISCOUNT_KEY);
+    if (!raw) return 50;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 50 : Math.min(parsed, 99);
+  }
+
+  // ── Session lockout ────────────────────────────────────────────────────────
+
+  /** Persist the admin-configured session lockout threshold (minutes). */
+  setSessionLockoutMinutes(minutes: number): void {
+    localStorage.setItem(this.SESSION_LOCKOUT_KEY, String(minutes));
+  }
+
+  /**
+   * Returns the session lockout threshold in minutes.
+   * 0 means screen lock is disabled. Default 30.
+   */
+  getSessionLockoutMinutes(): number {
+    const raw = localStorage.getItem(this.SESSION_LOCKOUT_KEY);
+    if (!raw) return 30;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 30 : parsed;
+  }
+
   isWithinGracePeriod(): boolean {
     const graceMs = this.getGraceBufferMinutes() * 60 * 1000;
     if (graceMs <= 0) return false;

@@ -60,7 +60,6 @@ import { AddressManagerReportComponent } from './component/summary-report/report
 import { ProfileComponent } from './component/header/profile/profile.component';
 import { SettingsComponent } from './component/header/settings/settings.component';
 import { ChangePasswordComponent } from './component/header/change-password/change-password.component';
-import { SetupMfaComponent } from './component/header/setup-mfa/setup-mfa.component';
 
 // Receipt
 import { BillReceipt } from './component/receipt/bill-receipt';
@@ -97,6 +96,9 @@ import { MyVisitsComponent }      from './component/my-visits/my-visits.componen
 
 // My Attendance (self-service read-only view for non-admin staff)
 import { MyAttendanceComponent } from './component/my-attendance/my-attendance.component';
+
+// My Salary (self-service read-only salary summary for non-admin staff)
+import { MySalaryComponent } from './component/my-salary/my-salary.component';
 
 // Role guard
 import { roleGuard } from './core/guards/role.guard';
@@ -168,7 +170,7 @@ export const routes: Routes = [
       // Summary Reports — container shell with child routes rendered in its <router-outlet>
       {
         path: 'reports', component: SummaryReportContainerComponent,
-        canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id)],
+        canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id, Role.Assistant.id)],
         children: [
           // Default redirect to patient-register when no child is specified
           { path: '', redirectTo: 'patient-register', pathMatch: 'full' },
@@ -183,14 +185,14 @@ export const routes: Routes = [
           { path: 'panel-company-wise',      redirectTo: 'referrer-collection' },
           { path: 'collection-boys-wise',    redirectTo: 'referrer-collection' },
           { path: 'reporting-doctor-wise',   title: 'Reporting Doctor Wise',     component: ReportingDoctorWiseComponent,
-            canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id)] },
+            canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id, Role.Assistant.id)] },
           { path: 'discount-authority-wise', title: 'Discount Authority Wise',   component: DiscountAuthorityWiseComponent },
           { path: 'patient-history-wise',    title: 'Patient History Wise',      component: PatientHistoryWiseComponent,
-            canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id)] },
+            canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id, Role.Assistant.id)] },
           { path: 'worksheet',               title: 'Worksheet Report',          component: WorksheetReportComponent },
           { path: 'register-reports',        title: 'Register Reports',          component: RegisterReportsComponent },
           { path: 'patient-diagnosis',       title: 'Patient Diagnosis Report',  component: PatientDiagnosisReportComponent,
-            canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id)] },
+            canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.Doctor.id, Role.Assistant.id)] },
           { path: 'pndt-test',               title: 'PNDT Test Report',          component: PndtTestReportComponent },
           { path: 'master-test-list',        title: 'Master Test List',          component: MasterTestListComponent },
           { path: 'rate-list',               title: 'Rate List',                 component: RateListComponent },
@@ -218,15 +220,28 @@ export const routes: Routes = [
         canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id)] },
       { path: 'my-visits', title: 'My Visits Today', component: MyVisitsComponent },
 
+      // ── User Panel — self-service views for non-admin staff ──────────────────
+      // (User, Assistant, Collection Boy, Doctor). Read-only versions of the
+      // admin Attendance / Holiday / Visit / Salary modules, scoped to the user.
+
       // My Attendance — read-only self-service view (doctors, collection boys, lab staff)
       { path: 'my-attendance', title: 'My Attendance', component: MyAttendanceComponent,
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+
+      // My Holidays — reuses HolidayComponent, which renders read-only for non-admins
+      { path: 'my-holidays', title: 'Holiday Calendar', component: HolidayComponent,
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+
+      // My Salary — read-only own salary summary & payment history
+      { path: 'my-salary', title: 'My Salary', component: MySalaryComponent,
         canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
 
       // Account / Header pages
       { path: 'profile', title: 'Profile', component: ProfileComponent },
       { path: 'settings', title: 'Settings', component: SettingsComponent },
       { path: 'change-password', title: 'Change Password', component: ChangePasswordComponent },
-      { path: 'setup-mfa', title: 'Authenticator App', component: SetupMfaComponent },
+      // Authenticator App merged into Settings — keep old link/bookmark working.
+      { path: 'setup-mfa', redirectTo: 'settings', pathMatch: 'full' },
       // PIN change — also reachable as forced flow when PIN has expired (?reason=expired)
       { path: 'change-pin', title: 'Change PIN', component: ChangePinComponent },
 

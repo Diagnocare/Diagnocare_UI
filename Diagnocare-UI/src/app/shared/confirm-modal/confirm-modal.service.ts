@@ -10,12 +10,28 @@ export interface ConfirmOptions {
   /** When true, clicking Confirm shows a loading spinner instead of closing the modal.
    *  The caller must call dismiss() once the async operation completes. */
   showLoadingOnConfirm?: boolean;
+  /** When true, the dialog shows a free-text reason field. Use confirmWithReason()
+   *  to receive the entered value. */
+  showReasonInput?: boolean;
+  /** Label shown above the reason field. */
+  reasonLabel?: string;
+  /** Placeholder text inside the reason field. */
+  reasonPlaceholder?: string;
+  /** When true, Confirm is disabled until a non-empty reason is entered. */
+  reasonRequired?: boolean;
+}
+
+/** Result of a dialog that captured a reason. */
+export interface ConfirmResult {
+  confirmed: boolean;
+  reason: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ConfirmModalService {
   private openSubject = new Subject<ConfirmOptions>();
   private resultSubject = new Subject<boolean>();
+  private resultDetailSubject = new Subject<ConfirmResult>();
   private loadingSubject = new BehaviorSubject<boolean>(false);
   private dismissSubject = new Subject<void>();
 
@@ -44,9 +60,26 @@ export class ConfirmModalService {
     });
   }
 
+  /**
+   * Show a confirmation dialog with a reason field and return an Observable that
+   * emits { confirmed, reason }. Forces showReasonInput on.
+   */
+  confirmWithReason(options: ConfirmOptions): Observable<ConfirmResult> {
+    this.loadingSubject.next(false);
+    this.openSubject.next({ ...options, showReasonInput: true });
+    return new Observable<ConfirmResult>(observer => {
+      const sub = this.resultDetailSubject.subscribe(result => {
+        observer.next(result);
+        observer.complete();
+        sub.unsubscribe();
+      });
+    });
+  }
+
   /** Called internally by ConfirmModalComponent to resolve the dialog. */
-  resolve(result: boolean): void {
+  resolve(result: boolean, reason: string = ''): void {
     this.resultSubject.next(result);
+    this.resultDetailSubject.next({ confirmed: result, reason });
   }
 
   /** Show/hide the loading spinner on the confirm button. */

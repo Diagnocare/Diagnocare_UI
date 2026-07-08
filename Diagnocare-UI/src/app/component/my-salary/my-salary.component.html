@@ -1,0 +1,141 @@
+<app-loading-spinner [isLoading]="isLoading" [message]="spinnerMessage"></app-loading-spinner>
+
+<div class="page-container">
+
+  <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2><i class="fa fa-money-bill-wave"></i> My Payments</h2>
+      <p class="subtitle" *ngIf="canView">Your salary payments — tap a row to open its receipt</p>
+      <p class="subtitle" *ngIf="!canView">Your salary</p>
+    </div>
+    <div class="header-actions" *ngIf="canView">
+      <button class="btn ms-refresh-btn" (click)="loadPayments()" [disabled]="isLoading" title="Refresh">
+        <i class="fa fa-sync-alt" [class.fa-spin]="isLoading"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Not available (Super Admin / Owner) ──────────────────────────────── -->
+  <div class="content-container" *ngIf="!isLoading && !canView">
+    <div class="empty-state card">
+      <div class="empty-icon"><i class="fa fa-lock"></i></div>
+      <h3>Payments not available</h3>
+      <p>Salary payment details aren't available for this account.</p>
+    </div>
+  </div>
+
+  <!-- ── Staff: month selector + payments table ───────────────────────────── -->
+  <ng-container *ngIf="canView">
+
+    <!-- Month navigation bar -->
+    <div class="ms-monthbar" *ngIf="!isLoading && !loadError">
+      <button class="ms-nav-btn" (click)="prevMonth()" title="Previous month">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+
+      <div class="ms-period-selects">
+        <select class="ms-select" [(ngModel)]="currentMonth" (ngModelChange)="onPeriodChange()" title="Select month">
+          <option *ngFor="let m of monthOptions" [ngValue]="m.value">{{ m.label }}</option>
+        </select>
+        <select class="ms-select" [(ngModel)]="currentYear" (ngModelChange)="onPeriodChange()" title="Select year">
+          <option *ngFor="let y of availableYears" [ngValue]="y">{{ y }}</option>
+        </select>
+      </div>
+
+      <button class="ms-nav-btn" (click)="nextMonth()" [disabled]="isCurrentMonth" title="Next month">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+      <button class="ms-today-btn" (click)="goCurrentMonth()" [disabled]="isCurrentMonth" title="Jump to current month">
+        <i class="fa fa-calendar-day"></i> This Month
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="content-container" *ngIf="!isLoading">
+
+      <!-- Load error -->
+      <div class="empty-state card" *ngIf="loadError">
+        <div class="empty-icon error"><i class="fa fa-exclamation-triangle"></i></div>
+        <h3>Couldn't Load Your Payments</h3>
+        <p>Something went wrong while loading your payments.</p>
+        <button class="btn btn-primary" (click)="loadPayments()">
+          <i class="fa fa-redo"></i> Try Again
+        </button>
+      </div>
+
+      <!-- Month summary -->
+      <div class="ms-summary" *ngIf="!loadError">
+        <div class="card ms-sum-tile ms-sum-tile--paid">
+          <div class="ms-sum-icon"><i class="fa fa-check-circle"></i></div>
+          <div class="ms-sum-body">
+            <div class="ms-sum-value">{{ formatINR(totalPaidMonth) }}</div>
+            <div class="ms-sum-label">Total Paid This Month</div>
+          </div>
+        </div>
+        <div class="card ms-sum-tile ms-sum-tile--balance">
+          <div class="ms-sum-icon"><i class="fa fa-hourglass-half"></i></div>
+          <div class="ms-sum-body">
+            <div class="ms-sum-value">{{ formatINR(balanceMonth) }}</div>
+            <div class="ms-sum-label">Balance</div>
+          </div>
+        </div>
+        <div class="card ms-sum-tile ms-sum-tile--status">
+          <div class="ms-sum-icon"><i class="fa fa-info-circle"></i></div>
+          <div class="ms-sum-body">
+            <span class="ms-status-badge" [ngClass]="'status-' + statusMonth.toLowerCase()">{{ statusMonth }}</span>
+            <div class="ms-sum-label">Status</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payments table -->
+      <div class="card table-container" *ngIf="!loadError">
+        <div class="card-header">
+          <h3><i class="fa fa-receipt"></i> Payments — {{ monthLabelSelected }}</h3>
+          <span class="ms-hint"><i class="fa fa-file-pdf"></i> Tap a payment to open its slip</span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-inline" *ngIf="paymentsForMonth.length === 0">
+          <i class="fa fa-inbox"></i>
+          No payments made in {{ monthLabelSelected }}.
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" *ngIf="paymentsForMonth.length > 0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Payment Date</th>
+                <th>Component</th>
+                <th class="num">Amount</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of paymentsForMonth; trackBy: trackByPayment"
+                  class="ms-row-clickable"
+                  (click)="openReceipt(p)"
+                  title="Open payment slip (PDF)">
+                <td>{{ formatDate(p.paymentDate) }}</td>
+                <td><span class="mode-text">{{ paymentModeLabel(p.paymentSourceName) }}</span></td>
+                <td class="num paid-amt">{{ formatINR(p.paymentAmount) }}</td>
+                <td class="mode-cell">
+                  <span class="type-badge" [class.partial]="isPartial(p)" [class.full]="!isPartial(p)">
+                    {{ isPartial(p) ? 'Partial' : 'Full' }}
+                  </span>
+                  <i class="fa ms-receipt-icon"
+                     [class.fa-file-pdf]="receiptLoadingId !== p.paymentId"
+                     [class.fa-spinner]="receiptLoadingId === p.paymentId"
+                     [class.fa-spin]="receiptLoadingId === p.paymentId"></i>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </ng-container>
+</div>

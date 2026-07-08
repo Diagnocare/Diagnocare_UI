@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { MemberService }      from 'src/app/services/memberService/member.service';
 import { CommonService }      from 'src/app/shared/common.service';
+import { AppValidators }       from 'src/app/shared/validators/app-validators';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -107,10 +108,10 @@ export class StaffUnifiedFormComponent implements OnInit {
             updateOn: 'blur'
           }
         ),
-        first_Name:    ['', [Validators.required, Validators.pattern('^[a-zA-Z]*$')]],
-        last_Name:     ['', [Validators.required, Validators.pattern('^[a-zA-Z]*$')]],
+        first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
+        last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
         email:         ['', [Validators.required, Validators.email]],
-        contactPhone:  ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+        contactPhone:  ['', [Validators.required, AppValidators.contactNumber()]],
         typeUserId:    ['', Validators.required],
         effectiveFrom: [null, Validators.required],
         deactivatedAt: [null],
@@ -129,8 +130,8 @@ export class StaffUnifiedFormComponent implements OnInit {
             updateOn: 'blur'
           }
         ),
-        first_Name:    ['', [Validators.required, Validators.pattern('^[a-zA-Z ]*$')]],
-        last_Name:     ['', [Validators.required, Validators.pattern('^[a-zA-Z ]*$')]],
+        first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
+        last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
         qualification:  ['', isDoctor ? Validators.required : []],
         position:       ['', isDoctor ? Validators.required : []],
         signature:      [''],

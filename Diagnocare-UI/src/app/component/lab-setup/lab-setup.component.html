@@ -24,8 +24,8 @@
       <button class="tab-btn" [class.active]="activeTab === 'units'" (click)="switchTab('units')">
         <i class="fa fa-balance-scale"></i> Parameter Units
       </button>
-      <button class="tab-btn" [class.active]="activeTab === 'grace'" (click)="switchTab('grace')">
-        <i class="fa fa-hourglass-half"></i> Grace Buffer
+      <button class="tab-btn" [class.active]="activeTab === 'policies'" (click)="switchTab('policies')">
+        <i class="fa fa-shield"></i> Policies
       </button>
     </div>
 
@@ -103,7 +103,7 @@
           <div class="item-error" *ngIf="newSamplingError">{{ newSamplingError }}</div>
 
           <div class="reset-row">
-            <button class="btn-reset" (click)="resetSampling()">
+            <button class="dc-btn dc-btn--clear dc-btn--sm" (click)="resetSampling()">
               <i class="fa fa-undo"></i> Reset to defaults
             </button>
           </div>
@@ -186,7 +186,7 @@
           <div class="item-error" *ngIf="newAreaError">{{ newAreaError }}</div>
 
           <div class="reset-row">
-            <button class="btn-reset" (click)="resetAreas()">
+            <button class="dc-btn dc-btn--clear dc-btn--sm" (click)="resetAreas()">
               <i class="fa fa-undo"></i> Reset to defaults
             </button>
           </div>
@@ -269,7 +269,7 @@
           <div class="item-error" *ngIf="newUnitError">{{ newUnitError }}</div>
 
           <div class="reset-row">
-            <button class="btn-reset" (click)="resetUnits()">
+            <button class="dc-btn dc-btn--clear dc-btn--sm" (click)="resetUnits()">
               <i class="fa fa-undo"></i> Reset to defaults
             </button>
           </div>
@@ -279,84 +279,226 @@
     </ng-container>
 
     <!-- ══════════════════════════════════════════════════
-         TAB: GRACE BUFFER
+         TAB: POLICIES  (Admin only)
     ══════════════════════════════════════════════════ -->
-    <ng-container *ngIf="activeTab === 'grace'">
-      <div class="config-card">
-        <div class="config-card-header">
-          <i class="fa fa-hourglass-half"></i>
-          <div>
-            <h4 class="config-card-title">PIN Grace Buffer</h4>
-            <p class="config-card-sub">
-              When a user's JWT token expires, they will be prompted for their PIN instead of being
-              immediately logged out — but only within this grace window. Set to 0 to disable PIN
-              re-authentication and always redirect to the login page on expiry.
-            </p>
-          </div>
-        </div>
+    <ng-container *ngIf="activeTab === 'policies'">
+
+      <!-- Non-admin notice -->
+      <div class="config-card" *ngIf="!isAdmin">
         <div class="config-card-body">
-
-          <!-- Loading state -->
-          <div class="token-loading" *ngIf="graceBufferLoading">
-            <i class="fa fa-spinner fa-spin"></i> Loading current setting…
+          <div class="token-hint" style="margin:0">
+            <i class="fa fa-lock"></i>
+            Policy settings can only be changed by an <strong>Admin</strong> or <strong>Super Admin</strong>.
+            Contact your administrator to update these values.
           </div>
-
-          <ng-container *ngIf="!graceBufferLoading">
-
-            <!-- Current value chip -->
-            <div class="token-current" *ngIf="graceBufferMinutes !== null">
-              <i class="fa fa-info-circle"></i>
-              <ng-container *ngIf="graceBufferMinutes > 0">
-                Current value: <strong>{{ graceBufferMinutes }} minute{{ graceBufferMinutes !== 1 ? 's' : '' }}</strong>
-              </ng-container>
-              <ng-container *ngIf="graceBufferMinutes === 0">
-                Grace buffer is currently <strong>disabled</strong> (set to 0)
-              </ng-container>
-            </div>
-
-            <!-- Input row -->
-            <div class="token-field-label">
-              <i class="fa fa-hourglass-half"></i> Grace buffer duration (minutes) — 0 to disable
-            </div>
-            <div class="token-input-row">
-              <input
-                class="token-input"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="e.g. 5"
-                [(ngModel)]="graceBufferInput"
-                (keyup.enter)="saveGraceBuffer()"
-                [disabled]="graceBufferSaving" />
-              <button
-                class="btn-token-save"
-                (click)="saveGraceBuffer()"
-                [disabled]="graceBufferSaving || graceBufferInput === null">
-                <i class="fa" [class.fa-save]="!graceBufferSaving" [class.fa-spinner]="graceBufferSaving" [class.fa-spin]="graceBufferSaving"></i>
-                {{ graceBufferSaving ? 'Saving…' : 'Save' }}
-              </button>
-            </div>
-
-            <!-- Validation / error -->
-            <div class="item-error" *ngIf="graceBufferError">{{ graceBufferError }}</div>
-
-            <!-- Success -->
-            <div class="token-success" *ngIf="graceBufferSuccess">
-              <i class="fa fa-check-circle"></i> {{ graceBufferSuccess }}
-            </div>
-
-            <!-- Helper hint -->
-            <p class="token-hint">
-              <i class="fa fa-lightbulb"></i>
-              Within this window after expiry, users who have set a PIN will see a PIN prompt instead of the login page.
-              Recommended: <strong>2–10 minutes</strong> for a convenient but secure buffer.
-              Users must set their own PIN from <strong>Settings → Session PIN</strong>.
-            </p>
-
-          </ng-container>
         </div>
       </div>
-    </ng-container>
+
+      <ng-container *ngIf="isAdmin">
+
+        <!-- Loading -->
+        <div class="config-card" *ngIf="policiesLoading">
+          <div class="config-card-body">
+            <div class="token-loading">
+              <i class="fa fa-spinner fa-spin"></i> Loading current policy settings…
+            </div>
+          </div>
+        </div>
+
+        <ng-container *ngIf="!policiesLoading">
+
+          <!-- ── PIN Grace Buffer ─────────────────────────────────────── -->
+          <div class="config-card">
+            <div class="config-card-header">
+              <i class="fa fa-hourglass-half"></i>
+              <div>
+                <h4 class="config-card-title">PIN Grace Buffer</h4>
+                <p class="config-card-sub">
+                  When a user's JWT token expires, they will be prompted for their PIN instead of being
+                  immediately logged out — but only within this grace window. Set to 0 to disable PIN
+                  re-authentication and always redirect to the login page on expiry.
+                </p>
+              </div>
+            </div>
+            <div class="config-card-body">
+
+              <!-- Current value chip -->
+              <div class="token-current" *ngIf="graceBufferMinutes !== null">
+                <i class="fa fa-info-circle"></i>
+                <ng-container *ngIf="graceBufferMinutes > 0">
+                  Current value: <strong>{{ graceBufferMinutes }} minute{{ graceBufferMinutes !== 1 ? 's' : '' }}</strong>
+                </ng-container>
+                <ng-container *ngIf="graceBufferMinutes === 0">
+                  Grace buffer is currently <strong>disabled</strong> (set to 0)
+                </ng-container>
+              </div>
+
+              <!-- Input row -->
+              <div class="token-field-label">
+                <i class="fa fa-hourglass-half"></i> Grace buffer duration (minutes) — 0 to disable
+              </div>
+              <div class="token-input-row">
+                <input
+                  class="token-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 5"
+                  [(ngModel)]="graceBufferInput"
+                  (keyup.enter)="saveGraceBuffer()"
+                  [disabled]="graceBufferSaving" />
+                <button
+                  class="btn-token-save"
+                  (click)="saveGraceBuffer()"
+                  [disabled]="graceBufferSaving || graceBufferInput === null">
+                  <i class="fa" [class.fa-save]="!graceBufferSaving" [class.fa-spinner]="graceBufferSaving" [class.fa-spin]="graceBufferSaving"></i>
+                  {{ graceBufferSaving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+
+              <!-- Validation / error -->
+              <div class="item-error" *ngIf="graceBufferError">{{ graceBufferError }}</div>
+
+              <!-- Success -->
+              <div class="token-success" *ngIf="graceBufferSuccess">
+                <i class="fa fa-check-circle"></i> {{ graceBufferSuccess }}
+              </div>
+
+              <!-- Helper hint -->
+              <p class="token-hint">
+                <i class="fa fa-lightbulb"></i>
+                Within this window after expiry, users who have set a PIN will see a PIN prompt instead of the login page.
+                Recommended: <strong>2–10 minutes</strong> for a convenient but secure buffer.
+                Users must set their own PIN from <strong>Settings → Session PIN</strong>.
+              </p>
+            </div>
+          </div>
+
+          <!-- ── Max Discount ─────────────────────────────────────────── -->
+          <div class="config-card" style="margin-top: 16px;">
+            <div class="config-card-header">
+              <i class="fa fa-percent"></i>
+              <div>
+                <h4 class="config-card-title">Maximum Discount</h4>
+                <p class="config-card-sub">
+                  The highest discount percentage any staff member may apply when billing a patient.
+                  100% discount is never permitted (this would make a test free of charge).
+                </p>
+              </div>
+            </div>
+            <div class="config-card-body">
+
+              <div class="token-current" *ngIf="maxDiscountValue !== null">
+                <i class="fa fa-info-circle"></i>
+                Current limit: <strong>{{ maxDiscountValue }}%</strong>
+              </div>
+
+              <div class="token-field-label">
+                <i class="fa fa-percent"></i> Maximum allowed discount (0–99%) — 0 means no discount
+              </div>
+              <div class="token-input-row">
+                <input
+                  class="token-input"
+                  type="number"
+                  min="0"
+                  max="99"
+                  step="1"
+                  placeholder="e.g. 30"
+                  [(ngModel)]="maxDiscountInput"
+                  (keyup.enter)="saveMaxDiscount()"
+                  [disabled]="maxDiscountSaving" />
+                <button
+                  class="btn-token-save"
+                  (click)="saveMaxDiscount()"
+                  [disabled]="maxDiscountSaving || maxDiscountInput === null">
+                  <i class="fa" [class.fa-save]="!maxDiscountSaving" [class.fa-spinner]="maxDiscountSaving" [class.fa-spin]="maxDiscountSaving"></i>
+                  {{ maxDiscountSaving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+
+              <div class="item-error" *ngIf="maxDiscountError">{{ maxDiscountError }}</div>
+              <div class="token-success" *ngIf="maxDiscountSuccess">
+                <i class="fa fa-check-circle"></i> {{ maxDiscountSuccess }}
+              </div>
+
+              <p class="token-hint">
+                <i class="fa fa-lightbulb"></i>
+                This limit is enforced in real time when staff enter a discount on any bill.
+                A value of <strong>0</strong> disables all discounts; <strong>99</strong> is the maximum allowed.
+                Recommended: <strong>20–50%</strong> for typical lab workflows.
+              </p>
+            </div>
+          </div>
+
+          <!-- ── Session Lockout ──────────────────────────────────────── -->
+          <div class="config-card" style="margin-top: 16px;">
+            <div class="config-card-header">
+              <i class="fa fa-lock"></i>
+              <div>
+                <h4 class="config-card-title">Screen Lock Timeout</h4>
+                <p class="config-card-sub">
+                  How long a user's browser tab must be hidden (switched away or minimised)
+                  before a PIN prompt appears when they return.
+                  A genuine <strong>screen lock</strong> always prompts for the PIN immediately,
+                  regardless of this value. This timeout applies only to tab-switching / minimising.
+                  Set to <strong>0</strong> to disable the tab-switch lock entirely.
+                </p>
+              </div>
+            </div>
+            <div class="config-card-body">
+
+              <div class="token-current" *ngIf="sessionLockoutValue !== null">
+                <i class="fa fa-info-circle"></i>
+                <ng-container *ngIf="sessionLockoutValue > 0">
+                  Current value: <strong>{{ sessionLockoutValue }} minute{{ sessionLockoutValue !== 1 ? 's' : '' }}</strong>
+                </ng-container>
+                <ng-container *ngIf="sessionLockoutValue === 0">
+                  Screen lock is currently <strong>disabled</strong> (set to 0)
+                </ng-container>
+              </div>
+
+              <div class="token-field-label">
+                <i class="fa fa-clock-o"></i> Screen lock threshold (minutes) — 0 to disable
+              </div>
+              <div class="token-input-row">
+                <input
+                  class="token-input"
+                  type="number"
+                  min="0"
+                  max="1440"
+                  step="1"
+                  placeholder="e.g. 30"
+                  [(ngModel)]="sessionLockoutInput"
+                  (keyup.enter)="saveSessionLockout()"
+                  [disabled]="sessionLockoutSaving" />
+                <button
+                  class="btn-token-save"
+                  (click)="saveSessionLockout()"
+                  [disabled]="sessionLockoutSaving || sessionLockoutInput === null">
+                  <i class="fa" [class.fa-save]="!sessionLockoutSaving" [class.fa-spinner]="sessionLockoutSaving" [class.fa-spin]="sessionLockoutSaving"></i>
+                  {{ sessionLockoutSaving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+
+              <div class="item-error" *ngIf="sessionLockoutError">{{ sessionLockoutError }}</div>
+              <div class="token-success" *ngIf="sessionLockoutSuccess">
+                <i class="fa fa-check-circle"></i> {{ sessionLockoutSuccess }}
+              </div>
+
+              <p class="token-hint">
+                <i class="fa fa-lightbulb"></i>
+                This timeout applies when the tab is hidden by switching tabs or minimising the window
+                for at least this long. Locking the computer's screen always prompts for the PIN immediately.
+                Recommended: <strong>5–30 minutes</strong>.
+                Users must set their own PIN from <strong>Settings → Session PIN</strong> for the lock screen to appear.
+              </p>
+            </div>
+          </div>
+
+        </ng-container><!-- /!policiesLoading -->
+      </ng-container><!-- /isAdmin -->
+
+    </ng-container><!-- /policies tab -->
 
   </div><!-- /.page-inner -->
 </div>
