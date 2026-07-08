@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl } from '@angular/forms';
-import { CommonService } from '../common.service';
+import { resolveFirstError } from '../validators/validation-messages';
 
 /**
  * FieldErrorComponent — centralised inline validation message.
@@ -24,6 +24,11 @@ import { CommonService } from '../common.service';
     :host { display: contents; }
     .field-error {
       display: block;
+      /* Span the full width of a grid-based field so the message shows as a
+         single line under the whole row, instead of being squeezed into a
+         narrow label column and wrapping onto several lines. Ignored in
+         flex/block layouts, so non-grid forms are unaffected. */
+      grid-column: 1 / -1;
       color: var(--error-color, #dc3545);
       font-size: 0.78rem;
       margin-top: 0.2rem;
@@ -44,16 +49,16 @@ export class FieldErrorComponent {
    */
   @Input() forceShow = false;
 
-  constructor(private cs: CommonService) {}
-
   get shouldShow(): boolean {
+    // Show errors on blur/tab-out (touched) or after a submit attempt (forceShow),
+    // NOT while the user is still typing (dirty).
     return !!(
       this.control?.invalid &&
-      (this.control.touched || this.control.dirty || this.forceShow)
+      (this.control.touched || this.forceShow)
     );
   }
 
   get message(): string {
-    return this.cs.getControlError(this.control, this.label);
+    return resolveFirstError(this.control, this.label);
   }
 }

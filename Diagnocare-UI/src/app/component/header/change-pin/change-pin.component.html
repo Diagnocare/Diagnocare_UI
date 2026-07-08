@@ -39,88 +39,15 @@
         <span class="msg-sub">Redirecting…</span>
       </div>
 
-      <ng-container *ngIf="!pinSuccess">
+      <!-- Shared change-PIN form -->
+      <app-pin-change-form
+        *ngIf="!pinSuccess"
+        [userName]="userName"
+        [showCancel]="!isExpiredFlow"
+        (changed)="onChanged()"
+        (cancelled)="onCancelled()">
+      </app-pin-change-form>
 
-        <!-- Current PIN -->
-        <div class="pin-field-row">
-          <label class="pin-field-label">Current PIN</label>
-          <div class="pin-input-wrap">
-            <input
-              [type]="showCurrentPin ? 'text' : 'password'"
-              class="form-control pin-input"
-              placeholder="Enter current PIN"
-              maxlength="6"
-              inputmode="numeric"
-              [(ngModel)]="currentPin"
-              autocomplete="current-password" />
-            <button type="button" class="pin-eye-btn" (click)="toggleCurrent()" tabindex="-1">
-              <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- New PIN -->
-        <div class="pin-field-row">
-          <label class="pin-field-label">New PIN</label>
-          <div class="pin-input-wrap">
-            <input
-              [type]="showNewPin ? 'text' : 'password'"
-              class="form-control pin-input"
-              placeholder="4–6 digit PIN"
-              maxlength="6"
-              inputmode="numeric"
-              [(ngModel)]="newPin"
-              autocomplete="new-password" />
-            <button type="button" class="pin-eye-btn" (click)="toggleNew()" tabindex="-1">
-              <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Confirm PIN -->
-        <div class="pin-field-row">
-          <label class="pin-field-label">Confirm New PIN</label>
-          <div class="pin-input-wrap">
-            <input
-              [type]="showConfirmPin ? 'text' : 'password'"
-              class="form-control pin-input"
-              placeholder="Re-enter new PIN"
-              maxlength="6"
-              inputmode="numeric"
-              [(ngModel)]="confirmPin"
-              (keyup.enter)="save()"
-              autocomplete="new-password" />
-            <button type="button" class="pin-eye-btn" (click)="toggleConfirm()" tabindex="-1">
-              <i class="fa" [class.fa-eye]="!showConfirmPin" [class.fa-eye-slash]="showConfirmPin"></i>
-            </button>
-          </div>
-          <!-- Inline match indicator -->
-          <span class="pin-match-hint pin-match-ok"  *ngIf="confirmPin && newPin === confirmPin">
-            <i class="fa fa-check-circle"></i> PINs match
-          </span>
-          <span class="pin-match-hint pin-match-err" *ngIf="confirmPin && newPin !== confirmPin">
-            <i class="fa fa-times-circle"></i> PINs do not match
-          </span>
-        </div>
-
-        <!-- Error -->
-        <div class="msg msg-error" *ngIf="pinError">
-          <i class="fa fa-exclamation-circle"></i> {{ pinError }}
-        </div>
-
-        <!-- Actions -->
-        <div class="action-row">
-          <button *ngIf="!isExpiredFlow" class="btn-cancel" (click)="cancel()" [disabled]="saving">
-            <i class="fa fa-times"></i> Cancel
-          </button>
-          <button class="btn-save" (click)="save()" [disabled]="saving || !currentPin || !newPin || !confirmPin">
-            <span *ngIf="saving" class="spinner-border spinner-border-sm me-1" role="status"></span>
-            <i *ngIf="!saving" class="fa fa-check me-1"></i>
-            {{ saving ? 'Saving…' : 'Change PIN' }}
-          </button>
-        </div>
-
-      </ng-container>
     </div>
   </div>
 

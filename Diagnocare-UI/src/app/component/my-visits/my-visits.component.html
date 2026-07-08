@@ -5,143 +5,93 @@
   <!-- ── Header ─────────────────────────────────────────────────────────────── -->
   <div class="page-header">
     <div class="header-left">
-      <h1><i class="fa fa-route"></i> My Visits</h1>
-      <p class="subtitle">{{ dateLabel }}</p>
-    </div>
-    <div class="header-actions">
-      <button class="btn mv-refresh-btn" (click)="loadVisits()" [disabled]="isLoading">
-        <i class="fa fa-sync-alt" [class.fa-spin]="isLoading"></i> Refresh
-      </button>
+      <h1><i class="fa fa-route"></i> {{ isAdmin ? 'Staff Visits' : 'My Visits' }}</h1>
+      <p class="subtitle">{{ isAdmin ? 'All staff field visits' : 'Track your assigned field visits' }}</p>
     </div>
   </div>
 
-  <div class="mv-body">
+  <div class="vs-layout">
 
-    <!-- ── Empty state ──────────────────────────────────────────────────────── -->
-    <div class="mv-empty" *ngIf="!isLoading && visits.length === 0">
-      <div class="mv-empty-icon">
-        <i class="fa fa-calendar-check"></i>
-      </div>
-      <h3>All clear for today!</h3>
-      <p>No visits are scheduled. Enjoy your day or check back later.</p>
+    <!-- ════════════════════════════════════════ CALENDAR ═══════════════════ -->
+    <div class="vs-calendar-panel">
+      <app-visit-calendar
+        [calendarData]="calendarData"
+        [viewYear]="viewYear"
+        [viewMonth]="viewMonth"
+        [selectedDate]="selectedDate"
+        (prevMonth)="onPrevMonth()"
+        (nextMonth)="onNextMonth()"
+        (daySelected)="onDaySelected($event)">
+      </app-visit-calendar>
     </div>
 
-    <!-- ── Progress panel ───────────────────────────────────────────────────── -->
-    <div class="mv-panel" *ngIf="visits.length > 0">
+    <!-- ════════════════════════════════════════ DETAIL PANEL ════════════════ -->
+    <div class="vs-detail-panel" *ngIf="selectedDate">
 
-      <div class="mv-progress-header">
-        <div class="mv-progress-stats">
-          <span class="mv-stat mv-stat--total">
-            <strong>{{ visits.length }}</strong> Total
-          </span>
-          <span class="mv-stat mv-stat--done">
-            <i class="fa fa-check-circle"></i> {{ doneCount }} Done
-          </span>
-          <span class="mv-stat mv-stat--pending">
-            <i class="fa fa-hourglass-half"></i> {{ pendingCount }} Pending
-          </span>
+      <div class="detail-header">
+        <div class="detail-title">
+          <i class="fa fa-calendar-day"></i>
+          <span>{{ selectedDate | date:'EEEE, d MMMM yyyy' }}</span>
         </div>
-        <span class="mv-pct" *ngIf="visits.length > 0">
-          {{ doneCount === visits.length ? '🎉' : '' }}
-          {{ (doneCount / visits.length * 100) | number:'1.0-0' }}%
-        </span>
-      </div>
-
-      <div class="mv-progress-bar-track">
-        <div class="mv-progress-bar-fill"
-             [style.width.%]="doneCount / visits.length * 100">
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ── Visit cards ───────────────────────────────────────────────────────── -->
-    <div class="mv-card"
-         *ngFor="let v of visits; let i = index"
-         [class.mv-card--done]="v.status === 'Completed'"
-         [class.mv-card--cancelled]="v.status === 'Cancelled'">
-
-      <!-- Card top row: time + status badge -->
-      <div class="mvc-topbar">
-        <div class="mvc-time-badge">
-          <i class="fa fa-clock"></i>
-          {{ formatTime(v.visitTime) }}
-        </div>
-        <div class="mvc-seq">#{{ i + 1 }}</div>
-        <span class="mvc-status"
-              [class.mvc-status--done]="v.status === 'Completed'"
-              [class.mvc-status--cancelled]="v.status === 'Cancelled'">
-          <i class="fa"
-             [class.fa-check-circle]="v.status === 'Completed'"
-             [class.fa-times-circle]="v.status === 'Cancelled'"
-             [class.fa-hourglass-half]="v.status === 'Pending'"></i>
-          {{ v.status }}
-        </span>
-      </div>
-
-      <!-- Contact name + type -->
-      <div class="mvc-contact">
-        <div class="mvc-contact-name">
-          <i class="fa fa-building"></i>
-          {{ v.contactName }}
-        </div>
-        <span class="mvc-type-badge">{{ v.contactType }}</span>
-      </div>
-
-      <!-- Detail rows -->
-      <div class="mvc-details">
-
-        <!-- Phone — big CTA -->
-        <a *ngIf="v.contactPhone" [href]="'tel:' + v.contactPhone" class="mvc-call-btn">
-          <i class="fa fa-phone"></i> {{ v.contactPhone }}
-        </a>
-
-        <!-- Address with map button -->
-        <div class="mvc-address-row" *ngIf="v.contactAddress">
-          <i class="fa fa-map-marker-alt"></i>
-          <span class="mvc-address-text">{{ v.contactAddress }}</span>
-          <a [href]="'https://maps.google.com/?q=' + v.contactAddress"
-             target="_blank" rel="noopener" class="mvc-map-btn" title="Open in Maps">
-            <i class="fa fa-directions"></i> Map
-          </a>
-        </div>
-
-        <!-- Purpose -->
-        <div class="mvc-meta-row" *ngIf="v.purpose">
-          <i class="fa fa-bullseye"></i>
-          <span><strong>Purpose:</strong> {{ v.purpose }}</span>
-        </div>
-
-        <!-- Notes -->
-        <div class="mvc-meta-row mvc-notes" *ngIf="v.notes">
-          <i class="fa fa-sticky-note"></i>
-          <span>{{ v.notes }}</span>
-        </div>
-
-      </div>
-
-      <!-- Completion summary — tap to see full details -->
-      <div class="mvc-done-bar" *ngIf="v.status === 'Completed'" (click)="openViewDetails(v)">
-        <span class="mvc-done-bar-label">
-          <i class="fa fa-check-circle"></i>
-          Completed{{ v.completedAt ? ' · ' + (v.completedAt | date:'d MMM, h:mm a') : '' }}
-        </span>
-        <span class="mvc-done-bar-cta">
-          View Details <i class="fa fa-chevron-right"></i>
-        </span>
-      </div>
-
-      <!-- Action footer — pending only -->
-      <div class="mvc-action" *ngIf="v.status === 'Pending'">
-        <button class="mvc-complete-btn" (click)="openCompleteModal(v)">
-          <i class="fa fa-check-circle"></i> Mark as Completed
+        <button class="btn btn-outline btn-sm" (click)="loadVisits()" [disabled]="isLoading">
+          <i class="fa fa-sync-alt" [class.fa-spin]="isLoading"></i> Refresh
         </button>
       </div>
 
-    </div>
-    <!-- /visit cards -->
+      <div *ngIf="!isLoading">
 
-  </div><!-- /mv-body -->
+        <!-- Status filter chips -->
+        <div class="vc-status-filter" *ngIf="visits.length > 0">
+          <button class="vc-filter-chip" [class.active]="statusFilter === 'all'"
+                  (click)="statusFilter = 'all'">
+            All <span class="vc-filter-count">{{ visits.length }}</span>
+          </button>
+          <button class="vc-filter-chip vc-filter-chip--pending"
+                  [class.active]="statusFilter === 'Pending'"
+                  (click)="statusFilter = 'Pending'">
+            Pending <span class="vc-filter-count">{{ pendingCount }}</span>
+          </button>
+          <button class="vc-filter-chip vc-filter-chip--done"
+                  [class.active]="statusFilter === 'Completed'"
+                  (click)="statusFilter = 'Completed'">
+            Completed <span class="vc-filter-count">{{ completedCount }}</span>
+          </button>
+        </div>
+
+        <!-- Empty states -->
+        <div *ngIf="visits.length === 0" class="no-visits">
+          <i class="fa fa-calendar-times"></i>
+          <p>No visits scheduled for this day.</p>
+        </div>
+        <div *ngIf="visits.length > 0 && filteredVisits.length === 0" class="no-visits" style="padding:1rem 0">
+          <i class="fa fa-filter"></i>
+          <p>No {{ statusFilter === 'Pending' ? 'pending' : 'completed' }} visits for this day.</p>
+        </div>
+
+        <!-- Visit cards (shared component) -->
+        <div class="visit-card-grid">
+          <app-visit-card
+            *ngFor="let v of filteredVisits"
+            [visit]="v"
+            [showMember]="isAdmin"
+            [canManage]="false"
+            (complete)="openCompleteModal($event)"
+            (viewDetails)="openViewDetails($event)">
+          </app-visit-card>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- No day selected -->
+    <div class="vs-detail-panel vs-detail-panel--empty" *ngIf="!selectedDate">
+      <div class="empty-state">
+        <i class="fa fa-calendar-alt fa-3x"></i>
+        <p>Click a day on the calendar to view your visits.</p>
+      </div>
+    </div>
+
+  </div><!-- /vs-layout -->
 </div>
 
 <!-- ── Mark-Complete modal ───────────────────────────────────────────────────── -->

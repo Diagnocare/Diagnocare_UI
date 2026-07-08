@@ -101,7 +101,7 @@
               <label class="form-label required">Group Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
                      [(ngModel)]="formData.group.name" #groupName="ngModel" required>
-              <div class="field-error" *ngIf="groupName.invalid && (groupName.touched || groupName.dirty)">
+              <div class="field-error" *ngIf="groupName.invalid && groupName.touched">
                 <i class="fa fa-exclamation-circle"></i> Group name is required
               </div>
             </div>
@@ -136,7 +136,7 @@
               <label class="form-label required">SubGroup Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
                      [(ngModel)]="formData.subGroup.name" #subGroupName="ngModel" required>
-              <div class="field-error" *ngIf="subGroupName.invalid && (subGroupName.touched || subGroupName.dirty)">
+              <div class="field-error" *ngIf="subGroupName.invalid && subGroupName.touched">
                 <i class="fa fa-exclamation-circle"></i> SubGroup name is required
               </div>
             </div>
@@ -171,7 +171,7 @@
               <label class="form-label required">Test Name</label>
               <input type="text" class="form-control" placeholder="e.g., TLC DLC"
                      [(ngModel)]="formData.test.testName" #testName="ngModel" required>
-              <div class="field-error" *ngIf="testName.invalid && (testName.touched || testName.dirty)">
+              <div class="field-error" *ngIf="testName.invalid && testName.touched">
                 <i class="fa fa-exclamation-circle"></i> Test name is required
               </div>
             </div>

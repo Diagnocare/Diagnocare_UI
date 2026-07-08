@@ -6,7 +6,7 @@
             <p class="subtitle">Manage patient records and reports</p>
         </div>
         <div class="header-actions">
-            <button class="btn btn-success" (click)="navigateToAddPatient()">
+            <button class="btn btn-primary" (click)="navigateToAddPatient()">
                 <i class="fa fa-plus"></i> Add New Patient
             </button>
         </div>
@@ -22,7 +22,9 @@
                     <i class="fa fa-user-circle"></i> Patient Search
                 </label>
                 <div class="input-icon-wrap">
-                    <input type="text" [(ngModel)]="searchTerm"
+                    <input type="text" [(ngModel)]="searchTerm" name="patientSearch"
+                        autocomplete="off" [readonly]="searchReadonly"
+                        (focus)="searchReadonly = false" (blur)="searchReadonly = true"
                         placeholder="Name or ID…" class="form-control">
                 </div>
             </div>
@@ -53,17 +55,18 @@
                 <label class="filter-label">
                     <i class="fa fa-filter"></i> Status
                 </label>
-                <select [(ngModel)]="statusFilter" class="form-select">
-                    <option value="">All</option>
+                <select [(ngModel)]="statusFilter" (ngModelChange)="onStatusFilter()" class="form-select">
+                    <option value="active">Active (Pending + Partial)</option>
                     <option value="Pending">Pending</option>
                     <option value="Partial">Partial</option>
                     <option value="Completed">Completed</option>
+                    <option value="deactivated">Deactivated</option>
                 </select>
             </div>
 
             <div class="filter-group search-btn-group">
                 <label class="filter-label">&nbsp;</label>
-                <button type="submit" class="btn btn-search" (click)="searchPatients()">
+                <button type="submit" class="dc-btn dc-btn--search" (click)="searchPatients()">
                     <i class="fa fa-search"></i> Search
                 </button>
             </div>
@@ -183,9 +186,16 @@
             </td>
             <td>
             <div class="action-buttons">
-                <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
-                <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
-                <app-action-btn type="delete" title="Delete Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
+                <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
+                    <app-action-btn *ngIf="isCompletedView()" type="download" title="Download Completed Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></app-action-btn>
+                    <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
+                    <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
+                    <app-action-btn type="delete" title="Deactivate Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
+                </ng-container>
+                <ng-template #deactivatedActions>
+                    <app-action-btn type="reactivate"  title="Reactivate Patient"      (clicked)="confirmReactivate(patient.patient_Id)"></app-action-btn>
+                    <app-action-btn type="hard-delete" title="Delete Permanently"      (clicked)="confirmHardDelete(patient.patient_Id)"></app-action-btn>
+                </ng-template>
             </div>
             </td>
         </tr>

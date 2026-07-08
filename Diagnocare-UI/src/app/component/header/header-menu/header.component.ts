@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions } from 'src/app/constant/constants';
+import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
 import { Role, RoleId } from 'src/app/constant/enums';
 import { ModuleAccess, MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
@@ -27,6 +27,7 @@ export class HeaderComponent implements OnInit {
   summaryReportMenu = Object.values(summaryReportMenu);
   profileMenu = Object.values(profileMenu);
   adminOptions = Object.values(adminOptions);
+  userOptions = Object.values(userOptions);
   labSetupMenu =Object.values(labSetupMenu);
 
   userName: string | null = null;

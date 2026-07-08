@@ -196,14 +196,14 @@
             <div class="field">
               <label class="field-label">Primary Contact <span class="req">*</span></label>
               <input type="tel" class="field-input" formControlName="path_ContactNo"
-                     placeholder="Mobile / Landline"
+                     placeholder="Mobile / Landline" maxlength="10" inputmode="numeric"
                      [class.is-error]="isInvalid('path_ContactNo')" />
               <app-field-error [control]="form.get('path_ContactNo')" label="Primary Contact" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="field">
               <label class="field-label">Alternate Contact</label>
               <input type="tel" class="field-input" formControlName="path_AltContactNo"
-                     placeholder="Secondary number"
+                     placeholder="Secondary number" maxlength="10" inputmode="numeric"
                      [class.is-error]="isInvalid('path_AltContactNo')" />
               <app-field-error [control]="form.get('path_AltContactNo')" label="Alternate Contact" [forceShow]="submitted"></app-field-error>
             </div>

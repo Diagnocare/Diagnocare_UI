@@ -79,8 +79,8 @@
           <label>New PIN</label>
           <div class="pin-input-group">
             <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
-                   inputmode="numeric" maxlength="6" placeholder="e.g. 1234"
-                   [(ngModel)]="newPin" autocomplete="new-password" />
+                   inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="e.g. 1234"
+                   [ngModel]="newPin" (ngModelChange)="newPin = onlyDigits($event)" autocomplete="new-password" />
             <button type="button" class="pin-eye-btn" (click)="showNewPin = !showNewPin">
               <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
             </button>
@@ -90,56 +90,15 @@
           <label>Confirm PIN</label>
           <div class="pin-input-group">
             <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
-                   inputmode="numeric" maxlength="6" placeholder="Repeat PIN"
-                   [(ngModel)]="confirmPin" autocomplete="new-password" />
+                   inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Repeat PIN"
+                   [ngModel]="confirmPin" (ngModelChange)="confirmPin = onlyDigits($event)" autocomplete="new-password" />
           </div>
         </div>
         <div class="action-row">
-          <button class="btn-save" (click)="saveNewPin()" [disabled]="pinSaving || !newPin || !confirmPin">
+          <button class="dc-btn dc-btn--save dc-btn--sm" (click)="saveNewPin()" [disabled]="pinSaving || !newPin || !confirmPin">
             <i class="fa fa-check"></i> Save PIN
           </button>
-          <button class="btn-cancel" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
-        </div>
-      </div>
-
-      <!-- Change PIN form -->
-      <div class="edit-block" *ngIf="pinMode === 'change'">
-        <p class="pin-form-hint"><i class="fa fa-info-circle"></i> Verify your current PIN, then choose a new one.</p>
-        <div class="pin-field-row">
-          <label>Current PIN</label>
-          <div class="pin-input-group">
-            <input [type]="showCurrentPin ? 'text' : 'password'" class="form-input"
-                   inputmode="numeric" maxlength="6" placeholder="Your current PIN"
-                   [(ngModel)]="currentPin" autocomplete="current-password" />
-            <button type="button" class="pin-eye-btn" (click)="showCurrentPin = !showCurrentPin">
-              <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
-            </button>
-          </div>
-        </div>
-        <div class="pin-field-row">
-          <label>New PIN</label>
-          <div class="pin-input-group">
-            <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
-                   inputmode="numeric" maxlength="6" placeholder="4–6 digits"
-                   [(ngModel)]="changedPin" autocomplete="new-password" />
-            <button type="button" class="pin-eye-btn" (click)="showNewPin = !showNewPin">
-              <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
-            </button>
-          </div>
-        </div>
-        <div class="pin-field-row">
-          <label>Confirm New PIN</label>
-          <div class="pin-input-group">
-            <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
-                   inputmode="numeric" maxlength="6" placeholder="Repeat new PIN"
-                   [(ngModel)]="confirmChangedPin" autocomplete="new-password" />
-          </div>
-        </div>
-        <div class="action-row">
-          <button class="btn-save" (click)="saveChangedPin()" [disabled]="pinSaving || !currentPin || !changedPin || !confirmChangedPin">
-            <i class="fa fa-check"></i> Change PIN
-          </button>
-          <button class="btn-cancel" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
+          <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
         </div>
       </div>
 
@@ -153,18 +112,18 @@
           <label>Current PIN</label>
           <div class="pin-input-group">
             <input [type]="showCurrentPin ? 'text' : 'password'" class="form-input"
-                   inputmode="numeric" maxlength="6" placeholder="Enter to confirm removal"
-                   [(ngModel)]="currentPin" autocomplete="current-password" />
+                   inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter to confirm removal"
+                   [ngModel]="currentPin" (ngModelChange)="currentPin = onlyDigits($event)" autocomplete="current-password" />
             <button type="button" class="pin-eye-btn" (click)="showCurrentPin = !showCurrentPin">
               <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
             </button>
           </div>
         </div>
         <div class="action-row">
-          <button class="btn-danger-sm" (click)="removePin()" [disabled]="pinSaving || !currentPin">
+          <button class="dc-btn dc-btn--delete dc-btn--sm" (click)="removePin()" [disabled]="pinSaving || !currentPin">
             <i class="fa fa-trash"></i> Remove PIN
           </button>
-          <button class="btn-cancel" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
+          <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
         </div>
       </div>
 
@@ -200,12 +159,20 @@
           <input class="radio-input" type="radio" name="authType"
                  [id]="'authType_' + opt.value"
                  [value]="opt.value"
+                 [disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled"
                  [(ngModel)]="selectedAuthType">
-          <label class="radio-label" [for]="'authType_' + opt.value">{{ opt.label }}</label>
+          <label class="radio-label" [for]="'authType_' + opt.value"
+                 [class.radio-label--disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
+            {{ opt.label }}
+            <span class="radio-hint"
+                  *ngIf="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
+              — set up the Authenticator App below first
+            </span>
+          </label>
         </div>
         <div class="action-row">
-          <button class="btn-save" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
-          <button class="btn-cancel" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
+          <button class="dc-btn dc-btn--save dc-btn--sm" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
+          <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
         </div>
       </div>
 
@@ -213,6 +180,11 @@
       <div *ngIf="successMsg" class="msg msg-success">{{ successMsg }}</div>
     </div>
   </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION: AUTHENTICATOR APP (merged from its own page)
+  ══════════════════════════════════════ -->
+  <app-setup-mfa [embedded]="true" (mfaStatusChanged)="onMfaStatusChanged($event)"></app-setup-mfa>
 
   <!-- ══════════════════════════════════════
        SECTION: APPEARANCE / THEME

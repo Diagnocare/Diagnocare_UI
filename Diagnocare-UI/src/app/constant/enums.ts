@@ -1,8 +1,7 @@
 export enum AuthType {
     Mobile = 1,
     Email = 2,
-    AuthenticationApp = 3,
-    Other=4
+    AuthenticationApp = 3
 }
 
 // ─── Single unified role definition ───────────────────────────────────────────

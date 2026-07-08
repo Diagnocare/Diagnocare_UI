@@ -211,7 +211,7 @@
   </div>
 
   <div class="modal-footer">
-    <button class="btn btn-back" (click)="closeModal()" [disabled]="isSaving">
+    <button class="btn btn-cancel" (click)="closeModal()" [disabled]="isSaving">
       <i class="fa fa-times"></i> Cancel
     </button>
     <button class="btn btn-primary" (click)="saveHoliday()"
@@ -333,10 +333,10 @@
         {{ bulkDrafts.length }} row{{ bulkDrafts.length !== 1 ? 's' : '' }}
       </span>
     </div>
-    <button class="btn btn-back" (click)="closeBulkModal()" [disabled]="isBulkSaving">
+    <button class="btn btn-cancel" (click)="closeBulkModal()" [disabled]="isBulkSaving">
       <i class="fa fa-times"></i> Cancel
     </button>
-    <button class="btn btn-success" (click)="saveBulkHolidays()" [disabled]="isBulkSaving">
+    <button class="btn btn-primary" (click)="saveBulkHolidays()" [disabled]="isBulkSaving">
       <span *ngIf="isBulkSaving"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
       <span *ngIf="!isBulkSaving">
         <i class="fa fa-save"></i>

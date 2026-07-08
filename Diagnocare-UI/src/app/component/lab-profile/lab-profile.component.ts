@@ -10,6 +10,8 @@ import { PathologyEditDto }        from 'src/app/models/pathology/pathology-edit
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { FieldErrorComponent }     from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective }   from 'src/app/shared/directives/form-keyboard.directive';
+import { AppValidators }           from 'src/app/shared/validators/app-validators';
+import { VALIDATION_PATTERNS }     from 'src/app/shared/validators/validation-patterns';
 
 @Component({
   selector: 'app-lab-profile',
@@ -80,11 +82,11 @@ export class LabProfileComponent implements OnInit, OnDestroy {
       path_City:        ['', [Validators.required, Validators.maxLength(80)]],
       path_State:       ['', [Validators.required, Validators.maxLength(80)]],
       path_Country:     ['India', [Validators.required, Validators.maxLength(80)]],
-      path_Pincode:     ['', Validators.pattern('^[0-9]{4,10}$')],
+      path_Pincode:     ['', Validators.pattern(VALIDATION_PATTERNS.pincodeIntl)],
 
       // Contact
-      path_ContactNo:   ['', [Validators.required, Validators.pattern('^[0-9]{7,15}$')]],
-      path_AltContactNo:['', Validators.pattern('^[0-9]{7,15}$')],
+      path_ContactNo:   ['', [Validators.required, AppValidators.contactNumber()]],
+      path_AltContactNo:['', AppValidators.contactNumber()],
       path_Email:       ['', [Validators.required, Validators.email]],
       path_Website:     ['', Validators.maxLength(200)],
 

@@ -182,8 +182,14 @@
           <button type="button" class="otp-btn otp-btn-ghost" (click)="resetMethod()">
             <i class="fa fa-arrow-left"></i> Change Method
           </button>
-          <button type="button" class="otp-btn otp-btn-primary" (click)="sendOtpRequest()">
-            <i class="fa fa-paper-plane"></i> Send OTP
+          <button type="button" class="otp-btn otp-btn-primary" (click)="sendOtpRequest()"
+                  [disabled]="isSendingOtp">
+            <ng-container *ngIf="!isSendingOtp">
+              <i class="fa fa-paper-plane"></i> Send OTP
+            </ng-container>
+            <ng-container *ngIf="isSendingOtp">
+              <span class="otp-spinner"></span> Sending&hellip;
+            </ng-container>
           </button>
         </div>
       </div>
@@ -240,10 +246,15 @@
               </svg>
               <span class="otp-countdown-num">{{ resendRemaining }}</span>
             </div>
-            <!-- Resend button is disabled both during the cooldown timer AND during lockout -->
+            <!-- Resend button is disabled during cooldown, lockout, or while sending -->
             <button type="button" class="otp-btn otp-btn-resend"
-                    [disabled]="resendRemaining > 0 || isLocked" (click)="onResend()">
-              <i class="fa fa-refresh"></i> Resend OTP
+                    [disabled]="resendRemaining > 0 || isLocked || isSendingOtp" (click)="onResend()">
+              <ng-container *ngIf="!isSendingOtp">
+                <i class="fa fa-refresh"></i> Resend OTP
+              </ng-container>
+              <ng-container *ngIf="isSendingOtp">
+                <span class="otp-spinner"></span> Sending&hellip;
+              </ng-container>
             </button>
           </div>
 

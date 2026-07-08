@@ -97,15 +97,29 @@ export const apiEndpoints = {
   getSalaryConfig:          'GetConfig',
   saveSalaryConfig:         'SaveConfig',
   calculatePayableSalary:   'CalculatePayableSalary',
+  /** Self-service — returns the logged-in staff member's own salary summary */
+  getMySalary:              'GetMySalary',
+  /** Self-service — returns the logged-in staff member's salary payment receipt PDF for a month */
+  generateMySalaryReceipt:  'GenerateMySalaryReceipt',
+  /** Self-service — returns the logged-in staff member's actual salary payments (all months) */
+  getMyPayments:            'GetMyPayments',
+  /** Self-service — returns a PDF receipt for a single salary payment (ownership-validated) */
+  generateMyPaymentReceipt: 'GenerateMyPaymentReceipt',
   /** Maps to DB column token_expiry_in_minutes — stores the PIN grace buffer duration */
   updateGraceBuffer:        'UpdateGraceBuffer',
+  /** Admin-only — updates the max discount percentage (0–99) any user may apply */
+  updateMaxDiscount:        'UpdateMaxDiscount',
+  /** Admin-only — updates how many minutes hidden before screen-lock fires (0 = disabled) */
+  updateSessionLockout:     'UpdateSessionLockout',
   getMFAStatus:             'status',          // GET  api/Mfa/status
   setupMFA:                 'setup',           // POST api/Mfa/setup
   confirmMfaSetup:          'confirm-setup',   // POST api/Mfa/confirm-setup
   verifyTotpLogin:          'Verify',          // POST api/Otp/Verify  (authType=Mfa)
   disableMFA:               'disable',         // POST api/Mfa/disable
-  cancelTest:               'CancelTest',        // PUT   api/patient/CancelTest
-  removeTests:              'RemoveTests',       // PATCH api/patient/RemoveTests
+  cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
+  removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
+  reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
+  hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
   refundReceipt:            'Refund',            // PUT   api/receipt/Refund
   updateTpaDetails:         'UpdateTpaDetails',  // PUT   api/receipt/UpdateTpaDetails
   clearSession:             'ClearSession',      // POST  api/login/ClearSession
@@ -214,7 +228,7 @@ export const profileMenu = {
   profile:        { id: 'profile',        label: 'My Profile',      route: 'profile',         icon: 'user' },
   settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
   changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
-  setupMfa:       { id: 'setupMfa',       label: 'Authenticator App', route: 'setup-mfa',     icon: 'mobile' },
+  // Authenticator App is now a section inside Settings (see settings page).
 };
 
 export const labOperationMenu = {
@@ -244,6 +258,18 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   // Super Admin only — template management
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
   template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt', superAdminOnly: true },
+};
+
+/**
+ * User Panel navigation items.
+ * Self-service views for non-admin staff (User, Assistant, Collection Boy, Doctor).
+ * Mirrors the Admin Panel dropdown but scoped to the logged-in user's own data.
+ */
+export const userOptions: Record<string, { id: string; label: string; route: string; icon?: string }> = {
+  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check' },
+  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route'          },
+  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave' },
+  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt'   },
 };
 
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {

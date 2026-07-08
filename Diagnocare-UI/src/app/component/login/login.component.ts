@@ -12,6 +12,7 @@ import { Subscription, filter } from 'rxjs';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { OtpChannel, VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
 import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
@@ -132,13 +133,13 @@ export class LoginComponent implements OnInit, OnDestroy {
       password:  ['', [Validators.required, Validators.minLength(6)]],
       code:      [''],
       otpDigits: this.fb.array(
-        Array.from({ length: 6 }, () => this.fb.control('', [Validators.pattern('[0-9]')])),
+        Array.from({ length: 6 }, () => this.fb.control('', [AppValidators.singleDigit()])),
       ),
     });
 
     this.mfaForm = this.fb.group({
       mfaDigits: this.fb.array(
-        Array.from({ length: 6 }, () => this.fb.control('', [Validators.pattern('[0-9]')])),
+        Array.from({ length: 6 }, () => this.fb.control('', [AppValidators.singleDigit()])),
       ),
     });
 
@@ -318,13 +319,13 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Use the user's preferred channel (loginType) to auto-select and send OTP
         const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-        if (response?.loginType === 3) {
+        if (response?.loginType === 3 && this.hasMfa) {
           // Authenticator App (TOTP) — no OTP to generate/send; open dialog in TOTP mode
           this.isTotpMode    = true;
           this.selectedMethod = null;
           this.showOtpInput   = true;
           this.openOtpDialog();
-        } else if (method) {
+        } else if (response?.loginType !== 3 && method) {
           this.isTotpMode     = false;
           this.selectedMethod = method as OtpChannel;
           this.showOtpInput   = true;
@@ -347,7 +348,9 @@ export class LoginComponent implements OnInit, OnDestroy {
             },
           });
         } else {
-          // No loginType configured — let user pick a channel
+          // No usable preferred channel — either nothing configured, or the preferred
+          // method is the Authenticator App but MFA is no longer set up. Let the user
+          // pick a channel (email / phone) instead of forcing an unusable TOTP prompt.
           this.isTotpMode     = false;
           this.selectedMethod = null;
           this.showOtpInput   = false;
@@ -576,13 +579,13 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-    if (response?.loginType === 3) {
+    if (response?.loginType === 3 && this.hasMfa) {
       // TOTP (Google Authenticator) — no OTP to send, open dialog immediately
       this.isTotpMode     = true;
       this.selectedMethod = null;
       this.showOtpInput   = true;
       this.openOtpDialog();
-    } else if (method) {
+    } else if (response?.loginType !== 3 && method) {
       this.isTotpMode     = false;
       this.selectedMethod = method as OtpChannel;
       this.showOtpInput   = true;
@@ -605,7 +608,8 @@ export class LoginComponent implements OnInit, OnDestroy {
         },
       });
     } else {
-      // No preferred method — let user pick in the OTP dialog
+      // No usable preferred method — nothing configured, or the preferred method is the
+      // Authenticator App but MFA is no longer set up. Let the user pick in the dialog.
       this.isTotpMode     = false;
       this.selectedMethod = null;
       this.showOtpInput   = false;

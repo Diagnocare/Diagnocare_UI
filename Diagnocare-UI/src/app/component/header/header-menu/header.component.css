@@ -244,23 +244,34 @@
   pointer-events: none;
 }
 
+/* Invisible bridge that fills the 0.5rem gap between the trigger and the
+   panel, so moving the pointer from the button onto the menu keeps :hover
+   alive and the menu doesn't flicker/close mid-move. */
+.dc-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: 0;
+  right: 0;
+  height: 0.5rem;
+}
+
 .dc-dropdown-wide {
   min-width: 520px;
   left: 50%;
   transform: translateX(-50%) translateY(-6px);
 }
 
-/* Open on hover */
-.dc-dropdown-host:hover > .dc-dropdown,
-.dc-dropdown-host:focus-within > .dc-dropdown {
+/* Open on hover only — no click needed, and it closes as soon as the pointer
+   leaves the menu (the :hover region includes the panel + bridge above). */
+.dc-dropdown-host:hover > .dc-dropdown {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   pointer-events: all;
 }
 
-.dc-dropdown-host:hover > .dc-dropdown.dc-dropdown-wide,
-.dc-dropdown-host:focus-within > .dc-dropdown.dc-dropdown-wide {
+.dc-dropdown-host:hover > .dc-dropdown.dc-dropdown-wide {
   transform: translateX(-50%) translateY(0);
 }
 
@@ -478,8 +489,7 @@
   transform: translateY(-6px);
 }
 
-.dc-dropdown-host:hover > .dc-profile-dropdown,
-.dc-dropdown-host:focus-within > .dc-profile-dropdown {
+.dc-dropdown-host:hover > .dc-profile-dropdown {
   transform: translateY(0);
 }
 

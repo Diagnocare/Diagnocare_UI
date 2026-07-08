@@ -17,7 +17,7 @@
         <i class="fa" [ngClass]="showInactive ? 'fa-eye-slash' : 'fa-eye'"></i>
         {{ showInactive ? 'Hide Inactive' : 'Show Inactive' }}
       </button>
-      <button class="btn btn-success" (click)="add(activeSection.type)">
+      <button class="btn btn-primary" (click)="add(activeSection.type)">
         <i class="fa fa-plus"></i> Add {{ activeSection.title | slice:0:-1 }}
       </button>
     </div>

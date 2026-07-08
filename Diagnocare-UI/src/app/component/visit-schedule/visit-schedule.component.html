@@ -14,44 +14,15 @@
 
     <!-- ════════════════════════════════════════ CALENDAR ═══════════════════ -->
     <div class="vs-calendar-panel">
-
-      <div class="cal-nav">
-        <button class="cal-nav-btn" (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
-        <span class="cal-month-label">{{ viewLabel }}</span>
-        <button class="cal-nav-btn" (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
-      </div>
-
-      <!-- Table layout — immune to CSS-grid interference from parent vs-layout -->
-      <table class="cal-table">
-        <thead>
-          <tr>
-            <th *ngFor="let d of weekDays" class="cal-dow">{{ d }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let week of calendarWeeks">
-            <td *ngFor="let day of week"
-                class="cal-cell"
-                [class.other-month]="!day.inMonth"
-                [class.today]="day.isToday"
-                [class.selected]="selectedDate === toIsoPublic(day.date) && day.inMonth"
-                [class.has-visits]="day.visitInfo && day.inMonth"
-                (click)="selectDay(day)">
-              <span class="cal-day-num">{{ day.date.getDate() }}</span>
-              <span class="cal-badge" *ngIf="day.visitInfo && day.inMonth"
-                    [class.cal-badge--all-done]="day.visitInfo.pendingCount === 0">
-                {{ day.visitInfo.count }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="cal-legend">
-        <span class="leg-item"><span class="leg-dot leg-dot--pending"></span> Pending</span>
-        <span class="leg-item"><span class="leg-dot leg-dot--done"></span> All Done</span>
-        <span class="leg-item"><span class="leg-dot leg-dot--today"></span> Today</span>
-      </div>
+      <app-visit-calendar
+        [calendarData]="calendarData"
+        [viewYear]="viewYear"
+        [viewMonth]="viewMonth"
+        [selectedDate]="selectedDate"
+        (prevMonth)="prevMonth()"
+        (nextMonth)="nextMonth()"
+        (daySelected)="onDaySelected($event)">
+      </app-visit-calendar>
     </div>
 
     <!-- ════════════════════════════════════════ DETAIL PANEL ════════════════ -->
@@ -239,48 +210,16 @@
         </div>
 
         <div class="visit-card-grid">
-        <div class="visit-card" *ngFor="let v of filteredDayVisits">
-          <div class="vc-header">
-            <span class="vc-time"><i class="fa fa-clock"></i> {{ formatTime(v.visitTime) }}</span>
-            <span class="vc-status"
-                  [class.vc-status--done]="v.status === 'Completed'"
-                  [class.vc-status--cancelled]="v.status === 'Cancelled'">
-              {{ v.status }}
-            </span>
-          </div>
-          <div class="vc-contact">
-            <div class="vc-name"><i class="fa fa-building"></i> {{ v.contactName }}
-              <span class="vc-type-badge" *ngIf="v.contactType">{{ v.contactType }}</span>
-            </div>
-            <div class="vc-meta" *ngIf="v.contactPhone"><i class="fa fa-phone"></i> {{ v.contactPhone }}</div>
-            <div class="vc-meta" *ngIf="v.contactAddress"><i class="fa fa-map-marker-alt"></i> {{ v.contactAddress }}</div>
-          </div>
-          <div class="vc-member"><i class="fa fa-user"></i> <strong>{{ v.memberName }}</strong></div>
-          <div class="vc-purpose" *ngIf="v.purpose"><i class="fa fa-bullseye"></i> {{ v.purpose }}</div>
-          <div class="vc-notes"   *ngIf="v.notes"><i class="fa fa-sticky-note"></i> {{ v.notes }}</div>
-
-          <div class="vc-actions">
-            <!-- Pending: Edit + Complete + Delete -->
-            <ng-container *ngIf="v.status === 'Pending'">
-              <button class="btn btn-outline btn-xs" (click)="openEditModal(v)">
-                <i class="fa fa-pencil-alt"></i> Edit
-              </button>
-              <button class="btn btn-success btn-xs" (click)="openCompleteModal(v)">
-                <i class="fa fa-check"></i> Complete
-              </button>
-            </ng-container>
-
-            <!-- Completed: View Details -->
-            <button class="btn btn-info btn-xs" (click)="openViewDetails(v)"
-                    *ngIf="v.status === 'Completed'">
-              <i class="fa fa-eye"></i> View Details
-            </button>
-
-            <button class="btn btn-danger btn-xs" (click)="deleteVisit(v.id)">
-              <i class="fa fa-trash"></i>
-            </button>
-          </div>
-        </div>
+          <app-visit-card
+            *ngFor="let v of filteredDayVisits"
+            [visit]="v"
+            [showMember]="true"
+            [canManage]="true"
+            (complete)="openCompleteModal($event)"
+            (viewDetails)="openViewDetails($event)"
+            (edit)="openEditModal($event)"
+            (remove)="deleteVisit($event)">
+          </app-visit-card>
         </div><!-- /visit-card-grid -->
       </div>
 

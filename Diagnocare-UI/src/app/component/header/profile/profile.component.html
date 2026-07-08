@@ -33,11 +33,11 @@
           <div class="avatar-actions">
             <input type="file" accept="image/*" (change)="onProfilePicChange($event)"
                    style="display:none;" #fileInput>
-            <button class="btn btn-outline-secondary btn-sm" (click)="fileInput.click()">
-              <i class="fas fa-camera me-1"></i>Change Photo
+            <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="fileInput.click()">
+              <i class="fas fa-camera"></i>Change Photo
             </button>
-            <button *ngIf="previewAvailable" class="btn btn-primary btn-sm" (click)="saveProfilePic()">
-              <i class="fas fa-save me-1"></i>Save
+            <button *ngIf="previewAvailable" class="dc-btn dc-btn--save dc-btn--sm" (click)="saveProfilePic()">
+              <i class="fas fa-save"></i>Save
             </button>
           </div>
 

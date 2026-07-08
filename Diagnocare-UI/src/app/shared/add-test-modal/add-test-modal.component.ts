@@ -41,11 +41,13 @@ import { ContactAddressListDto } from 'src/app/models/contactAddress/contactAddr
 import { ContactAddressService } from 'src/app/services/contactAddressServices/contact-address.service';
 import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-details-modal.component';
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
+import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
+import { TokenService }              from 'src/app/core/interceptors/token.service';
 
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -121,6 +123,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private cdr:             ChangeDetectorRef,
     private _sampling:       SamplingLocationService,
     private _contactService: ContactAddressService,
+    private _token:          TokenService,
   ) {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
@@ -387,10 +390,21 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   // ── Payment Calculations ──────────────────────────────────────────────────
 
+  /** Maximum discount % allowed for this lab (admin-configured). */
+  get maxDiscountPercent(): number { return this._token.getMaxDiscountPercent(); }
+
   calculateNetAmount(): void {
-    const testAmount = +this.form.get('test_Amount')?.value || 0;
-    const discount   = +this.form.get('discount')?.value   || 0;
-    if (testAmount > 0 && discount >= 0 && discount <= 100) {
+    const testAmount  = +this.form.get('test_Amount')?.value || 0;
+    const discount    = +this.form.get('discount')?.value   || 0;
+    const maxDiscount = this._token.getMaxDiscountPercent();
+
+    if (discount > maxDiscount) {
+      this.form.get('discount')?.setErrors({ maxExceeded: true });
+      return;
+    }
+    this.form.get('discount')?.setErrors(null);
+
+    if (testAmount > 0 && discount >= 0 && discount <= maxDiscount) {
       const net = testAmount - (discount * testAmount / 100);
       this.form.patchValue({ net_Amount: net });
     }
@@ -503,7 +517,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     const amtPaid   = parseFloat(this.form.get('amount_Paid')?.value)  || 0;
     const netAmount = parseFloat(this.form.get('net_Amount')?.value)    || 0;
     if (amtPaid <= 0) {
-      this.amountPaidError = 'Please enter the amount paid.';
+      this.amountPaidError = 'Please enter the correct amount paid.';
       return;
     }
     if (amtPaid >= netAmount) {

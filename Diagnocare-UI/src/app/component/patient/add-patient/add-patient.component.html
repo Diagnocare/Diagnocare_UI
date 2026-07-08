@@ -355,8 +355,14 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Discount (%)</label>
-                  <input type="text" class="form-control" formControlName="discount"
-                    (change)="calculateNetAmount()" placeholder="0" [attr.tabindex]="getTabIndex('discount')" />
+                  <input type="number" class="form-control" formControlName="discount"
+                    (change)="calculateNetAmount()" placeholder="0"
+                    min="0" [max]="maxDiscountPercent"
+                    [attr.tabindex]="getTabIndex('discount')" />
+                <small class="text-danger"
+                       *ngIf="patientForm.get('discount')?.errors?.['maxExceeded']">
+                  Discount cannot exceed {{ maxDiscountPercent }}%.
+                </small>
               </div>
             </div>
 
@@ -426,6 +432,13 @@
                 />
               </div>
             </div>
+
+            <!-- Cash Change Calculator — shown when payment type is Full or Partial (not No Payment) -->
+            <app-payment-calculator
+              *ngIf="patientForm.get('payment_Type')?.value !== 'No Payment'"
+              [requiredAmount]="patientForm.get('amount_Paid')?.value || patientForm.get('net_Amount')?.value || 0"
+              [resetTrigger]="currentStep === 4">
+            </app-payment-calculator>
 
             <!-- TPA: confirmed banner (shown after user fills the modal) -->
             <div *ngIf="isTpaMode && tpaDetails" class="payment-confirmed-banner tpa-confirmed-banner">
@@ -502,7 +515,7 @@
                     *ngIf="currentStep < 4">
               Next <i class="fa fa-arrow-right"></i>
             </button>
-            <button type="submit" class="btn btn-success" *ngIf="currentStep === 4">
+            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 4">
               <i class="fa fa-check"></i> Register Patient
             </button>
           </div>
@@ -592,7 +605,7 @@
             <label class="form-label">Amount Pending (₹)</label>
             <input type="text" class="form-control bg-light" formControlName="amount_Pending"
                    readonly placeholder="Auto-calculated" />
-            <small class="text-muted">Calculated automatically as Net − Paid</small>
+            <small>Calculated automatically as Net − Paid</small>
           </div>
 
           <div class="modal-footer-actions">
@@ -617,7 +630,7 @@
       </div>
       <div class="modal-body">
         <div class="search-section mb-3">
-          <input type="text" class="form-control" placeholder="Search groups, subgroups, or tests..." [(ngModel)]="query" />
+          <input type="text" class="form-control" placeholder="Search groups, subgroups, or tests..." [(ngModel)]="query" autocomplete="off" />
         </div>
         <div class="row">
           <!-- Groups -->

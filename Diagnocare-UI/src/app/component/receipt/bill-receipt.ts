@@ -69,9 +69,9 @@ export class BillReceipt implements OnInit {
 
       const isCancelled = (sorted[0]?.bookingStatus || '').toLowerCase() === 'cancelled';
 
-      // ── Remaining  =  netAmount − Σ(amountPaid) + Σ(refundAmount) ────
+      // ── Remaining  =  netAmount − Σ(amountPaid) − Σ(refundAmount) ────
       // Cancelled bookings have no outstanding balance regardless of what was paid.
-      const remaining = isCancelled ? 0 : Math.max(0, +(net - totalPaid + totalRefunded).toFixed(2));
+      const remaining = isCancelled ? 0 : Math.max(0, +(net - totalPaid - totalRefunded).toFixed(2));
 
       const status = isCancelled ? 'Cancelled' : remaining === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending';
       return { patientTestId: id, receipts: sorted, netAmount: net, totalPaid, remaining, paymentStatus: status, isCancelled, totalRefunded };
@@ -93,7 +93,7 @@ export class BillReceipt implements OnInit {
   }
 
   get totalRemainingOverall(): number {
-    return Math.max(0, +(this.totalNetAmount - this.totalPaidOverall + this.totalRefundedOverall).toFixed(2));
+    return Math.max(0, +(this.totalNetAmount - this.totalPaidOverall - this.totalRefundedOverall).toFixed(2));
   }
 
   get hasAnyPendingBalance(): boolean {

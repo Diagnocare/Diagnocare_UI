@@ -31,5 +31,9 @@ export interface PathologyListDto {
    *  Within this window after JWT expiry, PIN re-authentication is offered
    *  instead of a full redirect to /login. */
   graceBufferMinutes?: number;
+  /** Maximum discount (%) any user may apply on a patient bill (0–99). Default 50. */
+  maxDiscountPercent?: number;
+  /** Minutes the page must be hidden before the screen-lock PIN fires on return. 0 = disabled. */
+  sessionLockoutMinutes?: number;
   licenseKey?: string;
 }

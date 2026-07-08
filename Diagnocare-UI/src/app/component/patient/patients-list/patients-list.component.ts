@@ -42,9 +42,20 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   // Search and filter properties
   searchTerm: string = '';
+  /**
+   * Starts the search input as readonly so Chrome/Edge won't autofill it with
+   * the saved login userId. Readonly is lifted on focus (see template) so the
+   * user can type normally, then reinstated on blur to keep autofill suppressed.
+   */
+  searchReadonly: boolean = true;
   dateFrom: string = '';
   dateTo: string = '';
-  statusFilter: string = '';
+  /**
+   * Default view shows only outstanding patients (Pending + Partial).
+   * Completed patients are reached by selecting "Completed" in the Status filter,
+   * which also exposes a download-report action per row.
+   */
+  statusFilter: string = 'active';
 
   // Sorting properties
   currentSortField: SortPatientField = 'patient_Reg_Date';
@@ -75,11 +86,10 @@ export class PatientsListComponent implements OnInit, OnDestroy {
   }
 
   initializeComponent() {
-    const today = this.localDateIso();
     // this.dateFrom = today;
     // fix hardcoded date to ISO format (yyyy-MM-dd)
-    this.dateFrom = today;
-    this.dateTo = today;
+    this.dateFrom = "";
+    this.dateTo = "";
     this.loadPatients();
   }
 
@@ -112,6 +122,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
       })(),
       // API field is testStatus; fall back to older snake_case names for compatibility
       status:                 p.testStatus            ?? p.status ?? p.patientStatus ?? '',
+      isActive:               p.isActive              ?? p.is_Active              ?? true,
+      deactivatedAt:          p.deactivatedAt         ?? p.deactivated_At         ?? '',
     };
   }
 
@@ -143,7 +155,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
         // this.paginatedPatients = [...this.filteredPatients]; // API already returns paginated data
         this.totalItems = response.item1;
         this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-        
+
         // isUrgent is already normalised in mapPatient(); override only if
         // lstPatientTests carries a positive urgent_Report flag.
         this.filteredPatients.forEach((patient) => {
@@ -176,8 +188,23 @@ export class PatientsListComponent implements OnInit, OnDestroy {
   }
 
   onStatusFilter() {
-    // Just stores the selected value via [(ngModel)].
-    // The filter is sent to the backend only when the user clicks Find.
+    // Reload immediately so switching between Active / Completed (etc.) updates
+    // the list without an extra click. Resets to the first page.
+    this.currentPage = 1;
+    this.loadPatients();
+  }
+
+  /** True when the user is viewing Completed patients (enables report actions). */
+  isCompletedView(): boolean {
+    return (this.statusFilter || '').toLowerCase() === 'completed';
+  }
+
+  /**
+   * Opens the completed patient's test view where the report can be
+   * viewed/downloaded. Reuses the existing patient-tests navigation.
+   */
+  downloadCompletedReport(patientId: string) {
+    this.viewPatientTest(patientId);
   }
 
   applyFilters() {
@@ -379,36 +406,115 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     this.router.navigate(['patients/edit/', id]);
   }
 
-  deletePatient(patient_Id: string) {
-    this._patientService.deletePatientDetails(patient_Id).pipe(
+  /** True when the list is showing soft-deleted (deactivated) patients. */
+  isDeactivatedView(): boolean {
+    return (this.statusFilter || '').toLowerCase() === 'deactivated';
+  }
+
+  /** Soft delete — deactivates the patient (retained, reversible). */
+  deletePatient(patient_Id: string, reason?: string) {
+    this._patientService.deletePatientDetails(patient_Id, reason).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (result: boolean) => {
-        if (result) {
-          this.toastr.success('Patient deleted successfully', 'Success');
+      next: (result: any) => {
+        if (result?.success) {
+          this.toastr.success(result.message || 'Patient deactivated successfully', 'Success');
           this.loadPatients();
         } else {
-          this.toastr.error('Patient deletion failed', 'Error');
+          this.toastr.error(result?.message || 'Patient deactivation failed', 'Error');
         }
       },
       error: (err) => {
-        console.error('Error deleting patient:', err);
-        this.toastr.error('Patient deletion failed', 'Error');
+        console.error('Error deactivating patient:', err);
+        this.toastr.error('Patient deactivation failed', 'Error');
       }
     });
   }
-  
+
   confirmDelete(patientId: string) {
     const patient = this.filteredPatients.find(p => p.patient_Id === patientId);
     const name = patient?.patient_Name || patientId;
+    this.confirmModal.confirmWithReason({
+      title: 'Deactivate Patient',
+      message: `Deactivate patient ${name}? Their details and history are kept and can be restored later from the Deactivated list. Booked tests are not affected.`,
+      confirmText: 'Deactivate',
+      cancelText: 'Cancel',
+      reasonLabel: 'Reason for deactivation',
+      reasonPlaceholder: 'e.g. duplicate registration, entered in error…',
+      reasonRequired: true
+    }).subscribe(result => {
+      if (result.confirmed) {
+        this.deletePatient(patientId, result.reason);
+      }
+    });
+  }
+
+  /** Reactivate — restores a previously soft-deleted patient. */
+  reactivatePatient(patientId: string) {
+    this._patientService.reactivatePatient(patientId).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (result: any) => {
+        if (result?.success) {
+          this.toastr.success(result.message || 'Patient reactivated successfully', 'Success');
+          this.loadPatients();
+        } else {
+          this.toastr.error(result?.message || 'Patient reactivation failed', 'Error');
+        }
+      },
+      error: (err) => {
+        console.error('Error reactivating patient:', err);
+        this.toastr.error('Patient reactivation failed', 'Error');
+      }
+    });
+  }
+
+  confirmReactivate(patientId: string) {
+    const patient = this.filteredPatients.find(p => p.patient_Id === patientId);
+    const name = patient?.patient_Name || patientId;
     this.confirmModal.confirm({
-      title: 'Delete Patient',
-      message: `Are you sure you want to delete patient ${name}?`,
-      confirmText: 'Delete',
+      title: 'Reactivate Patient',
+      message: `Reactivate patient ${name}? They will appear in the active list again.`,
+      confirmText: 'Reactivate',
       cancelText: 'Cancel'
     }).subscribe(confirmed => {
       if (confirmed) {
-        this.deletePatient(patientId);
+        this.reactivatePatient(patientId);
+      }
+    });
+  }
+
+  /** Hard delete — permanently removes the patient and all dependent records. */
+  hardDeletePatient(patientId: string) {
+    this._patientService.hardDeletePatient(patientId).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (result: any) => {
+        if (result?.success) {
+          this.toastr.success(result.message || 'Patient permanently deleted', 'Success');
+          this.loadPatients();
+        } else {
+          this.toastr.error(result?.message || 'Permanent deletion failed', 'Error');
+        }
+      },
+      error: (err) => {
+        console.error('Error permanently deleting patient:', err);
+        this.toastr.error('Permanent deletion failed', 'Error');
+      }
+    });
+  }
+
+  confirmHardDelete(patientId: string) {
+    const patient = this.filteredPatients.find(p => p.patient_Id === patientId);
+    const name = patient?.patient_Name || patientId;
+    this.confirmModal.confirm({
+      title: 'Permanently Delete Patient',
+      message: `This will PERMANENTLY delete patient ${name} and all their tests, receipts and reports. This cannot be undone. Continue?`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.hardDeletePatient(patientId);
       }
     });
   }
@@ -419,7 +525,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     // Modal functionality can be implemented using native HTML/CSS or another library
     // For now, storing the selected patient for use in template
   }
- 
+
     private getDismissReason(reason: any): string {
       console.log(reason);
       return reason ? `with: ${reason}` : 'dismissed';

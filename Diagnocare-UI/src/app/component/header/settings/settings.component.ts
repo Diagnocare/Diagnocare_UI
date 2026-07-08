@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
+import { Router } from '@angular/router';
 import { CommonService } from 'src/app/shared/common.service';
 import { jwtDecode } from 'jwt-decode';
 import { FormsModule } from '@angular/forms';
@@ -9,13 +10,14 @@ import { AuthType } from 'src/app/constant/enums';
 import { ThemeService, Theme } from 'src/app/services/themeServices/theme.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
 import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.component';
+import { SetupMfaComponent } from '../setup-mfa/setup-mfa.component';
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['../account-pages.shared.css', './settings.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, OtpMfaDialogComponent]
+  imports: [CommonModule, FormsModule, OtpMfaDialogComponent, SetupMfaComponent]
 })
 export class SettingsComponent implements OnInit {
   user: any;
@@ -30,6 +32,13 @@ export class SettingsComponent implements OnInit {
   AuthType = AuthType;
   errorMsg:   string = '';
   successMsg: string = '';
+
+  /**
+   * Whether the Authenticator App (TOTP MFA) is currently set up for this user.
+   * Drives whether "Authenticator App" can be chosen as the login method:
+   * it can only be selected once MFA has actually been configured.
+   */
+  isMfaEnabled = false;
 
   // ── Session PIN ──────────────────────────────────────────────────────────
   hasPinSet = false;
@@ -62,10 +71,8 @@ export class SettingsComponent implements OnInit {
   // Set PIN fields
   newPin        = '';
   confirmPin    = '';
-  // Change PIN fields (requires current PIN verification)
-  currentPin        = '';
-  changedPin        = '';
-  confirmChangedPin = '';
+  // Remove PIN field (current PIN confirmation)
+  currentPin    = '';
   // Shared
   pinError   = '';
   pinSuccess = '';
@@ -88,6 +95,7 @@ export class SettingsComponent implements OnInit {
     private common: CommonService,
     private themeService: ThemeService,
     private pinService:   PinService,
+    private router:       Router,
   ) {
     const token = this.common.getAccessToken();
     if (token) {
@@ -103,6 +111,13 @@ export class SettingsComponent implements OnInit {
       this.selectedAuthType = data.loginType;
     });
 
+    // Load MFA status so the "Authenticator App" login-method option can be
+    // disabled until MFA is actually set up.
+    this.headerService.getMFAStatus(this.userName).subscribe({
+      next: (status) => { this.isMfaEnabled = status?.isMfaEnabled === true; },
+      error: () => { this.isMfaEnabled = false; },
+    });
+
     if (this.userName) {
       this.selectedTheme = this.themeService.getForUser(this.userName);
     }
@@ -115,6 +130,21 @@ export class SettingsComponent implements OnInit {
     if (this.userName) {
       this.themeService.setForUser(this.userName, theme);
     }
+  }
+
+  /**
+   * Called when the embedded Authenticator App panel enables or removes MFA.
+   * Updates the MFA flag immediately so the "Authenticator App" option in the
+   * preferred-auth-method section enables/disables without a page refresh, and
+   * re-syncs the displayed current mode (the backend resets it to Email when MFA
+   * is removed).
+   */
+  onMfaStatusChanged(enabled: boolean): void {
+    this.isMfaEnabled = enabled;
+    this.headerService.getUserDetails(this.userName).subscribe((data: any) => {
+      this.user = data;
+      this.selectedAuthType = data.loginType;
+    });
   }
 
   get currentAuthTypeLabel(): string {
@@ -198,16 +228,18 @@ export class SettingsComponent implements OnInit {
     this.mfaSubmitting = false;
   }
 
+  /**
+   * "Change PIN" now navigates to the dedicated /change-pin page (the single
+   * change-PIN screen shared with the header "Change PIN now" banner), rather
+   * than rendering an inline form — keeping one consistent entry point.
+   */
   startChangePin(): void {
-    this.mfaAction         = 'change';
-    this.mfaError          = '';
-    this.mfaSubmitting     = false;
-    this.pinError          = '';
-    this.pinSuccess        = '';
-    this.currentPin        = '';
-    this.changedPin        = '';
-    this.confirmChangedPin = '';
-    this.showMfaDialog     = true;
+    this.router.navigate(['/change-pin']);
+  }
+
+  /** Strips any non-digit characters so PIN fields accept numbers only. */
+  onlyDigits(value: string): string {
+    return (value || '').replace(/\D/g, '');
   }
 
   startRemovePin(): void {
@@ -251,34 +283,6 @@ export class SettingsComponent implements OnInit {
     setTimeout(() => this.pinSuccess = '', 5000);
   }
 
-  async saveChangedPin(): Promise<void> {
-    this.pinError = '';
-    const currentOk = await this.pinService.verifyPin(this.userName, this.currentPin);
-    if (!currentOk) {
-      this.pinError = 'Current PIN is incorrect.';
-      return;
-    }
-    if (!this.isValidPin(this.changedPin)) {
-      this.pinError = 'New PIN must be 4–6 digits.';
-      return;
-    }
-    if (this.changedPin !== this.confirmChangedPin) {
-      this.pinError = 'New PINs do not match.';
-      return;
-    }
-    const isReuse = await this.pinService.isRecentPin(this.userName, this.changedPin);
-    if (isReuse) {
-      this.pinError = `You cannot reuse any of your last ${PinService.PIN_HISTORY_SIZE} PINs. Please choose a different PIN.`;
-      return;
-    }
-    this.pinSaving = true;
-    await this.pinService.setPin(this.userName, this.changedPin);
-    this.pinMode    = 'none';
-    this.pinSaving  = false;
-    this.pinSuccess = 'PIN changed successfully.';
-    setTimeout(() => this.pinSuccess = '', 5000);
-  }
-
   async removePin(): Promise<void> {
     this.pinError = '';
     const ok = await this.pinService.verifyPin(this.userName, this.currentPin);
@@ -309,6 +313,10 @@ export class SettingsComponent implements OnInit {
     }
     if (newType === AuthType.Email && !this.user.email) {
       this.errorMsg = 'No valid email found in your profile. Update using Profile section first.';
+      return;
+    }
+    if (newType === AuthType.AuthenticationApp && !this.isMfaEnabled) {
+      this.errorMsg = 'Set up the Authenticator App below before choosing it as your login method.';
       return;
     }
     this.headerService.updateAuthType(this.userName, Number(newType)).subscribe({

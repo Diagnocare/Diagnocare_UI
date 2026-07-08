@@ -8,6 +8,7 @@ import { takeUntil, filter } from 'rxjs/operators';
 import { PatientEditDto } from 'src/app/models/patient/patient-edit.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { CommonService } from 'src/app/shared/common.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { salutation, ageGroup, gender, maritalStatus, relations, referredByType } from 'src/app/constant/enums';
 import { tabOrderEdit, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
@@ -56,7 +57,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
       patient_Marital_Status: ["", [Validators.required]],
       relation: ["", Validators.required],
       relative_Name: ["", Validators.required],
-      patient_Contact: ["", [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      patient_Contact: ["", [Validators.required, AppValidators.contactNumber()]],
       patient_Email: ["", Validators.email]
     });
   }
@@ -148,7 +149,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
 
   isFieldInvalid(field: string): boolean {
     const c = this.editPatientForm.get(field);
-    return !!(c?.invalid && (c.touched || c.dirty || this.formSubmitted));
+    return !!(c?.invalid && (c.touched || this.formSubmitted));
   }
 
     // Removed duplicate loadPatient. Only the new version with patientDialingContact split is used.

@@ -150,6 +150,53 @@ export interface GenerateSalaryDTO {
   year:  number;
 }
 
+// ── Self-service salary summary (My Salary) ───────────────────────────────────
+
+/** One month's summary line inside the self-service salary view. */
+export interface MonthlySalarySummaryDTO {
+  /** "YYYY-MM" */
+  month:                string;
+  /** Fixed net salary from salary config (no leave adjustment). */
+  netSalary:            number;
+  /** Actual amount owed for this month after leave deductions. */
+  netPayableSalary:     number;
+  /** Salary deducted for excess leaves this month. */
+  leaveDeductionAmount: number;
+  totalPaid:            number;
+  /** netPayableSalary − totalPaid */
+  pendingAmount:        number;
+  paymentCount:         number;
+}
+
+/** One actual salary payment transaction (self-service My Payments view). */
+export interface SalaryPaymentDTO {
+  paymentId:          number;
+  salaryId:           number;
+  /** "YYYY-MM" — the salary month this payment applies to. */
+  paymentMonth:       string;
+  /** ISO datetime the payment was made. */
+  paymentDate:        string;
+  paymentAmount:      number;
+  reference?:         string | null;
+  /** 1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance */
+  paymentSource:      number;
+  /** "BaseSalary" | "TravelAllowance" | "OtherAllowance" — shown as the payment mode. */
+  paymentSourceName:  string;
+  /** "Full" | "Partial" */
+  paymentType?:       string;
+}
+
+/** Response from GET api/salary/GetMySalary — the logged-in user's own summary. */
+export interface UserSalarySummaryDTO {
+  salaryId:         number;
+  userId:           number;
+  userName:         string;
+  fullName:         string;
+  baseSalary:       number;
+  netSalary:        number;
+  monthlySummaries: MonthlySalarySummaryDTO[];
+}
+
 // ── Payable salary calculation result ────────────────────────────────────────
 
 /** Response from GET api/salary/CalculatePayableSalary */

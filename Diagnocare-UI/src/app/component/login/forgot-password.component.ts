@@ -9,10 +9,9 @@ import { response } from '../../models/common/response';
 import { MemberDto } from '../../models/member/member.dto';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
 import { CommonService } from '../../shared/common.service';
-import { OtpResponse } from 'src/app/models/otpRequest/otpRequest';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
 import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.service';
-import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null => {
@@ -29,7 +28,7 @@ const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, OtpMfaDialogComponent, FieldErrorComponent, FormKeyboardDirective]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, OtpMfaDialogComponent, FormKeyboardDirective]
 })
 export class ForgotPasswordComponent {
   private methodModal: any = null;
@@ -69,6 +68,10 @@ export class ForgotPasswordComponent {
 
   // Flow customisation
   isExpiredFlow = false;
+
+  // MFA / TOTP state (populated from checkUserExists response)
+  hasMfa     = false;
+  isTotpMode = false;
 
   // Account lockout state
   isAccountLocked = false;
@@ -115,7 +118,7 @@ export class ForgotPasswordComponent {
 
     this.recoverForm = this.fb.group({
       recoverMethod: ['contact', Validators.required],
-      recoverValue: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]]
+      recoverValue: ['', [Validators.required, AppValidators.contactNumber()]]
     });
   }
 
@@ -294,6 +297,8 @@ export class ForgotPasswordComponent {
           if (this.maskedEmail && !this.maskedEmail.startsWith('(')) {
             this.maskedEmail = `(${this.maskedEmail})`;
           }
+          this.hasMfa     = resp.isMfaEnabled === true;
+          this.isTotpMode = resp.loginType === 3;
           this.openOtpDialog();
         } else {
           this.toastr.error('User name do not match our records.');
@@ -353,7 +358,7 @@ export class ForgotPasswordComponent {
     this.recoveredUserId = '';
     this.showOtpDialog = false;
     this.recoverForm.reset({ recoverMethod: 'contact', recoverValue: '' });
-    this.recoverForm.get('recoverValue')?.setValidators([Validators.required, Validators.pattern(/^[0-9]{10}$/)]);
+    this.recoverForm.get('recoverValue')?.setValidators([Validators.required, AppValidators.contactNumber()]);
     this.recoverForm.get('recoverValue')?.updateValueAndValidity();
     this.showRecoverModal = true;
   }
@@ -380,7 +385,7 @@ export class ForgotPasswordComponent {
     const valueControl = this.recoverForm.get('recoverValue');
     valueControl?.reset();
     if (method === 'contact') {
-      valueControl?.setValidators([Validators.required, Validators.pattern(/^[0-9]{10}$/)]);
+      valueControl?.setValidators([Validators.required, AppValidators.contactNumber()]);
     } else {
       valueControl?.setValidators([Validators.required, Validators.email]);
     }

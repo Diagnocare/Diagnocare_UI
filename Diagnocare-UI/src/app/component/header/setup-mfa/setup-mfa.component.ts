@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
@@ -18,6 +18,21 @@ type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confir
   imports: [CommonModule, FormsModule]
 })
 export class SetupMfaComponent implements OnInit {
+  /**
+   * When true, the component is rendered inside another page (e.g. the Settings
+   * page) and skips its own page wrapper + gradient header banner.
+   * Consumed by the Settings host template as <app-setup-mfa [embedded]="true">.
+   */
+  @Input() embedded = false;
+
+  /**
+   * Emits whenever MFA is enabled (true) or removed (false), so a host page
+   * (e.g. Settings) can refresh anything that depends on MFA status — such as
+   * whether "Authenticator App" can be chosen as the preferred login method —
+   * without requiring a manual page refresh.
+   */
+  @Output() mfaStatusChanged = new EventEmitter<boolean>();
+
   userName: string = '';
 
   state: PageState = 'loading';
@@ -132,6 +147,7 @@ export class SetupMfaComponent implements OnInit {
         this.verifying = false;
         if (res.success) {
           this.toastr.success('Authenticator app linked successfully!', 'MFA Enabled');
+          this.mfaStatusChanged.emit(true);
           this.loadStatus();
         } else {
           this.error = res.message || 'Invalid code. Please try again.';
@@ -171,6 +187,7 @@ export class SetupMfaComponent implements OnInit {
         this.disabling = false;
         if (res.success) {
           this.toastr.success('MFA removed successfully.', 'Success');
+          this.mfaStatusChanged.emit(false);
           this.beginSetup();
         } else {
           this.error = res.message || 'Invalid code. Please try again.';

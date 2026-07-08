@@ -20,4 +20,8 @@ export interface PatientListDto {
   isUrgent: string;
   /** Mapped from API field testStatus */
   status: string;
+  /** False when the patient has been soft-deleted (deactivated). */
+  isActive?: boolean;
+  /** Date the patient was deactivated (dd-MM-yyyy), when applicable. */
+  deactivatedAt?: string;
 }

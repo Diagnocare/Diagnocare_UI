@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { Router } from '@angular/router';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 
 export interface MethodDef {
   key:        string;               // internal key used for routing
@@ -32,7 +33,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() userId: string      = '';
   @Input() type: 'otp' | 'mfa' = 'otp';
   @Input() channelOptions: Array<{ label: string; value: string }> = [];
-  @Input() resendSeconds       = 10;
+  @Input() resendSeconds       = 60;
   @Input() showMethodSelect    = false;
   /** True when the user's preferred loginType is 3 (Google Authenticator / TOTP). */
   @Input() isTotpMode          = false;
@@ -99,6 +100,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   pendingMethod   = '';
   resendRemaining = 0;
+  isSendingOtp    = false;
   private timerId: any = null;
 
   // ── Session timer (5 minutes) ─────────────────────────────────────
@@ -145,7 +147,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({
       code:   [''],
       digits: this.fb.array(
-        Array.from({ length: 6 }, () => this.fb.control('', [Validators.pattern('[0-9]')])),
+        Array.from({ length: 6 }, () => this.fb.control('', [AppValidators.singleDigit()])),
       ),
       channel: [''],
     });
@@ -335,12 +337,14 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   // ── OTP send ──────────────────────────────────────────────────────
 
   sendOtpRequest(): void {
-    if (this.isLocked || !this.userId || !this.selectedMethod) return;
+    if (this.isLocked || !this.userId || !this.selectedMethod || this.isSendingOtp) return;
+    this.isSendingOtp = true;
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
       : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
     sender$.subscribe({
       next: (resp: any) => {
+        this.isSendingOtp = false;
         if (resp?.success === false) {
           if (this.isLockoutResponse(resp)) {
             this.applyBackendLockout();
@@ -351,6 +355,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
         this.showOtpInput = true;
         this.startResendTimer();
       },
+      error: () => { this.isSendingOtp = false; },
     });
   }
 
@@ -398,7 +403,8 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   }
 
   onResend(): void {
-    if (this.isLocked || !this.userId || !this.selectedMethod) return;
+    if (this.isLocked || !this.userId || !this.selectedMethod || this.isSendingOtp) return;
+    this.isSendingOtp = true;
     this.clearDigits();
     this.focusInput(0);
     const sender$ = this.sendOtpFn
@@ -406,6 +412,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
       : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
     sender$.subscribe({
       next: (resp: any) => {
+        this.isSendingOtp = false;
         if (resp?.success === false) {
           if (this.isLockoutResponse(resp)) {
             // Account locked — enter lockout view; DO NOT start the resend timer
@@ -417,6 +424,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
         // OTP sent successfully — start the cooldown timer
         this.startResendTimer();
       },
+      error: () => { this.isSendingOtp = false; },
     });
   }
 

@@ -6,11 +6,24 @@
         <button type="button" class="btn-close" (click)="onCancel()" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        {{ message }}
+        <div>{{ message }}</div>
+        <div *ngIf="showReasonInput" class="mt-3">
+          <label for="confirmReason" class="form-label">
+            {{ reasonLabel }}<span *ngIf="reasonRequired" class="text-danger"> *</span>
+          </label>
+          <textarea
+            id="confirmReason"
+            class="form-control"
+            rows="3"
+            [placeholder]="reasonPlaceholder"
+            [(ngModel)]="reasonValue"
+            [disabled]="isLoading"></textarea>
+          <small *ngIf="isReasonMissing" class="text-danger">Please enter a reason to continue.</small>
+        </div>
       </div>
       <div class="modal-footer">
-        <button *ngIf="!hideCancelButton" type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isLoading">{{ cancelText }}</button>
-        <button type="button" class="btn btn-danger" (click)="onConfirm()" [disabled]="isLoading">
+        <button *ngIf="!hideCancelButton" type="button" class="dc-btn dc-btn--cancel" (click)="onCancel()" [disabled]="isLoading">{{ cancelText }}</button>
+        <button type="button" class="dc-btn dc-btn--delete" (click)="onConfirm()" [disabled]="isLoading || isReasonMissing">
           <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
           {{ confirmText }}
         </button>

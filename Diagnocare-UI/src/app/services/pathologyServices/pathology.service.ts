@@ -80,6 +80,28 @@ export class PathologyService {
       }
 
       /**
+       * PUT — updates the maximum discount percentage (0–99).
+       * Only Admin users should call this.
+       */
+      updateMaxDiscount(maxDiscountPercent: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updateMaxDiscount}?maxDiscountPercent=${maxDiscountPercent}`,
+          null
+        ).pipe(catchError(this.errorHandler));
+      }
+
+      /**
+       * PUT — updates the session lockout threshold (minutes). 0 = disabled.
+       * Only Admin users should call this.
+       */
+      updateSessionLockout(sessionLockoutMinutes: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updateSessionLockout}?sessionLockoutMinutes=${sessionLockoutMinutes}`,
+          null
+        ).pipe(catchError(this.errorHandler));
+      }
+
+      /**
        * POST — uploads the pathology logo to the database.
        * Accepts a data-URL (e.g. from FileReader.readAsDataURL); the API strips
        * the data-URI prefix automatically before storing the raw bytes.

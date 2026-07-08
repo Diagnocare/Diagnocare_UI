@@ -479,7 +479,7 @@
 
           <div class="config-form-actions">
             <button
-              class="btn btn-success"
+              class="btn btn-primary"
               (click)="saveConfig()"
               [disabled]="isSavingConfig || (!hasFixedComponent && !hasPercentComponent)"
             >
@@ -817,7 +817,7 @@
 
   <!-- ── Modal footer ── -->
   <div class="pm-footer">
-    <button class="btn btn-outline-secondary" (click)="toggleAddPayment()">
+    <button class="dc-btn dc-btn--cancel" (click)="toggleAddPayment()">
       <i class="fa fa-times"></i> Cancel
     </button>
     <button

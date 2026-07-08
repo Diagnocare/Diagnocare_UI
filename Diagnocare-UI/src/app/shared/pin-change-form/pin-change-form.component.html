@@ -1,0 +1,123 @@
+<!-- Forgot-PIN OTP dialog (reused OtpMfaDialogComponent) -->
+<app-otp-mfa-dialog
+  *ngIf="showMfaDialog"
+  [userId]="userName"
+  [id]="user?.user_Id ?? 0"
+  [maskedContactNumber]="maskedPhone"
+  [maskedEmail]="maskedEmail"
+  [showMethodSelect]="!preferredMfaMethod && !isTotpPreferred"
+  [selectedMethod]="preferredMfaMethod"
+  [hasMfa]="isTotpPreferred"
+  [isTotpMode]="isTotpPreferred"
+  [isSubmitting]="mfaSubmitting"
+  [verifyError]="mfaError"
+  [sendOtpFn]="forgotOtpSender"
+  [backLabel]="'Cancel'"
+  (verify)="onForgotVerify($event)"
+  (close)="onMfaClose()"
+  (back)="onMfaClose()">
+</app-otp-mfa-dialog>
+
+<div class="pin-change-form">
+
+  <!-- Hint -->
+  <p class="pin-form-hint" *ngIf="isResetMode">
+    <i class="fa fa-shield-alt"></i> Identity verified. Set your new PIN below.
+  </p>
+  <p class="pin-form-hint" *ngIf="!isResetMode">
+    <i class="fa fa-info-circle"></i> Verify your current PIN, then choose a new one.
+  </p>
+
+  <!-- Current PIN (hidden once identity is verified via Forgot PIN) -->
+  <div class="pin-field-row" *ngIf="!isResetMode">
+    <label>Current PIN</label>
+    <div class="pin-input-group">
+      <input
+        [type]="showCurrentPin ? 'text' : 'password'"
+        class="form-input"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="6"
+        placeholder="Enter current PIN"
+        [ngModel]="currentPin"
+        (ngModelChange)="currentPin = onlyDigits($event); pinError = ''"
+        autocomplete="current-password" />
+      <button type="button" class="pin-eye-btn" (click)="toggleCurrent()" tabindex="-1">
+        <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
+      </button>
+    </div>
+  </div>
+  <div class="pin-forgot-row" *ngIf="!isResetMode">
+    <button type="button" class="btn-link-sm" (click)="startForgotPin()">
+      <i class="fa fa-question-circle"></i> Forgot PIN?
+    </button>
+  </div>
+
+  <!-- New PIN -->
+  <div class="pin-field-row">
+    <label>New PIN</label>
+    <div class="pin-input-group">
+      <input
+        [type]="showNewPin ? 'text' : 'password'"
+        class="form-input"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="6"
+        placeholder="4–6 digit PIN"
+        [ngModel]="newPin"
+        (ngModelChange)="newPin = onlyDigits($event); pinError = ''"
+        autocomplete="new-password" />
+      <button type="button" class="pin-eye-btn" (click)="toggleNew()" tabindex="-1">
+        <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Confirm New PIN -->
+  <div class="pin-field-row">
+    <label>Confirm New PIN</label>
+    <div class="pin-input-group">
+      <input
+        [type]="showConfirmPin ? 'text' : 'password'"
+        class="form-input"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="6"
+        placeholder="Re-enter new PIN"
+        [ngModel]="confirmPin"
+        (ngModelChange)="confirmPin = onlyDigits($event); pinError = ''"
+        (keyup.enter)="canSubmit && save()"
+        autocomplete="new-password" />
+      <button type="button" class="pin-eye-btn" (click)="toggleConfirm()" tabindex="-1">
+        <i class="fa" [class.fa-eye]="!showConfirmPin" [class.fa-eye-slash]="showConfirmPin"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Match indicator -->
+  <div class="pin-match-row" *ngIf="confirmPin">
+    <span class="pin-match pin-match--ok"  *ngIf="newPin === confirmPin">
+      <i class="fa fa-check-circle"></i> PINs match
+    </span>
+    <span class="pin-match pin-match--err" *ngIf="newPin !== confirmPin">
+      <i class="fa fa-times-circle"></i> PINs do not match
+    </span>
+  </div>
+
+  <!-- Error -->
+  <div class="msg msg-error" *ngIf="pinError">
+    <i class="fa fa-exclamation-circle"></i> {{ pinError }}
+  </div>
+
+  <!-- Actions -->
+  <div class="action-row">
+    <button *ngIf="showCancel" type="button" class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancel()" [disabled]="saving">
+      <i class="fa fa-times"></i> {{ cancelLabel }}
+    </button>
+    <button type="button" class="dc-btn dc-btn--save dc-btn--sm" (click)="save()"
+            [disabled]="!canSubmit">
+      <i class="fa fa-check"></i> {{ saving ? 'Saving…' : submitLabel }}
+    </button>
+  </div>
+
+</div>
