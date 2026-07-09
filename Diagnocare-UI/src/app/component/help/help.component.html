@@ -1,0 +1,88 @@
+<!-- ── Top bar (brand + back to home) ──────────────────────────────── -->
+<nav class="help-navbar">
+  <a routerLink="/home" class="help-brand">
+    <span class="help-logo-icon"><i class="fa fa-heartbeat"></i></span>
+    <span class="help-logo-text">Diagno<span class="help-logo-accent">care</span></span>
+  </a>
+  <a routerLink="/home" class="help-back">
+    <i class="fas fa-arrow-left"></i> Back to Home
+  </a>
+</nav>
+
+<div class="help-page">
+
+  <!-- ── Header ────────────────────────────────────────────────────── -->
+  <header class="help-header">
+    <div class="help-header-badge"><i class="fa fa-life-ring"></i> Help &amp; Support</div>
+    <h1 class="help-title">How can we help you?</h1>
+    <p class="help-subtitle">
+      Reach out to us any time — our team is here to support you with Diagnocare.
+      For bugs or feature requests, raise an issue on our project board and we'll track it end to end.
+    </p>
+  </header>
+
+  <!-- ── Contact cards ─────────────────────────────────────────────── -->
+  <section class="help-grid">
+
+    <!-- Email -->
+    <div class="help-card">
+      <div class="help-card-icon help-icon-blue"><i class="fa fa-envelope"></i></div>
+      <h3>Email Us</h3>
+      <p class="help-card-sub">We usually reply within one business day.</p>
+      <a class="help-card-link" [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+    </div>
+
+    <!-- Phone -->
+    <div class="help-card">
+      <div class="help-card-icon help-icon-green"><i class="fa fa-phone"></i></div>
+      <h3>Call Us</h3>
+      <p class="help-card-sub">Speak to our support team directly.</p>
+      <a class="help-card-link" [href]="'tel:' + contact.phone.split(' ').join('')">{{ contact.phone }}</a>
+      <a class="help-card-link" [href]="'tel:' + contact.altPhone.split(' ').join('')">{{ contact.altPhone }}</a>
+    </div>
+
+    <!-- Address -->
+    <div class="help-card">
+      <div class="help-card-icon help-icon-purple"><i class="fa fa-map-marker"></i></div>
+      <h3>Visit Us</h3>
+      <p class="help-card-sub">Our office address.</p>
+      <p class="help-card-text">{{ contact.address }}</p>
+    </div>
+
+    <!-- Hours -->
+    <div class="help-card">
+      <div class="help-card-icon help-icon-orange"><i class="fa fa-clock-o"></i></div>
+      <h3>Support Hours</h3>
+      <p class="help-card-sub">When you can reach us.</p>
+      <p class="help-card-text">{{ contact.hours }}</p>
+    </div>
+
+  </section>
+
+  <!-- ── Raise an issue (GitHub project board) ─────────────────────── -->
+  <section class="help-issue">
+    <div class="help-issue-icon"><i class="fab fa-github"></i></div>
+    <div class="help-issue-body">
+      <h2>Found a bug or have a suggestion?</h2>
+      <p>
+        Open our project board and use <strong>“+ Add item”</strong> to raise a new issue.
+        <strong>Assign the item to yourself</strong> when you create it — that's what lets you
+        track only your own issues later.
+      </p>
+    </div>
+    <div class="help-issue-actions">
+      <a class="help-issue-btn" [href]="issueBoardUrl" target="_blank" rel="noopener noreferrer">
+        <i class="fas fa-plus-circle"></i> Add an Item on the Board
+      </a>
+      <a class="help-issue-btn help-issue-btn-outline" [href]="myIssuesUrl" target="_blank" rel="noopener noreferrer">
+        <i class="fas fa-user-check"></i> Track My Issues
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────────────────── -->
+  <footer class="help-footer">
+    <p>&copy; {{ currentYear }} Diagnocare. All rights reserved.</p>
+  </footer>
+
+</div>

@@ -413,7 +413,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         },
         error: () => {
-          this.toastr.error('Failed to load attendance.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isLoading = false;
         },
       });
@@ -436,7 +436,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         },
         error: () => {
-          this.toastr.error('Failed to load monthly attendance.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isLoading = false;
         },
       });
@@ -642,7 +642,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           onSuccess?.();
         },
         error: () => {
-          this.toastr.error('Failed to save attendance. Please try again.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isSaving = false;
         },
       });

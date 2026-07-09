@@ -1,4 +1,4 @@
-import { Component, ElementRef, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, OnDestroy, QueryList, ViewChildren } from '@angular/core';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -30,8 +30,23 @@ const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule, OtpMfaDialogComponent, FormKeyboardDirective]
 })
-export class ForgotPasswordComponent {
+export class ForgotPasswordComponent implements OnDestroy {
   private methodModal: any = null;
+
+  // Named handlers so the window listeners can be removed in ngOnDestroy
+  // (anonymous listeners cannot be removed and would leak / stack on re-entry).
+  private readonly closeMfaHandler = (): void => {
+    this.showOtpDialog = false;
+  };
+  private readonly backFromMfaHandler = (): void => {
+    this.showOtpDialog = false;
+    this.isOtpSent = false;
+    this.isOtpVerified = false;
+    this.isVerified = false;
+    this.recoverIsLookedUp = false;
+    this.selectedChannel = '';
+    this.methodForm.reset();
+  };
 
   showOtpDialog = false;
   showRecoverModal = false;
@@ -88,18 +103,8 @@ export class ForgotPasswordComponent {
     private route: ActivatedRoute
   ) {
     this.isExpiredFlow = this.route.snapshot.queryParamMap.get('expired') === 'true';
-    window.addEventListener('closeMfaDialog', () => {
-      this.showOtpDialog = false;
-    });
-    window.addEventListener('backFromMfaDialog', () => {
-      this.showOtpDialog = false;
-      this.isOtpSent = false;
-      this.isOtpVerified = false;
-      this.isVerified = false;
-      this.recoverIsLookedUp = false;
-      this.selectedChannel = '';
-      this.methodForm.reset();
-    });
+    window.addEventListener('closeMfaDialog', this.closeMfaHandler);
+    window.addEventListener('backFromMfaDialog', this.backFromMfaHandler);
     this.verifyForm = this.fb.group({
       userId: ['', Validators.required]
     });
@@ -211,6 +216,17 @@ export class ForgotPasswordComponent {
   onChannelChange(channel: string) {
     // Handle channel change if needed
   }
+
+  ngOnDestroy(): void {
+    // Stop the OTP countdown timer and detach window listeners to avoid leaks.
+    if (this.otpTimerId) {
+      clearInterval(this.otpTimerId);
+      this.otpTimerId = null;
+    }
+    window.removeEventListener('closeMfaDialog', this.closeMfaHandler);
+    window.removeEventListener('backFromMfaDialog', this.backFromMfaHandler);
+  }
+
   private maskContactNumber(value: string): string {
     const digits = value.replace(/\D/g, '');
     if (!digits) {

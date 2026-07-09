@@ -133,9 +133,9 @@ export class EditPatientComponent implements OnInit, OnDestroy {
 
         this.isLoading = false;
       },
+      // Message shown centrally by ErrorInterceptor; here we just reset state.
       error: () => {
         this.isLoading = false;
-        this.toastr.error('Failed to load patient details', 'Error');
       }
     });
   }
@@ -241,18 +241,24 @@ export class EditPatientComponent implements OnInit, OnDestroy {
         patientAddress:       formValue.patient_Address ?? '',
         relation:             formValue.relation ?? '',
         relativeName:         formValue.relative_Name ?? '',
-        patientContact:       `${formValue.country_Code}-${formValue.patient_Contact}`,
+        patientContact:       `${formValue.patient_Contact ?? ''}`,
         patientEmail:         formValue.patient_Email ?? ''
       };
 
       this._patientService.updatePatientDetails(payload).pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          this.toastr.success('Patient updated successfully', 'Success');
-          this._route.navigate(['/patients']);
+        next: (res: any) => {
           this.isLoading = false;
+          // API returns an OperationResult (HTTP 200 even on business failure),
+          // so honour the success flag rather than assuming success.
+          if (res?.success ?? res) {
+            this.toastr.success(res?.message || 'Patient updated successfully', 'Success');
+            this._route.navigate(['/patients']);
+          } else {
+            this.toastr.error(res?.message || 'Failed to update patient. Please try again.', 'Error');
+          }
         },
-        error: (err) => {
-          this.toastr.error('Failed to update patient', 'Error');
+        // HTTP/network errors are surfaced centrally by ErrorInterceptor.
+        error: () => {
           this.isLoading = false;
         }
       });

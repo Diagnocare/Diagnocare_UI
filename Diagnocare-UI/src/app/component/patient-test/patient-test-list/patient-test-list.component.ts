@@ -644,8 +644,8 @@ export class PatientTestListComponent implements OnInit {
         },
         error: (err: unknown) => {
           this.isGeneratingReport = false;
+          // Inline banner kept; HTTP error message shown centrally by ErrorInterceptor.
           this.errorMessage = 'Failed to generate test report. Please try again.';
-          this.toastr.error('Failed to generate report.', 'Error');
           console.error('generateTestReport error:', err);
         }
       });

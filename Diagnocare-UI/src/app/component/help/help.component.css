@@ -1,0 +1,234 @@
+/* ── Help / Contact Us page ─────────────────────────────────────────── */
+
+:host {
+  --help-primary: #2196F3;
+  --help-dark: #0d47a1;
+  --help-ink: #1f2d3d;
+  --help-muted: #6b7a90;
+  --help-border: #e6ecf3;
+  --help-bg: #f5f8fc;
+  display: block;
+  background: var(--help-bg);
+  min-height: 100vh;
+}
+
+/* ── Navbar ─────────────────────────────────────────────────────────── */
+.help-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: #fff;
+  border-bottom: 1px solid var(--help-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.help-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--help-ink);
+}
+.help-logo-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #2196F3, #0d47a1);
+}
+.help-logo-accent { color: var(--help-primary); }
+.help-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--help-muted);
+  transition: color .2s;
+}
+.help-back:hover { color: var(--help-primary); }
+
+/* ── Page container ─────────────────────────────────────────────────── */
+.help-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 44px 20px 60px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.help-header { text-align: center; margin-bottom: 40px; }
+.help-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: #e3f2fd;
+  color: var(--help-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.help-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--help-ink);
+  margin: 0 0 12px;
+}
+.help-subtitle {
+  max-width: 620px;
+  margin: 0 auto;
+  color: var(--help-muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+/* ── Contact grid ───────────────────────────────────────────────────── */
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 36px;
+}
+.help-card {
+  background: #fff;
+  border: 1px solid var(--help-border);
+  border-radius: 16px;
+  padding: 26px 22px;
+  text-align: center;
+  transition: transform .2s, box-shadow .2s;
+}
+.help-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(13, 71, 161, 0.10);
+}
+.help-card-icon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: 1.35rem;
+  color: #fff;
+}
+.help-icon-blue   { background: linear-gradient(135deg, #2196F3, #1565C0); }
+.help-icon-green  { background: linear-gradient(135deg, #4CAF50, #2e7d32); }
+.help-icon-purple { background: linear-gradient(135deg, #9C27B0, #6A1B9A); }
+.help-icon-orange { background: linear-gradient(135deg, #FF9800, #E65100); }
+.help-card h3 {
+  margin: 0 0 6px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--help-ink);
+}
+.help-card-sub {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: var(--help-muted);
+}
+.help-card-link {
+  display: block;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--help-primary);
+  word-break: break-word;
+  margin-top: 4px;
+}
+.help-card-link:hover { text-decoration: underline; }
+.help-card-text {
+  margin: 0;
+  color: var(--help-ink);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+/* ── Raise an issue ─────────────────────────────────────────────────── */
+.help-issue {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #0d47a1, #1565C0);
+  border-radius: 18px;
+  padding: 30px 32px;
+  color: #fff;
+}
+.help-issue-icon {
+  width: 60px;
+  height: 60px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 1.8rem;
+}
+.help-issue-body { flex: 1 1 260px; }
+.help-issue-body h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.help-issue-body p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.85);
+}
+.help-issue-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.help-issue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 22px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--help-dark);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: 2px solid #fff;
+  transition: transform .15s, box-shadow .15s, background .15s, color .15s;
+}
+.help-issue-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+.help-issue-btn-outline {
+  background: transparent;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+.help-issue-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #fff;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.help-footer {
+  text-align: center;
+  margin-top: 40px;
+  color: var(--help-muted);
+  font-size: 0.85rem;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .help-title { font-size: 1.7rem; }
+  .help-issue { text-align: center; justify-content: center; }
+  .help-issue-actions { width: 100%; }
+  .help-issue-btn { width: 100%; justify-content: center; }
+}

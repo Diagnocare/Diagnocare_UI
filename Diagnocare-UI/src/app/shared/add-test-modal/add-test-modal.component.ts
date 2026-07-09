@@ -233,9 +233,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         this.getSubGroupList(this.selectedTestGroup!);
         this.showTestCatalog = true;
       },
+      // Message shown centrally by ErrorInterceptor.
       error: () => {
         this.groupedTests = [];
-        this.toastr.error('Failed to load test groups', 'Error');
       },
     });
   }
@@ -250,7 +250,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
         if (this.selectedSubGroup) this.getMedicalTestList(this.selectedSubGroup);
       },
-      error: () => { this.subGroupTests = []; this.toastr.error('Failed to load sub-groups', 'Error'); },
+      error: () => { this.subGroupTests = []; },   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -259,7 +259,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.selectedSubGroupId = sg.testGroupId;
     this._testService.getMedicalTestList(sg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any[]) => { this.pathologyTest = res ?? []; },
-      error: () => { this.pathologyTest = []; this.toastr.error('Failed to load tests', 'Error'); },
+      error: () => { this.pathologyTest = []; },   // message shown centrally by ErrorInterceptor
     });
   }
 

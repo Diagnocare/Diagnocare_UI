@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 
 /** sessionStorage key for the cached profile photo data-URL (shared with change-password). */
 const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${userName}`;
@@ -32,7 +32,7 @@ type EditStep  = 'input' | 'otp' | null;
   standalone: true,
   imports: [CommonModule, FormsModule, ConfirmModalComponent]
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
 
   user: MemberDto | undefined;
   pathology_Id: string = '';
@@ -74,6 +74,12 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit(): void {}
+
+  ngOnDestroy(): void {
+    // Stop the OTP resend countdown so it doesn't keep firing after the
+    // component is destroyed (e.g. the profile dialog is closed).
+    this.clearCountdown();
+  }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 

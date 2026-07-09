@@ -620,7 +620,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         this.selectedGroupId = this.selectedTestGroup?.testGroupId;
         this.getSubGroupList(this.selectedTestGroup!);
       },
-      error: () => { this.groupedTests = []; this.toastr.error('Failed to load test groups', 'Error'); }
+      error: () => { this.groupedTests = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -633,7 +633,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
         this.getMedicalTestList(this.selectedSubGroup!);
       },
-      error: () => { this.subGroupTests = []; this.toastr.error('Failed to load sub-groups', 'Error'); }
+      error: () => { this.subGroupTests = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -646,7 +646,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         const el = document.getElementById('testCatalogModal');
           if (el) this.showModal('testCatalogModal');
       },
-      error: () => { this.pathologyTest = []; this.toastr.error('Failed to load tests', 'Error'); }
+      error: () => { this.pathologyTest = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -911,7 +911,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   getSerialNPatientId() {
     this._patientService.getSerialNPatientId().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data: any) => this.patientForm.patchValue({ serial_Number: data.key, patient_Id: data.value }),
-      error: (err: any)     => this.toastr.error('Failed to load serial number', 'Error')
+      error: () => { /* message shown centrally by ErrorInterceptor */ }
     });
   }
 
@@ -1016,7 +1016,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Address:        f.patient_Address,
       relation:               f.relation,
       relative_Name:          f.relative_Name,
-      patientDialingContact:  `${f.country_Code}-${f.patient_Contact}`,
+      patient_Contact:        `${f.patient_Contact ?? ''}`,
       patient_Email:          f.patient_Email,
       patient_Reg_Date:       f.patient_Reg_Date,
       test,
@@ -1029,11 +1029,17 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         if (res) {
           this.toastr.success('Patient Registered Successfully', 'Success');
           this._route.navigate(['/patients']);
+        } else {
+          // API returned HTTP 200 but the operation failed (e.g. transaction
+          // rolled back). This is not an HTTP error, so the global interceptor
+          // won't fire — surface it explicitly.
+          this.toastr.error('Failed to register patient. Please try again.', 'Error');
         }
       },
-      error: (err: any) => {
+      error: () => {
+        // HTTP/network errors are surfaced centrally by ErrorInterceptor;
+        // here we only reset local state.
         this.isLoading = false;
-        this.toastr.error('Failed to register patient', 'Error');
       }
     });
   }

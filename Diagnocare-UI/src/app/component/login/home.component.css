@@ -105,6 +105,23 @@
   color: #fff;
 }
 
+.dc-nav-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1.1rem;
+  border-radius: 2rem;
+  color: rgba(255,255,255,0.85);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+.dc-nav-help:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
 /* ── Licence Expiry Banner ──────────────────────────────────────── */
 .dc-expiry-banner {
   position: fixed;
@@ -615,6 +632,22 @@
   font-size: 0.8rem;
   color: rgba(255,255,255,0.45);
   margin: 0;
+}
+
+.dc-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.dc-footer-link:hover {
+  color: #bae6fd;
+  text-decoration: underline;
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */

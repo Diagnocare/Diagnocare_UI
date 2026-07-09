@@ -187,6 +187,51 @@
   </div>
 
   <!-- ══════════════════════════════════════
+       STATE: REMOVED — remind user to delete the entry from their app
+  ══════════════════════════════════════ -->
+  <div *ngIf="state === 'removed'" class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-check-circle" style="color: #28a745;"></i>
+      <div>
+        <h4 class="acct-card-title">MFA Removed</h4>
+        <p class="acct-card-sub">Two-factor authentication is no longer active on your account</p>
+      </div>
+    </div>
+    <div class="acct-card-body">
+
+      <div class="status-banner status-ok">
+        <i class="fa fa-shield-alt"></i>
+        <span>The old codes no longer work &mdash; the setup key has been erased from our servers.</span>
+      </div>
+
+      <p class="hint-text" style="margin-top:1.25rem;">
+        <i class="fa fa-mobile-alt"></i>
+        One last step on your phone: your authenticator app still shows a defunct
+        <strong>{{ issuerLabel || 'Diagnocare' }}</strong> entry. It can't sign you in anymore, but you should
+        delete it so it doesn't cause confusion later. We can't remove it for you &mdash; authenticator apps
+        don't allow that remotely.
+      </p>
+
+      <div class="divider"><span>How to delete it</span></div>
+
+      <ol class="step-list">
+        <li><strong>Google Authenticator:</strong> tap the <strong>{{ issuerLabel || 'Diagnocare' }}</strong> entry, tap the pencil/edit icon, then <strong>Delete</strong>.</li>
+        <li><strong>Microsoft Authenticator:</strong> open the account, tap the <strong>gear/settings</strong> icon, then <strong>Remove account</strong>.</li>
+        <li><strong>Authy or others:</strong> long-press or open the account and choose <strong>Delete / Remove</strong>.</li>
+      </ol>
+
+      <div class="action-row">
+        <button class="dc-btn dc-btn--save" (click)="setUpAgain()">
+          <i class="fa fa-sync-alt"></i> Set Up Again
+        </button>
+        <button class="dc-btn dc-btn--cancel" (click)="finishRemoval()">
+          <i class="fa fa-check"></i> Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
        STATE: VERIFY — enter TOTP code
   ══════════════════════════════════════ -->
   <div *ngIf="state === 'verify'" class="acct-card">

@@ -258,8 +258,8 @@ export class MySalaryComponent implements OnInit, OnDestroy {
           setTimeout(() => URL.revokeObjectURL(url), 60000);
         },
         error: () => {
+          // Message shown centrally by ErrorInterceptor.
           this.receiptLoadingId = null;
-          this.toastr.error('Failed to open the payment receipt.', 'Error');
         },
       });
   }
