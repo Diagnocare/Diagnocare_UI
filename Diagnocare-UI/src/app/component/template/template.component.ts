@@ -117,7 +117,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
           this.isLoading         = false;
         },
         error: () => {
-          this.toastr.error('Failed to load templates.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.defaultLoaded = true;
           this.isLoading     = false;
         },
@@ -143,8 +143,8 @@ export class TemplateComponent implements OnInit, OnDestroy {
           this.toastr.success(msg, 'Updated');
         },
         error: () => {
+          // Message shown centrally by ErrorInterceptor.
           this.isSettingDefault = false;
-          this.toastr.error('Failed to update default template', 'Error');
         },
       });
   }
@@ -181,7 +181,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
       this.previewSrcdoc = this.sanitizer.bypassSecurityTrustHtml(this.buildFullHtml(detail));
       this.previewLoading = false;
     }).catch(() => {
-      this.toastr.error('Failed to load template preview.', 'Error');
+      // Message shown centrally by ErrorInterceptor.
       this.previewLoading = false;
       this.showPreview    = false;
     });
@@ -206,7 +206,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
     if (this.isDownloading) return;
     this.fetchDetail(template.templateId)
       .then(detail => this.triggerDownload(detail, format))
-      .catch(() => this.toastr.error('Failed to prepare download.', 'Error'));
+      .catch(() => { /* HTTP error shown centrally by ErrorInterceptor */ });
   }
 
   private async triggerDownload(detail: TemplateDetailDTO, format: DownloadFormat): Promise<void> {

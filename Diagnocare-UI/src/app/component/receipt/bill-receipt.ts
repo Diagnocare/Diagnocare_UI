@@ -214,8 +214,8 @@ export class BillReceipt implements OnInit {
       },
       error: (err) => {
         this.isLoading = false;
+        // Inline banner kept; HTTP error message shown centrally by ErrorInterceptor.
         this.errorMessage = err.message || `Unable to generate ${label} PDF.`;
-        this.toastr.error(`Failed to generate ${label} PDF.`, 'Error');
       }
     });
   }
@@ -331,8 +331,8 @@ export class BillReceipt implements OnInit {
       },
       error: (err: Error) => {
         this.tpaSaving    = false;
+        // Inline banner kept; HTTP error message shown centrally by ErrorInterceptor.
         this.tpaSaveError = err.message || 'Failed to update TPA details.';
-        this.toastr.error(this.tpaSaveError, 'Error');
       }
     });
   }

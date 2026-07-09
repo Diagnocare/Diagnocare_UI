@@ -218,7 +218,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
           if (typeof data.done === 'function') data.done();
         },
         error: () => {
-          this.toastr.error(`Error adding ${data.selected}`, 'Error');
+          // Message shown centrally by ErrorInterceptor.
           if (typeof data.done === 'function') data.done();
         }
       });
@@ -234,7 +234,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
             if (typeof data.done === 'function') data.done();
           },
           error: () => {
-            this.toastr.error('Error updating group', 'Error');
+            // Message shown centrally by ErrorInterceptor.
             if (typeof data.done === 'function') data.done();
           }
         });
@@ -249,7 +249,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
             if (typeof data.done === 'function') data.done();
           },
           error: () => {
-            this.toastr.error('Error updating subgroup', 'Error');
+            // Message shown centrally by ErrorInterceptor.
             if (typeof data.done === 'function') data.done();
           }
         });
@@ -265,7 +265,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
             if (typeof data.done === 'function') data.done();
           },
           error: () => {
-            this.toastr.error('Error updating test', 'Error');
+            // Message shown centrally by ErrorInterceptor.
             if (typeof data.done === 'function') data.done();
           }
         });
@@ -389,8 +389,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         });
       },
       error: (err) => {
-        console.error('Group reload after add failed:', err);
-        this.toastr.error('Failed to reload groups', 'Error');
+        console.error('Group reload after add failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -417,8 +416,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Group fetch failed:', err);
-        this.toastr.error('Failed to load groups', 'Error');
+        console.error('Group fetch failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -434,8 +432,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         }
       },
       error: (err) => {
-        console.error('SubGroup fetch failed:', err);
-        this.toastr.error('Failed to load subgroups', 'Error');
+        console.error('SubGroup fetch failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -447,8 +444,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         this.tests = data;
       },
       error: (err) => {
-        console.error('Test fetch failed:', err);
-        this.toastr.error('Failed to load tests', 'Error');
+        console.error('Test fetch failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -528,7 +524,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
           this.getAllGroupList(true);
         },
         error: () => {
-          this.toastr.error(`Failed to delete ${label}.`, 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.lastUserSelection = null;
         }
       });

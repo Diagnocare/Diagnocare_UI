@@ -135,7 +135,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         this.loadCalendar();
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
-      error: () => { this.toastr.error('Failed to update visit.', 'Error'); this.savingEdit = false; },
+      error: () => { this.savingEdit = false; },   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -406,7 +406,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
           this.doCreateVisit(created.id!);
         },
         error: () => {
-          this.toastr.error('Failed to save contact. Please try again.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.savingForm = false;
         },
       });
@@ -433,7 +433,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
       error: () => {
-        this.toastr.error('Failed to assign visit.', 'Error');
+        // Message shown centrally by ErrorInterceptor.
         this.savingForm = false;
       },
     });
@@ -468,7 +468,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
       error: () => {
-        this.toastr.error('Failed to update visit.', 'Error');
+        // Message shown centrally by ErrorInterceptor.
         this.savingComplete = false;
       },
     });
@@ -489,7 +489,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         this.loadCalendar();
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
-      error: () => this.toastr.error('Failed to delete visit.', 'Error'),
+      error: () => { /* message shown centrally by ErrorInterceptor */ },
     });
   }
 

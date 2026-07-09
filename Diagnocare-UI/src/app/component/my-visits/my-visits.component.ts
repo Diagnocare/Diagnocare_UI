@@ -158,7 +158,7 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
         this.loadCalendar();   // pending/done counts change
       },
       error: () => {
-        this.toastr.error('Failed to update.', 'Error');
+        // Message shown centrally by ErrorInterceptor.
         this.savingComplete = false;
       },
     });

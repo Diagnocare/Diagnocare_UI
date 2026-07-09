@@ -37,6 +37,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     history.pushState(null, '', window.location.href);
   };
 
+  // Named handler so it can be removed in ngOnDestroy (anonymous listeners leak
+  // and stack every time the login component is re-created).
+  private closeMfaHandler = () => { this.showOtpDialog = false; };
+
   // ── Form state ─────────────────────────────────────────────────────────────
 
   loginForm!: FormGroup;
@@ -123,7 +127,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private _router:          Router,
     private _route:           ActivatedRoute,
   ) {
-    window.addEventListener('closeMfaDialog', () => { this.showOtpDialog = false; });
+    window.addEventListener('closeMfaDialog', this.closeMfaHandler);
     window.addEventListener('pageshow', this.onPageShow);
   }
 
@@ -202,6 +206,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('closeMfaDialog', this.closeMfaHandler);
     window.removeEventListener('pageshow', this.onPageShow);
     window.removeEventListener('popstate', this.preventForwardNav);
     this.routerSub?.unsubscribe();

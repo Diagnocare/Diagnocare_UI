@@ -229,6 +229,7 @@ export const profileMenu = {
   settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
   changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
   // Authenticator App is now a section inside Settings (see settings page).
+  help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
 };
 
 export const labOperationMenu = {

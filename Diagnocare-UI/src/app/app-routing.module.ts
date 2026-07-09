@@ -9,6 +9,9 @@ import { LoginComponent } from './component/login/login.component';
 import { ForgotPasswordComponent } from './component/login/forgot-password.component';
 import { HomeComponent } from './component/login/home.component';
 
+// Help / Contact Us (public)
+import { HelpComponent } from './component/help/help.component';
+
 // Pathology
 import { PathologyHomeComponent } from './component/pathology/pathology-home/pathology-home.component';
 
@@ -116,6 +119,8 @@ export const routes: Routes = [
   { path: 'login', title: 'Login', component: LoginComponent },
   { path: 'login/callback', component: LoginComponent },
   { path: 'forgot-password', title: 'Forgot Password', component: ForgotPasswordComponent },
+  // Help / Contact Us — public, accessible to everyone (no auth or role guard)
+  { path: 'help', title: 'Help & Contact', component: HelpComponent },
   { path: 'register-pathology', title: 'Register Pathology', component: RegisterPathologyComponent },
   { path: 'extend-license',     title: 'Extend Licence',     component: ExtendLicenseComponent, canActivate: [roleGuard(Role.Super_Admin.id)] },
 

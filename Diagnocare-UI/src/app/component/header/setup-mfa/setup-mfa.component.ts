@@ -8,7 +8,7 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { ToastrService } from 'ngx-toastr';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 
-type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confirm';
+type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confirm' | 'removed';
 
 @Component({
   selector: 'app-setup-mfa',
@@ -188,7 +188,11 @@ export class SetupMfaComponent implements OnInit {
         if (res.success) {
           this.toastr.success('MFA removed successfully.', 'Success');
           this.mfaStatusChanged.emit(false);
-          this.beginSetup();
+          // Server has wiped the secret, so the codes on the phone are already
+          // inert. Show a dedicated screen reminding the user to also delete the
+          // now-defunct entry from their authenticator app — the app itself
+          // exposes no way for us to remove it remotely.
+          this.state = 'removed';
         } else {
           this.error = res.message || 'Invalid code. Please try again.';
         }
@@ -204,6 +208,20 @@ export class SetupMfaComponent implements OnInit {
     this.state       = 'configured';
     this.disableCode = '';
     this.error       = '';
+  }
+
+  /** From the post-removal screen: start a fresh enrollment. */
+  setUpAgain(): void {
+    this.beginSetup();
+  }
+
+  /** From the post-removal screen: leave the flow. */
+  finishRemoval(): void {
+    if (this.embedded) {
+      this.beginSetup();
+    } else {
+      this.router.navigate(['/settings']);
+    }
   }
 
   copyKey(): void {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
@@ -22,7 +22,11 @@ import { PinService } from 'src/app/services/pinServices/pin.service';
   imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent]
 })
 
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
+  // Named handler so the profile-updated listener can be removed on destroy
+  // (anonymous listeners leak and stack when the header is re-created).
+  private readonly profileUpdatedHandler = (): void => { this.fetchProfileImage(); };
+
   labOperationMenu = Object.values(labOperationMenu);
   summaryReportMenu = Object.values(summaryReportMenu);
   profileMenu = Object.values(profileMenu);
@@ -72,9 +76,7 @@ export class HeaderComponent implements OnInit {
     this.checkAdminPanelAccess();
     this.fetchProfileImage();
     // Listen for profile update event
-    window.addEventListener('diagnocare-profile-updated', () => {
-      this.fetchProfileImage();
-    });
+    window.addEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
   }
 
   ngOnInit(): void {
@@ -90,6 +92,10 @@ export class HeaderComponent implements OnInit {
       this.isPinExpiringSoon = this.pinService.isPinExpiringSoon(this.userName);
       this.pinDaysLeft       = this.pinService.getPinDaysLeft(this.userName);
     }
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
   }
 
   navigateToHome() {

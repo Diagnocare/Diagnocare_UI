@@ -76,8 +76,7 @@ export class AddTestParameter implements OnInit, OnDestroy {
         this.testItem = testData;
       },
       error: (err) => {
-        console.error('Failed to load test details:', err);
-        this.toastr.error('Failed to load test details', 'Error');
+        console.error('Failed to load test details:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -114,8 +113,7 @@ export class AddTestParameter implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Failed to load parameters:', err);
-        this.toastr.error('Failed to load parameters', 'Error');
+        console.error('Failed to load parameters:', err);   // message shown centrally by ErrorInterceptor
         this.addRow();
       }
     });
@@ -215,8 +213,7 @@ export class AddTestParameter implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          console.error('Failed to save parameters:', err);
-          this.toastr.error('Failed to save test parameters', 'Error');
+          console.error('Failed to save parameters:', err);   // message shown centrally by ErrorInterceptor
         }
       });
   }

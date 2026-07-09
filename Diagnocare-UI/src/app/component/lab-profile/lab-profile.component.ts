@@ -162,8 +162,8 @@ export class LabProfileComponent implements OnInit, OnDestroy {
           this.loadState = 'loaded';
         },
         error: () => {
+          // Inline error state kept; message shown centrally by ErrorInterceptor.
           this.loadState = 'error';
-          this.toastr.error('Could not load lab profile.');
         },
       });
   }
@@ -191,7 +191,7 @@ export class LabProfileComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next:  () => this.toastr.success('Logo uploaded successfully.'),
-          error: () => this.toastr.error('Failed to upload logo. Please try again.'),
+          error: () => { /* message shown centrally by ErrorInterceptor */ },
         });
     };
     reader.readAsDataURL(file);
@@ -226,8 +226,8 @@ export class LabProfileComponent implements OnInit, OnDestroy {
   }
 
   private onSaveError(): void {
+    // Message shown centrally by ErrorInterceptor.
     this.isSaving = false;
-    this.toastr.error('Failed to save lab profile. Please try again.');
   }
 
   // ── Template helpers ──────────────────────────────────────────────

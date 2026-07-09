@@ -182,6 +182,9 @@
 }
 .field-span2 { grid-column: span 2; }
 
+// Align the inline validation message under the input (column 2), not the label.
+.field ::ng-deep .field-error { grid-column: 2 / -1; }
+
 .field-label {
   font-size: .8rem;
   font-weight: 600;
@@ -362,6 +365,8 @@
   .field              { grid-template-columns: 1fr; }
   .field-error,
   .field-hint         { grid-column: 1; }
+  // Label stacks above the input on mobile, so the message spans the single column.
+  .field ::ng-deep .field-error { grid-column: 1 / -1; }
   .logo-row           { flex-direction: column; }
   .save-bar           { justify-content: stretch; }
   .btn-save           { width: 100%; justify-content: center; }

@@ -170,11 +170,10 @@ export class PatientsListComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error fetching patient list:', err);
-        // this.allPatients = [];
+        // Message shown centrally by ErrorInterceptor; here we just reset state.
         this.filteredPatients = [];
         this.isLoading = false;
         this.cdr.detectChanges();
-        this.toastr.error('Failed to load patients', 'Error');
       }
     });
   }
@@ -424,10 +423,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
           this.toastr.error(result?.message || 'Patient deactivation failed', 'Error');
         }
       },
-      error: (err) => {
-        console.error('Error deactivating patient:', err);
-        this.toastr.error('Patient deactivation failed', 'Error');
-      }
+      // HTTP/network errors are surfaced centrally by ErrorInterceptor.
+      error: (err) => console.error('Error deactivating patient:', err)
     });
   }
 
@@ -462,10 +459,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
           this.toastr.error(result?.message || 'Patient reactivation failed', 'Error');
         }
       },
-      error: (err) => {
-        console.error('Error reactivating patient:', err);
-        this.toastr.error('Patient reactivation failed', 'Error');
-      }
+      // HTTP/network errors are surfaced centrally by ErrorInterceptor.
+      error: (err) => console.error('Error reactivating patient:', err)
     });
   }
 
@@ -497,10 +492,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
           this.toastr.error(result?.message || 'Permanent deletion failed', 'Error');
         }
       },
-      error: (err) => {
-        console.error('Error permanently deleting patient:', err);
-        this.toastr.error('Permanent deletion failed', 'Error');
-      }
+      // HTTP/network errors are surfaced centrally by ErrorInterceptor.
+      error: (err) => console.error('Error permanently deleting patient:', err)
     });
   }
 
@@ -588,10 +581,10 @@ searchInputPatients() {
         },
         error: (err) => {
           console.error('Error searching patients:', err);
+          // Message shown centrally by ErrorInterceptor; here we just reset state.
           this.filteredPatients = [];
           this.isLoading = false;
           this.cdr.detectChanges();
-          this.toastr.error('Failed to search patients', 'Error');
         }
       });
     }
