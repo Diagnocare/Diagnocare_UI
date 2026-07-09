@@ -31,6 +31,8 @@ export interface ModuleAccess {
    * self-service "User Panel" dropdown grouping My Attendance, Holidays, My Visits & My Salary.
    */
   userPanel:        boolean;
+  /** Attendance correction requests — shared view: staff raise/track, admins review. */
+  attendanceRequests: boolean;
   /** Route to navigate to immediately after a successful login. */
   landingRoute:     string;
 }
@@ -47,6 +49,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myVisits:         false,
     myAttendance:     false,   // Admins see all staff via the full Attendance module
     userPanel:        false,   // Admins use the full Admin Panel instead
+    attendanceRequests: true,  // Admins review/approve requests
     landingRoute:     '/pathology',
   },
   [Role.Admin.id]: {
@@ -60,6 +63,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myVisits:         false,
     myAttendance:     false,   // Admins see all staff via the full Attendance module
     userPanel:        false,   // Admins use the full Admin Panel instead
+    attendanceRequests: true,  // Admins review/approve requests
     landingRoute:     '/pathology',
   },
   [Role.User.id]: {
@@ -73,6 +77,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myVisits:         true,
     myAttendance:     true,    // staff members can view their own attendance
     userPanel:        true,     // self-service User Panel dropdown
+    attendanceRequests: true,  // staff can raise/track their own requests
     landingRoute:     '/patients',
   },
   [Role.Assistant.id]: {
@@ -86,6 +91,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myVisits:         true,
     myAttendance:     true,    // staff members can view their own attendance
     userPanel:        true,     // self-service User Panel dropdown
+    attendanceRequests: true,  // staff can raise/track their own requests
     landingRoute:     '/patients',
   },
   [Role.Collection_Boy.id]: {
@@ -99,6 +105,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myVisits:         true,
     myAttendance:     true,    // collection boys can view their own attendance
     userPanel:        true,     // self-service User Panel dropdown
+    attendanceRequests: true,  // collection boys can raise/track their own requests
     landingRoute:     '/patients',
   },
   [Role.Doctor.id]: {
@@ -112,6 +119,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myVisits:         true,
     myAttendance:     true,    // doctors can view their own attendance
     userPanel:        true,     // self-service User Panel dropdown
+    attendanceRequests: true,  // doctors can raise/track their own requests
     landingRoute:     '/patient-tests',
   },
 };
@@ -128,5 +136,6 @@ export const DEFAULT_ACCESS: ModuleAccess = {
   myVisits:         false,
   myAttendance:     false,
   userPanel:        false,
+  attendanceRequests: false,
   landingRoute:     '/pathology',
 };

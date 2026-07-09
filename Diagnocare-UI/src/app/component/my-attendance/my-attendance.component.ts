@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
 import { ToastrService } from 'ngx-toastr';
@@ -41,7 +42,7 @@ interface AttendanceRow {
   templateUrl: './my-attendance.component.html',
   styleUrls: ['./my-attendance.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingSpinnerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingSpinnerComponent],
   providers: [DatePipe],
 })
 export class MyAttendanceComponent implements OnInit, OnDestroy {
@@ -107,7 +108,17 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
     private holidaySvc:    HolidayService,
     private toastr:        ToastrService,
     private datePipe:      DatePipe,
+    private router:        Router,
   ) {}
+
+  /**
+   * Open the New Attendance Request form pre-filled with the clicked day's date.
+   * Future dates and holidays can't be corrected, so they're ignored.
+   */
+  requestCorrection(cell: AttendanceCell): void {
+    if (!cell || cell.isFuture || cell.isHoliday) return;
+    this.router.navigate(['/attendance-requests/new'], { queryParams: { date: cell.dateStr } });
+  }
 
   ngOnInit(): void {
     this.today.setHours(0, 0, 0, 0);

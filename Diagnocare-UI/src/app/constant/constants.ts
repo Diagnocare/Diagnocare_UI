@@ -87,6 +87,13 @@ export const apiEndpoints = {
   getMonthly: 'GetMonthly',
   getMyWeeklyAttendance: 'GetMyWeekly',
   getMyMonthly:          'GetMyMonthly',
+  // Attendance correction requests — all under the single Attendance controller
+  requests:              'requests',
+  myRequests:            'requests/mine',
+  pendingRequestCount:   'requests/pending-count',
+  cancelRequest:         'cancel',
+  approveRequest:        'approve',
+  rejectRequest:         'reject',
   generateSalary:      'Generate',
   generateReceiptPdf: 'GenerateReceiptPdf',
   getHolidaysByYear: 'GetHolidayCalendar',

@@ -103,6 +103,11 @@ import { MyAttendanceComponent } from './component/my-attendance/my-attendance.c
 // My Salary (self-service read-only salary summary for non-admin staff)
 import { MySalaryComponent } from './component/my-salary/my-salary.component';
 
+// Attendance Requests — single shared surface for User and Admin
+import { RequestsListComponent }  from './component/attendance-request/requests-list/requests-list.component';
+import { RequestFormComponent }   from './component/attendance-request/request-form/request-form.component';
+import { RequestDetailComponent } from './component/attendance-request/request-detail/request-detail.component';
+
 // Role guard
 import { roleGuard } from './core/guards/role.guard';
 import { Role } from './constant/enums';
@@ -240,6 +245,19 @@ export const routes: Routes = [
       // My Salary — read-only own salary summary & payment history
       { path: 'my-salary', title: 'My Salary', component: MySalaryComponent,
         canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+
+      // Attendance Requests — ONE shared surface for every authenticated role.
+      // The components branch on TokenService.isAdmin(): users see/manage their own
+      // requests; admins see all requests and can approve/reject. Order matters:
+      // 'new' must precede the ':id' param routes.
+      { path: 'attendance-requests', title: 'Attendance Requests', component: RequestsListComponent,
+        canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+      { path: 'attendance-requests/new', title: 'New Attendance Request', component: RequestFormComponent,
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+      { path: 'attendance-requests/:id/edit', title: 'Edit Attendance Request', component: RequestFormComponent,
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+      { path: 'attendance-requests/:id', title: 'Attendance Request', component: RequestDetailComponent,
+        canActivate: [roleGuard(Role.Super_Admin.id, Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
 
       // Account / Header pages
       { path: 'profile', title: 'Profile', component: ProfileComponent },
