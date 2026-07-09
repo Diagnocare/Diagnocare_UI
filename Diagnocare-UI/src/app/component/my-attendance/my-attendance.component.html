@@ -20,6 +20,13 @@
         </span>
       </div>
     </div>
+
+    <div class="header-right">
+      <a class="request-btn" routerLink="/attendance-requests"
+         title="See your correction requests or raise a new one">
+        <i class="fa fa-pen-to-square"></i> Request Correction
+      </a>
+    </div>
   </div>
 
   <!-- ── Controls bar ─────────────────────────────────────────────────── -->
@@ -129,8 +136,11 @@
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
                   [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                  [title]="cellTitle(cell)">
+                  [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                  [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                  (click)="requestCorrection(cell)">
                   {{ cellLabel(cell) }}
+                  <i class="fa fa-pen req-pen" *ngIf="!cell.isFuture && !cell.isHoliday"></i>
                 </span>
               </td>
 
@@ -200,7 +210,9 @@
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                      [title]="cellTitle(cell)">
+                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
                     </span>
                   </td>
@@ -266,7 +278,9 @@
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                      [title]="cellTitle(cell)">
+                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
                     </span>
                   </td>

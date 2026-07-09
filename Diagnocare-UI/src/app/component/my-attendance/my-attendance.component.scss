@@ -27,6 +27,38 @@ $clr-holiday-bg   : #d97706;
 $clr-holiday-bdr  : #92400e;
 $clr-holiday-light: #fef3c7;
 
+// ── Page header layout ───────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  padding-top: 0.35rem;
+}
+
+.request-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba(255, 255, 255, 0.28); }
+  i { font-size: 0.85rem; }
+}
+
 // ── Subtitle ─────────────────────────────────────────────────────
 .subtitle {
   font-size: 0.88em;
@@ -336,6 +368,37 @@ $clr-holiday-light: #fef3c7;
   border: 2px solid transparent;
   letter-spacing: 0;
   cursor: default;   // read-only — no pointer
+  position: relative;
+
+  // Days that can be corrected become clickable and reveal a pen on hover.
+  &.requestable {
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    &:hover .req-pen { opacity: 1; }
+  }
+
+  .req-pen {
+    position: absolute;
+    top: -0.35em;
+    right: -0.35em;
+    font-size: 0.55em;
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    width: 1.5em;
+    height: 1.5em;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+  }
 
   &.cell-present    { background: $clr-present-bg; color: #fff; border-color: $clr-present-bdr; }
   &.cell-absent     { background: $clr-absent-bg;  color: #fff; border-color: $clr-absent-bdr;  }
