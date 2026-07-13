@@ -217,7 +217,15 @@ export class TokenService {
     return !!this.getToken();
   }
 
-  /** Remove the stored JWT and clear all auth state for this tab and all sibling tabs. */
+  /**
+   * Remove the stored JWT and clear all auth state for this tab and all sibling tabs.
+   * Deliberately does NOT clear the cached pathology policy settings (grace buffer,
+   * max discount, session lockout) — that cache is keyed to the browser/pathology,
+   * not the login session, and is kept fresh by PathologyService whenever the
+   * corresponding value is updated (see updateGraceBuffer/updateMaxDiscount/
+   * updateSessionLockout). Clearing it here would force a DB round-trip on every
+   * login even when nothing changed.
+   */
   removeToken(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
@@ -454,6 +462,22 @@ export class TokenService {
     if (!raw) return 30;
     const parsed = parseInt(raw, 10);
     return isNaN(parsed) || parsed < 0 ? 30 : parsed;
+  }
+
+  /**
+   * True when pathology policy settings (grace buffer, max discount, session
+   * lockout) are already cached in localStorage from a previous load.
+   * AppComponent uses this to skip the DB round-trip on repeat page loads.
+   */
+  hasCachedPolicies(): boolean {
+    return localStorage.getItem(this.GRACE_BUFFER_KEY) !== null;
+  }
+
+  /** Clear cached pathology policy settings (called on logout). */
+  clearCachedPolicies(): void {
+    localStorage.removeItem(this.GRACE_BUFFER_KEY);
+    localStorage.removeItem(this.MAX_DISCOUNT_KEY);
+    localStorage.removeItem(this.SESSION_LOCKOUT_KEY);
   }
 
   isWithinGracePeriod(): boolean {

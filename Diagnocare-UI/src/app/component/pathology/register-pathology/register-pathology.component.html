@@ -68,21 +68,17 @@
           <h2 class="rp-success-title">Registration Successful!</h2>
           <p class="rp-success-sub">
             Your pathology <strong>{{ form.get('path_Name')?.value }}</strong> has been
-            registered. Save your licence key — you will need it to activate the system.
+            registered successfully. You can now log in to set up your lab.
           </p>
 
-          <div class="rp-key-box">
+          <div class="rp-key-box" *ngIf="registrationResult.pathId">
             <div class="rp-key-label">
-              <i class="fas fa-key"></i> Your Licence Key
+              <i class="fas fa-id-badge"></i> Your Pathology ID
             </div>
-            <div class="rp-key-value">{{ registrationResult.licenseKey || registrationResult.path_Id || '—' }}</div>
-            <button class="rp-key-copy" type="button" (click)="copyLicenseKey()" title="Copy to clipboard">
+            <div class="rp-key-value">{{ registrationResult.pathId }}</div>
+            <button class="rp-key-copy" type="button" (click)="copyPathologyId()" title="Copy to clipboard">
               <i class="fas fa-copy"></i> Copy
             </button>
-          </div>
-
-          <div class="rp-key-meta" *ngIf="registrationResult.path_Id">
-            <i class="fas fa-id-badge"></i> Pathology ID: <strong>{{ registrationResult.path_Id }}</strong>
           </div>
 
           <a routerLink="/login" class="rp-submit-btn rp-btn-go-login">
@@ -190,7 +186,7 @@
               <label class="rp-label">Contact Number <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_ContactNo')">
                 <span class="rp-input-icon"><i class="fas fa-phone"></i></span>
-                <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" maxlength="10" inputmode="numeric" />
+                <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" maxlength="10" inputmode="numeric" appNumericOnly />
               </div>
               <app-field-error [control]="form.get('path_ContactNo')" label="Contact Number" [forceShow]="submitted"></app-field-error>
             </div>

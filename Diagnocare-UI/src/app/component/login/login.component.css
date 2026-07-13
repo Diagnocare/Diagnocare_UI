@@ -659,3 +659,112 @@ input[type="password"]::-ms-clear {
   background: #e2e8f0;
   transform: translateY(-1px);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   THEME OVERRIDES
+   Full per-theme re-skin of the login screen. The branded left panel
+   takes each theme's gradient; the right form panel + card + dialog
+   take the theme's surfaces. Left-panel text is forced light where a
+   theme's global text colour would otherwise wash it out (warm).
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ══ DARK ══════════════════════════════════════════════ */
+:host-context(html[data-theme="dark"]) .lp-left       { background: linear-gradient(135deg, #020617 0%, #0f172a 45%, #1e293b 100%); }
+:host-context(html[data-theme="dark"]) .lp-right      { background: #0f172a; }
+:host-context(html[data-theme="dark"]) .lp-card       { background: #1e293b; border-color: #334155; box-shadow: 0 8px 40px rgba(0,0,0,0.45); }
+:host-context(html[data-theme="dark"]) .lp-card-title { color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .lp-card-sub   { color: #94a3b8 !important; }
+:host-context(html[data-theme="dark"]) .lp-label      { color: #cbd5e1 !important; }
+:host-context(html[data-theme="dark"]) .lp-input      { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .lp-input:focus { border-color: #5b9cf6; box-shadow: 0 0 0 3px rgba(91,156,246,0.15); }
+:host-context(html[data-theme="dark"]) .lp-input-icon,
+:host-context(html[data-theme="dark"]) .lp-pw-toggle  { color: #64748b; }
+:host-context(html[data-theme="dark"]) .lp-forgot-link { color: #818cf8 !important; }
+:host-context(html[data-theme="dark"]) .lp-submit-btn { background: linear-gradient(135deg, #3b82f6, #6366f1); box-shadow: 0 4px 18px rgba(59,130,246,0.4); }
+:host-context(html[data-theme="dark"]) .lp-back-home a { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .sc-dialog     { background: #1e293b; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+:host-context(html[data-theme="dark"]) .sc-title      { color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .sc-body,
+:host-context(html[data-theme="dark"]) .sc-body-sm    { color: #94a3b8 !important; }
+:host-context(html[data-theme="dark"]) .sc-device-card { background: #0f172a; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .sc-device-name { color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .sc-btn-secondary { background: #0f172a; color: #cbd5e1; border-color: #334155; }
+
+/* ══ MIDNIGHT ══════════════════════════════════════════ */
+:host-context(html[data-theme="midnight"]) .lp-left       { background: linear-gradient(135deg, #000000 0%, #020408 45%, #0d1117 100%); }
+:host-context(html[data-theme="midnight"]) .lp-right      { background: #020408; }
+:host-context(html[data-theme="midnight"]) .lp-card       { background: #0d1117; border-color: #21262d; box-shadow: 0 8px 40px rgba(0,0,0,0.7); }
+:host-context(html[data-theme="midnight"]) .lp-card-title { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .lp-card-sub   { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .lp-label      { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .lp-input      { background: #0d1117; border-color: #21262d; color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .lp-input:focus { border-color: #4d9ef0; box-shadow: 0 0 0 3px rgba(77,158,240,0.15); }
+:host-context(html[data-theme="midnight"]) .lp-input-icon,
+:host-context(html[data-theme="midnight"]) .lp-pw-toggle  { color: #6e7681; }
+:host-context(html[data-theme="midnight"]) .lp-forgot-link { color: #7c6af7 !important; }
+:host-context(html[data-theme="midnight"]) .lp-submit-btn { background: linear-gradient(135deg, #1f6feb, #7c6af7); box-shadow: 0 4px 18px rgba(31,111,235,0.4); }
+:host-context(html[data-theme="midnight"]) .lp-back-home a { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .sc-dialog     { background: #0d1117; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
+:host-context(html[data-theme="midnight"]) .sc-title      { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .sc-body,
+:host-context(html[data-theme="midnight"]) .sc-body-sm    { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .sc-device-card { background: #020408; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .sc-device-name { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .sc-btn-secondary { background: #020408; color: #a6adc8; border-color: #21262d; }
+
+/* ══ WARM ══════════════════════════════════════════════ */
+:host-context(html[data-theme="warm"]) .lp-left       { background: linear-gradient(135deg, #3d2b1f 0%, #7c4218 45%, #9c5a28 78%, #c47028 100%); }
+:host-context(html[data-theme="warm"]) .lp-right      { background: #f5ede0; }
+:host-context(html[data-theme="warm"]) .lp-card       { background: #fffdf7; border-color: #e8d9c0; box-shadow: 0 8px 40px rgba(100,60,20,0.14); }
+:host-context(html[data-theme="warm"]) .lp-card-title { color: #9c5a28 !important; }
+:host-context(html[data-theme="warm"]) .lp-card-sub   { color: #7a5c4e !important; }
+:host-context(html[data-theme="warm"]) .lp-label      { color: #4a3728 !important; }
+:host-context(html[data-theme="warm"]) .lp-input      { background: #fffdf7; border-color: #ddc9a8; color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .lp-input:focus { border-color: #c47028; box-shadow: 0 0 0 3px rgba(196,112,40,0.15); }
+:host-context(html[data-theme="warm"]) .lp-input-icon,
+:host-context(html[data-theme="warm"]) .lp-pw-toggle  { color: #9e8272; }
+:host-context(html[data-theme="warm"]) .lp-forgot-link { color: #9c5a28 !important; }
+:host-context(html[data-theme="warm"]) .lp-submit-btn { background: linear-gradient(135deg, #c47028, #9c5a28); box-shadow: 0 4px 18px rgba(196,112,40,0.4); }
+:host-context(html[data-theme="warm"]) .lp-back-home a { color: #9e8272; }
+:host-context(html[data-theme="warm"]) .sc-dialog     { background: #fffdf7; box-shadow: 0 20px 60px rgba(100,60,20,0.24); }
+:host-context(html[data-theme="warm"]) .sc-title      { color: #9c5a28 !important; }
+:host-context(html[data-theme="warm"]) .sc-body,
+:host-context(html[data-theme="warm"]) .sc-body-sm    { color: #7a5c4e !important; }
+:host-context(html[data-theme="warm"]) .sc-device-card { background: #fef9f0; border-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .sc-device-name { color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .sc-btn-secondary { background: #fef9f0; color: #7a5c4e; border-color: #ddc9a8; }
+/* Warm: keep the branded left-panel text light on its dark gradient */
+:host-context(html[data-theme="warm"]) .lp-brand-name   { color: #fff !important; }
+:host-context(html[data-theme="warm"]) .lp-brand-accent { color: #fde8cf !important; }
+:host-context(html[data-theme="warm"]) .lp-hero-title   { color: #fff !important; }
+:host-context(html[data-theme="warm"]) .lp-hero-sub     { color: rgba(255,255,255,0.78) !important; }
+:host-context(html[data-theme="warm"]) .lp-features li strong { color: #fff !important; }
+:host-context(html[data-theme="warm"]) .lp-features li span   { color: rgba(255,255,255,0.7) !important; }
+:host-context(html[data-theme="warm"]) .lp-feat-icon    { color: #fde8cf !important; }
+:host-context(html[data-theme="warm"]) .lp-pill,
+:host-context(html[data-theme="warm"]) .lp-pill span    { color: rgba(255,255,255,0.9) !important; }
+:host-context(html[data-theme="warm"]) .lp-pill i       { color: #fde8cf !important; }
+
+/* ══ SYSTEM (follows OS dark mode) ═════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .lp-left       { background: linear-gradient(135deg, #020617 0%, #0f172a 45%, #1e293b 100%); }
+  :host-context(html[data-theme="system"]) .lp-right      { background: #0f172a; }
+  :host-context(html[data-theme="system"]) .lp-card       { background: #1e293b; border-color: #334155; box-shadow: 0 8px 40px rgba(0,0,0,0.45); }
+  :host-context(html[data-theme="system"]) .lp-card-title { color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .lp-card-sub   { color: #94a3b8 !important; }
+  :host-context(html[data-theme="system"]) .lp-label      { color: #cbd5e1 !important; }
+  :host-context(html[data-theme="system"]) .lp-input      { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .lp-input:focus { border-color: #5b9cf6; box-shadow: 0 0 0 3px rgba(91,156,246,0.15); }
+  :host-context(html[data-theme="system"]) .lp-input-icon,
+  :host-context(html[data-theme="system"]) .lp-pw-toggle  { color: #64748b; }
+  :host-context(html[data-theme="system"]) .lp-forgot-link { color: #818cf8 !important; }
+  :host-context(html[data-theme="system"]) .lp-submit-btn { background: linear-gradient(135deg, #3b82f6, #6366f1); box-shadow: 0 4px 18px rgba(59,130,246,0.4); }
+  :host-context(html[data-theme="system"]) .lp-back-home a { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .sc-dialog     { background: #1e293b; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  :host-context(html[data-theme="system"]) .sc-title      { color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .sc-body,
+  :host-context(html[data-theme="system"]) .sc-body-sm    { color: #94a3b8 !important; }
+  :host-context(html[data-theme="system"]) .sc-device-card { background: #0f172a; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .sc-device-name { color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .sc-btn-secondary { background: #0f172a; color: #cbd5e1; border-color: #334155; }
+}

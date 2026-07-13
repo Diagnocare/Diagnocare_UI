@@ -7,6 +7,13 @@
         <h2 class="page-title"><i class="fas fa-hospital-alt"></i> Lab Profile</h2>
         <p class="page-subtitle">Complete your pathology details — used across reports, billing, and the patient portal</p>
       </div>
+      <div class="header-right" *ngIf="loadState === 'loaded'">
+        <button type="button" class="btn-refresh" (click)="refresh()" [disabled]="isRefreshing"
+                title="Re-fetch the latest identity and license info now">
+          <i class="fas fa-sync-alt" [class.fa-spin]="isRefreshing"></i>
+          {{ isRefreshing ? 'Refreshing…' : 'Refresh' }}
+        </button>
+      </div>
     </div>
 
     <!-- ── Loading ── -->
@@ -19,6 +26,56 @@
     <div class="lp-error" *ngIf="loadState === 'error'">
       <i class="fas fa-exclamation-circle"></i>
       Could not load lab profile. Please refresh the page.
+    </div>
+
+    <div class="lp-cache-hint muted" *ngIf="loadState === 'loaded' && fromCache">
+      <i class="fas fa-database"></i> Showing saved details — click Refresh for the latest.
+    </div>
+    <div class="lp-cache-hint lp-cache-hint--warn" *ngIf="loadState === 'loaded' && !sharedDataAvailable">
+      <i class="fas fa-exclamation-triangle"></i>
+      Could not reach the central registry — showing this lab's last-known details.
+    </div>
+
+    <!-- ══ IDENTITY (read-only — managed centrally) ══ -->
+    <div class="profile-card" *ngIf="loadState === 'loaded'">
+      <div class="profile-card-header">
+        <i class="fas fa-id-card"></i>
+        <div>
+          <h4 class="profile-card-title">Pathology Identity</h4>
+          <p class="profile-card-sub">Read-only — contact Super Admin to change name, address, or contact details</p>
+        </div>
+      </div>
+      <div class="profile-card-body">
+        <div class="logo-row">
+          <div class="logo-preview-wrap">
+            <img *ngIf="logoPreview" [src]="logoPreview" alt="Lab Logo" class="logo-preview-img" />
+            <div *ngIf="!logoPreview" class="logo-placeholder">
+              <i class="fas fa-image"></i><span>No logo</span>
+            </div>
+          </div>
+          <div class="logo-actions">
+            <label class="btn-upload" for="logoInput">
+              <i class="fas fa-upload"></i> Upload Logo
+            </label>
+            <input id="logoInput" type="file" accept="image/*" class="hidden-file-input"
+                   (change)="onLogoChange($event)" />
+            <button *ngIf="logoPreview" type="button" class="btn-remove-logo" (click)="removeLogo()">
+              <i class="fas fa-trash-alt"></i> Remove
+            </button>
+            <p class="logo-hint">PNG or JPG, max 2 MB. Appears on printed reports and portal header.</p>
+          </div>
+        </div>
+
+        <dl class="lp-readonly-fields">
+          <dt>Pathology Name</dt><dd>{{ pathName || '—' }}</dd>
+          <dt>Branch / Location</dt><dd>{{ pathBranch || '—' }}</dd>
+          <dt *ngIf="pathCode">Code</dt><dd *ngIf="pathCode">{{ pathCode }}</dd>
+          <dt *ngIf="pathCategory">Category</dt><dd *ngIf="pathCategory">{{ pathCategory }}</dd>
+          <dt>Address</dt><dd>{{ formattedAddress }}</dd>
+          <dt>Primary Contact</dt><dd>{{ pathContactNo || '—' }}</dd>
+          <dt>Email</dt><dd>{{ pathEmail || '—' }}</dd>
+        </dl>
+      </div>
     </div>
 
     <!-- ══ LICENCE INFO (read-only) ══ -->
@@ -42,76 +99,36 @@
             </span>
           </div>
           <div class="lp-licence-item">
+            <span class="lp-licence-label"><i class="fas fa-circle"></i> Status</span>
+            <span class="lp-licence-value">
+              <span class="lp-badge" [class.lp-badge-active]="licenseIsActive" [class.lp-badge-expired]="!licenseIsActive">
+                {{ licenseStatus || '—' }}
+              </span>
+            </span>
+          </div>
+          <div class="lp-licence-item">
             <span class="lp-licence-label"><i class="fas fa-calendar-times"></i> Expiry Date</span>
             <span class="lp-licence-value lp-expiry">{{ formattedLicenseExpiry }}</span>
-          </div>
-          <div class="lp-licence-item lp-licence-item--full">
-            <span class="lp-licence-label"><i class="fas fa-fingerprint"></i> License Key</span>
-            <div class="lp-key-row">
-              <code class="lp-key-value">{{ maskedLicenseKey }}</code>
-              <button type="button" class="lp-key-btn lp-key-btn--eye" (click)="toggleKeyVisibility()"
-                      [title]="licenseKeyVisible ? 'Hide key' : 'Show key'" *ngIf="licenseKey">
-                <i class="fas" [class.fa-eye]="!licenseKeyVisible" [class.fa-eye-slash]="licenseKeyVisible"></i>
-              </button>
-              <button type="button" class="lp-key-btn lp-key-btn--copy" (click)="copyLicenseKey()"
-                      title="Copy key" *ngIf="licenseKey">
-                <i class="fas fa-copy"></i>
-              </button>
-            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Form ── -->
+    <!-- ── Form (local-only fields) ── -->
     <form *ngIf="loadState === 'loaded'" [formGroup]="form" (ngSubmit)="save()" novalidate
           appFormKeyboard [tabFields]="tabFields">
 
-      <!-- ══ Identity & Branding ══ -->
+      <!-- ══ Branding ══ -->
       <div class="profile-card">
         <div class="profile-card-header">
-          <i class="fas fa-id-card"></i>
+          <i class="fas fa-bullhorn"></i>
           <div>
-            <h4 class="profile-card-title">Identity &amp; Branding</h4>
-            <p class="profile-card-sub">Core name, tagline, and logo shown on all reports and communications</p>
+            <h4 class="profile-card-title">Branding</h4>
+            <p class="profile-card-sub">Motto and tagline shown on reports and communications</p>
           </div>
         </div>
         <div class="profile-card-body">
-
-          <!-- Logo upload -->
-          <div class="logo-row">
-            <div class="logo-preview-wrap">
-              <img *ngIf="logoPreview" [src]="logoPreview" alt="Lab Logo" class="logo-preview-img" />
-              <div *ngIf="!logoPreview" class="logo-placeholder">
-                <i class="fas fa-image"></i><span>No logo</span>
-              </div>
-            </div>
-            <div class="logo-actions">
-              <label class="btn-upload" for="logoInput">
-                <i class="fas fa-upload"></i> Upload Logo
-              </label>
-              <input id="logoInput" type="file" accept="image/*" class="hidden-file-input"
-                     (change)="onLogoChange($event)" />
-              <button *ngIf="logoPreview" type="button" class="btn-remove-logo" (click)="removeLogo()">
-                <i class="fas fa-trash-alt"></i> Remove
-              </button>
-              <p class="logo-hint">PNG or JPG, max 2 MB. Appears on printed reports and portal header.</p>
-            </div>
-          </div>
-
           <div class="field-grid">
-            <div class="field field-span2">
-              <label class="field-label">Pathology Name <span class="req">*</span></label>
-              <input type="text" class="field-input" formControlName="path_Name"
-                     placeholder="e.g. City Diagnostic Centre"
-                     [class.is-error]="isInvalid('path_Name')" />
-              <app-field-error [control]="form.get('path_Name')" label="Pathology Name" [forceShow]="submitted"></app-field-error>
-            </div>
-            <div class="field">
-              <label class="field-label">Branch / Location</label>
-              <input type="text" class="field-input" formControlName="path_Branch"
-                     placeholder="e.g. Main Branch, Andheri" />
-            </div>
             <div class="field field-span2">
               <label class="field-label">Motto</label>
               <input type="text" class="field-input" formControlName="path_Motto"
@@ -127,92 +144,23 @@
         </div>
       </div>
 
-      <!-- ══ Address ══ -->
-      <div class="profile-card">
-        <div class="profile-card-header">
-          <i class="fas fa-map-marker-alt"></i>
-          <div>
-            <h4 class="profile-card-title">Address</h4>
-            <p class="profile-card-sub">Printed on reports, bills, and patient receipts</p>
-          </div>
-        </div>
-        <div class="profile-card-body">
-          <div class="field-grid">
-            <div class="field field-span2">
-              <label class="field-label">Address Line 1 <span class="req">*</span></label>
-              <input type="text" class="field-input" formControlName="path_Address1"
-                     placeholder="Building / Street"
-                     [class.is-error]="isInvalid('path_Address1')" />
-              <app-field-error [control]="form.get('path_Address1')" label="Address Line 1" [forceShow]="submitted"></app-field-error>
-            </div>
-            <div class="field field-span2">
-              <label class="field-label">Address Line 2</label>
-              <input type="text" class="field-input" formControlName="path_Address2"
-                     placeholder="Landmark / Area (optional)" />
-            </div>
-            <div class="field">
-              <label class="field-label">City <span class="req">*</span></label>
-              <input type="text" class="field-input" formControlName="path_City"
-                     placeholder="City"
-                     [class.is-error]="isInvalid('path_City')" />
-              <app-field-error [control]="form.get('path_City')" label="City" [forceShow]="submitted"></app-field-error>
-            </div>
-            <div class="field">
-              <label class="field-label">State <span class="req">*</span></label>
-              <input type="text" class="field-input" formControlName="path_State"
-                     placeholder="State"
-                     [class.is-error]="isInvalid('path_State')" />
-              <app-field-error [control]="form.get('path_State')" label="State" [forceShow]="submitted"></app-field-error>
-            </div>
-            <div class="field">
-              <label class="field-label">Country <span class="req">*</span></label>
-              <input type="text" class="field-input" formControlName="path_Country"
-                     placeholder="Country"
-                     [class.is-error]="isInvalid('path_Country')" />
-              <app-field-error [control]="form.get('path_Country')" label="Country" [forceShow]="submitted"></app-field-error>
-            </div>
-            <div class="field">
-              <label class="field-label">Pincode</label>
-              <input type="text" class="field-input" formControlName="path_Pincode"
-                     placeholder="Pincode"
-                     [class.is-error]="isInvalid('path_Pincode')" />
-              <app-field-error [control]="form.get('path_Pincode')" label="Pincode" [forceShow]="submitted"></app-field-error>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══ Contact ══ -->
+      <!-- ══ Additional Contact ══ -->
       <div class="profile-card">
         <div class="profile-card-header">
           <i class="fas fa-phone-alt"></i>
           <div>
-            <h4 class="profile-card-title">Contact Details</h4>
-            <p class="profile-card-sub">Phone, email and web presence</p>
+            <h4 class="profile-card-title">Additional Contact</h4>
+            <p class="profile-card-sub">Secondary phone and web presence (kept in this lab's own records)</p>
           </div>
         </div>
         <div class="profile-card-body">
           <div class="field-grid">
-            <div class="field">
-              <label class="field-label">Primary Contact <span class="req">*</span></label>
-              <input type="tel" class="field-input" formControlName="path_ContactNo"
-                     placeholder="Mobile / Landline" maxlength="10" inputmode="numeric"
-                     [class.is-error]="isInvalid('path_ContactNo')" />
-              <app-field-error [control]="form.get('path_ContactNo')" label="Primary Contact" [forceShow]="submitted"></app-field-error>
-            </div>
             <div class="field">
               <label class="field-label">Alternate Contact</label>
               <input type="tel" class="field-input" formControlName="path_AltContactNo"
                      placeholder="Secondary number" maxlength="10" inputmode="numeric"
                      [class.is-error]="isInvalid('path_AltContactNo')" />
               <app-field-error [control]="form.get('path_AltContactNo')" label="Alternate Contact" [forceShow]="submitted"></app-field-error>
-            </div>
-            <div class="field">
-              <label class="field-label">Email <span class="req">*</span></label>
-              <input type="email" class="field-input" formControlName="path_Email"
-                     placeholder="lab@example.com"
-                     [class.is-error]="isInvalid('path_Email')" />
-              <app-field-error [control]="form.get('path_Email')" label="Email" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="field">
               <label class="field-label">Website</label>

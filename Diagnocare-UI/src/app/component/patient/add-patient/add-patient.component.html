@@ -190,7 +190,7 @@
                   <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                     <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                   </select>
-                  <input type="number" class="form-control" formControlName="patient_Contact"
+                  <input type="number" appNumericOnly class="form-control" formControlName="patient_Contact"
                     placeholder="10-digit mobile number"
                     [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
                 </div>

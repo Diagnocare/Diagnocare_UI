@@ -6,6 +6,7 @@ import {
 } from '@angular/forms';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { switchMap } from 'rxjs/operators';
 import { of, Observable } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -32,7 +33,7 @@ export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
   imports: [
     CommonModule, ReactiveFormsModule,
     LoadingSpinnerComponent, ConfirmModalComponent, SignaturePreviewModalComponent, DatePickerComponent,
-    FieldErrorComponent, FormKeyboardDirective,
+    FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective,
   ]
 })
 export class StaffUnifiedFormComponent implements OnInit {

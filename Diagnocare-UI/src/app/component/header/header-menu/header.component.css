@@ -786,6 +786,18 @@ input.ng-invalid.ng-touched { border-left: 5px solid red; }
   --dd-hover-text: #7c4a18;
 }
 
+/* Warm: the header bar (and profile-card header) stay coloured in every
+   theme, so their text must stay light — the global warm text rule would
+   otherwise darken these spans to brown/black. */
+:host-context(html[data-theme="warm"]) .dc-brand-text,
+:host-context(html[data-theme="warm"]) .dc-username-text,
+:host-context(html[data-theme="warm"]) .dc-username-chip,
+:host-context(html[data-theme="warm"]) .dc-profile-name,
+:host-context(html[data-theme="warm"]) .dc-profile-role,
+:host-context(html[data-theme="warm"]) .dc-profile-id { color: #fff !important; }
+:host-context(html[data-theme="warm"]) .dc-brand-accent,
+:host-context(html[data-theme="warm"]) .dc-profile-brand-text span { color: #ffe0b3 !important; }
+
 :host-context(html[data-theme="warm"]) .dc-dropdown-header {
   background: #fef9f0;
   color: #7c4a18;

@@ -222,7 +222,7 @@
             <ng-container *ngFor="let _ of digits.controls; let i = index">
               <input
                 class="otp-box"
-                type="text"
+                [type]="otpVisible ? 'text' : 'password'"
                 inputmode="numeric"
                 maxlength="1"
                 autocomplete="one-time-code"
@@ -233,6 +233,16 @@
               />
               <span class="otp-box-sep" *ngIf="i === 2">&mdash;</span>
             </ng-container>
+          </div>
+
+          <!-- Show / hide the entered code (masked like a password by default) -->
+          <div class="otp-show-row">
+            <button type="button" class="otp-show-toggle"
+                    (click)="otpVisible = !otpVisible"
+                    [attr.aria-label]="otpVisible ? 'Hide code' : 'Show code'">
+              <i class="fa" [class.fa-eye]="!otpVisible" [class.fa-eye-slash]="otpVisible"></i>
+              {{ otpVisible ? 'Hide code' : 'Show code' }}
+            </button>
           </div>
 
           <!-- Resend (OTP only) -->

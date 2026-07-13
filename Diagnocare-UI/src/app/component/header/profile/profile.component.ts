@@ -19,6 +19,7 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
 
@@ -30,7 +31,7 @@ type EditStep  = 'input' | 'otp' | null;
   templateUrl: './profile.component.html',
   styleUrls: ['../account-pages.shared.css', './profile.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent]
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, NumericOnlyDirective]
 })
 export class ProfileComponent implements OnInit, OnDestroy {
 

@@ -60,6 +60,8 @@ export const apiEndpoints = {
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
   getById: 'GetById',
+  getProfile: 'GetProfile',
+  getProfileVersion: 'GetProfileVersion',
   add: 'Add',
   update: 'Update',
   delete: 'Delete',

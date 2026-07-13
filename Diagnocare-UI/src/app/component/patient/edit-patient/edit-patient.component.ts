@@ -14,13 +14,14 @@ import { salutation, ageGroup, gender, maritalStatus, relations, referredByType 
 import { tabOrderEdit, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 
 @Component({
   selector: 'app-edit-patient',
   templateUrl: './edit-patient.component.html',
   styleUrls: ['./edit-patient.component.scss'],
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective]
+  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective]
 })
 export class EditPatientComponent implements OnInit, OnDestroy {
   

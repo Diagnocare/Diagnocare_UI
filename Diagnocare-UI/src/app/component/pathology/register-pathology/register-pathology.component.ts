@@ -7,6 +7,7 @@ import { PathologyRegisterDto } from 'src/app/models/pathology/pathology-registe
 import { PathologyRegisterResponseDto } from 'src/app/models/pathology/pathology-register-response.dto';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { VALIDATION_PATTERNS } from 'src/app/shared/validators/validation-patterns';
 
@@ -15,7 +16,7 @@ import { VALIDATION_PATTERNS } from 'src/app/shared/validators/validation-patter
   standalone: true,
   templateUrl: './register-pathology.component.html',
   styleUrls: ['./register-pathology.component.css'],
-  imports: [ReactiveFormsModule, CommonModule, RouterModule, FieldErrorComponent, FormKeyboardDirective],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective],
 })
 export class RegisterPathologyComponent implements OnInit {
 
@@ -117,9 +118,9 @@ export class RegisterPathologyComponent implements OnInit {
     return !!(c && c.invalid && (c.touched || this.submitted));
   }
 
-  copyLicenseKey(): void {
-    if (this.registrationResult?.licenseKey) {
-      navigator.clipboard.writeText(this.registrationResult.licenseKey).catch(() => {});
+  copyPathologyId(): void {
+    if (this.registrationResult?.pathId) {
+      navigator.clipboard.writeText(this.registrationResult.pathId).catch(() => {});
     }
   }
 }

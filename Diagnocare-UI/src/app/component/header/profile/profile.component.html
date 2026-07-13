@@ -188,7 +188,7 @@
                       <i class="fas fa-phone prof-input-icon"></i>
                       <input type="tel" class="form-control prof-input"
                              placeholder="Enter 10-digit phone number"
-                             maxlength="10" [(ngModel)]="newPhone" name="newPhone">
+                             maxlength="10" inputmode="numeric" appNumericOnly [(ngModel)]="newPhone" name="newPhone">
                     </div>
                     <button class="prof-send-btn" (click)="sendOtp()" [disabled]="otpSending">
                       <span *ngIf="otpSending" class="spinner-border spinner-border-sm"></span>

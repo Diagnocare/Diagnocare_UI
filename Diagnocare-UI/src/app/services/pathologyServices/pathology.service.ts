@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, Observable, tap, throwError } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { FileToUpload } from 'src/app/models/pathology/fileToUpload';
 import { PathologyListDto } from 'src/app/models/pathology/pathology-list.dto';
@@ -8,9 +8,11 @@ import { PathologyEditDto } from 'src/app/models/pathology/pathology-edit.dto';
 import { PathologyRegisterDto } from 'src/app/models/pathology/pathology-register.dto';
 import { PathologyRegisterResponseDto } from 'src/app/models/pathology/pathology-register-response.dto';
 import { PathologyPublicInfoDto } from 'src/app/models/pathology/pathology-public-info.dto';
+import { PathologyProfileDto } from 'src/app/models/pathology/pathology-profile.dto';
 import { PathologyExtendLicenseDto, PathologyExtendLicenseResponseDto } from 'src/app/models/pathology/pathology-extend-license.dto';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { CommonService } from 'src/app/shared/common.service';
+import { TokenService } from 'src/app/core/interceptors/token.service';
 
 @Injectable({
   providedIn: 'root'
@@ -19,7 +21,11 @@ export class PathologyService {
 
   url:string;
 
-  constructor(private httpClient: HttpClient, private commonService: CommonService) {
+  constructor(
+    private httpClient: HttpClient,
+    private commonService: CommonService,
+    private tokenService: TokenService,
+  ) {
       this.url=getDiagnocareApiUrl()+controllerEndpoints.pathology;
   }
      
@@ -38,7 +44,26 @@ export class PathologyService {
         return this.httpClient.get<PathologyListDto>(geturl).pipe(
           catchError(this.errorHandler));
       }
-      
+
+      /**
+       * Lab profile: identity + license summary from the shared PathologyManager API,
+       * merged with fields that live only in this lab's own database. No raw license
+       * key is ever returned — safe to cache client-side (see PathologyProfileCacheService).
+       */
+      getProfile(): Observable<PathologyProfileDto>
+      {
+        let geturl=this.url+apiEndpoints.getProfile;
+        return this.httpClient.get<PathologyProfileDto>(geturl).pipe(
+          catchError(this.errorHandler));
+      }
+
+      /** Cheap change-check: returns { version } for the lab's shared profile. */
+      getProfileVersion(): Observable<{ version: number }>
+      {
+        return this.httpClient.get<{ version: number }>(this.url + apiEndpoints.getProfileVersion).pipe(
+          catchError(this.errorHandler));
+      }
+
       updatePathology(path: FormData | PathologyEditDto): Observable<PathologyListDto>
       {
         return this.httpClient.put<PathologyListDto>(this.url+apiEndpoints.update, path).pipe(
@@ -76,7 +101,12 @@ export class PathologyService {
         return this.httpClient.put<any>(
           `${this.url}${apiEndpoints.updateGraceBuffer}?graceBufferInMinutes=${minutes}`,
           null
-        ).pipe(catchError(this.errorHandler));
+        ).pipe(
+          // Keep the cached value in sync so callers don't need to (and so the
+          // cache is fresh the next time AppComponent/interceptor reads it,
+          // without another GET round-trip).
+          tap(() => this.tokenService.setGraceBufferMinutes(minutes)),
+          catchError(this.errorHandler));
       }
 
       /**
@@ -87,7 +117,9 @@ export class PathologyService {
         return this.httpClient.put<any>(
           `${this.url}${apiEndpoints.updateMaxDiscount}?maxDiscountPercent=${maxDiscountPercent}`,
           null
-        ).pipe(catchError(this.errorHandler));
+        ).pipe(
+          tap(() => this.tokenService.setMaxDiscountPercent(maxDiscountPercent)),
+          catchError(this.errorHandler));
       }
 
       /**
@@ -98,7 +130,9 @@ export class PathologyService {
         return this.httpClient.put<any>(
           `${this.url}${apiEndpoints.updateSessionLockout}?sessionLockoutMinutes=${sessionLockoutMinutes}`,
           null
-        ).pipe(catchError(this.errorHandler));
+        ).pipe(
+          tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)),
+          catchError(this.errorHandler));
       }
 
       /**

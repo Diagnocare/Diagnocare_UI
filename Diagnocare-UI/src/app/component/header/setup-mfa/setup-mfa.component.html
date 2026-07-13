@@ -160,16 +160,24 @@
       </p>
 
       <div class="otp-wrapper">
-        <input
-          class="otp-input"
-          type="text"
-          inputmode="numeric"
-          maxlength="6"
-          placeholder="000000"
-          autocomplete="one-time-code"
-          [(ngModel)]="disableCode"
-          (keyup.enter)="confirmDisable()"
-        />
+        <div class="otp-input-group">
+          <input
+            class="otp-input"
+            [type]="otpVisible ? 'text' : 'password'"
+            inputmode="numeric"
+            maxlength="6"
+            placeholder="000000"
+            autocomplete="one-time-code"
+            [(ngModel)]="disableCode"
+            (keyup.enter)="confirmDisable()"
+          />
+          <button type="button" class="otp-eye-btn"
+                  (click)="otpVisible = !otpVisible"
+                  [attr.aria-label]="otpVisible ? 'Hide code' : 'Show code'"
+                  [title]="otpVisible ? 'Hide code' : 'Show code'">
+            <i class="fa" [class.fa-eye]="!otpVisible" [class.fa-eye-slash]="otpVisible"></i>
+          </button>
+        </div>
       </div>
 
       <div *ngIf="error" class="msg msg-error">{{ error }}</div>
@@ -250,16 +258,24 @@
       </p>
 
       <div class="otp-wrapper">
-        <input
-          class="otp-input"
-          type="text"
-          inputmode="numeric"
-          maxlength="6"
-          placeholder="000000"
-          autocomplete="one-time-code"
-          [(ngModel)]="verifyCode"
-          (keyup.enter)="verifyAndActivate()"
-        />
+        <div class="otp-input-group">
+          <input
+            class="otp-input"
+            [type]="otpVisible ? 'text' : 'password'"
+            inputmode="numeric"
+            maxlength="6"
+            placeholder="000000"
+            autocomplete="one-time-code"
+            [(ngModel)]="verifyCode"
+            (keyup.enter)="verifyAndActivate()"
+          />
+          <button type="button" class="otp-eye-btn"
+                  (click)="otpVisible = !otpVisible"
+                  [attr.aria-label]="otpVisible ? 'Hide code' : 'Show code'"
+                  [title]="otpVisible ? 'Hide code' : 'Show code'">
+            <i class="fa" [class.fa-eye]="!otpVisible" [class.fa-eye-slash]="otpVisible"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Device name (optional) -->
