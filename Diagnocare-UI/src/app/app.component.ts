@@ -117,19 +117,26 @@ export class AppComponent implements OnInit, OnDestroy {
       this.startSessionServices();
       // Fetch and cache grace buffer minutes so the interceptor can use them
       // on the next request without waiting for the lab-setup page to be opened.
-      this.fetchAndCacheGraceBuffer();
+      // Only hit the DB on the first load after login — once cached in
+      // localStorage, subsequent page loads read from there instead. The
+      // cache is cleared on logout (see TokenService.removeToken) so a new
+      // login always gets fresh values.
+      if (!this.tokenService.hasCachedPolicies()) {
+        this.fetchAndCachePathologyDetails();
+      }
     }
   }
 
   /**
-   * Fetches pathology policy settings and caches them in TokenService so
-   * they are available without waiting for the lab-setup page to open.
-   * Errors are silently ignored — sensible defaults apply:
+   * Fetches pathology policy settings from the DB and caches them in
+   * TokenService (localStorage) so later page loads can read the cache
+   * instead of calling the API again. Errors are silently ignored —
+   * sensible defaults apply:
    *   graceBufferMinutes   → 0   (grace disabled)
    *   maxDiscountPercent   → 50
    *   sessionLockoutMinutes→ 30 minutes
    */
-  private fetchAndCacheGraceBuffer(): void {
+  private fetchAndCachePathologyDetails(): void {
     this.pathologyService.getPathology().subscribe({
       next: (data) => {
         if (data?.graceBufferMinutes !== undefined) {

@@ -56,6 +56,13 @@ export class PinModalComponent implements OnInit, OnDestroy {
   timeRemaining  = MODAL_TIMEOUT_S;
   isTimedOut     = false;
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
+  /** Absolute wall-clock time (ms) at which the modal times out. The countdown
+   *  is derived from this, NOT from decrementing a counter — background tabs
+   *  throttle/suspend setInterval, which would otherwise freeze the timer and
+   *  let the 5-minute window overrun. */
+  private deadline = 0;
+  /** Recomputes the timer the instant the tab regains focus. */
+  private visibilityHandler: (() => void) | null = null;
 
   private modal: any;
   private sub!: Subscription;
@@ -104,28 +111,50 @@ export class PinModalComponent implements OnInit, OnDestroy {
 
   private startCountdown(): void {
     this.stopCountdown();
+    // Anchor the timeout to an absolute wall-clock deadline. Elapsed time is
+    // then measured against Date.now(), so the countdown stays accurate even
+    // when the tab is backgrounded and setInterval is throttled or suspended.
+    this.deadline      = Date.now() + MODAL_TIMEOUT_S * 1000;
+    this.timeRemaining = MODAL_TIMEOUT_S;
+
     // Run the interval inside Angular's zone so each tick triggers change
     // detection and the countdown renders in the DOM.  Bootstrap modal events
     // (show/hide) can fire outside the zone, which would otherwise freeze the
     // displayed timer at its initial value.
     this.ngZone.run(() => {
-      this.countdownInterval = setInterval(() => {
-        this.timeRemaining--;
-        if (this.timeRemaining <= 0) {
-          this.stopCountdown();
-          this.isTimedOut = true;
-          // Give the user 2 s to read the "timed out" message, then log out.
-          setTimeout(() => this.resolveWith(false), 2000);
-        }
-        this.cdr.detectChanges();   // guarantee re-render on every tick
-      }, 1000);
+      this.countdownInterval = setInterval(() => this.tickCountdown(), 1000);
     });
+
+    // Background tabs throttle/suspend the interval, so the deadline may have
+    // already passed by the time the user returns. Recompute the instant the
+    // page becomes visible again to catch up (and time out immediately if due).
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible') this.ngZone.run(() => this.tickCountdown());
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+
+  /** Derives the remaining time from the wall-clock deadline and handles expiry. */
+  private tickCountdown(): void {
+    if (this.isTimedOut) return;
+    this.timeRemaining = Math.max(0, Math.round((this.deadline - Date.now()) / 1000));
+    if (this.timeRemaining <= 0) {
+      this.stopCountdown();
+      this.isTimedOut = true;
+      // Give the user 2 s to read the "timed out" message, then log out.
+      setTimeout(() => this.resolveWith(false), 2000);
+    }
+    this.cdr.detectChanges();   // guarantee re-render on every tick
   }
 
   private stopCountdown(): void {
     if (this.countdownInterval !== null) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
     }
   }
 

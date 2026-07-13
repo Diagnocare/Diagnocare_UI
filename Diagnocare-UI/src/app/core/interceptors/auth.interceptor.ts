@@ -128,7 +128,13 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
           return throwError(() => err);
         }
         // 401 from clock skew or token that expired mid-flight — require PIN.
-        return pinGatedRefresh();
+        // Only when there is an actual session: a 401 with no token simply means
+        // the user isn't logged in (e.g. the public register-pathology page), so
+        // do NOT prompt to set up a PIN — just propagate the error.
+        if (tokenSvc.hasToken()) {
+          return pinGatedRefresh();
+        }
+        return throwError(() => err);
       }
       return throwError(() => err);
     })

@@ -9,6 +9,7 @@ import { takeUntil, filter } from 'rxjs/operators';
 import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { CommonService } from 'src/app/shared/common.service';
@@ -44,6 +45,7 @@ import { TokenService }              from 'src/app/core/interceptors/token.servi
     TpaDetailsModalComponent,
     FieldErrorComponent,
     FormKeyboardDirective,
+    NumericOnlyDirective,
     PaymentCalculatorComponent,
   ],
   providers: [],

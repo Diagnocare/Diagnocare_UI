@@ -56,6 +56,8 @@ export class SetupMfaComponent implements OnInit {
   verifyCode: string = '';
   deviceName: string = '';     // user-supplied label, e.g. "My iPhone"
   verifying: boolean = false;
+  /** Masks the entered TOTP code (like a password); eye toggle reveals it. */
+  otpVisible: boolean = false;
 
   // Disable-confirm state
   disableCode: string = '';

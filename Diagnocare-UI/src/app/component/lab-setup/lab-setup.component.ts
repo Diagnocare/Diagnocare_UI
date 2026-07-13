@@ -320,8 +320,7 @@ export class LabSetupComponent implements OnInit {
     this.pathologyService.updateGraceBuffer(Number(minutes)).subscribe({
       next: () => {
         this.graceBufferMinutes = Number(minutes);
-        // Persist to TokenService cache so the interceptor can read it immediately
-        this.tokenService.setGraceBufferMinutes(Number(minutes));
+        // TokenService cache is updated by PathologyService itself on success.
         this.graceBufferSuccess = 'Grace buffer updated successfully.';
         this.graceBufferSaving  = false;
         setTimeout(() => this.graceBufferSuccess = '', 4000);
@@ -377,7 +376,7 @@ export class LabSetupComponent implements OnInit {
     this.pathologyService.updateMaxDiscount(Number(val)).subscribe({
       next: () => {
         this.maxDiscountValue   = Number(val);
-        this.tokenService.setMaxDiscountPercent(Number(val));
+        // TokenService cache is updated by PathologyService itself on success.
         this.maxDiscountSuccess = 'Max discount updated successfully.';
         this.maxDiscountSaving  = false;
         setTimeout(() => this.maxDiscountSuccess = '', 4000);
@@ -405,7 +404,7 @@ export class LabSetupComponent implements OnInit {
     this.pathologyService.updateSessionLockout(Number(val)).subscribe({
       next: () => {
         this.sessionLockoutValue = Number(val);
-        this.tokenService.setSessionLockoutMinutes(Number(val));
+        // TokenService cache is updated by PathologyService itself on success.
         this.sessionLockoutSuccess = 'Session lockout updated successfully.';
         this.sessionLockoutSaving  = false;
         setTimeout(() => this.sessionLockoutSuccess = '', 4000);

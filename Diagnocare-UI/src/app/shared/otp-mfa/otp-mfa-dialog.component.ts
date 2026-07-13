@@ -101,7 +101,15 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   pendingMethod   = '';
   resendRemaining = 0;
   isSendingOtp    = false;
+  /** Masks the entered code (like a password); the eye toggle reveals it. */
+  otpVisible      = false;
   private timerId: any = null;
+  /** Wall-clock deadlines so the timers stay accurate when the tab is
+   *  backgrounded (setInterval is throttled/suspended in hidden tabs). */
+  private resendDeadline  = 0;
+  private sessionDeadline = 0;
+  /** Recomputes both timers the moment the tab regains focus. */
+  private timerVisibilityHandler: (() => void) | null = null;
 
   // ── Session timer (5 minutes) ─────────────────────────────────────
   readonly sessionSeconds     = 300; // 5 minutes
@@ -482,11 +490,15 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   startResendTimer(): void {
     this.clearResendTimer();
+    this.resendDeadline  = Date.now() + this.resendSeconds * 1000;
     this.resendRemaining = this.resendSeconds;
-    this.timerId = setInterval(() => {
-      if (this.resendRemaining > 0) this.resendRemaining--;
-      if (this.resendRemaining === 0) this.clearResendTimer();
-    }, 1000);
+    this.timerId = setInterval(() => this.tickResend(), 1000);
+  }
+
+  /** Derives the resend countdown from its wall-clock deadline. */
+  private tickResend(): void {
+    this.resendRemaining = Math.max(0, Math.round((this.resendDeadline - Date.now()) / 1000));
+    if (this.resendRemaining === 0) this.clearResendTimer();
   }
 
   clearResendTimer(): void {
@@ -509,24 +521,51 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   startSessionTimer(): void {
     this.clearSessionTimer();
+    this.sessionDeadline    = Date.now() + this.sessionSeconds * 1000;
     this.sessionRemaining   = this.sessionSeconds;
     this.sessionExpiredFlag = false;
     // Wrap in ngZone.run() so each tick triggers Angular change detection
     // even when called from outside the zone (e.g. login/interceptor context).
     this.ngZone.run(() => {
-      this.sessionTimerId = setInterval(() => {
-        if (this.sessionRemaining > 0) {
-          this.sessionRemaining--;
-        } else {
-          this.onSessionExpired();
-        }
-        this.cdr.detectChanges();   // force re-render of ring + progress bar
-      }, 1000);
+      this.sessionTimerId = setInterval(() => this.tickSession(), 1000);
     });
+    this.attachTimerVisibilityHandler();
+  }
+
+  /** Derives the session countdown from its wall-clock deadline and expires
+   *  it once the deadline passes — accurate regardless of tab throttling. */
+  private tickSession(): void {
+    if (this.sessionExpiredFlag) return;
+    this.sessionRemaining = Math.max(0, Math.round((this.sessionDeadline - Date.now()) / 1000));
+    if (this.sessionRemaining <= 0) {
+      this.onSessionExpired();
+    }
+    this.cdr.detectChanges();   // force re-render of ring + progress bar
   }
 
   clearSessionTimer(): void {
     if (this.sessionTimerId) { clearInterval(this.sessionTimerId); this.sessionTimerId = null; }
+    this.detachTimerVisibilityHandler();
+  }
+
+  /** Background tabs throttle/suspend setInterval, so recompute the timers the
+   *  instant the page becomes visible again (and expire immediately if due). */
+  private attachTimerVisibilityHandler(): void {
+    if (this.timerVisibilityHandler) return;
+    this.timerVisibilityHandler = () => {
+      if (document.visibilityState !== 'visible') return;
+      this.ngZone.run(() => {
+        if (this.sessionTimerId) this.tickSession();
+        if (this.timerId)        this.tickResend();
+      });
+    };
+    document.addEventListener('visibilitychange', this.timerVisibilityHandler);
+  }
+
+  private detachTimerVisibilityHandler(): void {
+    if (!this.timerVisibilityHandler) return;
+    document.removeEventListener('visibilitychange', this.timerVisibilityHandler);
+    this.timerVisibilityHandler = null;
   }
 
   private onSessionExpired(): void {

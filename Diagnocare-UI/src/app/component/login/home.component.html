@@ -5,15 +5,17 @@
     <span class="dc-logo-text">Diagno<span class="dc-logo-accent">care</span></span>
   </div>
   <div class="dc-navbar-actions">
-    <!-- Unregistered: show Register -->
+    <a routerLink="/help" class="dc-nav-help">
+      <i class="fas fa-life-ring"></i> Help
+    </a>
+
+    <!-- Single toggle: no pathology → Register; pathology found → Login -->
     <a *ngIf="navState === 'unregistered'"
        routerLink="/register-pathology" class="dc-nav-register">
       <i class="fas fa-hospital-alt"></i> Register Pathology
     </a>
-    <a routerLink="/help" class="dc-nav-help">
-      <i class="fas fa-life-ring"></i> Help
-    </a>
-    <a routerLink="/login" class="dc-nav-login">
+    <a *ngIf="navState === 'registered' || navState === 'extend'"
+       routerLink="/login" class="dc-nav-login">
       <i class="fas fa-sign-in-alt"></i> Login
     </a>
   </div>
