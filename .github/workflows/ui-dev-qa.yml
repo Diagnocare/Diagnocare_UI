@@ -2,7 +2,8 @@
 # UI Build & Deploy (Dev/QA) — fast path
 # - Build on ubuntu-latest (no shared Windows runner queue)
 # - npm cache + sparse checkout
-# - Push → DEV only; manual workflow_dispatch can also deploy QA
+# - Stage via SCP, then robocopy into IIS (avoids deleting site root)
+# - Push → DEV only; workflow_dispatch can also deploy QA
 # ============================================================
 
 name: UI Build & Deploy (Dev/QA)
@@ -61,19 +62,7 @@ jobs:
       - name: Build DEV
         run: npx ng build --configuration development --progress=false
 
-      - name: Stop IIS site (DEV)
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          command_timeout: 2m
-          script: |
-            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.DEV_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }; Write-Host '[OK] DEV site stopped'"
-
-      - name: Upload DEV to IIS
+      - name: Stage DEV build to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -81,13 +70,13 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           source: "Diagnocare-UI/dist/diagnocareUI-app/*"
-          target: ${{ vars.DEV_UI_TARGET_PATH }}
+          target: C:/Temp/ui-dev-${{ github.run_id }}
           strip_components: 3
-          rm: true
           overwrite: true
+          rm: false
           timeout: 2m
 
-      - name: Start IIS site (DEV)
+      - name: Deploy DEV to IIS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -95,16 +84,30 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
-          command_timeout: 2m
+          command_timeout: 3m
           script: |
-            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.DEV_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }; Write-Host '[OK] DEV site started'"
+            powershell.exe -NoProfile -NonInteractive -Command "
+              $ErrorActionPreference = 'Stop'
+              Import-Module WebAdministration
+              $site = '${{ vars.DEV_IIS_SITE_NAME }}'
+              $target = '${{ vars.DEV_UI_TARGET_PATH }}'
+              $stage = 'C:\Temp\ui-dev-${{ github.run_id }}'
+              if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+              if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+              Get-ChildItem -Path $target -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+              robocopy $stage $target /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+              $rc = $LASTEXITCODE
+              if ($rc -ge 8) { throw \"robocopy failed with exit $rc\" }
+              if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+              Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+              Write-Host '[OK] DEV UI deployed'
+            "
 
   deploy-qa:
     name: Build & Deploy QA
     if: github.event_name == 'workflow_dispatch' && inputs.deploy_qa == true
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    # Parallel with DEV on manual runs (no shared runner queue)
     defaults:
       run:
         working-directory: Diagnocare-UI
@@ -131,19 +134,7 @@ jobs:
       - name: Build QA
         run: npx ng build --configuration qa --progress=false
 
-      - name: Stop IIS site (QA)
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          command_timeout: 2m
-          script: |
-            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.QA_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }; Write-Host '[OK] QA site stopped'"
-
-      - name: Upload QA to IIS
+      - name: Stage QA build to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -151,13 +142,13 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           source: "Diagnocare-UI/dist/diagnocareUI-app/*"
-          target: ${{ vars.QA_UI_TARGET_PATH }}
+          target: C:/Temp/ui-qa-${{ github.run_id }}
           strip_components: 3
-          rm: true
           overwrite: true
+          rm: false
           timeout: 2m
 
-      - name: Start IIS site (QA)
+      - name: Deploy QA to IIS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -165,6 +156,21 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
-          command_timeout: 2m
+          command_timeout: 3m
           script: |
-            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.QA_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }; Write-Host '[OK] QA site started'"
+            powershell.exe -NoProfile -NonInteractive -Command "
+              $ErrorActionPreference = 'Stop'
+              Import-Module WebAdministration
+              $site = '${{ vars.QA_IIS_SITE_NAME }}'
+              $target = '${{ vars.QA_UI_TARGET_PATH }}'
+              $stage = 'C:\Temp\ui-qa-${{ github.run_id }}'
+              if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+              if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+              Get-ChildItem -Path $target -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+              robocopy $stage $target /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+              $rc = $LASTEXITCODE
+              if ($rc -ge 8) { throw \"robocopy failed with exit $rc\" }
+              if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+              Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+              Write-Host '[OK] QA UI deployed'
+            "
