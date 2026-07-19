@@ -37,7 +37,7 @@ jobs:
     defaults:
       run:
         working-directory: Diagnocare-UI
-        shell: pwsh
+        shell: powershell
 
     steps:
       - name: Checkout UI only
@@ -84,7 +84,7 @@ jobs:
     defaults:
       run:
         working-directory: Diagnocare-UI
-        shell: pwsh
+        shell: powershell
 
     steps:
       - name: Checkout UI only
