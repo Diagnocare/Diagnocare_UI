@@ -1,7 +1,7 @@
 # ============================================================
 # UI Build & Deploy (Dev/QA) — fast path
 # - Build on ubuntu-latest (cached npm)
-# - Deploy: zip + OpenSSH + remote PowerShell script file
+# - Deploy: zip + OpenSSH + remote PowerShell script
 # - Push → DEV only; workflow_dispatch can also deploy QA
 # ============================================================
 
@@ -74,41 +74,43 @@ jobs:
           set -euo pipefail
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq sshpass >/dev/null
           ZIP="/tmp/ui-dev-${RUN_ID}.zip"
-          PS1="/tmp/deploy-ui-dev.ps1"
+          PS1_LOCAL="/tmp/deploy-ui.ps1"
           (cd Diagnocare-UI/dist/diagnocareUI-app && zip -qr "$ZIP" .)
-          cat > "$PS1" <<'PSEOF'
+          cat > "$PS1_LOCAL" <<'PSEOF'
           param(
             [Parameter(Mandatory=$true)][string]$Site,
             [Parameter(Mandatory=$true)][string]$Target,
             [Parameter(Mandatory=$true)][string]$ZipPath
           )
           $ErrorActionPreference = 'Stop'
+          Write-Host "Site=$Site Target=$Target Zip=$ZipPath"
           Import-Module WebAdministration
           $stage = Join-Path $env:TEMP ("ui-stage-" + [guid]::NewGuid().ToString('N'))
           try {
             if ((Get-Website -Name $Site).State -eq 'Started') { Stop-Website -Name $Site }
             New-Item -ItemType Directory -Path $stage | Out-Null
-            Expand-Archive -Path $ZipPath -DestinationPath $stage -Force
-            if (-not (Test-Path $Target)) { New-Item -ItemType Directory -Path $Target | Out-Null }
-            Get-ChildItem -Path $Target -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            Expand-Archive -LiteralPath $ZipPath -DestinationPath $stage -Force
+            if (-not (Test-Path -LiteralPath $Target)) { New-Item -ItemType Directory -Path $Target | Out-Null }
+            Get-ChildItem -LiteralPath $Target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
             & robocopy $stage $Target /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
             if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit $LASTEXITCODE" }
             if ((Get-Website -Name $Site).State -ne 'Started') { Start-Website -Name $Site }
             Write-Host '[OK] UI deployed'
           } finally {
-            if (Test-Path $stage) { Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue }
-            if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue }
+            if (Test-Path -LiteralPath $stage) { Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue }
+            if (Test-Path -LiteralPath $ZipPath) { Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue }
           }
           PSEOF
-          # Strip leading spaces from heredoc for PowerShell
-          sed -i 's/^          //' "$PS1"
+          sed -i 's/^          //' "$PS1_LOCAL"
+          # Convert IIS target to Windows backslash path for PowerShell -LiteralPath
+          WIN_TARGET="${IIS_TARGET//\//\\}"
           export SSHPASS="$SSH_PASSWORD"
           SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no -o PreferredAuthentications=password -o ConnectTimeout=20 -o ServerAliveInterval=15)
-          REMOTE_ZIP="C:/Temp/ui-dev-${RUN_ID}.zip"
-          REMOTE_PS1="C:/Temp/deploy-ui-dev-${RUN_ID}.ps1"
-          sshpass -e scp "${SSH_OPTS[@]}" -P "$SSH_PORT" "$ZIP" "$PS1" "${SSH_USERNAME}@${SSH_HOST}:C:/Temp/"
+          sshpass -e ssh "${SSH_OPTS[@]}" -p "$SSH_PORT" "${SSH_USERNAME}@${SSH_HOST}" "cmd /c if not exist C:\\Temp mkdir C:\\Temp"
+          sshpass -e scp "${SSH_OPTS[@]}" -P "$SSH_PORT" "$ZIP" "$PS1_LOCAL" "${SSH_USERNAME}@${SSH_HOST}:C:/Temp/"
+          # Unquoted args — Windows OpenSSH preserves them correctly
           sshpass -e ssh "${SSH_OPTS[@]}" -p "$SSH_PORT" "${SSH_USERNAME}@${SSH_HOST}" \
-            "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\Temp\\deploy-ui-dev.ps1 -Site '${IIS_SITE}' -Target '${IIS_TARGET}' -ZipPath 'C:\\Temp\\ui-dev-${RUN_ID}.zip'"
+            "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\Temp\\deploy-ui.ps1 -Site ${IIS_SITE} -Target ${WIN_TARGET} -ZipPath C:\\Temp\\ui-dev-${RUN_ID}.zip"
 
   deploy-qa:
     name: Build & Deploy QA
@@ -155,35 +157,38 @@ jobs:
           set -euo pipefail
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq sshpass >/dev/null
           ZIP="/tmp/ui-qa-${RUN_ID}.zip"
-          PS1="/tmp/deploy-ui-qa.ps1"
+          PS1_LOCAL="/tmp/deploy-ui.ps1"
           (cd Diagnocare-UI/dist/diagnocareUI-app && zip -qr "$ZIP" .)
-          cat > "$PS1" <<'PSEOF'
+          cat > "$PS1_LOCAL" <<'PSEOF'
           param(
             [Parameter(Mandatory=$true)][string]$Site,
             [Parameter(Mandatory=$true)][string]$Target,
             [Parameter(Mandatory=$true)][string]$ZipPath
           )
           $ErrorActionPreference = 'Stop'
+          Write-Host "Site=$Site Target=$Target Zip=$ZipPath"
           Import-Module WebAdministration
           $stage = Join-Path $env:TEMP ("ui-stage-" + [guid]::NewGuid().ToString('N'))
           try {
             if ((Get-Website -Name $Site).State -eq 'Started') { Stop-Website -Name $Site }
             New-Item -ItemType Directory -Path $stage | Out-Null
-            Expand-Archive -Path $ZipPath -DestinationPath $stage -Force
-            if (-not (Test-Path $Target)) { New-Item -ItemType Directory -Path $Target | Out-Null }
-            Get-ChildItem -Path $Target -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            Expand-Archive -LiteralPath $ZipPath -DestinationPath $stage -Force
+            if (-not (Test-Path -LiteralPath $Target)) { New-Item -ItemType Directory -Path $Target | Out-Null }
+            Get-ChildItem -LiteralPath $Target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
             & robocopy $stage $Target /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
             if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit $LASTEXITCODE" }
             if ((Get-Website -Name $Site).State -ne 'Started') { Start-Website -Name $Site }
             Write-Host '[OK] UI deployed'
           } finally {
-            if (Test-Path $stage) { Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue }
-            if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue }
+            if (Test-Path -LiteralPath $stage) { Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue }
+            if (Test-Path -LiteralPath $ZipPath) { Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue }
           }
           PSEOF
-          sed -i 's/^          //' "$PS1"
+          sed -i 's/^          //' "$PS1_LOCAL"
+          WIN_TARGET="${IIS_TARGET//\//\\}"
           export SSHPASS="$SSH_PASSWORD"
           SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no -o PreferredAuthentications=password -o ConnectTimeout=20 -o ServerAliveInterval=15)
-          sshpass -e scp "${SSH_OPTS[@]}" -P "$SSH_PORT" "$ZIP" "$PS1" "${SSH_USERNAME}@${SSH_HOST}:C:/Temp/"
+          sshpass -e ssh "${SSH_OPTS[@]}" -p "$SSH_PORT" "${SSH_USERNAME}@${SSH_HOST}" "cmd /c if not exist C:\\Temp mkdir C:\\Temp"
+          sshpass -e scp "${SSH_OPTS[@]}" -P "$SSH_PORT" "$ZIP" "$PS1_LOCAL" "${SSH_USERNAME}@${SSH_HOST}:C:/Temp/"
           sshpass -e ssh "${SSH_OPTS[@]}" -p "$SSH_PORT" "${SSH_USERNAME}@${SSH_HOST}" \
-            "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\Temp\\deploy-ui-qa.ps1 -Site '${IIS_SITE}' -Target '${IIS_TARGET}' -ZipPath 'C:\\Temp\\ui-qa-${RUN_ID}.zip'"
+            "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\\Temp\\deploy-ui.ps1 -Site ${IIS_SITE} -Target ${WIN_TARGET} -ZipPath C:\\Temp\\ui-qa-${RUN_ID}.zip"
