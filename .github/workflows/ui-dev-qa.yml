@@ -1,7 +1,7 @@
 # ============================================================
-# UI Build & Deploy (Dev/QA) — fast path
-# - Build on ubuntu-latest (cached npm)
-# - Zip build, SCP single file, remote Expand-Archive + robocopy
+# UI Build & Deploy (Dev/QA) — fast local path
+# - Dedicated windows-ui-builder (no queue behind API runner)
+# - Local npm build + robocopy into IIS (no slow SCP from GitHub)
 # - Push → DEV only; workflow_dispatch can also deploy QA
 # ============================================================
 
@@ -32,11 +32,12 @@ env:
 jobs:
   deploy-dev:
     name: Build & Deploy DEV
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
+    runs-on: [self-hosted, windows-ui-builder]
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: Diagnocare-UI
+        shell: pwsh
 
     steps:
       - name: Checkout UI only
@@ -47,59 +48,43 @@ jobs:
           sparse-checkout-cone-mode: true
           fetch-depth: 1
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: Diagnocare-UI/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Build DEV
-        run: npx ng build --configuration development --progress=false
-
-      - name: Zip DEV build
+      - name: Verify Node
         working-directory: .
         run: |
-          mkdir -p .deploy
-          (cd Diagnocare-UI/dist/diagnocareUI-app && zip -qr "$GITHUB_WORKSPACE/.deploy/ui-dev.zip" .)
-          ls -lh .deploy/ui-dev.zip
+          node -v
+          npm -v
 
-      - name: Upload DEV zip
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: ".deploy/ui-dev.zip"
-          target: "C:/Temp"
-          overwrite: true
-          rm: false
-          timeout: 3m
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Build DEV
+        run: npx --yes ng build --configuration development --progress=false
 
       - name: Deploy DEV to IIS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          command_timeout: 5m
-          script: |
-            powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; Import-Module WebAdministration; $site='${{ vars.DEV_IIS_SITE_NAME }}'; $target='${{ vars.DEV_UI_TARGET_PATH }}'; $zip='C:\Temp\.deploy\ui-dev.zip'; if (-not (Test-Path -LiteralPath $zip)) { $zip='C:\Temp\ui-dev.zip' }; if (-not (Test-Path -LiteralPath $zip)) { Get-ChildItem -Recurse C:\Temp -Filter ui-dev.zip | Select-Object -First 1 -ExpandProperty FullName | ForEach-Object { $zip = $_ } }; Write-Host \"Using zip=$zip\"; if (-not (Test-Path -LiteralPath $zip)) { throw 'zip not found' }; $stage=Join-Path $env:TEMP ('ui-stage-' + [guid]::NewGuid().ToString('N')); if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }; New-Item -ItemType Directory -Path $stage | Out-Null; Expand-Archive -LiteralPath $zip -DestinationPath $stage -Force; if (-not (Test-Path -LiteralPath $target)) { New-Item -ItemType Directory -Path $target | Out-Null }; Get-ChildItem -LiteralPath $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; & robocopy $stage $target /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null; if ($LASTEXITCODE -ge 8) { throw \"robocopy failed $LASTEXITCODE\" }; if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }; Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue; Remove-Item -Force $zip -ErrorAction SilentlyContinue; Write-Host '[OK] DEV UI deployed'"
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $site = '${{ vars.DEV_IIS_SITE_NAME }}'
+          $target = '${{ vars.DEV_UI_TARGET_PATH }}'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          Write-Host '[OK] DEV UI deployed'
 
   deploy-qa:
     name: Build & Deploy QA
     if: github.event_name == 'workflow_dispatch' && inputs.deploy_qa == true
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
+    runs-on: [self-hosted, windows-ui-builder]
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: Diagnocare-UI
+        shell: pwsh
 
     steps:
       - name: Checkout UI only
@@ -110,47 +95,30 @@ jobs:
           sparse-checkout-cone-mode: true
           fetch-depth: 1
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: Diagnocare-UI/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Build QA
-        run: npx ng build --configuration qa --progress=false
-
-      - name: Zip QA build
+      - name: Verify Node
         working-directory: .
         run: |
-          mkdir -p .deploy
-          (cd Diagnocare-UI/dist/diagnocareUI-app && zip -qr "$GITHUB_WORKSPACE/.deploy/ui-qa.zip" .)
-          ls -lh .deploy/ui-qa.zip
+          node -v
+          npm -v
 
-      - name: Upload QA zip
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: ".deploy/ui-qa.zip"
-          target: "C:/Temp"
-          overwrite: true
-          rm: false
-          timeout: 3m
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Build QA
+        run: npx --yes ng build --configuration qa --progress=false
 
       - name: Deploy QA to IIS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          command_timeout: 5m
-          script: |
-            powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; Import-Module WebAdministration; $site='${{ vars.QA_IIS_SITE_NAME }}'; $target='${{ vars.QA_UI_TARGET_PATH }}'; $zip='C:\Temp\.deploy\ui-qa.zip'; if (-not (Test-Path -LiteralPath $zip)) { $zip='C:\Temp\ui-qa.zip' }; if (-not (Test-Path -LiteralPath $zip)) { Get-ChildItem -Recurse C:\Temp -Filter ui-qa.zip | Select-Object -First 1 -ExpandProperty FullName | ForEach-Object { $zip = $_ } }; Write-Host \"Using zip=$zip\"; if (-not (Test-Path -LiteralPath $zip)) { throw 'zip not found' }; $stage=Join-Path $env:TEMP ('ui-stage-' + [guid]::NewGuid().ToString('N')); if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }; New-Item -ItemType Directory -Path $stage | Out-Null; Expand-Archive -LiteralPath $zip -DestinationPath $stage -Force; if (-not (Test-Path -LiteralPath $target)) { New-Item -ItemType Directory -Path $target | Out-Null }; Get-ChildItem -LiteralPath $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; & robocopy $stage $target /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null; if ($LASTEXITCODE -ge 8) { throw \"robocopy failed $LASTEXITCODE\" }; if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }; Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue; Remove-Item -Force $zip -ErrorAction SilentlyContinue; Write-Host '[OK] QA UI deployed'"
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $site = '${{ vars.QA_IIS_SITE_NAME }}'
+          $target = '${{ vars.QA_UI_TARGET_PATH }}'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          Write-Host '[OK] QA UI deployed'
