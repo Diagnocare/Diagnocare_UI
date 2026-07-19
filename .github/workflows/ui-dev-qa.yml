@@ -1,0 +1,170 @@
+# ============================================================
+# UI Build & Deploy (Dev/QA) — fast path
+# - Build on ubuntu-latest (no shared Windows runner queue)
+# - npm cache + sparse checkout
+# - Push → DEV only; manual workflow_dispatch can also deploy QA
+# ============================================================
+
+name: UI Build & Deploy (Dev/QA)
+
+on:
+  push:
+    branches:
+      - master_UI
+    paths:
+      - "Diagnocare-UI/**"
+      - ".github/workflows/ui-dev-qa.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_qa:
+        description: "Also deploy QA (builds QA config in parallel with DEV)"
+        type: boolean
+        default: false
+        required: true
+
+concurrency:
+  group: ui-dev-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: ${{ vars.NODE_VERSION || '22' }}
+  UI_DIR: Diagnocare-UI
+
+jobs:
+  deploy-dev:
+    name: Build & Deploy DEV
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: Diagnocare-UI
+
+    steps:
+      - name: Checkout UI only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Diagnocare-UI
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Diagnocare-UI/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build DEV
+        run: npx ng build --configuration development --progress=false
+
+      - name: Stop IIS site (DEV)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          command_timeout: 2m
+          script: |
+            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.DEV_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }; Write-Host '[OK] DEV site stopped'"
+
+      - name: Upload DEV to IIS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "Diagnocare-UI/dist/diagnocareUI-app/*"
+          target: ${{ vars.DEV_UI_TARGET_PATH }}
+          strip_components: 3
+          rm: true
+          overwrite: true
+          timeout: 2m
+
+      - name: Start IIS site (DEV)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          command_timeout: 2m
+          script: |
+            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.DEV_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }; Write-Host '[OK] DEV site started'"
+
+  deploy-qa:
+    name: Build & Deploy QA
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_qa == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    # Parallel with DEV on manual runs (no shared runner queue)
+    defaults:
+      run:
+        working-directory: Diagnocare-UI
+
+    steps:
+      - name: Checkout UI only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Diagnocare-UI
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Diagnocare-UI/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build QA
+        run: npx ng build --configuration qa --progress=false
+
+      - name: Stop IIS site (QA)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          command_timeout: 2m
+          script: |
+            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.QA_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }; Write-Host '[OK] QA site stopped'"
+
+      - name: Upload QA to IIS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "Diagnocare-UI/dist/diagnocareUI-app/*"
+          target: ${{ vars.QA_UI_TARGET_PATH }}
+          strip_components: 3
+          rm: true
+          overwrite: true
+          timeout: 2m
+
+      - name: Start IIS site (QA)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          command_timeout: 2m
+          script: |
+            powershell.exe -NoProfile -NonInteractive -Command "Import-Module WebAdministration; $site='${{ vars.QA_IIS_SITE_NAME }}'; if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }; Write-Host '[OK] QA site started'"
