@@ -258,7 +258,7 @@ export const labSetupMenu = {
  * Items with `superAdminOnly: true` are visible only to Super Admins.
  * All other items are visible to both Admin and Super Admin.
  */
-export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; superAdminOnly?: boolean }> = {
+export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; adminOnly?: boolean }> = {
   userDetails:   { id: 'userDetails',   label: 'User details',      route: 'users',           icon: 'fa-user-cog' },
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave' },
@@ -267,7 +267,7 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
   // Super Admin only — template management
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt', superAdminOnly: true },
+  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt', adminOnly: true },
 };
 
 /**

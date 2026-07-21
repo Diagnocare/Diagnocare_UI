@@ -24,10 +24,6 @@ export class LicenceExpiredComponent implements OnInit {
     private router: Router
   ) {}
 
-  get isSuperAdmin(): boolean {
-    return this.tokenService.isSuperAdmin();
-  }
-
   ngOnInit(): void {
     this.licenceSvc.load().subscribe(() => {
       this.expiryDate    = this.licenceSvc.expiryDate;

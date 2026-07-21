@@ -114,7 +114,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   private buildCards(): void {
     const isAdmin      = this.tokenService.isAdmin();
-    const isSuperAdmin = this.tokenService.isSuperAdmin();
 
     const patientCards: ActionCard[] = [
       {
@@ -185,7 +184,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     }
 
     const systemCards: ActionCard[] = [];
-    if (isSuperAdmin) {
       systemCards.push(
         {
           title: 'Lab Profile',
@@ -209,7 +207,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
           color: 'violet'
         },
       );
-    }
 
     const accountCards: ActionCard[] = [
       {
