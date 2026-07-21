@@ -2,7 +2,11 @@
 # UI Build & Deploy (Dev/QA) — fast local path
 # - Dedicated windows-ui-builder (no queue behind API runner)
 # - Local npm build + robocopy into IIS (no slow SCP from GitHub)
-# - Push → DEV only; workflow_dispatch can also deploy QA
+# Triggers:
+#   push to master_UI     → build + deploy DEV (automatic)
+#   manual "Run workflow" → build + deploy QA  (your approval:
+#                           run it once DEV looks good)
+# DEV and QA never share a run, so QA never queues behind DEV.
 # ============================================================
 
 name: UI Build & Deploy (Dev/QA)
@@ -14,16 +18,11 @@ on:
     paths:
       - "Diagnocare-UI/**"
       - ".github/workflows/ui-dev-qa.yml"
-  workflow_dispatch:
-    inputs:
-      deploy_qa:
-        description: "Also deploy QA (builds QA config in parallel with DEV)"
-        type: boolean
-        default: false
-        required: true
+  workflow_dispatch: {}
 
 concurrency:
-  group: ui-dev-qa-${{ github.ref }}
+  # Keyed by event too, so a manual QA run never cancels an in-flight DEV push.
+  group: ui-dev-qa-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
@@ -32,6 +31,7 @@ env:
 jobs:
   deploy-dev:
     name: Build & Deploy DEV
+    if: github.event_name == 'push'
     runs-on: [self-hosted, windows-ui-builder]
     timeout-minutes: 15
     defaults:
@@ -78,7 +78,7 @@ jobs:
 
   deploy-qa:
     name: Build & Deploy QA
-    if: github.event_name == 'workflow_dispatch' && (inputs.deploy_qa == true || inputs.deploy_qa == 'true')
+    if: github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, windows-ui-builder]
     timeout-minutes: 15
     defaults:
