@@ -1,0 +1,124 @@
+# ============================================================
+# UI Build & Deploy (Dev/QA) — fast local path
+# - Dedicated windows-ui-builder (no queue behind API runner)
+# - Local npm build + robocopy into IIS (no slow SCP from GitHub)
+# - Push → DEV only; workflow_dispatch can also deploy QA
+# ============================================================
+
+name: UI Build & Deploy (Dev/QA)
+
+on:
+  push:
+    branches:
+      - master_UI
+    paths:
+      - "Diagnocare-UI/**"
+      - ".github/workflows/ui-dev-qa.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_qa:
+        description: "Also deploy QA (builds QA config in parallel with DEV)"
+        type: boolean
+        default: false
+        required: true
+
+concurrency:
+  group: ui-dev-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: ${{ vars.NODE_VERSION || '22' }}
+
+jobs:
+  deploy-dev:
+    name: Build & Deploy DEV
+    runs-on: [self-hosted, windows-ui-builder]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Diagnocare-UI
+        shell: powershell
+
+    steps:
+      - name: Checkout UI only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Diagnocare-UI
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: Verify Node
+        working-directory: .
+        run: |
+          node -v
+          npm -v
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Build DEV
+        run: npx --yes ng build --configuration development --progress=false
+
+      - name: Deploy DEV to IIS
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $site = '${{ vars.DEV_IIS_SITE_NAME }}'
+          $target = '${{ vars.DEV_UI_TARGET_PATH }}'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          Write-Host '[OK] DEV UI deployed'
+
+  deploy-qa:
+    name: Build & Deploy QA
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_qa == true
+    runs-on: [self-hosted, windows-ui-builder]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Diagnocare-UI
+        shell: powershell
+
+    steps:
+      - name: Checkout UI only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Diagnocare-UI
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: Verify Node
+        working-directory: .
+        run: |
+          node -v
+          npm -v
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Build QA
+        run: npx --yes ng build --configuration qa --progress=false
+
+      - name: Deploy QA to IIS
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $site = '${{ vars.QA_IIS_SITE_NAME }}'
+          $target = '${{ vars.QA_UI_TARGET_PATH }}'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          Write-Host '[OK] QA UI deployed'
