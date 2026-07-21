@@ -78,7 +78,7 @@ jobs:
 
   deploy-qa:
     name: Build & Deploy QA
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy_qa == true
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_qa == 'true'
     runs-on: [self-hosted, windows-ui-builder]
     timeout-minutes: 15
     defaults:
