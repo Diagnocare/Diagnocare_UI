@@ -422,14 +422,18 @@ export class LoginComponent implements OnInit, OnDestroy {
    * so each role arrives at the correct starting page.
    */
   private handleSuccessfulLogin(resp: any): void {
+    console.log('handleSuccessfulLogin: resp =', resp);
     const expiryDaysLeft = this.getPasswordExpiryDaysLeft();
+    console.log('handleSuccessfulLogin: expiryDaysLeft =', expiryDaysLeft);
     if (expiryDaysLeft !== null && expiryDaysLeft <= 0) {
+      console.log('handleSuccessfulLogin: password expired, redirecting to forgot-password');
       this.closeOtpDialog();
       this.toastr.warning('Your password has expired. Please reset it to continue.');
       this._router.navigate(['forgot-password'], { queryParams: { expired: true } });
       return;
     }
-
+console.log('handleSuccessfulLogin: password not expired, proceeding with login');
+console.log('handleSuccessfulLogin: resp.token =', resp.token);
     if (resp.token) {
       // Token already stored in localStorage by verifyAuth()'s tap() — no action needed here.
       this.toastr.success('Login successful!');
