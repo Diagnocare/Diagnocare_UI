@@ -38,20 +38,6 @@ export interface ModuleAccess {
 }
 
 export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
-  [Role.Super_Admin.id]: {
-    home:             true,
-    labOps:           true,
-    summaryReports:   true,
-    labSetup:         true,
-    adminPanel:       true,
-    patientsLink:     false,
-    patientTestsLink: false,
-    myVisits:         false,
-    myAttendance:     false,   // Admins see all staff via the full Attendance module
-    userPanel:        false,   // Admins use the full Admin Panel instead
-    attendanceRequests: true,  // Admins review/approve requests
-    landingRoute:     '/pathology',
-  },
   [Role.Admin.id]: {
     home:             true,
     labOps:           true,

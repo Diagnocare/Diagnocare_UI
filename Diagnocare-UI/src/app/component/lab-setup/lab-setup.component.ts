@@ -72,7 +72,7 @@ export class LabSetupComponent implements OnInit {
   /** True when the current user is an Admin or Super Admin — only they may edit policies. */
   get isAdmin(): boolean {
     const role = this.tokenService.getUserRole();
-    return role === Role.Admin.id || role === Role.Super_Admin.id;
+    return role === Role.Admin.id;
   }
 
   constructor(

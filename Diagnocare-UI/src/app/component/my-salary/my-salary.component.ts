@@ -76,7 +76,6 @@ export class MySalaryComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Everyone except Super Admin may view their own payments. (The Owner account —
     // last name "admin" — is excluded server-side.)
-    this.canView = !this.tokenSvc.isSuperAdmin();
     if (this.canView) this.loadPayments();
   }
 

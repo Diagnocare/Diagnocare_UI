@@ -76,8 +76,8 @@ export class TemplateComponent implements OnInit, OnDestroy {
     private tokenService: TokenService
   ) {}
 
-  get isSuperAdmin(): boolean {
-    return this.tokenService.isSuperAdmin();
+  get isAdmin(): boolean {
+    return this.tokenService.isAdmin();
   }
 
   openDesigner(): void {

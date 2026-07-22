@@ -9,7 +9,6 @@ export const Role = {
   User:           { id: 1 as const, label: 'User'           as const },
   Assistant:      { id: 2 as const, label: 'Assistant'      as const },
   Admin:          { id: 3 as const, label: 'Admin'          as const },
-  Super_Admin:    { id: 4 as const, label: 'Super Admin'    as const },
   Collection_Boy: { id: 5 as const, label: 'Collection Boy' as const },
   Doctor:         { id: 6 as const, label: 'Doctor'         as const },
 } as const;

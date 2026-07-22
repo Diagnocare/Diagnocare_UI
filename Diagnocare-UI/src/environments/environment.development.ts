@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  //diagnocareApiURL: 'http://diagnocaredevapi:81/',
+  // diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   diagnocareApiURL: 'https://localhost:44346/',
   loginUIUrl: 'http://diagnocaredev/',
   basicAuth: {

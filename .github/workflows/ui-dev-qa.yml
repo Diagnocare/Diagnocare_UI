@@ -1,0 +1,239 @@
+# ============================================================
+# UI Build & Deploy (Dev → approve → QA) — fast local path
+# - Dedicated windows-ui-builder (no queue behind API runner)
+# - Local npm build + robocopy into IIS (no slow SCP from GitHub)
+# Triggers: push to master_UI (or manual "Run workflow").
+# Flow in ONE run:
+#   deploy DEV → approval gate → deploy QA
+# The approval gate opens a GitHub issue and waits for an authorized user
+# to comment "/approve" before QA runs ("/deny" or timeout cancels QA).
+# ============================================================
+
+name: UI Build & Deploy (Dev/QA)
+
+on:
+  push:
+    branches:
+      - master_UI
+    paths:
+      - "Diagnocare-UI/**"
+      - ".github/workflows/ui-dev-qa.yml"
+  workflow_dispatch: {}
+
+# GITHUB_TOKEN needs to open/close the approval issue and read its comments.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  # Serialize runs on the same branch; don't cancel an in-progress deploy/approval.
+  group: ui-dev-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: ${{ vars.NODE_VERSION || '22' }}
+  # Optional: comma-separated GitHub logins allowed to approve QA.
+  # Leave the repo variable unset to allow anyone with repo write access.
+  QA_APPROVERS: ${{ vars.QA_APPROVERS }}
+
+jobs:
+  # ============================================================
+  # JOB 1: Build & Deploy DEV (automatic)
+  # ============================================================
+  deploy-dev:
+    name: Build & Deploy DEV
+    runs-on: [self-hosted, windows-ui-builder]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Diagnocare-UI
+        shell: powershell
+
+    steps:
+      - name: Checkout UI only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Diagnocare-UI
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: Verify Node
+        working-directory: .
+        run: |
+          node -v
+          npm -v
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Build DEV
+        run: npx --yes ng build --configuration development --progress=false
+
+      - name: Deploy DEV to IIS
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $site = '${{ vars.DEV_IIS_SITE_NAME }}'
+          $target = '${{ vars.DEV_UI_TARGET_PATH }}'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          Write-Host '[OK] DEV UI deployed'
+
+  # ============================================================
+  # JOB 2: Approval gate (custom, runs on the self-hosted runner)
+  # Opens a GitHub issue after DEV and waits for "/approve" from an
+  # authorized user before allowing QA. "/deny" or timeout fails the gate,
+  # which skips QA. No hosted-runner minutes are used.
+  # ============================================================
+  approve-qa:
+    name: Await QA approval
+    needs: deploy-dev
+    runs-on: [self-hosted, windows-ui-builder]
+
+    steps:
+      - name: Wait for /approve on a GitHub issue
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVAL_TIMEOUT_MINUTES: '120'   # gate fails (QA skipped) after this
+          POLL_SECONDS: '20'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo    = '${{ github.repository }}'
+          $apiBase = "${{ github.api_url }}/repos/$repo"
+          $headers = @{
+            Authorization = "token $env:GH_TOKEN"
+            Accept        = 'application/vnd.github+json'
+            'User-Agent'  = 'diagnocare-approval-gate'
+          }
+
+          # Parse optional allow-list of approver logins (case-insensitive).
+          $allowList = @()
+          if (-not [string]::IsNullOrWhiteSpace($env:QA_APPROVERS)) {
+            $allowList = $env:QA_APPROVERS.Split(',') | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ }
+          }
+          # Anyone in these repo roles may approve when no allow-list is set.
+          $allowedRoles = @('OWNER','MEMBER','COLLABORATOR')
+
+          $runUrl = "${{ github.server_url }}/$repo/actions/runs/${{ github.run_id }}"
+          $sha    = '${{ github.sha }}'.Substring(0,7)
+          $title  = "Deploy UI to QA approval - run ${{ github.run_id }} ($sha)"
+          $body   = @"
+          DEV deployment succeeded for commit $sha.
+
+          Comment '/approve' on this issue to deploy the UI to QA, or '/deny' to cancel.
+          This gate times out in $env:APPROVAL_TIMEOUT_MINUTES minutes.
+
+          Workflow run: $runUrl
+          "@
+
+          # Create the approval issue.
+          $issue = Invoke-RestMethod -Method Post -Uri "$apiBase/issues" -Headers $headers -Body (
+            @{ title = $title; body = $body } | ConvertTo-Json)
+          $issueNumber = $issue.number
+          Write-Host "Approval issue #$issueNumber opened: $($issue.html_url)"
+
+          $deadline   = (Get-Date).AddMinutes([int]$env:APPROVAL_TIMEOUT_MINUTES)
+          $decision   = $null
+          $decidedBy  = $null
+
+          while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds ([int]$env:POLL_SECONDS)
+            try {
+              $comments = Invoke-RestMethod -Method Get -Headers $headers `
+                -Uri "$apiBase/issues/$issueNumber/comments?per_page=100"
+            } catch {
+              Write-Warning "Comment poll failed: $($_.Exception.Message)"; continue
+            }
+
+            foreach ($c in $comments) {
+              $text  = ($c.body).Trim().ToLower()
+              $login = ($c.user.login).ToLower()
+              $assoc = $c.author_association
+
+              $authorized = $false
+              if ($allowList.Count -gt 0) {
+                $authorized = $allowList -contains $login
+              } else {
+                $authorized = $allowedRoles -contains $assoc
+              }
+
+              if (-not $authorized) { continue }
+              if ($text -match '^/approve\b') { $decision = 'approved'; $decidedBy = $login; break }
+              if ($text -match '^/deny\b')    { $decision = 'denied';   $decidedBy = $login; break }
+            }
+            if ($decision) { break }
+          }
+
+          # Close the issue and record the outcome.
+          if (-not $decision) { $decision = 'timeout' }
+          $note = switch ($decision) {
+            'approved' { "Approved by @$decidedBy - proceeding to QA." }
+            'denied'   { "Denied by @$decidedBy - QA deployment cancelled." }
+            default    { "No approval within $env:APPROVAL_TIMEOUT_MINUTES minutes - QA deployment cancelled." }
+          }
+          Invoke-RestMethod -Method Post -Headers $headers `
+            -Uri "$apiBase/issues/$issueNumber/comments" -Body (@{ body = $note } | ConvertTo-Json) | Out-Null
+          Invoke-RestMethod -Method Patch -Headers $headers `
+            -Uri "$apiBase/issues/$issueNumber" -Body (@{ state = 'closed' } | ConvertTo-Json) | Out-Null
+
+          Write-Host $note
+          if ($decision -ne 'approved') { exit 1 }
+          Write-Host "[OK] QA approved"
+
+  # ============================================================
+  # JOB 3: Build & Deploy QA (runs only after the approval gate passes)
+  # ============================================================
+  deploy-qa:
+    name: Build & Deploy QA
+    needs: approve-qa
+    runs-on: [self-hosted, windows-ui-builder]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Diagnocare-UI
+        shell: powershell
+
+    steps:
+      - name: Checkout UI only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Diagnocare-UI
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: Verify Node
+        working-directory: .
+        run: |
+          node -v
+          npm -v
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Build QA
+        run: npx --yes ng build --configuration qa --progress=false
+
+      - name: Deploy QA to IIS
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+          $site = '${{ vars.QA_IIS_SITE_NAME }}'
+          $target = '${{ vars.QA_UI_TARGET_PATH }}'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          Write-Host '[OK] QA UI deployed'

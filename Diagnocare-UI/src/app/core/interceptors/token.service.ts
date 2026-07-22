@@ -371,8 +371,7 @@ export class TokenService {
     return current !== null && roles.includes(current);
   }
 
-  isAdmin(): boolean    { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
-  isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
+  isAdmin(): boolean    { return this.hasRole(Role.Admin.id); }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
 
