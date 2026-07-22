@@ -62,9 +62,8 @@
             </div>
             <div class="form-group">
               <label class="form-label">Age Group</label>
-              <select formControlName="patient_Age_Group" class="form-select" [attr.tabindex]="getTabIndex('patient_Age_Group')">
-                <option *ngFor="let entry of ageRange" [value]="entry">{{ entry }}</option>
-              </select>
+              <input type="text" class="form-control" formControlName="patient_Age_Group"
+                     placeholder="Auto-calculated from Date of Birth" readonly [attr.tabindex]="getTabIndex('patient_Age_Group')" />
             </div>
           </div>
 
