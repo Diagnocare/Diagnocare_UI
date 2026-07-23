@@ -436,8 +436,11 @@ console.log('handleSuccessfulLogin: password not expired, proceeding with login'
 console.log('handleSuccessfulLogin: resp.token =', resp.token);
     if (resp.token) {
       // Token already stored in localStorage by verifyAuth()'s tap() — no action needed here.
+      console.log('handleSuccessfulLogin: token already stored, proceeding with navigation');
       this.toastr.success('Login successful!');
+
       this.closeOtpDialog();
+      console.log('closed OTP dialog');
       if (this.passwordUpdated === false) {
         this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
       } else {
@@ -445,17 +448,22 @@ console.log('handleSuccessfulLogin: resp.token =', resp.token);
         this._router.navigate([this.resolveLandingRoute()]);
       }
     } else {
+      console.log('handleSuccessfulLogin: no token returned, calling refreshToken()');
       this._loginService.refreshToken().subscribe({
         next: (tokenResp) => {
           if (tokenResp?.success) {
             // Token already stored in localStorage by refreshToken()'s tap().
             this.toastr.success('Login successful!');
             this.closeOtpDialog();
+            console.log('closed OTP dialog');
             if (this.passwordUpdated === false) {
+              console.log('handleSuccessfulLogin: password not updated, redirecting to change-password');
               this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
             } else {
+              console.log('handleSuccessfulLogin: password updated, storing expiry warning and navigating to landing route');
               this.storePasswordExpiryWarning();
               this._router.navigate([this.resolveLandingRoute()]);
+              console.log('handleSuccessfulLogin: navigation complete');
             }
           } else {
             this.toastr.error('Failed to retrieve authentication token.');
