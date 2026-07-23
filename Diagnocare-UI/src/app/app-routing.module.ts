@@ -139,47 +139,47 @@ export const routes: Routes = [
     children: [
       // Pathology dashboard — Admin / User / Assistant only
       { path: 'pathology', title: 'Pathology', component: PathologyHomeComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id,Role.Super_Admin.id)] },
 
       // Address Manager — Admin+
-      { path: 'contacts',              title: 'Address Manager', component: ContactListComponent,   canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'contacts/add',          title: 'Add Contact',     component: ContactFormComponent,   canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'contacts/edit/:id',     title: 'Edit Contact',    component: ContactFormComponent,   canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'contacts/delete/:id',   title: 'Delete Contact',  component: ContactDeleteComponent, canActivate: [roleGuard(Role.Admin.id)] },
+      { path: 'contacts',              title: 'Address Manager', component: ContactListComponent,   canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
+      { path: 'contacts/add',          title: 'Add Contact',     component: ContactFormComponent,   canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
+      { path: 'contacts/edit/:id',     title: 'Edit Contact',    component: ContactFormComponent,   canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
+      { path: 'contacts/delete/:id',   title: 'Delete Contact',  component: ContactDeleteComponent, canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
 
       // Users — Admin+
-      { path: 'users',          title: 'Staff Management', component: StaffManagementComponent,  canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'users/add',      title: 'Add Staff',        component: StaffUnifiedFormComponent, canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'users/edit/:id', title: 'Edit Staff',       component: StaffUnifiedFormComponent, canActivate: [roleGuard(Role.Admin.id)] },
+      { path: 'users',          title: 'Staff Management', component: StaffManagementComponent,  canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
+      { path: 'users/add',      title: 'Add Staff',        component: StaffUnifiedFormComponent, canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
+      { path: 'users/edit/:id', title: 'Edit Staff',       component: StaffUnifiedFormComponent, canActivate: [roleGuard(Role.Admin.id,Role.Super_Admin.id)] },
 
       // Patients — all lab staff (not Doctor who just views reports)
       { path: 'patients',           title: 'Patients',   component: PatientsListComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id,Role.Super_Admin.id)] },
       { path: 'patients/add',       title: 'Add Patient',  component: AddPatientComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
       { path: 'patients/stepper',   title: 'Add Patient',  component: StepperComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
       { path: 'patients/edit/:id',  title: 'Edit Patient', component: EditPatientComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
 
       // Patient Tests — all lab staff + Doctor (read-only for Doctor handled in component)
       { path: 'patient-tests',          title: 'Patient Tests', component: PatientTestListComponent },
       { path: 'patient-tests/view/:id', title: 'View Test',     component: ViewTestComponent },
       { path: 'patient-tests/edit/:id', title: 'Edit Test',     component: EditTestComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
 
       // Lab Tests — Admin / User / Assistant
       { path: 'manage-tests',                    title: 'Manage Tests',      component: ManageTestsComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter', component: AddTestParameter,
-        canActivate: [roleGuard(Role.Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id',           title: 'Edit Test',         component: AddEditModalComponent,
-        canActivate: [roleGuard( Role.Admin.id)] },
+        canActivate: [roleGuard( Role.Admin.id, Role.Super_Admin.id)] },
 
       // Summary Reports — container shell with child routes rendered in its <router-outlet>
       {
         path: 'reports', component: SummaryReportContainerComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id)],
+        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id )],
         children: [
           // Default redirect to patient-register when no child is specified
           { path: '', redirectTo: 'patient-register', pathMatch: 'full' },
@@ -194,14 +194,14 @@ export const routes: Routes = [
           { path: 'panel-company-wise',      redirectTo: 'referrer-collection' },
           { path: 'collection-boys-wise',    redirectTo: 'referrer-collection' },
           { path: 'reporting-doctor-wise',   title: 'Reporting Doctor Wise',     component: ReportingDoctorWiseComponent,
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id )] },
           { path: 'discount-authority-wise', title: 'Discount Authority Wise',   component: DiscountAuthorityWiseComponent },
           { path: 'patient-history-wise',    title: 'Patient History Wise',      component: PatientHistoryWiseComponent,
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id )] },
           { path: 'worksheet',               title: 'Worksheet Report',          component: WorksheetReportComponent },
           { path: 'register-reports',        title: 'Register Reports',          component: RegisterReportsComponent },
           { path: 'patient-diagnosis',       title: 'Patient Diagnosis Report',  component: PatientDiagnosisReportComponent,
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id )] },
           { path: 'pndt-test',               title: 'PNDT Test Report',          component: PndtTestReportComponent },
           { path: 'master-test-list',        title: 'Master Test List',          component: MasterTestListComponent },
           { path: 'rate-list',               title: 'Rate List',                 component: RateListComponent },
@@ -211,19 +211,19 @@ export const routes: Routes = [
       },
 
       // Templates — Super Admin only
-      { path: 'template',              title: 'Report Templates',  component: TemplateComponent,               canActivate: [roleGuard(Role.Admin.id)] },
+      { path: 'template',              title: 'Report Templates',  component: TemplateComponent,               canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       // Lab Setup & Profile — Admin+
-      { path: 'lab-setup',   title: 'Lab Setup',    component: LabSetupComponent,   canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'lab-profile', title: 'Lab Profile',  component: LabProfileComponent, canActivate: [roleGuard(Role.Admin.id)] },
+      { path: 'lab-setup',   title: 'Lab Setup',    component: LabSetupComponent,   canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      { path: 'lab-profile', title: 'Lab Profile',  component: LabProfileComponent, canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Attendance / Salary / Holidays — Admin+
-      { path: 'attendance', title: 'Attendance',        component: AttendanceComponent, canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'salary',     title: 'Salary',            component: SalaryComponent,     canActivate: [roleGuard(Role.Admin.id)] },
-      { path: 'holidays',   title: 'Holiday Calendar',  component: HolidayComponent,    canActivate: [roleGuard(Role.Admin.id)] },
+      { path: 'attendance', title: 'Attendance',        component: AttendanceComponent, canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      { path: 'salary',     title: 'Salary',            component: SalaryComponent,     canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      { path: 'holidays',   title: 'Holiday Calendar',  component: HolidayComponent,    canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Visit Schedule — Admin manages, all staff see their own
       { path: 'visit-schedule', title: 'Visit Schedule', component: VisitScheduleComponent,
-        canActivate: [roleGuard(Role.Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'my-visits', title: 'My Visits Today', component: MyVisitsComponent },
 
       // ── User Panel — self-service views for non-admin staff ──────────────────
@@ -232,28 +232,28 @@ export const routes: Routes = [
 
       // My Attendance — read-only self-service view (doctors, collection boys, lab staff)
       { path: 'my-attendance', title: 'My Attendance', component: MyAttendanceComponent,
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Holidays — reuses HolidayComponent, which renders read-only for non-admins
       { path: 'my-holidays', title: 'Holiday Calendar', component: HolidayComponent,
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Salary — read-only own salary summary & payment history
       { path: 'my-salary', title: 'My Salary', component: MySalaryComponent,
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
       // requests; admins see all requests and can approve/reject. Order matters:
       // 'new' must precede the ':id' param routes.
       { path: 'attendance-requests', title: 'Attendance Requests', component: RequestsListComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/new', title: 'New Attendance Request', component: RequestFormComponent,
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/:id/edit', title: 'Edit Attendance Request', component: RequestFormComponent,
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/:id', title: 'Attendance Request', component: RequestDetailComponent,
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // Account / Header pages
       { path: 'profile', title: 'Profile', component: ProfileComponent },

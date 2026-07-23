@@ -86,6 +86,21 @@ jobs:
           if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
           Write-Host '[OK] DEV UI deployed'
 
+      - name: Free disk space on runner (node_modules + build output)
+        if: always()
+        working-directory: .
+        run: |
+          # node_modules, dist and the Angular cache are only needed during the build
+          # (npm ci reinstalls node_modules on every run anyway). Remove them so the
+          # runner doesn't hold hundreds of MB per checkout between runs.
+          $ErrorActionPreference = 'SilentlyContinue'
+          $ui = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI'
+          foreach ($d in @('node_modules','dist','.angular')) {
+            $p = Join-Path $ui $d
+            if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+          }
+          Write-Host '[OK] node_modules/dist/.angular removed (DEV)'
+
   # ============================================================
   # JOB 2: Approval gate (custom, runs on the self-hosted runner)
   # Opens a GitHub issue after DEV and waits for "/approve" from an
@@ -237,3 +252,18 @@ jobs:
           cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
           if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
           Write-Host '[OK] QA UI deployed'
+
+      - name: Free disk space on runner (node_modules + build output)
+        if: always()
+        working-directory: .
+        run: |
+          # node_modules, dist and the Angular cache are only needed during the build
+          # (npm ci reinstalls node_modules on every run anyway). Remove them so the
+          # runner doesn't hold hundreds of MB per checkout between runs.
+          $ErrorActionPreference = 'SilentlyContinue'
+          $ui = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI'
+          foreach ($d in @('node_modules','dist','.angular')) {
+            $p = Join-Path $ui $d
+            if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+          }
+          Write-Host '[OK] node_modules/dist/.angular removed (QA)'
