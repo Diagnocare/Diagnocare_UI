@@ -58,11 +58,11 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     summaryReports: true,
     labSetup: true,
     adminPanel: true,
-    patientsLink: true,
-    patientTestsLink: true,
+    patientsLink: false,
+    patientTestsLink: false,
     myVisits: true,
     myAttendance: true, // doctors can view their own attendance
-    userPanel: true, // self-service User Panel dropdown
+    userPanel: false, // self-service User Panel dropdown
     attendanceRequests: true, // doctors can raise/track their own requests
     landingRoute: '/pathology',
   },
