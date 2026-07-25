@@ -119,11 +119,9 @@
 
               <div class="form-group">
                 <label class="form-label required">Age Group</label>
-                <select formControlName="patient_Age_Group" class="form-select"
-                  [class.is-invalid]="isFieldInvalid('patient_Age_Group')" [attr.tabindex]="getTabIndex('patient_Age_Group')">
-                  <option value="">-- Select --</option>
-                  <option *ngFor="let entry of ageRange" [value]="entry">{{ entry }}</option>
-                </select>
+                <input type="text" class="form-control" formControlName="patient_Age_Group"
+                  placeholder="Auto-calculated from Date of Birth" readonly
+                  [class.is-invalid]="isFieldInvalid('patient_Age_Group')" [attr.tabindex]="getTabIndex('patient_Age_Group')" />
                 <app-field-error [control]="patientForm.get('patient_Age_Group')" label="Age Group" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
