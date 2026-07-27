@@ -40,7 +40,7 @@ export class PathologyService {
 
       getPathology(): Observable<PathologyListDto>
       {
-        let geturl=this.url+apiEndpoints.getById;
+        let geturl=this.url+apiEndpoints.getProfile;
         return this.httpClient.get<PathologyListDto>(geturl).pipe(
           catchError(this.errorHandler));
       }
