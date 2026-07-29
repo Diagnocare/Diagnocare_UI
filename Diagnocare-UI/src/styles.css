@@ -251,9 +251,13 @@ html[data-theme="midnight"] p, html[data-theme="midnight"] span, html[data-theme
 html[data-theme="midnight"] h1, html[data-theme="midnight"] h2, html[data-theme="midnight"] h3,
 html[data-theme="midnight"] h4, html[data-theme="midnight"] h5, html[data-theme="midnight"] h6 { color: #cdd6f4 !important; }
 
-html[data-theme="warm"]     p, html[data-theme="warm"]     span, html[data-theme="warm"]     li,
-html[data-theme="warm"]     h1, html[data-theme="warm"]    h2, html[data-theme="warm"]     h3,
-html[data-theme="warm"]     h4, html[data-theme="warm"]    h5, html[data-theme="warm"]     h6 { color: #f3eeea  !important; }
+/* NOTE: Warm is a LIGHT-card theme (cream cards on a brown gradient page), so a
+   blanket near-white text rule (like dark/midnight use) hid text on every card.
+   Warm text now falls back to the dark body colour (#3d2b1f) which is correct on
+   the cream cards; white text on the brown gradient is handled by .page-header *
+   (below) and by hero containers that set their own colour: #fff. If any loose
+   text sits directly on the gradient (not inside a card/header) and needs to be
+   white, scope it explicitly rather than reinstating this blanket rule. */
 
 /* Warm: text/icons inside buttons must follow the button's own color
    (white on coloured buttons, dark on light ones) — never the page text color. */
@@ -268,6 +272,151 @@ html[data-theme="midnight"] .acct-card-header *, html[data-theme="midnight"] .ac
 html[data-theme="midnight"] .page-header *,       html[data-theme="midnight"] .data-table th { color: #cdd6f4 !important; }
 html[data-theme="warm"]     .acct-card-header *, html[data-theme="warm"]     .acct-header *,
 html[data-theme="warm"]     .page-header *,       html[data-theme="warm"]     .data-table th { color: #fff !important; }
+html[data-theme="dark"]     .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="dark"]     .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="dark"]     .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="dark"]     .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="dark"]     .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="dark"]     .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="midnight"] .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="midnight"] .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="midnight"] .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="midnight"] .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="midnight"] .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="midnight"] .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="warm"]     .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="warm"]     .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="warm"]     .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="warm"]     .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+html[data-theme="warm"]     .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+html[data-theme="warm"]     .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) * { color: #1e5ba8 !important; }
+
+/* ── Patient list status / urgency badges ─────────────────────────────────────
+   These are <span> pills; the global `[data-theme] span !important` rule whitens
+   their text into invisibility on the light tint. Re-assert per-theme here at the
+   global level (two-class specificity) so the fix can't lose to component-scope
+   specificity quirks. Backgrounds come from the component's own theme block. */
+html[data-theme="dark"]     .status-badge.status-completed { color: #86efac !important; }
+html[data-theme="dark"]     .status-badge.status-partial   { color: #93c5fd !important; }
+html[data-theme="dark"]     .status-badge.status-pending   { color: #fde68a !important; }
+html[data-theme="dark"]     .status-badge.status-unknown   { color: #94a3b8 !important; }
+html[data-theme="dark"]     .urgent-badge.urgent-yes       { color: #fca5a5 !important; }
+html[data-theme="dark"]     .urgent-badge.urgent-no        { color: #94a3b8 !important; }
+html[data-theme="midnight"] .status-badge.status-completed { color: #56d364 !important; }
+html[data-theme="midnight"] .status-badge.status-partial   { color: #79b8ff !important; }
+html[data-theme="midnight"] .status-badge.status-pending   { color: #fbbf24 !important; }
+html[data-theme="midnight"] .status-badge.status-unknown   { color: #8b949e !important; }
+html[data-theme="midnight"] .urgent-badge.urgent-yes       { color: #f97583 !important; }
+html[data-theme="midnight"] .urgent-badge.urgent-no        { color: #8b949e !important; }
+html[data-theme="warm"]     .status-badge.status-completed { color: #15803d !important; }
+html[data-theme="warm"]     .status-badge.status-partial   { color: #1d4ed8 !important; }
+html[data-theme="warm"]     .status-badge.status-pending   { color: #854d0e !important; }
+html[data-theme="warm"]     .status-badge.status-unknown   { color: #5c4636 !important; }
+html[data-theme="warm"]     .urgent-badge.urgent-yes       { color: #b91c1c !important; }
+html[data-theme="warm"]     .urgent-badge.urgent-no        { color: #4a3728 !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UNTHEMED LIGHT SURFACES — global safety net
+   ──────────────────────────────────────────────────────────────────────────────
+   These components hardcode a white/near-white background and never declared any
+   theme overrides. In the dark themes the blanket light-text rules above then put
+   near-white text on a white card = invisible. Theming the SURFACE here (rather
+   than patching each component) fixes the text everywhere at once, and keeps the
+   cards consistent with the app palette:
+     dark      surface #1e293b / sunken #273548 / input #0f172a / border #334155
+     midnight  surface #0d1117 / sunken #161b22 / input #020408 / border #21262d
+     warm      surface #fffdf7 / sunken #fef9f0 / input #fffdf7 / border #e8d9c0
+   ══════════════════════════════════════════════════════════════════════════════ */
+html[data-theme="dark"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel),
+html[data-theme="system"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel) {
+  background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+html[data-theme="dark"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header),
+html[data-theme="system"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header) {
+  background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+/* Generic containers shared by the remaining un-themed components. These are a
+   FALLBACK only: a component's own :host-context rule has higher specificity and
+   still wins wherever one exists. */
+html[data-theme="dark"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content),
+html[data-theme="system"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content) {
+  background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .form-input,
+html[data-theme="system"] .form-input {
+  background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+
+html[data-theme="midnight"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel) {
+  background: #0d1117 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+html[data-theme="midnight"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header) {
+  background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+html[data-theme="midnight"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content) {
+  background: #0d1117 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+html[data-theme="midnight"] .form-input {
+  background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+
+html[data-theme="warm"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel) {
+  background: #fffdf7 !important; border-color: #e8d9c0 !important; color: #3d2b1f !important;
+}
+html[data-theme="warm"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header) {
+  background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important;
+}
+html[data-theme="warm"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content) {
+  background: #fffdf7 !important; border-color: #e8d9c0 !important; color: #3d2b1f !important;
+}
+html[data-theme="warm"] .form-input {
+  background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important;
+}
+
+/* ── SVG / icon-font visibility ───────────────────────────────────────────────
+   Icons drawn with `currentColor` follow their parent's themed colour and are
+   fine. These are the ones that DON'T: icons hardcoded to a dark ink colour,
+   which disappear on the dark surfaces above. Make them inherit instead. */
+html[data-theme="dark"]     :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card) :is(svg, i, .fa),
+html[data-theme="midnight"] :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card) :is(svg, i, .fa),
+html[data-theme="system"]   :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card) :is(svg, i, .fa) {
+  color: inherit;
+}
+
+/* ── Confirm modal (shared logout / delete dialog) ────────────────────────────
+   Bootstrap's .modal-content stays light by default, but the heading rules above
+   force the <h5> .modal-title near-white (invisible on a light dialog). Theme the
+   whole dialog per palette so the title, body and close button stay readable. */
+html[data-theme="dark"]     #confirmModal .modal-content { background: #1e293b !important; border: 1px solid #334155 !important; }
+html[data-theme="dark"]     #confirmModal .modal-header,
+html[data-theme="dark"]     #confirmModal .modal-footer  { border-color: #334155 !important; }
+html[data-theme="dark"]     #confirmModal .modal-title   { color: #e2e8f0 !important; }
+html[data-theme="dark"]     #confirmModal .modal-body,
+html[data-theme="dark"]     #confirmModal .modal-body div { color: #cbd5e1 !important; }
+html[data-theme="dark"]     #confirmModal .btn-close      { filter: invert(1) grayscale(100%) brightness(1.8) !important; }
+
+html[data-theme="midnight"] #confirmModal .modal-content { background: #0d1117 !important; border: 1px solid #21262d !important; }
+html[data-theme="midnight"] #confirmModal .modal-header,
+html[data-theme="midnight"] #confirmModal .modal-footer  { border-color: #21262d !important; }
+html[data-theme="midnight"] #confirmModal .modal-title   { color: #cdd6f4 !important; }
+html[data-theme="midnight"] #confirmModal .modal-body,
+html[data-theme="midnight"] #confirmModal .modal-body div { color: #a6adc8 !important; }
+html[data-theme="midnight"] #confirmModal .btn-close      { filter: invert(1) grayscale(100%) brightness(1.8) !important; }
+
+html[data-theme="warm"]     #confirmModal .modal-content { background: #fffdf7 !important; border: 1px solid #e8d9c0 !important; }
+html[data-theme="warm"]     #confirmModal .modal-header,
+html[data-theme="warm"]     #confirmModal .modal-footer  { border-color: #e8d9c0 !important; }
+html[data-theme="warm"]     #confirmModal .modal-title   { color: #3d2b1f !important; }
+html[data-theme="warm"]     #confirmModal .modal-body,
+html[data-theme="warm"]     #confirmModal .modal-body div { color: #5c4636 !important; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 /* btn-secondary */
@@ -379,6 +528,25 @@ html[data-theme="midnight"] input.ng-invalid.ng-touched { border-left-color: #ef
   html[data-theme="system"] h4, html[data-theme="system"] h5, html[data-theme="system"] h6 { color: #e2e8f0 !important; }
   html[data-theme="system"] .acct-card-header *, html[data-theme="system"] .acct-header *,
   html[data-theme="system"] .page-header *,       html[data-theme="system"] .data-table th { color: #fff !important; }
+  html[data-theme="system"] .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+  html[data-theme="system"] .page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+  html[data-theme="system"] .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+  html[data-theme="system"] .header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) *,
+  html[data-theme="system"] .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
+  html[data-theme="system"] .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) * { color: #1e5ba8 !important; }
+  html[data-theme="system"] .status-badge.status-completed { color: #86efac !important; }
+  html[data-theme="system"] .status-badge.status-partial   { color: #93c5fd !important; }
+  html[data-theme="system"] .status-badge.status-pending   { color: #fde68a !important; }
+  html[data-theme="system"] .status-badge.status-unknown   { color: #94a3b8 !important; }
+  html[data-theme="system"] .urgent-badge.urgent-yes       { color: #fca5a5 !important; }
+  html[data-theme="system"] .urgent-badge.urgent-no        { color: #94a3b8 !important; }
+  html[data-theme="system"] #confirmModal .modal-content { background: #1e293b !important; border: 1px solid #334155 !important; }
+  html[data-theme="system"] #confirmModal .modal-header,
+  html[data-theme="system"] #confirmModal .modal-footer  { border-color: #334155 !important; }
+  html[data-theme="system"] #confirmModal .modal-title   { color: #e2e8f0 !important; }
+  html[data-theme="system"] #confirmModal .modal-body,
+  html[data-theme="system"] #confirmModal .modal-body div { color: #cbd5e1 !important; }
+  html[data-theme="system"] #confirmModal .btn-close      { filter: invert(1) grayscale(100%) brightness(1.8) !important; }
   html[data-theme="system"] .btn-secondary, html[data-theme="system"] .btn-outline-secondary { background: #1e293b !important; border-color: #475569 !important; color: #cbd5e1 !important; }
   html[data-theme="system"] .btn-cancel { background: #1e293b !important; border-color: #334155 !important; color: #94a3b8 !important; }
   html[data-theme="system"] .btn-back   { background: #334155 !important; border-color: #475569 !important; color: #e2e8f0 !important; }
@@ -514,6 +682,16 @@ html[data-theme="midnight"] .pm-modal,
 html[data-theme="midnight"] .otp-card                   { background: #0d1117 !important; }
 html[data-theme="warm"]     .pm-modal,
 html[data-theme="warm"]     .otp-card                   { background: #fffdf7 !important; }
+html[data-theme="warm"] .otp-enter-label,
+html[data-theme="warm"] .otp-step-label,
+html[data-theme="warm"] .otp-send-title,
+html[data-theme="warm"] .otp-method-label   { color: #3d2b1f !important; }
+html[data-theme="warm"] .otp-resend-hint,
+html[data-theme="warm"] .otp-send-dest,
+html[data-theme="warm"] .otp-method-sub,
+html[data-theme="warm"] .otp-totp-hint,
+html[data-theme="warm"] .otp-countdown-num,
+html[data-theme="warm"] .otp-box-sep        { color: #7a5c4e !important; }
 
 html[data-theme="dark"]     .pm-header                  { border-bottom-color: #334155 !important; }
 html[data-theme="midnight"] .pm-header                  { border-bottom-color: #21262d !important; }

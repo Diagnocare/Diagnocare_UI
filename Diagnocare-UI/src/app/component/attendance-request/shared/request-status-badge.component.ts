@@ -18,10 +18,13 @@ import { RequestStatus, REQUEST_STATUS_CONFIG } from 'src/app/models/attendanceR
       line-height: 1.4;
       white-space: nowrap;
     }
-    .badge-pending   { background: #fff3cd; color: #8a6d00; border: 1px solid #ffe08a; }
-    .badge-approved  { background: #d4edda; color: #1b6b32; border: 1px solid #a3d9b1; }
-    .badge-rejected  { background: #f8d7da; color: #a11c28; border: 1px solid #efb3b8; }
-    .badge-cancelled { background: #e9ecef; color: #5c636a; border: 1px solid #ced4da; }
+    /* color !important: these light tint badges keep a light background in every
+       theme, so the coloured text must beat the global [data-theme] span rule
+       that would otherwise whiten it into invisibility. */
+    .badge-pending   { background: #fff3cd; color: #8a6d00 !important; border: 1px solid #ffe08a; }
+    .badge-approved  { background: #d4edda; color: #1b6b32 !important; border: 1px solid #a3d9b1; }
+    .badge-rejected  { background: #f8d7da; color: #a11c28 !important; border: 1px solid #efb3b8; }
+    .badge-cancelled { background: #e9ecef; color: #5c636a !important; border: 1px solid #ced4da; }
   `],
 })
 export class RequestStatusBadgeComponent {

@@ -550,8 +550,8 @@ html[data-theme="warm"] .dp-trigger:focus {
   border-color: #c4985a;
   box-shadow: 0 0 0 3px rgba(196,152,90,.18);
 }
-html[data-theme="warm"] .dp-trigger--empty .dp-display { color: #c4ad8e; }
-html[data-theme="warm"] .dp-trigger-icon { color: #b09070; }
+html[data-theme="warm"] .dp-trigger--empty .dp-display { color: #9e8272; }
+html[data-theme="warm"] .dp-trigger-icon { color: #9e8272; }
 html[data-theme="warm"] .dp-trigger-icon--open { color: #c4985a; }
 html[data-theme="warm"] .dp-root.dp-disabled .dp-trigger { background: #f9f3e8; color: #b09070; }
 
@@ -620,4 +620,19 @@ html[data-theme="warm"] .dp-close-btn:hover  { background: #ddc9a8; border-color
   html[data-theme="system"] .dp-today-btn:hover  { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
   html[data-theme="system"] .dp-clear-btn   { background: #3b0f0f; border-color: #7f1d1d; color: #fca5a5; }
   html[data-theme="system"] .dp-close-btn   { background: #273548; border-color: #475569; color: #94a3b8; }
+}
+
+/* ── .dp-display is a <span> ────────────────────────────────────────────────
+   The global `[data-theme] span !important` rule whitens the field's displayed
+   date + placeholder, so the theme colours above (no !important) lose. Re-assert
+   them here with !important so the From/To text stays readable in every mode. */
+html[data-theme="dark"]     .dp-display { color: #e2e8f0 !important; }
+html[data-theme="dark"]     .dp-trigger--empty .dp-display { color: #64748b !important; }
+html[data-theme="midnight"] .dp-display { color: #cdd6f4 !important; }
+html[data-theme="midnight"] .dp-trigger--empty .dp-display { color: #6e7681 !important; }
+html[data-theme="warm"]     .dp-display { color: #3d2b1f !important; }
+html[data-theme="warm"]     .dp-trigger--empty .dp-display { color: #9e8272 !important; }
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .dp-display { color: #e2e8f0 !important; }
+  html[data-theme="system"] .dp-trigger--empty .dp-display { color: #64748b !important; }
 }

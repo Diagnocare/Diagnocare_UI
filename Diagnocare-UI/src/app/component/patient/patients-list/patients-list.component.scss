@@ -905,10 +905,10 @@ input[type="radio"] {
   .pending-row            { background-color: #fef9e7 !important; }
   .status-completed       { background: #dcfce7 !important; color: #15803d !important; border-color: #86efac !important; }
   .status-partial         { background: #dbeafe !important; color: #1d4ed8 !important; border-color: #93c5fd !important; }
-  .status-pending         { background: #fef9c3 !important; color: #a16207 !important; border-color: #fde047 !important; }
-  .status-unknown         { background: #f5ece0 !important; color: #9e8272 !important; border-color: #ddc9a8 !important; }
-  .urgent-yes             { background: #fef2f2 !important; color: #c0392b !important; border-color: #f5a29a !important; }
-  .urgent-no              { background: #f5ece0 !important; color: #9e8272 !important; border-color: #ddc9a8 !important; }
+  .status-pending         { background: #fef9c3 !important; color: #854d0e !important; border-color: #fde047 !important; }
+  .status-unknown         { background: #f0e6d6 !important; color: #5c4636 !important; border-color: #d8c4a0 !important; }
+  .urgent-yes             { background: #fef2f2 !important; color: #b91c1c !important; border-color: #f5a29a !important; }
+  .urgent-no              { background: #f0e6d6 !important; color: #4a3728 !important; border-color: #d8c4a0 !important; }
 }
 
 @media (prefers-color-scheme: dark) {
