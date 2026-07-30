@@ -291,6 +291,23 @@ html[data-theme="warm"]     .header-actions    :is(.btn-primary, .dc-btn--add, .
 html[data-theme="warm"]     .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search),
 html[data-theme="warm"]     .header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search) * { color: #1e5ba8 !important; }
 
+/* ── Disabled ghost header buttons ────────────────────────────────────────────
+   These white-on-gradient CTAs (e.g. "Save Changes" until there are edits) were
+   dimmed so far by the default disabled opacity that they read as broken rather
+   than intentionally inactive. Keep the surface and label legible while still
+   clearly signalling the disabled state. */
+.page-header       :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search):disabled,
+.header-actions    :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search):disabled,
+.header-actions-group :is(.btn-primary, .dc-btn--add, .dc-btn--save, .dc-btn--search):disabled {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #3f5b80;
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
 /* ── Patient list status / urgency badges ─────────────────────────────────────
    These are <span> pills; the global `[data-theme] span !important` rule whitens
    their text into invisibility on the light tint. Re-assert per-theme here at the
