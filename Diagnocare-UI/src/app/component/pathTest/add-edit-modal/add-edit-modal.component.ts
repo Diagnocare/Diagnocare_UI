@@ -386,6 +386,7 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     if (match) {
       this.updatedFormData.test.testName  = match.testName;
       this.updatedFormData.test.price     = match.price;
+      this.updatedFormData.test.testRegId = match.testRegId;
       this.testRegId = match.testRegId;
     }
   }

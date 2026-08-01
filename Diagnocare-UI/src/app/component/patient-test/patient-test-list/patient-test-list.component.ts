@@ -74,6 +74,12 @@ export class PatientTestListComponent implements OnInit {
   /** True while a report is being fetched from the backend. */
   isGeneratingReport: boolean = false;
 
+  /** True while a PDF download is in progress. */
+  isDownloadingPdf: boolean = false;
+
+  /** True while a CSV download is in progress. */
+  isDownloadingCsv: boolean = false;
+
   showPatientIdInput: boolean = false;
   enteredPatientId: string = '';
   private navigatedViaQueryParam: boolean = false;
@@ -651,6 +657,63 @@ export class PatientTestListComponent implements OnInit {
       });
   }
 
+  /** Downloads the current report as a real, full-A4 PDF (rendered server-side). */
+  downloadReportPdf(): void {
+    this.downloadReport('pdf');
+  }
+
+  /** Downloads the current report's data as a CSV file. */
+  downloadReportCsv(): void {
+    this.downloadReport('csv');
+  }
+
+  /**
+   * Shared download path for the PDF / CSV buttons on the Create Test Report overlay.
+   * Requests the file as a Blob from the backend and saves it via an anchor click.
+   */
+  private downloadReport(format: 'pdf' | 'csv'): void {
+    if (!this.selectedPatientTest || !this.selectedTestDetail) return;
+
+    const patientTestId = Number(this.selectedPatientTest.patient_Test_Id);
+    const testCode      = this.selectedTestDetail.testCode;
+
+    if (format === 'pdf') this.isDownloadingPdf = true;
+    else                  this.isDownloadingCsv = true;
+    this.errorMessage = '';
+
+    this.testReportGenerationService
+      .downloadTestReport(patientTestId, testCode, format, this.pathBranch || undefined)
+      .subscribe({
+        next: (blob: Blob) => {
+          if (format === 'pdf') this.isDownloadingPdf = false;
+          else                  this.isDownloadingCsv = false;
+
+          if (!blob || blob.size === 0) {
+            this.toastr.warning('Report generated but no file was returned.', 'Warning');
+            return;
+          }
+
+          const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
+          const filename = `${safeName}_${testCode}.${format}`;
+
+          const url    = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href     = url;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        },
+        error: (err: unknown) => {
+          if (format === 'pdf') this.isDownloadingPdf = false;
+          else                  this.isDownloadingCsv = false;
+          this.errorMessage = `Failed to download ${format.toUpperCase()}. Please try again.`;
+          console.error(`downloadReport(${format}) error:`, err);
+        }
+      });
+  }
+
   /**
    * Opens a backend-generated HTML report in a new browser tab via a short-lived Blob URL.
    *
@@ -663,18 +726,6 @@ export class PatientTestListComponent implements OnInit {
    */
   private openHtmlReportTab(htmlContent: string, _cssStyles: string | undefined, tabTitle: string): void {
     let html = htmlContent;
-
-    // ── Fix download filename extension ──────────────────────────────────────
-    // The backend's dgDownload() sets anchor.download with a .pdf extension,
-    // but the content is HTML. Chrome's PDF viewer chokes when the user opens
-    // a downloaded .pdf file that is actually HTML.
-    // Replace every occurrence of  anchor.download = '…something….pdf'
-    // with                          anchor.download = '…something….html'
-    // so the browser saves it as an HTML file and opens it correctly.
-    html = html.replace(
-      /(anchor\.download\s*=\s*['"])([^'"]*?)\.pdf(['"'])/gi,
-      '$1$2.html$3'
-    );
 
     // ── Inject <title> if absent ─────────────────────────────────────────────
     if (!html.includes('<title>')) {

@@ -442,15 +442,30 @@
                 title="Complete payment to unlock report">
           <i class="fa fa-credit-card"></i> Pay Now
         </button>
-        <!-- View Report — only when fully paid -->
-        <button class="btn btn-info"
-                *ngIf="!selectedPatientTest || getPaymentStatus(selectedPatientTest) === 'Paid'"
-                (click)="generateTestReportPDF()"
-                [disabled]="isGeneratingReport"
-                [title]="isGeneratingReport ? 'Generating report…' : 'Generate and open report in new tab'">
-          <i class="fa" [ngClass]="isGeneratingReport ? 'fa-spinner fa-spin' : 'fa-file-text-o'"></i>
-          {{ isGeneratingReport ? 'Generating…' : 'View Report' }}
-        </button>
+        <!-- Report actions — only when fully paid: View / PDF / CSV -->
+        <ng-container *ngIf="!selectedPatientTest || getPaymentStatus(selectedPatientTest) === 'Paid'">
+          <button class="btn btn-info"
+                  (click)="generateTestReportPDF()"
+                  [disabled]="isGeneratingReport"
+                  [title]="isGeneratingReport ? 'Generating report…' : 'Open the report in a new tab'">
+            <i class="fa" [ngClass]="isGeneratingReport ? 'fa-spinner fa-spin' : 'fa-file-text-o'"></i>
+            {{ isGeneratingReport ? 'Generating…' : 'View Report' }}
+          </button>
+          <button class="btn btn-info"
+                  (click)="downloadReportPdf()"
+                  [disabled]="isDownloadingPdf"
+                  [title]="isDownloadingPdf ? 'Preparing PDF…' : 'Download the report as a PDF file'">
+            <i class="fa" [ngClass]="isDownloadingPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf-o'"></i>
+            {{ isDownloadingPdf ? 'Preparing…' : 'PDF' }}
+          </button>
+          <button class="btn btn-info"
+                  (click)="downloadReportCsv()"
+                  [disabled]="isDownloadingCsv"
+                  [title]="isDownloadingCsv ? 'Preparing CSV…' : 'Download the report data as a CSV file'">
+            <i class="fa" [ngClass]="isDownloadingCsv ? 'fa-spinner fa-spin' : 'fa-file-excel-o'"></i>
+            {{ isDownloadingCsv ? 'Preparing…' : 'CSV' }}
+          </button>
+        </ng-container>
         <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">
           <i class="fa fa-times"></i>
         </button>
