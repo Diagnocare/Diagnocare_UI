@@ -1,5 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+
+/** sessionStorage key for the cached profile photo data-URL (shared with change-password). */
+const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${userName}`;
+
+/** Derive a MIME type from the image file name returned by the API. */
+function mimeFromFileName(fileName?: string | null): string {
+  const ext = (fileName ?? '').split('.').pop()?.toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
 import { FormsModule } from '@angular/forms';
 import { CommonService } from 'src/app/shared/common.service';
 import { jwtDecode } from 'jwt-decode';
@@ -7,6 +19,7 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
 
@@ -18,9 +31,9 @@ type EditStep  = 'input' | 'otp' | null;
   templateUrl: './profile.component.html',
   styleUrls: ['../account-pages.shared.css', './profile.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent]
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, NumericOnlyDirective]
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
 
   user: MemberDto | undefined;
   pathology_Id: string = '';
@@ -35,6 +48,8 @@ export class ProfileComponent implements OnInit {
   newEmail: string    = '';
   newPhone: string    = '';
   otpCode: string     = '';
+  /** 6 individual digit boxes for OTP entry. */
+  otpDigits: string[] = ['', '', '', '', '', ''];
 
   otpSending: boolean   = false;
   otpVerifying: boolean = false;
@@ -61,6 +76,12 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  ngOnDestroy(): void {
+    // Stop the OTP resend countdown so it doesn't keep firing after the
+    // component is destroyed (e.g. the profile dialog is closed).
+    this.clearCountdown();
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   get userId(): number {
@@ -76,31 +97,32 @@ export class ProfileComponent implements OnInit {
   // ── User / image ─────────────────────────────────────────────────────────────
 
   getUserDetails() {
+    // Check sessionStorage cache first — avoids a redundant API call on revisit.
+    const cached = sessionStorage.getItem(PROFILE_PHOTO_CACHE_KEY(this.userName));
+
     this.headerService.getUserDetails(this.userName).subscribe(
       (data: any) => {
         this.user = data as MemberDto;
-        if (this.user && typeof this.user.id !== 'undefined') {
-          this.fetchProfileImage();
+
+        if (cached) {
+          // Use cached data URL immediately — no extra network call needed.
+          this.user.profilePhoto = cached;
+        } else {
+          // GetUserDetails now includes ProfileImage (base64) and ProfileImageFileName.
+          // Use them directly instead of making a second API call.
+          const b64: string | null = data?.profileImage ?? null;
+          if (b64) {
+            const mime = mimeFromFileName(data?.profileImageFileName);
+            const dataUrl = `data:${mime};base64,${b64}`;
+            this.user.profilePhoto = dataUrl;
+            try { sessionStorage.setItem(PROFILE_PHOTO_CACHE_KEY(this.userName), dataUrl); } catch {}
+          } else {
+            this.user.profilePhoto = '/assets/defaultPic.jpg';
+          }
         }
       },
       (err: any) => console.error('Failed to fetch user details', err)
     );
-  }
-
-  fetchProfileImage() {
-    if (!this.user) return;
-    this.headerService.getProfileImage(this.userName).subscribe({
-      next: (blob: Blob) => {
-        if (blob instanceof Blob && blob.size > 0 && blob.type !== 'application/json') {
-          const reader = new FileReader();
-          reader.onload = (e: any) => { this.user!.profilePhoto = e.target.result; };
-          reader.readAsDataURL(blob);
-        } else {
-          this.user!.profilePhoto = '/assets/defaultPic.jpg';
-        }
-      },
-      error: () => {}
-    });
   }
 
   onProfilePicChange(event: any) {
@@ -141,7 +163,9 @@ export class ProfileComponent implements OnInit {
       this.headerService.uploadProfilePhoto(this.userName, this.selectedFile!).subscribe({
         next: (res: any) => {
           this.previewAvailable = false;
-          if (res.url) this.user!.profilePhoto = res.url;
+          // Evict the cache so the next getUserDetails call picks up the new image.
+          sessionStorage.removeItem(PROFILE_PHOTO_CACHE_KEY(this.userName));
+          // The preview was already set to the new image via onProfilePicChange — keep it.
           window.dispatchEvent(new CustomEvent('diagnocare-profile-updated'));
         },
         error: () => {
@@ -168,14 +192,74 @@ export class ProfileComponent implements OnInit {
   }
 
   cancelEdit() {
-    this.editField = null;
-    this.editStep  = null;
-    this.otpCode   = '';
-    this.newEmail  = '';
-    this.newPhone  = '';
-    this.otpSent   = false;
-    this.errorMsg  = '';
+    this.editField  = null;
+    this.editStep   = null;
+    this.otpCode    = '';
+    this.otpDigits  = ['', '', '', '', '', ''];
+    this.newEmail   = '';
+    this.newPhone   = '';
+    this.otpSent    = false;
+    this.errorMsg   = '';
     this.clearCountdown();
+  }
+
+  // ── OTP digit-box handlers ───────────────────────────────────────────────────
+
+  onOtpDigitInput(index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const val   = input.value.replace(/\D/g, '').slice(-1);
+    input.value        = val;
+    this.otpDigits[index] = val;
+    this.otpCode       = this.otpDigits.join('');
+    if (val && index < 5) {
+      const next = document.querySelectorAll<HTMLInputElement>('.prof-otp-box')[index + 1];
+      if (next) { next.focus(); next.select(); }
+    }
+    if (this.otpDigits.every(d => d.length === 1)) {
+      setTimeout(() => this.verifyAndSave(), 80);
+    }
+  }
+
+  onOtpDigitKeydown(index: number, event: KeyboardEvent): void {
+    if (event.key === 'Backspace') {
+      const input = event.target as HTMLInputElement;
+      if (input.value) {
+        event.preventDefault();
+        this.otpDigits[index] = '';
+        input.value = '';
+        this.otpCode = this.otpDigits.join('');
+      } else if (index > 0) {
+        const prev = document.querySelectorAll<HTMLInputElement>('.prof-otp-box')[index - 1];
+        if (prev) { prev.focus(); prev.select(); }
+      }
+    }
+  }
+
+  onOtpDigitPaste(event: ClipboardEvent): void {
+    const pasted = (event.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    event.preventDefault();
+    pasted.split('').forEach((d, i) => { this.otpDigits[i] = d; });
+    this.otpCode = this.otpDigits.join('');
+    const boxes = document.querySelectorAll<HTMLInputElement>('.prof-otp-box');
+    boxes.forEach((b, i) => { b.value = this.otpDigits[i] || ''; });
+    const focusIdx = Math.min(pasted.length, 5);
+    if (boxes[focusIdx]) { boxes[focusIdx].focus(); boxes[focusIdx].select(); }
+    if (pasted.length === 6) setTimeout(() => this.verifyAndSave(), 80);
+  }
+
+  /** Circular SVG progress for resend countdown (0–60). */
+  get resendCircleOffset(): number {
+    const total = 60;
+    return 100 - (this.resendCountdown / total) * 100;
+  }
+
+  /** Go back to the input step and reset OTP digit state. */
+  goBackToInput(): void {
+    this.editStep  = 'input';
+    this.otpCode   = '';
+    this.otpDigits = ['', '', '', '', '', ''];
+    this.errorMsg  = '';
   }
 
   // ── OTP flow ─────────────────────────────────────────────────────────────────
@@ -328,6 +412,7 @@ export class ProfileComponent implements OnInit {
     this.editField  = null;
     this.editStep   = null;
     this.otpCode    = '';
+    this.otpDigits  = ['', '', '', '', '', ''];
     this.newEmail   = '';
     this.newPhone   = '';
     this.otpSent    = false;

@@ -7,9 +7,13 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
 import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { CommonService } from 'src/app/shared/common.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { salutation, gender, maritalStatus, relations, ageGroup, paymentType, paymentMode, Role, InstitutionType } from 'src/app/constant/enums';
@@ -25,6 +29,8 @@ import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
 import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-details-modal.component';
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
+import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
+import { TokenService }              from 'src/app/core/interceptors/token.service';
 
 @Component({
   selector: 'app-patient-registration',
@@ -36,7 +42,11 @@ import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
     AutocompleteInputDirective,
     LoadingSpinnerComponent,
     DatePickerComponent,
-    TpaDetailsModalComponent
+    TpaDetailsModalComponent,
+    FieldErrorComponent,
+    FormKeyboardDirective,
+    NumericOnlyDirective,
+    PaymentCalculatorComponent,
   ],
   providers: [],
   standalone: true,
@@ -63,6 +73,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   currentStep = 1;
+
+  /** Exposed for [tabFields] binding on the form element. */
+  readonly tabFields = tabOrderAdd;
 
   /** True once the user clicks "Confirm" in the Partial Payment modal. */
   paymentConfirmed = false;
@@ -133,7 +146,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     private _sampling:        SamplingLocationService,
     private _area:            AreaService,
     private _memberService:   MemberService,
-    private _contactService:  ContactAddressService
+    private _contactService:  ContactAddressService,
+    private _token:           TokenService,
   ) {
     this.patientForm = this.fb.group({
       country_Code:      ['+91', Validators.required],
@@ -141,16 +155,16 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       serial_Number:        new FormControl({ value: 0,   disabled: true }),
       patient_Id:           new FormControl({ value: '',  disabled: true }),
       patient_Salutation:   ['Mr.', Validators.required],
-      patient_Name:         ['', [Validators.required, this._common.stringOnlyValidator()]],
-      patient_DOB:          ['', [Validators.required, this._common.checkFutureDate()]],
+      patient_Name:         ['', [Validators.required, AppValidators.stringOnly()]],
+      patient_DOB:          ['', [Validators.required, AppValidators.noFutureDate()]],
       patient_Age:          ['', Validators.required],
       patient_Age_Group:    ['', Validators.required],
       patient_Gender:       ['', Validators.required],
       patient_Marital_Status: ['', Validators.required],
       patient_Address:      ['', Validators.required],
       relation:             ['S/O', Validators.required],
-      relative_Name:        ['', [Validators.required, this._common.stringOnlyValidator()]],
-      patient_Contact:      ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      relative_Name:        ['', [Validators.required, AppValidators.stringOnly()]],
+      patient_Contact:      ['', [Validators.required, AppValidators.contactNumber()]],
       patient_Email:        ['', [Validators.required, Validators.email]],
       test_id:              [''],
       test_Name:            ['', Validators.required],
@@ -287,7 +301,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (fieldName === 'patient_Marital_Status') {
       return !!(c.invalid && (c.touched || forceShow));
     }
-    return !!(c.invalid && (c.touched || c.dirty || forceShow));
+    return !!(c.invalid && (c.touched || forceShow));
   }
 
   // Track focus/blur for radio groups
@@ -338,11 +352,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   getFieldError(fieldName: string): string {
     const c = this.patientForm.get(fieldName);
     const forceShow = this.stepTouched[this.currentStep];
-    if (!c?.errors || (!c.touched && !c.dirty && !forceShow)) return '';
+    if (!c?.errors || (!c.touched && !forceShow)) return '';
     const e = c.errors;
     const label = this.fieldLabels[fieldName] ?? fieldName;
     if (e['required'])     return `${label} is required.`;
     if (e['email'])        return 'Please enter a valid email address.';
+    if (e['contactNumber']) return 'Enter a valid 10-digit mobile number that does not start with 0.';
     if (e['pattern'])      return fieldName === 'patient_Contact'
                              ? 'Enter a valid 10-digit mobile number.'
                              : `${label} format is invalid.`;
@@ -599,16 +614,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   get totalAmount(): number { return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0); }
 
   openTestForm(event: Event): void {
+    this.query = '';
     this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: GroupSubGroupModel[]) => {
-        debugger;
         this.groupedTests = res ?? [];
-        console.log(this.groupedTests);
         this.selectedTestGroup = this.groupedTests[0];
         this.selectedGroupId = this.selectedTestGroup?.testGroupId;
         this.getSubGroupList(this.selectedTestGroup!);
       },
-      error: () => { this.groupedTests = []; this.toastr.error('Failed to load test groups', 'Error'); }
+      error: () => { this.groupedTests = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -621,7 +635,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
         this.getMedicalTestList(this.selectedSubGroup!);
       },
-      error: () => { this.subGroupTests = []; this.toastr.error('Failed to load sub-groups', 'Error'); }
+      error: () => { this.subGroupTests = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -634,7 +648,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         const el = document.getElementById('testCatalogModal');
           if (el) this.showModal('testCatalogModal');
       },
-      error: () => { this.pathologyTest = []; this.toastr.error('Failed to load tests', 'Error'); }
+      error: () => { this.pathologyTest = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -701,10 +715,21 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Payment ────────────────────────────────────────────────────────────────
 
+  /** Maximum discount % allowed for this lab (admin-configured). */
+  get maxDiscountPercent(): number { return this._token.getMaxDiscountPercent(); }
+
   calculateNetAmount() {
-    const testAmount = this.patientForm.get('test_Amount')?.value;
-    const discount   = this.patientForm.get('discount')?.value;
-    if (discount <= 100 && testAmount > 0) {
+    const testAmount  = this.patientForm.get('test_Amount')?.value;
+    const discount    = this.patientForm.get('discount')?.value;
+    const maxDiscount = this._token.getMaxDiscountPercent();
+
+    if (discount > maxDiscount) {
+      this.patientForm.get('discount')?.setErrors({ maxExceeded: true });
+      return;
+    }
+    this.patientForm.get('discount')?.setErrors(null);
+
+    if (discount <= maxDiscount && testAmount > 0) {
       this.patientForm.patchValue({ net_Amount: testAmount - discount * testAmount / 100 });
     }
   }
@@ -835,7 +860,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     const netAmount  = parseFloat(String(this.patientForm.get('net_Amount')?.value)) || 0;
 
     if (amountPaid <= 0) {
-      this.amountPaidError = 'Please enter the amount paid.';
+      this.amountPaidError = 'Please enter the correct amount paid.';
       return;
     }
     if (amountPaid >= netAmount) {
@@ -888,7 +913,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   getSerialNPatientId() {
     this._patientService.getSerialNPatientId().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data: any) => this.patientForm.patchValue({ serial_Number: data.key, patient_Id: data.value }),
-      error: (err: any)     => this.toastr.error('Failed to load serial number', 'Error')
+      error: () => { /* message shown centrally by ErrorInterceptor */ }
     });
   }
 
@@ -993,7 +1018,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Address:        f.patient_Address,
       relation:               f.relation,
       relative_Name:          f.relative_Name,
-      patientDialingContact:  `${f.country_Code}-${f.patient_Contact}`,
+      patient_Contact:        `${f.patient_Contact ?? ''}`,
       patient_Email:          f.patient_Email,
       patient_Reg_Date:       f.patient_Reg_Date,
       test,
@@ -1006,11 +1031,17 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         if (res) {
           this.toastr.success('Patient Registered Successfully', 'Success');
           this._route.navigate(['/patients']);
+        } else {
+          // API returned HTTP 200 but the operation failed (e.g. transaction
+          // rolled back). This is not an HTTP error, so the global interceptor
+          // won't fire — surface it explicitly.
+          this.toastr.error('Failed to register patient. Please try again.', 'Error');
         }
       },
-      error: (err: any) => {
+      error: () => {
+        // HTTP/network errors are surfaced centrally by ErrorInterceptor;
+        // here we only reset local state.
         this.isLoading = false;
-        this.toastr.error('Failed to register patient', 'Error');
       }
     });
   }

@@ -1,0 +1,618 @@
+/* ══════════════════════════════════════════════════════════════════
+   My Attendance Component  — read-only, inherits attendance palette
+   ══════════════════════════════════════════════════════════════════ */
+
+// ── Palette tokens ────────────────────────────────────────────────
+$clr-present-bg   : #16a34a;
+$clr-present-bdr  : #166534;
+$clr-present-light: #dcfce7;
+$clr-present-dark : #14532d;
+
+$clr-absent-bg    : #dc2626;
+$clr-absent-bdr   : #991b1b;
+$clr-absent-light : #fee2e2;
+$clr-absent-dark  : #7f1d1d;
+
+$clr-fh-bg        : #ea580c;
+$clr-fh-bdr       : #9a3412;
+$clr-fh-light     : #ffedd5;
+$clr-fh-dark      : #7c2d12;
+
+$clr-sh-bg        : #2563eb;
+$clr-sh-bdr       : #1e40af;
+$clr-sh-light     : #dbeafe;
+$clr-sh-dark      : #1e3a8a;
+
+$clr-holiday-bg   : #d97706;
+$clr-holiday-bdr  : #92400e;
+$clr-holiday-light: #fef3c7;
+
+// ── Page header layout ───────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  padding-top: 0.35rem;
+}
+
+.request-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba(255, 255, 255, 0.28); }
+  i { font-size: 0.85rem; }
+}
+
+// ── Subtitle ─────────────────────────────────────────────────────
+.subtitle {
+  font-size: 0.88em;
+  margin: 0.25em 0 0.55em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+// ── Legend bar ───────────────────────────────────────────────────
+.legend-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em 1.15em;
+  margin-top: 0.15em;
+  padding: 0.5em 0.95em;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.7em;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.legend-lbl {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 0.4em;
+  font-size: 0.78em;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  &.chip-p  { background: $clr-present-bg; }
+  &.chip-a  { background: $clr-absent-bg; }
+  &.chip-fh { background: $clr-fh-bg; }
+  &.chip-sh { background: $clr-sh-bg; }
+  &.chip-h  { background: $clr-holiday-bg; }
+}
+
+// ── Controls bar ─────────────────────────────────────────────────
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin: 0.5em;
+  flex-wrap: wrap;
+}
+
+// ── View toggle ───────────────────────────────────────────────────
+.view-toggle {
+  display: flex;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0.5em;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-left: 2em;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.45em 1em;
+  font-size: 0.85em;
+  font-weight: 600;
+  border: none;
+  background: var(--bg-white, #fff);
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  & + & { border-left: 1px solid rgba(0, 0, 0, 0.12); }
+
+  &:hover:not(:disabled):not(.active) {
+    background: #f1f5f9;
+    color: var(--text-primary, #1e293b);
+  }
+
+  &.active {
+    background: var(--primary-color, #1e5ba8);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// ── Fortnight toggle ──────────────────────────────────────────────
+.fn-toggle .toggle-btn.active {
+  background: #0e7490;
+}
+
+// ── Period navigator ──────────────────────────────────────────────
+.period-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex: 1;
+  justify-content: center;
+}
+
+.period-label {
+  font-size: 0.97em;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  min-width: 18em;
+  text-align: center;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25em;
+  height: 2.25em;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: var(--bg-white, #fff);
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 0.85em;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-color, #1e5ba8);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+// ── Grid wrapper ─────────────────────────────────────────────────
+.grid-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg, 0.75em);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+// ── Table ────────────────────────────────────────────────────────
+.attendance-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88em;
+}
+
+.col-name    { width: 14em; min-width: 13em; }
+.col-day     { width: 7.5em; min-width: 7em; text-align: center; }
+.col-summary { width: 10em; min-width: 6.5em; text-align: center; }
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+
+  thead &, tfoot & { z-index: 3; }
+}
+
+// ── Header row ───────────────────────────────────────────────────
+.header-row {
+  th {
+    background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+    border-bottom: none;
+    padding: 0.65em 0.4em 0.45em;
+    font-weight: 700;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+
+    &.sticky-col {
+      z-index: 4;
+      background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+    }
+  }
+}
+
+.day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+}
+
+.day-name {
+  font-size: 0.82em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.day-date {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: #fff;
+}
+
+.user-col-label {
+  font-size: 0.82em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+// ── Column state tints ────────────────────────────────────────────
+.col-future {
+  background: rgba(30, 91, 168, 0.55) !important;
+  .day-name, .day-date { color: rgba(255,255,255,0.45) !important; }
+}
+
+.col-today {
+  background: rgba(255,255,255,0.22) !important;
+  .day-name { color: #fff !important; font-weight: 800 !important; text-decoration: underline; }
+  .day-date { color: #fff !important; font-weight: 800 !important; }
+}
+
+.col-holiday {
+  background: rgba(217, 119, 6, 0.75) !important;
+  .day-name { color: #fff !important; }
+  .day-date { color: rgba(255,255,255,0.9) !important; }
+}
+
+.holiday-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: $clr-holiday-bg;
+  color: #fff;
+  font-size: 0.7em;
+  font-weight: 800;
+  margin-top: 0.2em;
+  letter-spacing: 0;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.45);
+}
+
+// ── User row ─────────────────────────────────────────────────────
+.user-row {
+  border-bottom: 1px solid #e8edf5;
+
+  td { background: #ffffff; padding: 0.55em 0.4em; vertical-align: middle; }
+  .sticky-col { background: #ffffff; }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  padding: 0 0.3em;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, #3b82f6 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.user-name {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Attendance cells — read-only (span, not button) ───────────────
+.att-cell-td {
+  text-align: center;
+  padding: 0.35em 0.3em;
+}
+
+.att-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 0.45em;
+  font-size: 0.92em;
+  font-weight: 800;
+  border: 2px solid transparent;
+  letter-spacing: 0;
+  cursor: default;   // read-only — no pointer
+  position: relative;
+
+  // Days that can be corrected become clickable and reveal a pen on hover.
+  &.requestable {
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    &:hover .req-pen { opacity: 1; }
+  }
+
+  .req-pen {
+    position: absolute;
+    top: -0.35em;
+    right: -0.35em;
+    font-size: 0.55em;
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    width: 1.5em;
+    height: 1.5em;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+  }
+
+  &.cell-present    { background: $clr-present-bg; color: #fff; border-color: $clr-present-bdr; }
+  &.cell-absent     { background: $clr-absent-bg;  color: #fff; border-color: $clr-absent-bdr;  }
+  &.cell-firsthalf  { background: $clr-fh-bg;      color: #fff; border-color: $clr-fh-bdr;      }
+  &.cell-secondhalf { background: $clr-sh-bg;      color: #fff; border-color: $clr-sh-bdr;      }
+
+  &.cell-unmarked {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+  }
+
+  &.cell-future {
+    background: #f1f5f9;
+    color: #b0bec5;
+    border-color: #e2e8f0;
+  }
+
+  &.cell-holiday {
+    background: $clr-holiday-light;
+    color: $clr-holiday-bdr;
+    border-color: #fcd34d;
+    font-weight: 800;
+  }
+
+  &.today-glow {
+    outline: 2.5px solid var(--primary-color, #1e5ba8);
+    outline-offset: 2px;
+  }
+}
+
+// ── Row summary ───────────────────────────────────────────────────
+.row-summary {
+  display: flex;
+  gap: 0.28em;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  padding: 0.2em 0.55em;
+  border-radius: 1em;
+  font-size: 0.75em;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.2;
+
+  small { font-size: 0.82em; font-weight: 600; }
+
+  &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
+  &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
+  &.rs-fh { background: $clr-fh-light;      color: $clr-fh-dark;       border: 1px solid #fdba74; }
+  &.rs-sh { background: $clr-sh-light;      color: $clr-sh-dark;       border: 1px solid #93c5fd; }
+}
+
+// ── Empty state ───────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5em 2em;
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+
+  .empty-icon { font-size: 3.5em; margin-bottom: 0.5em; opacity: 0.5; }
+  h3 { font-size: 1.2em; font-weight: 700; color: var(--text-primary, #1e293b); margin: 0 0 0.5em; }
+  p  { font-size: 0.9em; max-width: 28em; }
+}
+
+// ── Monthly view ──────────────────────────────────────────────────
+.monthly-view {
+  .col-day     { width: 3em; min-width: 2.6em; padding: 0.3em 0.1em; }
+  .col-summary { width: 9em; min-width: 8em; }
+
+  .day-header { gap: 0; }
+  .day-name   { font-size: 0.7em; }
+  .day-date   { font-size: 0.82em; font-weight: 700; color: #fff; }
+  .holiday-badge { width: 1.2em; height: 1.2em; font-size: 0.62em; margin-top: 0.1em; }
+
+  .att-cell-td { padding: 0.2em 0.1em; }
+
+  .att-cell {
+    width: 2em;
+    height: 2em;
+    font-size: 0.75em;
+    border-radius: 0.35em;
+    border-width: 1.5px;
+  }
+
+  .user-row td { padding: 0.3em 0.15em; }
+}
+
+// ── Fortnight blocks ─────────────────────────────────────────────
+.fortnight-block {
+  margin-bottom: 1.75em;
+  &:last-child { margin-bottom: 0; }
+}
+
+.fortnight-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.55em 1em;
+  margin-bottom: 0.6em;
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  background: #eff6ff;
+  border-left: 4px solid var(--primary-color, #1e5ba8);
+  border-radius: 0 0.45em 0.45em 0;
+
+  i { color: var(--primary-color, #1e5ba8); font-size: 0.92em; }
+
+  .fn-range {
+    margin-left: auto;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--primary-color, #1e5ba8);
+    letter-spacing: 0.02em;
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────
+@media (max-width: 60em) {
+  .col-name    { width: 10em; min-width: 9em; }
+  .col-day     { width: 5.5em; min-width: 5em; }
+  .period-label { min-width: 0; font-size: 0.88em; }
+  .att-cell    { width: 2.2em; height: 2.2em; font-size: 0.82em; }
+  .monthly-view .att-cell { width: 1.7em; height: 1.7em; font-size: 0.68em; }
+  .controls-bar { gap: 0.6em; }
+  .period-nav  { justify-content: flex-start; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  THEME OVERRIDES
+// ══════════════════════════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .grid-wrapper    { border-color: #334155 !important; }
+  .sticky-col      { background: #1e293b !important; }
+  .user-row        { border-bottom-color: #273548 !important;
+                     td { background: #1e293b !important; }
+                     .sticky-col { background: #1e293b !important; } }
+  .att-cell.cell-unmarked { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
+  .att-cell.cell-future   { background: #1e293b !important; color: #475569 !important; border-color: #273548 !important; }
+  .view-toggle     { border-color: #334155 !important; }
+  .toggle-btn      { background: #1e293b !important; color: #94a3b8 !important;
+                     & + & { border-left-color: #334155 !important; }
+                     &:hover:not(:disabled):not(.active) { background: #273548 !important; color: #e2e8f0 !important; } }
+  .nav-btn         { border-color: #334155 !important; background: #1e293b !important; color: #94a3b8 !important; }
+  .fortnight-title { background: #0f172a !important; }
+}
+
+:host-context(html[data-theme="midnight"]) {
+  .grid-wrapper    { border-color: #21262d !important; }
+  .sticky-col      { background: #0d1117 !important; }
+  .user-row        { border-bottom-color: #161b22 !important;
+                     td { background: #0d1117 !important; }
+                     .sticky-col { background: #0d1117 !important; } }
+  .att-cell.cell-unmarked { background: #161b22 !important; color: #a6adc8 !important; border-color: #21262d !important; }
+  .att-cell.cell-future   { background: #0d1117 !important; color: #30363d !important; border-color: #161b22 !important; }
+  .view-toggle     { border-color: #21262d !important; }
+  .toggle-btn      { background: #0d1117 !important; color: #a6adc8 !important;
+                     & + & { border-left-color: #21262d !important; }
+                     &:hover:not(:disabled):not(.active) { background: #161b22 !important; color: #cdd6f4 !important; } }
+  .nav-btn         { border-color: #21262d !important; background: #0d1117 !important; color: #a6adc8 !important; }
+  .fortnight-title { background: #020408 !important; }
+}
+
+:host-context(html[data-theme="warm"]) {
+  .grid-wrapper    { border-color: #ddc9a8 !important; }
+  .sticky-col      { background: #fffdf7 !important; }
+  .user-row        { border-bottom-color: #e8d9c0 !important;
+                     td { background: #fffdf7 !important; }
+                     .sticky-col { background: #fffdf7 !important; } }
+  .att-cell.cell-unmarked { background: #f5ede0 !important; color: #7a5c4e !important; border-color: #ddc9a8 !important; }
+  .att-cell.cell-future   { background: #fef9f0 !important; color: #c4a882 !important; border-color: #e8d9c0 !important; }
+  .view-toggle     { border-color: #ddc9a8 !important; }
+  .toggle-btn      { background: #fffdf7 !important; color: #7a5c4e !important;
+                     & + & { border-left-color: #ddc9a8 !important; }
+                     &:hover:not(:disabled):not(.active) { background: #fef9f0 !important; color: #3d2b1f !important; } }
+  .nav-btn         { border-color: #ddc9a8 !important; background: #fffdf7 !important; color: #7a5c4e !important; }
+  .fortnight-title { background: #fdf3e3 !important; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .grid-wrapper  { border-color: #334155 !important; }
+    .sticky-col    { background: #1e293b !important; }
+    .user-row      { border-bottom-color: #273548 !important;
+                     td { background: #1e293b !important; }
+                     .sticky-col { background: #1e293b !important; } }
+    .att-cell.cell-unmarked { background: #273548 !important; color: #94a3b8 !important; }
+    .att-cell.cell-future   { background: #1e293b !important; color: #475569 !important; }
+    .view-toggle   { border-color: #334155 !important; }
+    .toggle-btn    { background: #1e293b !important; color: #94a3b8 !important; }
+    .nav-btn       { border-color: #334155 !important; background: #1e293b !important; }
+    .fortnight-title { background: #0f172a !important; }
+  }
+}

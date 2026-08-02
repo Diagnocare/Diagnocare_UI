@@ -10,26 +10,32 @@
         </div>
     </div>
     <div class="contact-form-container">
-    
-        <form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
+
+        <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" appFormKeyboard [tabFields]="tabFields">
             <div class="form-grid">
             <div class="field form-group">
-                <label class="form-label">Institution Type</label>
-                <select class="form-select" formControlName="institutionType">
-                <option [ngValue]="null" disabled>Select type</option>
-                <option *ngFor="let t of contactTypes" [ngValue]="t.value">{{ t.label }}</option>
+                <label class="form-label">Institution Type <span class="req">*</span></label>
+                <select class="form-select" formControlName="institutionType"
+                        [class.is-error]="commonService.isControlInvalid(contactForm.get('institutionType'), submitted)">
+                  <option [ngValue]="null" disabled>Select type</option>
+                  <option *ngFor="let t of contactTypes" [ngValue]="t.value">{{ t.label }}</option>
                 </select>
-                <div class="error-text" *ngIf="contactForm.get('institutionType')?.invalid && (contactForm.get('institutionType')?.touched || contactForm.get('institutionType')?.dirty)">
-                <small *ngIf="contactForm.get('institutionType')?.errors?.['required']">Institution type is required.</small>
-                </div>
+                <app-field-error
+                  [control]="contactForm.get('institutionType')"
+                  label="Institution Type"
+                  [forceShow]="submitted">
+                </app-field-error>
             </div>
 
             <div class="field form-group">
-                <label class="form-label required">Name</label>
-                <input class="form-control" formControlName="name" />
-                <div class="error-text" *ngIf="contactForm.get('name')?.invalid && (contactForm.get('name')?.touched || contactForm.get('name')?.dirty)">
-                <small *ngIf="contactForm.get('name')?.errors?.['required']">Name is required.</small>
-                </div>
+                <label class="form-label required">Name <span class="req">*</span></label>
+                <input class="form-control" formControlName="name"
+                       [class.is-error]="commonService.isControlInvalid(contactForm.get('name'), submitted)" />
+                <app-field-error
+                  [control]="contactForm.get('name')"
+                  label="Name"
+                  [forceShow]="submitted">
+                </app-field-error>
             </div>
 
             <div class="field form-group">
@@ -44,10 +50,13 @@
 
             <div class="field form-group">
                 <label class="form-label">Email</label>
-                <input class="form-control" formControlName="email" type="email" />
-                <div class="error-text" *ngIf="contactForm.get('email')?.invalid && (contactForm.get('email')?.touched || contactForm.get('email')?.dirty)">
-                <small *ngIf="contactForm.get('email')?.errors?.['email']">Please enter a valid email address.</small>
-                </div>
+                <input class="form-control" formControlName="email" type="email"
+                       [class.is-error]="commonService.isControlInvalid(contactForm.get('email'), submitted)" />
+                <app-field-error
+                  [control]="contactForm.get('email')"
+                  label="Email"
+                  [forceShow]="submitted">
+                </app-field-error>
             </div>
 
             <div class="field form-group">
@@ -72,10 +81,13 @@
 
             <div class="field form-group">
                 <label class="form-label">Pin Code</label>
-                <input class="form-control" formControlName="pinCode" placeholder="6-digit pin code" />
-                <div class="error-text" *ngIf="contactForm.get('pinCode')?.invalid && (contactForm.get('pinCode')?.touched || contactForm.get('pinCode')?.dirty)">
-                <small *ngIf="contactForm.get('pinCode')?.errors?.['pattern']">Pin code must be 6 digits.</small>
-                </div>
+                <input class="form-control" formControlName="pinCode" placeholder="6-digit pin code"
+                       [class.is-error]="commonService.isControlInvalid(contactForm.get('pinCode'), submitted)" />
+                <app-field-error
+                  [control]="contactForm.get('pinCode')"
+                  label="Pin Code"
+                  [forceShow]="submitted">
+                </app-field-error>
             </div>
 
             <div class="field form-group">
@@ -92,18 +104,21 @@
                 <label class="form-label">Commission (%)</label>
                 <input class="form-control" formControlName="commissionPercentage"
                        type="number" min="0" max="100" step="0.01"
-                       placeholder="e.g. 10.5" />
-                <div class="error-text" *ngIf="contactForm.get('commissionPercentage')?.invalid && (contactForm.get('commissionPercentage')?.touched || contactForm.get('commissionPercentage')?.dirty)">
-                <small>Commission must be between 0 and 100.</small>
-                </div>
+                       placeholder="e.g. 10.5"
+                       [class.is-error]="commonService.isControlInvalid(contactForm.get('commissionPercentage'), submitted)" />
+                <app-field-error
+                  [control]="contactForm.get('commissionPercentage')"
+                  label="Commission"
+                  [forceShow]="submitted">
+                </app-field-error>
             </div>
             </div>
 
             <div class="form-actions">
-              <button type="button" (click)="onClear()" class="btn btn-cancel">
+              <button type="button" (click)="onClear()" class="dc-btn dc-btn--clear">
                 <i class="fa fa-times"></i> Clear
               </button>
-              <button type="submit" [disabled]="contactForm.invalid || isLoading" class="btn btn-primary">
+              <button type="submit" [disabled]="isLoading" class="btn btn-primary">
                 <i class="fa fa-save"></i> {{ isEdit ? 'Update' : 'Add' }}
               </button>
             </div>

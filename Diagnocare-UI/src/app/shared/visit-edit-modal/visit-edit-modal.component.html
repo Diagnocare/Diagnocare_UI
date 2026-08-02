@@ -62,8 +62,8 @@
 
   <!-- Footer -->
   <div class="vem-footer">
-    <button class="vem-btn vem-btn-cancel" type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
-    <button class="vem-btn vem-btn-save"   type="button" (click)="save()"   [disabled]="saving">
+    <button class="dc-btn dc-btn--cancel" type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button class="dc-btn dc-btn--save"   type="button" (click)="save()"   [disabled]="saving">
       <i class="fa" [class.fa-save]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
       {{ saving ? 'Saving…' : 'Save Changes' }}
     </button>

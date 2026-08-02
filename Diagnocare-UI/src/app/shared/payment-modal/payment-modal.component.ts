@@ -12,11 +12,12 @@ import { paymentMode, paymentType } from 'src/app/constant/enums';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
+import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 
 @Component({
   selector: 'app-payment-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, PaymentCalculatorComponent],
   templateUrl: './payment-modal.component.html',
   styleUrls: ['./payment-modal.component.css'],
 })

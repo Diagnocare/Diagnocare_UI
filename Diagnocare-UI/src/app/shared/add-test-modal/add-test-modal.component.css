@@ -401,6 +401,18 @@
 .hint-dot--active { width: 22px; border-radius: 4px; background: linear-gradient(90deg, #1E5BA8, #667eea); }
 .hint-dot--done   { background: #4CAF50; }
 
+/* ─── Amount Pending helper text ─────────────────────────────────────────── */
+.amount-pending-hint {
+  display: block;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 2px;
+  margin-bottom: 0;
+}
+
 /* ─── Partial Payment Modal helpers ──────────────────────────────────────── */
 .pm-locked-field {
   display: flex;

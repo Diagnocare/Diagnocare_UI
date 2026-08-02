@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5em;
+  gap: 0.75em;
   cursor: pointer;
   user-select: none;
   min-height: 38px;
@@ -345,4 +345,279 @@ app-date-picker.is-invalid .dp-trigger {
 :host {
   display: block;
   width: 100%;
+}
+
+/* ── Table-based calendar cell/button styles ─────────────────────────────── */
+/*
+ * The calendar renders as a <table>. These replace the inline style="" attrs
+ * that were previously on <th>, <td>, and <button> elements so that theme
+ * overrides can reach them via CSS (inline styles block CSS overrides).
+ */
+.dp-th {
+  text-align: center;
+  font-size: 0.7em;
+  font-weight: 700;
+  color: #9aa8be;
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: transparent;
+}
+
+.dp-td {
+  padding: 1px;
+  background: transparent;
+}
+
+.dp-day {
+  display: block;
+  width: 100%;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82em;
+  font-weight: 500;
+  background: transparent;
+  color: #1a2e4a;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+
+.dp-day:hover:not(:disabled):not(.dp-day--selected) {
+  background: #eef2ff;
+  color: #1E5BA8;
+}
+
+.dp-day--other {
+  color: #c5cedc;
+}
+
+.dp-day--other:hover:not(:disabled) {
+  background: #f5f7fc;
+  color: #9aa8be;
+}
+
+.dp-day--today {
+  background: #dbeafe;
+  color: #1E5BA8;
+  font-weight: 700;
+  position: relative;
+}
+
+.dp-day--today::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #667eea;
+}
+
+.dp-day--selected {
+  background: linear-gradient(135deg, #1E5BA8, #667eea);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(30, 91, 168, 0.35);
+}
+
+.dp-day--selected:hover {
+  background: linear-gradient(135deg, #1a4f96, #5b72d8);
+}
+
+.dp-day--disabled,
+.dp-day:disabled {
+  color: #c5cedc;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ══ CENTRALIZED THEME OVERRIDES ═════════════════════════════════════════════
+ * ViewEncapsulation.None means these rules are GLOBAL — one place covers every
+ * <app-date-picker> usage in the entire application.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Dark ─────────────────────────────────────────────────────────────────── */
+html[data-theme="dark"] .dp-trigger {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+html[data-theme="dark"] .dp-trigger:hover:not([aria-disabled="true"]) {
+  border-color: #60a5fa;
+}
+html[data-theme="dark"] .dp-root.dp-open .dp-trigger,
+html[data-theme="dark"] .dp-trigger:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+html[data-theme="dark"] .dp-trigger--empty .dp-display { color: #475569; }
+html[data-theme="dark"] .dp-trigger-icon { color: #64748b; }
+html[data-theme="dark"] .dp-trigger-icon--open { color: #60a5fa; }
+html[data-theme="dark"] .dp-root.dp-disabled .dp-trigger { background: #1e293b; color: #475569; }
+
+html[data-theme="dark"] .dp-panel {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6), 0 20px 48px rgba(0,0,0,.4);
+  color: #e2e8f0;
+}
+html[data-theme="dark"] .dp-month-year  { color: #e2e8f0; }
+html[data-theme="dark"] .dp-nav-btn     { color: #94a3b8; }
+html[data-theme="dark"] .dp-nav-btn:hover {
+  background: #273548;
+  border-color: #475569;
+  color: #60a5fa;
+}
+html[data-theme="dark"] .dp-th  { color: #64748b; }
+html[data-theme="dark"] .dp-td  { background: transparent; }
+html[data-theme="dark"] .dp-day { color: #cbd5e1; background: transparent; }
+html[data-theme="dark"] .dp-day:hover:not(:disabled):not(.dp-day--selected) {
+  background: #273548;
+  color: #e2e8f0;
+}
+html[data-theme="dark"] .dp-day--other  { color: #475569; }
+html[data-theme="dark"] .dp-day--today  { background: #1e3a5f; color: #60a5fa; }
+html[data-theme="dark"] .dp-day--today::after { background: #60a5fa; }
+html[data-theme="dark"] .dp-day--disabled,
+html[data-theme="dark"] .dp-day:disabled { color: #334155; }
+html[data-theme="dark"] .dp-footer       { border-top-color: #334155; }
+html[data-theme="dark"] .dp-today-btn    { background: #1e3a5f; border-color: #1d4ed8; color: #93c5fd; }
+html[data-theme="dark"] .dp-today-btn:hover  { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+html[data-theme="dark"] .dp-clear-btn    { background: #3b0f0f; border-color: #7f1d1d; color: #fca5a5; }
+html[data-theme="dark"] .dp-clear-btn:hover  { background: #7f1d1d; border-color: #7f1d1d; color: #fff; }
+html[data-theme="dark"] .dp-close-btn    { background: #273548; border-color: #475569; color: #94a3b8; }
+html[data-theme="dark"] .dp-close-btn:hover  { background: #475569; border-color: #64748b; color: #e2e8f0; }
+
+/* ── Midnight ─────────────────────────────────────────────────────────────── */
+html[data-theme="midnight"] .dp-trigger {
+  background: #020408;
+  border-color: #21262d;
+  color: #cdd6f4;
+}
+html[data-theme="midnight"] .dp-trigger:hover:not([aria-disabled="true"]) { border-color: #4d9ef0; }
+html[data-theme="midnight"] .dp-root.dp-open .dp-trigger,
+html[data-theme="midnight"] .dp-trigger:focus {
+  border-color: #4d9ef0;
+  box-shadow: 0 0 0 3px rgba(77,158,240,.2);
+}
+html[data-theme="midnight"] .dp-trigger--empty .dp-display { color: #30363d; }
+html[data-theme="midnight"] .dp-trigger-icon { color: #484f58; }
+html[data-theme="midnight"] .dp-trigger-icon--open { color: #4d9ef0; }
+html[data-theme="midnight"] .dp-root.dp-disabled .dp-trigger { background: #0d1117; color: #30363d; }
+
+html[data-theme="midnight"] .dp-panel {
+  background: #0d1117;
+  border-color: #21262d;
+  box-shadow: 0 8px 32px rgba(0,0,0,.8);
+  color: #cdd6f4;
+}
+html[data-theme="midnight"] .dp-month-year  { color: #cdd6f4; }
+html[data-theme="midnight"] .dp-nav-btn     { color: #8b949e; }
+html[data-theme="midnight"] .dp-nav-btn:hover { background: #161b22; border-color: #30363d; color: #4d9ef0; }
+html[data-theme="midnight"] .dp-th  { color: #484f58; }
+html[data-theme="midnight"] .dp-td  { background: transparent; }
+html[data-theme="midnight"] .dp-day { color: #a6adc8; background: transparent; }
+html[data-theme="midnight"] .dp-day:hover:not(:disabled):not(.dp-day--selected) {
+  background: #161b22;
+  color: #cdd6f4;
+}
+html[data-theme="midnight"] .dp-day--other   { color: #30363d; }
+html[data-theme="midnight"] .dp-day--today   { background: #11162a; color: #4d9ef0; }
+html[data-theme="midnight"] .dp-day--today::after { background: #4d9ef0; }
+html[data-theme="midnight"] .dp-day--disabled,
+html[data-theme="midnight"] .dp-day:disabled { color: #21262d; }
+html[data-theme="midnight"] .dp-footer       { border-top-color: #21262d; }
+html[data-theme="midnight"] .dp-today-btn    { background: #11162a; border-color: #1d4ed8; color: #79b8ff; }
+html[data-theme="midnight"] .dp-today-btn:hover  { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+html[data-theme="midnight"] .dp-clear-btn    { background: #2d0a0a; border-color: #531c07; color: #f97583; }
+html[data-theme="midnight"] .dp-clear-btn:hover  { background: #531c07; border-color: #531c07; color: #fff; }
+html[data-theme="midnight"] .dp-close-btn    { background: #161b22; border-color: #21262d; color: #8b949e; }
+html[data-theme="midnight"] .dp-close-btn:hover  { background: #21262d; border-color: #30363d; color: #cdd6f4; }
+
+/* ── Warm ─────────────────────────────────────────────────────────────────── */
+html[data-theme="warm"] .dp-trigger {
+  background: #fef9f0;
+  border-color: #ddc9a8;
+  color: #3d2b1f;
+}
+html[data-theme="warm"] .dp-trigger:hover:not([aria-disabled="true"]) { border-color: #c4985a; }
+html[data-theme="warm"] .dp-root.dp-open .dp-trigger,
+html[data-theme="warm"] .dp-trigger:focus {
+  border-color: #c4985a;
+  box-shadow: 0 0 0 3px rgba(196,152,90,.18);
+}
+html[data-theme="warm"] .dp-trigger--empty .dp-display { color: #c4ad8e; }
+html[data-theme="warm"] .dp-trigger-icon { color: #b09070; }
+html[data-theme="warm"] .dp-trigger-icon--open { color: #c4985a; }
+html[data-theme="warm"] .dp-root.dp-disabled .dp-trigger { background: #f9f3e8; color: #b09070; }
+
+html[data-theme="warm"] .dp-panel {
+  background: #fffdf7;
+  border-color: #ddc9a8;
+  box-shadow: 0 8px 24px rgba(120,80,30,.12);
+  color: #3d2b1f;
+}
+html[data-theme="warm"] .dp-month-year  { color: #3d2b1f; }
+html[data-theme="warm"] .dp-nav-btn     { color: #9e8272; }
+html[data-theme="warm"] .dp-nav-btn:hover { background: #f5e9d6; border-color: #c4ad8e; color: #7a4f2d; }
+html[data-theme="warm"] .dp-th  { color: #b09070; }
+html[data-theme="warm"] .dp-td  { background: transparent; }
+html[data-theme="warm"] .dp-day { color: #3d2b1f; background: transparent; }
+html[data-theme="warm"] .dp-day:hover:not(:disabled):not(.dp-day--selected) {
+  background: #f5e9d6;
+  color: #7a4f2d;
+}
+html[data-theme="warm"] .dp-day--other  { color: #c4ad8e; }
+html[data-theme="warm"] .dp-day--today  { background: #fde8c4; color: #7a4f2d; }
+html[data-theme="warm"] .dp-day--today::after { background: #c4985a; }
+html[data-theme="warm"] .dp-day--disabled,
+html[data-theme="warm"] .dp-day:disabled { color: #ddc9a8; }
+html[data-theme="warm"] .dp-footer       { border-top-color: #e8d9c0; }
+html[data-theme="warm"] .dp-today-btn    { background: #fde8c4; border-color: #c4985a; color: #7a4f2d; }
+html[data-theme="warm"] .dp-today-btn:hover  { background: #c4985a; border-color: #c4985a; color: #fff; }
+html[data-theme="warm"] .dp-clear-btn    { background: #fef0f0; border-color: #e8a0a0; color: #c0392b; }
+html[data-theme="warm"] .dp-clear-btn:hover  { background: #c0392b; border-color: #c0392b; color: #fff; }
+html[data-theme="warm"] .dp-close-btn    { background: #f5ece0; border-color: #ddc9a8; color: #9e8272; }
+html[data-theme="warm"] .dp-close-btn:hover  { background: #ddc9a8; border-color: #c4ad8e; color: #3d2b1f; }
+
+/* ── System (follows OS dark preference) ──────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .dp-trigger {
+    background: #0f172a; border-color: #334155; color: #e2e8f0;
+  }
+  html[data-theme="system"] .dp-trigger:hover:not([aria-disabled="true"]) { border-color: #60a5fa; }
+  html[data-theme="system"] .dp-root.dp-open .dp-trigger,
+  html[data-theme="system"] .dp-trigger:focus {
+    border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.2);
+  }
+  html[data-theme="system"] .dp-trigger--empty .dp-display { color: #475569; }
+  html[data-theme="system"] .dp-trigger-icon { color: #64748b; }
+  html[data-theme="system"] .dp-trigger-icon--open { color: #60a5fa; }
+  html[data-theme="system"] .dp-panel {
+    background: #1e293b; border-color: #334155;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6); color: #e2e8f0;
+  }
+  html[data-theme="system"] .dp-month-year { color: #e2e8f0; }
+  html[data-theme="system"] .dp-nav-btn    { color: #94a3b8; }
+  html[data-theme="system"] .dp-nav-btn:hover { background: #273548; border-color: #475569; color: #60a5fa; }
+  html[data-theme="system"] .dp-th   { color: #64748b; }
+  html[data-theme="system"] .dp-td   { background: transparent; }
+  html[data-theme="system"] .dp-day  { color: #cbd5e1; background: transparent; }
+  html[data-theme="system"] .dp-day:hover:not(:disabled):not(.dp-day--selected) {
+    background: #273548; color: #e2e8f0;
+  }
+  html[data-theme="system"] .dp-day--other  { color: #475569; }
+  html[data-theme="system"] .dp-day--today  { background: #1e3a5f; color: #60a5fa; }
+  html[data-theme="system"] .dp-day--today::after { background: #60a5fa; }
+  html[data-theme="system"] .dp-day--disabled,
+  html[data-theme="system"] .dp-day:disabled { color: #334155; }
+  html[data-theme="system"] .dp-footer      { border-top-color: #334155; }
+  html[data-theme="system"] .dp-today-btn   { background: #1e3a5f; border-color: #1d4ed8; color: #93c5fd; }
+  html[data-theme="system"] .dp-today-btn:hover  { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+  html[data-theme="system"] .dp-clear-btn   { background: #3b0f0f; border-color: #7f1d1d; color: #fca5a5; }
+  html[data-theme="system"] .dp-close-btn   { background: #273548; border-color: #475569; color: #94a3b8; }
 }

@@ -1,30 +1,42 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, throwError } from 'rxjs';
-import { AuthConfigService } from '../../services/auth-config.service';
-import { LoginService } from '../../services/loginServices/login.service';
+import { catchError, switchMap, tap, throwError } from 'rxjs';
+import { AuthConfigService }  from '../../services/auth-config.service';
+import { LoginService }       from '../../services/loginServices/login.service';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
-import { TokenService } from './token.service';
+import { TokenService }       from './token.service';
+import { PinService }         from '../../services/pinServices/pin.service';
+import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
 
 /**
  * Auth interceptor:
  *  - Login-related endpoints  →  Basic Auth (Admin / static password)
- *  - All other endpoints      →  Bearer token from localStorage
+ *  - All other endpoints      →  Bearer token from sessionStorage
  *
- * Token-refresh behaviour:
- *  1. Proactive  — if the stored JWT is already expired before the request
- *                  goes out, refresh first then retry with the new token.
- *  2. Reactive   — if the server returns 401 (clock skew / short-lived token),
- *                  refresh and retry once.
- *  In both cases, if the refresh call itself fails the user is redirected to
- *  /login and all auth data is cleared.
+ * Token-refresh behaviour (both paths require PIN):
+ *  1. Proactive  — token is already expired client-side before the request fires.
+ *  2. Reactive   — server returns 401 (clock skew, race condition, etc.).
+ *
+ *  In both cases:
+ *    a. PIN set      — show PIN modal. Correct PIN → refresh + retry.
+ *                      Wrong × 3 or cancel → force logout.
+ *    b. No PIN set   — show "Set Up a PIN" modal. "Go to Settings" → refresh
+ *                      token once + navigate to /settings. "Log Out" → logout.
+ *
+ *  Concurrent requests that all hit the expired-token check simultaneously are
+ *  deduplicated by PinModalService — the modal opens exactly once and all
+ *  callers receive the same result.
+ *
+ *  If the refresh call itself fails the user is redirected to /login.
  */
 export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
-  const authConfig  = inject(AuthConfigService);
-  const tokenSvc    = inject(TokenService);
-  const loginSvc    = inject(LoginService);
-  const router      = inject(Router);
+  const authConfig     = inject(AuthConfigService);
+  const tokenSvc       = inject(TokenService);
+  const loginSvc       = inject(LoginService);
+  const router         = inject(Router);
+  const pinService     = inject(PinService);
+  const pinModalService= inject(PinModalService);
 
   // ── Always attach X-Browser-Id ────────────────────────────────────────────
   // The backend uses this stable UUID to distinguish "same browser, new tab"
@@ -67,9 +79,37 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
       })
     );
 
+  // ── Helper: PIN gate → refresh → retry ────────────────────────────────────
+  // Used by BOTH the proactive check and the reactive 401 path so neither
+  // path can bypass PIN verification.
+  const pinGatedRefresh = () => {
+    const userId = tokenSvc.getUserId();
+    if (pinService.hasPin(userId)) {
+      return pinModalService.requestPin().pipe(
+        switchMap(verified => {
+          if (verified) return refreshAndRetry();
+          loginSvc.logout().subscribe();
+          router.navigate(['/login'], { queryParams: { reason: 'pin_failed' } });
+          return throwError(() => new Error('PIN failed — redirecting to login'));
+        }),
+      );
+    } else {
+      return pinModalService.requestPinSetup().pipe(
+        switchMap(goToSettings => {
+          if (goToSettings) {
+            return refreshAndRetry().pipe(tap(() => router.navigate(['/settings'])));
+          }
+          loginSvc.logout().subscribe();
+          router.navigate(['/login'], { queryParams: { reason: 'no_pin' } });
+          return throwError(() => new Error('No PIN — redirecting to login'));
+        }),
+      );
+    }
+  };
+
   // ── Proactive check: token already expired before the request goes out ────
   if (tokenSvc.hasToken() && tokenSvc.isTokenExpired()) {
-    return refreshAndRetry();
+    return pinGatedRefresh();
   }
 
   // ── Normal flow: attach Bearer, then watch for 401 ────────────────────────
@@ -77,12 +117,8 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((err: HttpErrorResponse) => {
       if (err.status === 401) {
         // Session forcibly terminated (a new login from another browser replaced ours).
-        // Don't attempt a refresh — the new token won't match either. Redirect with
-        // a query param so the login page can show the user an informative message.
-        //
         // Check BOTH the response header AND the body: the header is reliable in dev
-        // (same-origin) but may be stripped by a reverse proxy in QA/prod. The body
-        // JSON { error: "session_terminated" } is the authoritative fallback.
+        // (same-origin) but may be stripped by a reverse proxy in QA/prod.
         const sessionTerminated =
           err.headers?.get('X-Auth-Error') === 'session_terminated' ||
           err.error?.error === 'session_terminated';
@@ -91,7 +127,14 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
           router.navigate(['/login'], { queryParams: { reason: 'session_terminated' } });
           return throwError(() => err);
         }
-        return refreshAndRetry();
+        // 401 from clock skew or token that expired mid-flight — require PIN.
+        // Only when there is an actual session: a 401 with no token simply means
+        // the user isn't logged in (e.g. the public register-pathology page), so
+        // do NOT prompt to set up a PIN — just propagate the error.
+        if (tokenSvc.hasToken()) {
+          return pinGatedRefresh();
+        }
+        return throwError(() => err);
       }
       return throwError(() => err);
     })

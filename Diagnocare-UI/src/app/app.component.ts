@@ -5,9 +5,13 @@ import { CommonModule } from '@angular/common';
 import { filter, Subscription } from 'rxjs';
 
 import { ConfirmModalComponent } from './shared/confirm-modal/confirm-modal.component';
-import { TokenService } from './core/interceptors/token.service';
-import { LoginService } from './services/loginServices/login.service';
+import { PinModalComponent }    from './shared/pin-modal/pin-modal.component';
+import { TokenService }         from './core/interceptors/token.service';
+import { LoginService }         from './services/loginServices/login.service';
 import { SessionSignalRService } from './services/sessionSignalR/session-signalr.service';
+import { SessionLockService }   from './core/services/session-lock.service';
+import { ThemeService }         from './services/themeServices/theme.service';
+import { PathologyService }     from './services/pathologyServices/pathology.service';
 
 /**
  * Session model
@@ -47,20 +51,23 @@ import { SessionSignalRService } from './services/sessionSignalR/session-signalr
   templateUrl: './app.component.html',
   standalone: true,
   styleUrls: ['./app.component.css'],
-  imports: [RouterModule, HttpClientModule, ConfirmModalComponent, CommonModule],
+  imports: [RouterModule, HttpClientModule, ConfirmModalComponent, PinModalComponent, CommonModule],
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'diagnocare';
 
   private sessionPollTimer: ReturnType<typeof setInterval> | null = null;
-  private static readonly POLL_INTERVAL_MS = 30_000;
+  private static readonly POLL_INTERVAL_MS = 300_000;
   private sessionKickedSub: Subscription | null = null;
 
   constructor(
-    private tokenService:   TokenService,
-    private loginService:   LoginService,
-    private router:         Router,
-    private sessionSignalR: SessionSignalRService,
+    private tokenService:    TokenService,
+    private loginService:    LoginService,
+    private router:          Router,
+    private sessionSignalR:  SessionSignalRService,
+    private sessionLock:     SessionLockService,
+    private themeService:    ThemeService,
+    private pathologyService:PathologyService,
   ) {}
 
   ngOnInit(): void {
@@ -68,6 +75,12 @@ export class AppComponent implements OnInit, OnDestroy {
     // Must run before any auth guard fires so BroadcastChannel is ready to answer
     // request-token messages from sibling tabs.
     this.tokenService.initTabTracking();
+
+    // Apply the saved theme for this user as early as possible to avoid flash.
+    const username = this.tokenService.getUserId();
+    if (username) {
+      this.themeService.loadForUser(username);
+    }
 
     // When a sibling tab is kicked out by another browser, it broadcasts
     // 'session-terminated' so THIS tab gets disinfected immediately — before
@@ -82,6 +95,9 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     // Start/stop SignalR + poll based on route.
+    // Also re-applies the user's saved theme on every post-login navigation so
+    // the theme is correct even when Angular navigates without a full page reload
+    // (e.g. SPA redirect after OTP verification).
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: NavigationEnd) => {
@@ -89,13 +105,52 @@ export class AppComponent implements OnInit, OnDestroy {
           this.stopSessionServices();
         } else if (this.tokenService.hasToken()) {
           this.startSessionServices();
+          const username = this.tokenService.getUserId();
+          if (username) {
+            this.themeService.loadForUser(username);
+          }
         }
       });
 
     // Kick off immediately if already on an authenticated route (page refresh).
     if (this.tokenService.hasToken()) {
       this.startSessionServices();
+      // Fetch and cache grace buffer minutes so the interceptor can use them
+      // on the next request without waiting for the lab-setup page to be opened.
+      // Only hit the DB on the first load after login — once cached in
+      // localStorage, subsequent page loads read from there instead. The
+      // cache is cleared on logout (see TokenService.removeToken) so a new
+      // login always gets fresh values.
+      if (!this.tokenService.hasCachedPolicies()) {
+        this.fetchAndCachePathologyDetails();
+      }
     }
+  }
+
+  /**
+   * Fetches pathology policy settings from the DB and caches them in
+   * TokenService (localStorage) so later page loads can read the cache
+   * instead of calling the API again. Errors are silently ignored —
+   * sensible defaults apply:
+   *   graceBufferMinutes   → 0   (grace disabled)
+   *   maxDiscountPercent   → 50
+   *   sessionLockoutMinutes→ 30 minutes
+   */
+  private fetchAndCachePathologyDetails(): void {
+    this.pathologyService.getPathology().subscribe({
+      next: (data) => {
+        if (data?.graceBufferMinutes !== undefined) {
+          this.tokenService.setGraceBufferMinutes(data.graceBufferMinutes);
+        }
+        if (data?.maxDiscountPercent !== undefined) {
+          this.tokenService.setMaxDiscountPercent(data.maxDiscountPercent);
+        }
+        if (data?.sessionLockoutMinutes !== undefined) {
+          this.tokenService.setSessionLockoutMinutes(data.sessionLockoutMinutes);
+        }
+      },
+      error: () => { /* silently ignore — defaults apply */ },
+    });
   }
 
   ngOnDestroy(): void {
@@ -107,11 +162,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private startSessionServices(): void {
     this.sessionSignalR.start();
+    this.sessionLock.start();
     this.startSessionPoll();
   }
 
   private stopSessionServices(): void {
     this.sessionSignalR.stop();
+    this.sessionLock.stop();
     this.stopSessionPoll();
   }
 

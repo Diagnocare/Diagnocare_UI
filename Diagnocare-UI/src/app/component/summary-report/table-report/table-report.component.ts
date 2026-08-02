@@ -228,7 +228,7 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     }).pipe(takeUntil(this.destroy$))
       .subscribe({
         next:  resp => { this.handleResponse(resp); this.isLoading = false; },
-        error: ()   => { this.toastr.error('Failed to load report.', 'Error'); this.isLoading = false; },
+        error: ()   => { this.isLoading = false; },   // message shown centrally by ErrorInterceptor
       });
   }
 

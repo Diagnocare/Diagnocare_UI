@@ -1,0 +1,105 @@
+<!-- ── Trigger link ──────────────────────────────────────────────────────── -->
+<button type="button" class="pcm-trigger" (click)="open()">
+  <i class="fa fa-calculator"></i>
+  Cash Change Calculator
+</button>
+
+<!-- ── Modal overlay ─────────────────────────────────────────────────────── -->
+<div class="pcm-overlay" *ngIf="isOpen" (click)="onOverlayClick($event)">
+  <div class="pcm-modal" role="dialog" aria-modal="true" aria-labelledby="pcm-title">
+
+    <!-- Header -->
+    <div class="pcm-header">
+      <div class="pcm-header-left">
+        <span class="pcm-header-icon"><i class="fa fa-calculator"></i></span>
+        <h4 class="pcm-title" id="pcm-title">Cash Change Calculator</h4>
+      </div>
+      <button type="button" class="pcm-close" (click)="close()" aria-label="Close">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Amount Due strip -->
+    <div class="pcm-amount-strip">
+      <span class="pcm-strip-label">Amount Due</span>
+      <span class="pcm-strip-value">₹{{ requiredAmount | number:'1.2-2' }}</span>
+    </div>
+
+    <!-- Cash Received input -->
+    <div class="pcm-body">
+      <label class="pcm-input-label" for="pcm-cash">
+        <i class="fa fa-money"></i>&nbsp; Cash Received from Patient (₹)
+      </label>
+      <input
+        id="pcm-cash"
+        type="number"
+        class="pcm-input"
+        [(ngModel)]="cashReceived"
+        (ngModelChange)="onCashInput()"
+        placeholder="Enter cash collected"
+        min="0"
+        autocomplete="off"
+        autofocus
+      />
+
+      <!-- Result panel -->
+      <div class="pcm-result" [ngClass]="{
+        'pcm-result--idle':     result.state === 'idle',
+        'pcm-result--balance':  result.state === 'balance',
+        'pcm-result--return':   result.state === 'return',
+        'pcm-result--complete': result.state === 'complete'
+      }">
+
+        <!-- Idle -->
+        <ng-container *ngIf="result.state === 'idle'">
+          <i class="fa fa-keyboard-o pcm-result-icon"></i>
+          <div class="pcm-result-text">
+            <span class="pcm-result-label">Enter the cash amount above</span>
+            <span class="pcm-result-sub">Balance due or change to return will appear here</span>
+          </div>
+        </ng-container>
+
+        <!-- Balance Due -->
+        <ng-container *ngIf="result.state === 'balance'">
+          <i class="fa fa-exclamation-circle pcm-result-icon"></i>
+          <div class="pcm-result-text">
+            <span class="pcm-result-label">Balance Due</span>
+            <strong class="pcm-result-amount">₹{{ result.difference | number:'1.2-2' }}</strong>
+            <span class="pcm-result-sub">Cash received is short — collect the balance</span>
+          </div>
+        </ng-container>
+
+        <!-- Return Amount -->
+        <ng-container *ngIf="result.state === 'return'">
+          <i class="fa fa-exchange pcm-result-icon"></i>
+          <div class="pcm-result-text">
+            <span class="pcm-result-label">Return to Patient</span>
+            <strong class="pcm-result-amount">₹{{ result.difference | number:'1.2-2' }}</strong>
+            <span class="pcm-result-sub">Give this change back to the patient</span>
+          </div>
+        </ng-container>
+
+        <!-- Payment Complete -->
+        <ng-container *ngIf="result.state === 'complete'">
+          <i class="fa fa-check-circle pcm-result-icon"></i>
+          <div class="pcm-result-text">
+            <span class="pcm-result-label">Payment Complete</span>
+            <span class="pcm-result-sub">Exact amount received — no change needed</span>
+          </div>
+        </ng-container>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="pcm-footer">
+      <button type="button" class="dc-btn dc-btn--clear" (click)="reset()">
+        <i class="fa fa-refresh"></i> Clear
+      </button>
+      <button type="button" class="dc-btn dc-btn--save" (click)="close()">
+        <i class="fa fa-check"></i> Done
+      </button>
+    </div>
+
+  </div>
+</div>

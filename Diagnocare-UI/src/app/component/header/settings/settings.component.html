@@ -1,11 +1,136 @@
 <div class="acct-page">
 
   <!-- ══════════════════════════════════════
+       MFA DIALOG — reused OtpMfaDialogComponent
+       (position:fixed, overlays the whole page)
+  ══════════════════════════════════════ -->
+  <!--
+    showMethodSelect: show picker only when no preferred method is known.
+    selectedMethod / isTotpMode: pre-select the user's preferred auth channel,
+      matching the login-screen behaviour.
+    hasMfa: TOTP option is available if their preferred method is the auth app.
+  -->
+  <app-otp-mfa-dialog
+    *ngIf="showMfaDialog"
+    [userId]="userName"
+    [id]="user?.user_Id ?? 0"
+    [maskedContactNumber]="maskedPhone"
+    [maskedEmail]="maskedEmail"
+    [showMethodSelect]="!preferredMfaMethod && !isTotpPreferred"
+    [selectedMethod]="preferredMfaMethod"
+    [hasMfa]="isTotpPreferred"
+    [isTotpMode]="isTotpPreferred"
+    [isSubmitting]="mfaSubmitting"
+    [verifyError]="mfaError"
+    [sendOtpFn]="profileOtpSender"
+    [backLabel]="'Cancel'"
+    (verify)="onMfaVerify($event)"
+    (close)="onMfaClose()"
+    (back)="onMfaClose()">
+  </app-otp-mfa-dialog>
+
+  <!-- ══════════════════════════════════════
        PAGE HEADER
   ══════════════════════════════════════ -->
   <div class="acct-header">
     <h2 class="acct-title"><i class="fa fa-cog"></i> Settings</h2>
     <p class="acct-subtitle">Manage account preferences</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION: SESSION PIN
+  ══════════════════════════════════════ -->
+  <div class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-lock"></i>
+      <div>
+        <h4 class="acct-card-title">Session PIN</h4>
+        <p class="acct-card-sub">
+          A 4–6 digit PIN used to renew your session when your token expires within the grace buffer
+          period, so you don't have to log in again from scratch.
+        </p>
+      </div>
+    </div>
+
+    <div class="acct-card-body">
+
+      <!-- Status row -->
+      <div class="current-value-row" *ngIf="pinMode === 'none'">
+        <span class="current-label">Status:</span>
+        <span class="current-badge" [class.badge-success]="hasPinSet" [class.badge-muted]="!hasPinSet">
+          <i class="fa" [class.fa-check-circle]="hasPinSet" [class.fa-times-circle]="!hasPinSet"></i>
+          {{ hasPinSet ? 'PIN is set' : 'No PIN set' }}
+        </span>
+        <button class="btn-link-sm" (click)="startSetPin()" *ngIf="!hasPinSet">
+          <i class="fa fa-plus"></i> Set PIN
+        </button>
+        <button class="btn-link-sm" (click)="startChangePin()" *ngIf="hasPinSet">
+          <i class="fa fa-pencil-alt"></i> Change
+        </button>
+        <button class="btn-link-sm btn-link-danger" (click)="startRemovePin()" *ngIf="hasPinSet">
+          <i class="fa fa-trash"></i> Remove
+        </button>
+      </div>
+
+      <!-- Set new PIN form -->
+      <div class="edit-block" *ngIf="pinMode === 'set'">
+        <p class="pin-form-hint"><i class="fa fa-info-circle"></i> Choose a 4–6 digit PIN you'll remember.</p>
+        <div class="pin-field-row">
+          <label>New PIN</label>
+          <div class="pin-input-group">
+            <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
+                   inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="e.g. 1234"
+                   [ngModel]="newPin" (ngModelChange)="newPin = onlyDigits($event)" autocomplete="new-password" />
+            <button type="button" class="pin-eye-btn" (click)="showNewPin = !showNewPin">
+              <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
+            </button>
+          </div>
+        </div>
+        <div class="pin-field-row">
+          <label>Confirm PIN</label>
+          <div class="pin-input-group">
+            <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
+                   inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Repeat PIN"
+                   [ngModel]="confirmPin" (ngModelChange)="confirmPin = onlyDigits($event)" autocomplete="new-password" />
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="dc-btn dc-btn--save dc-btn--sm" (click)="saveNewPin()" [disabled]="pinSaving || !newPin || !confirmPin">
+            <i class="fa fa-check"></i> Save PIN
+          </button>
+          <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
+        </div>
+      </div>
+
+      <!-- Remove PIN form -->
+      <div class="edit-block" *ngIf="pinMode === 'remove'">
+        <p class="pin-form-hint pin-form-hint--warn">
+          <i class="fa fa-exclamation-triangle"></i>
+          After removing your PIN, you will be redirected to the login page whenever your session token expires.
+        </p>
+        <div class="pin-field-row">
+          <label>Current PIN</label>
+          <div class="pin-input-group">
+            <input [type]="showCurrentPin ? 'text' : 'password'" class="form-input"
+                   inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter to confirm removal"
+                   [ngModel]="currentPin" (ngModelChange)="currentPin = onlyDigits($event)" autocomplete="current-password" />
+            <button type="button" class="pin-eye-btn" (click)="showCurrentPin = !showCurrentPin">
+              <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
+            </button>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="dc-btn dc-btn--delete dc-btn--sm" (click)="removePin()" [disabled]="pinSaving || !currentPin">
+            <i class="fa fa-trash"></i> Remove PIN
+          </button>
+          <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancelPin()"><i class="fa fa-times"></i> Cancel</button>
+        </div>
+      </div>
+
+      <div *ngIf="pinError"   class="msg msg-error"><i class="fa fa-exclamation-circle"></i> {{ pinError }}</div>
+      <div *ngIf="pinSuccess" class="msg msg-success"><i class="fa fa-check-circle"></i> {{ pinSuccess }}</div>
+
+    </div>
   </div>
 
   <!-- ══════════════════════════════════════
@@ -34,17 +159,64 @@
           <input class="radio-input" type="radio" name="authType"
                  [id]="'authType_' + opt.value"
                  [value]="opt.value"
+                 [disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled"
                  [(ngModel)]="selectedAuthType">
-          <label class="radio-label" [for]="'authType_' + opt.value">{{ opt.label }}</label>
+          <label class="radio-label" [for]="'authType_' + opt.value"
+                 [class.radio-label--disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
+            {{ opt.label }}
+            <span class="radio-hint"
+                  *ngIf="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
+              — set up the Authenticator App below first
+            </span>
+          </label>
         </div>
         <div class="action-row">
-          <button class="btn-save" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
-          <button class="btn-cancel" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
+          <button class="dc-btn dc-btn--save dc-btn--sm" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
+          <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
         </div>
       </div>
 
       <div *ngIf="errorMsg"   class="msg msg-error">{{ errorMsg }}</div>
       <div *ngIf="successMsg" class="msg msg-success">{{ successMsg }}</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SECTION: AUTHENTICATOR APP (merged from its own page)
+  ══════════════════════════════════════ -->
+  <app-setup-mfa [embedded]="true" (mfaStatusChanged)="onMfaStatusChanged($event)"></app-setup-mfa>
+
+  <!-- ══════════════════════════════════════
+       SECTION: APPEARANCE / THEME
+  ══════════════════════════════════════ -->
+  <div class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-palette"></i>
+      <div>
+        <h4 class="acct-card-title">Appearance</h4>
+        <p class="acct-card-sub">Choose how DiagnoCare looks for you</p>
+      </div>
+    </div>
+
+    <div class="acct-card-body">
+      <div class="theme-options">
+        <button
+          *ngFor="let opt of themeOptions"
+          class="theme-btn"
+          [class.theme-btn--active]="selectedTheme === opt.value"
+          (click)="setTheme(opt.value)"
+          type="button"
+          [title]="opt.desc">
+          <span class="theme-btn-icon">
+            <i class="fa {{ opt.icon }}"></i>
+          </span>
+          <span class="theme-btn-label">{{ opt.label }}</span>
+          <span class="theme-btn-desc">{{ opt.desc }}</span>
+          <span class="theme-btn-check" *ngIf="selectedTheme === opt.value">
+            <i class="fa fa-check-circle"></i>
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 

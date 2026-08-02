@@ -142,7 +142,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
     this.holidayService.getByYear(this.selectedYear)
       .pipe(
         takeUntil(this.destroy$),
-        catchError(() => { this.toastr.error('Failed to load holidays'); return of([]); }),
+        catchError(() => of([])),   // message shown centrally by ErrorInterceptor
       )
       .subscribe(list => {
         // Fill dayOfWeek locally in case backend omits it
@@ -237,7 +237,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
       };
       this.holidayService.update(dto).pipe(takeUntil(this.destroy$)).subscribe({
         next:  () => { this.toastr.success('Holiday updated'); this.isSaving = false; this.closeModal(); this.loadHolidays(); },
-        error: () => { this.toastr.error('Failed to update holiday'); this.isSaving = false; },
+        error: () => { this.isSaving = false; },   // message shown centrally by ErrorInterceptor
       });
     } else {
       const dto: CreateHolidayDTO = {
@@ -247,7 +247,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
       };
       this.holidayService.add(dto).pipe(takeUntil(this.destroy$)).subscribe({
         next:  () => { this.toastr.success('Holiday added'); this.isSaving = false; this.closeModal(); this.loadHolidays(); },
-        error: () => { this.toastr.error('Failed to add holiday'); this.isSaving = false; },
+        error: () => { this.isSaving = false; },   // message shown centrally by ErrorInterceptor
       });
     }
   }
@@ -313,7 +313,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
         this.closeBulkModal();
         this.loadHolidays();
       },
-      error: () => { this.toastr.error('Bulk save failed'); this.isBulkSaving = false; },
+      error: () => { this.isBulkSaving = false; },   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -334,7 +334,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
 
     this.holidayService.delete(h.holidayId).pipe(takeUntil(this.destroy$)).subscribe({
       next:  () => { this.toastr.success('Holiday deleted'); this.loadHolidays(); },
-      error: () => this.toastr.error('Failed to delete holiday'),
+      error: () => { /* message shown centrally by ErrorInterceptor */ },
     });
   }
 

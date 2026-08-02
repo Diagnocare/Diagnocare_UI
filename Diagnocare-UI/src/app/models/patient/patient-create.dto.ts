@@ -14,7 +14,7 @@ export interface PatientCreateDto {
   patient_Address:        string;
   relation:               string;
   relative_Name:          string;
-  patientDialingContact:  string;   // Format: +91-xxxxxxxxxx
+  patient_Contact:        string;   // contact number only, e.g. 9876543210
   patient_Email:          string;
   patient_Reg_Date:       string;
 

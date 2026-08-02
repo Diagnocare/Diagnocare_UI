@@ -12,14 +12,16 @@ import { Subscription, filter } from 'rxjs';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { OtpChannel, VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
 import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { TokenService } from 'src/app/core/interceptors/token.service';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
   standalone: true,
   styleUrls: ['./login.component.css'],
-  imports: [ReactiveFormsModule, CommonModule, RouterModule, OtpMfaDialogComponent],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, OtpMfaDialogComponent, FormKeyboardDirective],
 })
 export class LoginComponent implements OnInit, OnDestroy {
 
@@ -34,6 +36,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   private preventForwardNav = () => {
     history.pushState(null, '', window.location.href);
   };
+
+  // Named handler so it can be removed in ngOnDestroy (anonymous listeners leak
+  // and stack every time the login component is re-created).
+  private closeMfaHandler = () => { this.showOtpDialog = false; };
 
   // ── Form state ─────────────────────────────────────────────────────────────
 
@@ -60,6 +66,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   maskedContactNumber = '';
   maskedEmail         = '';
   otpChannel: OtpChannel | '' = '';
+
+  // ── Account lockout state ──────────────────────────────────────────────────
+
+  isAccountLocked  = false;
+  lockedUntil: Date | null = null;
 
   // ── Session terminated banner (shown when redirected with ?reason=session_terminated)
   sessionTerminatedBanner = false;
@@ -116,7 +127,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private _router:          Router,
     private _route:           ActivatedRoute,
   ) {
-    window.addEventListener('closeMfaDialog', () => { this.showOtpDialog = false; });
+    window.addEventListener('closeMfaDialog', this.closeMfaHandler);
     window.addEventListener('pageshow', this.onPageShow);
   }
 
@@ -126,13 +137,13 @@ export class LoginComponent implements OnInit, OnDestroy {
       password:  ['', [Validators.required, Validators.minLength(6)]],
       code:      [''],
       otpDigits: this.fb.array(
-        Array.from({ length: 6 }, () => this.fb.control('', [Validators.pattern('[0-9]')])),
+        Array.from({ length: 6 }, () => this.fb.control('', [AppValidators.singleDigit()])),
       ),
     });
 
     this.mfaForm = this.fb.group({
       mfaDigits: this.fb.array(
-        Array.from({ length: 6 }, () => this.fb.control('', [Validators.pattern('[0-9]')])),
+        Array.from({ length: 6 }, () => this.fb.control('', [AppValidators.singleDigit()])),
       ),
     });
 
@@ -195,6 +206,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('closeMfaDialog', this.closeMfaHandler);
     window.removeEventListener('pageshow', this.onPageShow);
     window.removeEventListener('popstate', this.preventForwardNav);
     this.routerSub?.unsubscribe();
@@ -261,6 +273,24 @@ export class LoginComponent implements OnInit, OnDestroy {
         // It stays true until openOtpDialog() — which covers the full
         // getUserDetails → generateOtp chain — preventing double-clicks.
         this.id = response.user_Id;
+
+        // ── Account locked ─────────────────────────────────────────────────
+        if (response?.accountLocked === true) {
+          this.isSubmitting   = false;
+          this.isAccountLocked = true;
+          this.lockedUntil    = response.lockedUntil ? new Date(response.lockedUntil) : null;
+          this.toastr.error(
+            'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+            'Access Denied',
+            { timeOut: 6000 }
+          );
+          return;
+        }
+
+        // Clear lockout state on any other response (successful or bad-credentials)
+        this.isAccountLocked = false;
+        this.lockedUntil     = null;
+
         if (response?.success === false) {
           this.isSubmitting = false;
           this.toastr.error(response.message || 'Invalid credentials');
@@ -294,13 +324,13 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Use the user's preferred channel (loginType) to auto-select and send OTP
         const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-        if (response?.loginType === 3) {
+        if (response?.loginType === 3 && this.hasMfa) {
           // Authenticator App (TOTP) — no OTP to generate/send; open dialog in TOTP mode
           this.isTotpMode    = true;
           this.selectedMethod = null;
           this.showOtpInput   = true;
           this.openOtpDialog();
-        } else if (method) {
+        } else if (response?.loginType !== 3 && method) {
           this.isTotpMode     = false;
           this.selectedMethod = method as OtpChannel;
           this.showOtpInput   = true;
@@ -323,7 +353,9 @@ export class LoginComponent implements OnInit, OnDestroy {
             },
           });
         } else {
-          // No loginType configured — let user pick a channel
+          // No usable preferred channel — either nothing configured, or the preferred
+          // method is the Authenticator App but MFA is no longer set up. Let the user
+          // pick a channel (email / phone) instead of forcing an unusable TOTP prompt.
           this.isTotpMode     = false;
           this.selectedMethod = null;
           this.showOtpInput   = false;
@@ -332,7 +364,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isSubmitting = false;
-        this.toastr.error('An error occurred. Please check your credentials.');
+        this.toastr.error('Invalid credentials');
       },
     });
   }
@@ -363,7 +395,16 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (resp) => {
         this.isVerifyingOtp = false;
         if (!resp?.success) {
-          this.toastr.error(resp?.message || 'Invalid code. Please try again.');
+          const msg = (resp as any)?.message || 'Invalid code. Please try again.';
+          // Lockout detected from verification response — close dialog, show lockout banner
+          if (msg.toLowerCase().includes('locked')) {
+            this.isAccountLocked = true;
+            this.lockedUntil     = null;   // exact time not returned by verify endpoint
+            this.closeOtpDialog();
+            this.toastr.error(msg, 'Access Denied', { timeOut: 6000 });
+            return;
+          }
+          this.toastr.error(msg);
           return;
         }
         this.handleSuccessfulLogin(resp);
@@ -381,18 +422,25 @@ export class LoginComponent implements OnInit, OnDestroy {
    * so each role arrives at the correct starting page.
    */
   private handleSuccessfulLogin(resp: any): void {
+    console.log('handleSuccessfulLogin: resp =', resp);
     const expiryDaysLeft = this.getPasswordExpiryDaysLeft();
+    console.log('handleSuccessfulLogin: expiryDaysLeft =', expiryDaysLeft);
     if (expiryDaysLeft !== null && expiryDaysLeft <= 0) {
+      console.log('handleSuccessfulLogin: password expired, redirecting to forgot-password');
       this.closeOtpDialog();
       this.toastr.warning('Your password has expired. Please reset it to continue.');
       this._router.navigate(['forgot-password'], { queryParams: { expired: true } });
       return;
     }
-
+console.log('handleSuccessfulLogin: password not expired, proceeding with login');
+console.log('handleSuccessfulLogin: resp.token =', resp.token);
     if (resp.token) {
       // Token already stored in localStorage by verifyAuth()'s tap() — no action needed here.
+      console.log('handleSuccessfulLogin: token already stored, proceeding with navigation');
       this.toastr.success('Login successful!');
+
       this.closeOtpDialog();
+      console.log('closed OTP dialog');
       if (this.passwordUpdated === false) {
         this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
       } else {
@@ -400,17 +448,22 @@ export class LoginComponent implements OnInit, OnDestroy {
         this._router.navigate([this.resolveLandingRoute()]);
       }
     } else {
+      console.log('handleSuccessfulLogin: no token returned, calling refreshToken()');
       this._loginService.refreshToken().subscribe({
         next: (tokenResp) => {
           if (tokenResp?.success) {
             // Token already stored in localStorage by refreshToken()'s tap().
             this.toastr.success('Login successful!');
             this.closeOtpDialog();
+            console.log('closed OTP dialog');
             if (this.passwordUpdated === false) {
+              console.log('handleSuccessfulLogin: password not updated, redirecting to change-password');
               this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
             } else {
+              console.log('handleSuccessfulLogin: password updated, storing expiry warning and navigating to landing route');
               this.storePasswordExpiryWarning();
               this._router.navigate([this.resolveLandingRoute()]);
+              console.log('handleSuccessfulLogin: navigation complete');
             }
           } else {
             this.toastr.error('Failed to retrieve authentication token.');
@@ -448,6 +501,22 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   onChannelChange(_channel: string): void { /* handled inside the dialog */ }
+
+  /**
+   * Called when the OTP dialog emits (lockoutDetected) — i.e. the dialog
+   * detected a lockout from a backend resend/send response on its own.
+   * Close the dialog and surface the lockout banner on the login page.
+   */
+  onDialogLockoutDetected(): void {
+    this.isAccountLocked = true;
+    this.lockedUntil     = null;   // dialog detected it; exact time unavailable here
+    this.closeOtpDialog();
+    this.toastr.error(
+      'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+      'Access Denied',
+      { timeOut: 6000 }
+    );
+  }
 
   // ── Session conflict dialog handlers ───────────────────────────────────────
 
@@ -527,13 +596,13 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-    if (response?.loginType === 3) {
+    if (response?.loginType === 3 && this.hasMfa) {
       // TOTP (Google Authenticator) — no OTP to send, open dialog immediately
       this.isTotpMode     = true;
       this.selectedMethod = null;
       this.showOtpInput   = true;
       this.openOtpDialog();
-    } else if (method) {
+    } else if (response?.loginType !== 3 && method) {
       this.isTotpMode     = false;
       this.selectedMethod = method as OtpChannel;
       this.showOtpInput   = true;
@@ -556,7 +625,8 @@ export class LoginComponent implements OnInit, OnDestroy {
         },
       });
     } else {
-      // No preferred method — let user pick in the OTP dialog
+      // No usable preferred method — nothing configured, or the preferred method is the
+      // Authenticator App but MFA is no longer set up. Let the user pick in the dialog.
       this.isTotpMode     = false;
       this.selectedMethod = null;
       this.showOtpInput   = false;
@@ -576,6 +646,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   // ── Dialog helpers ─────────────────────────────────────────────────────────
 
   private openOtpDialog(): void {
+    // Never open the dialog while the account is locked — the lockout banner
+    // on the login page already shows the countdown.
+    if (this.isAccountLocked) return;
     this.isSubmitting              = false;   // clear loading state — dialog is now taking over
     this.isForcingLogin            = false;
     this.showSessionConflictDialog = false;

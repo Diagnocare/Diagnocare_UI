@@ -1,4 +1,4 @@
-import { Component, ElementRef, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, OnDestroy, QueryList, ViewChildren } from '@angular/core';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -9,9 +9,10 @@ import { response } from '../../models/common/response';
 import { MemberDto } from '../../models/member/member.dto';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
 import { CommonService } from '../../shared/common.service';
-import { OtpResponse } from 'src/app/models/otpRequest/otpRequest';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
 import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.service';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null => {
   const newPassword = group.get('newPassword')?.value as string | undefined;
@@ -27,10 +28,25 @@ const passwordMatchValidator = (group: AbstractControl): ValidationErrors | null
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule,OtpMfaDialogComponent]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, OtpMfaDialogComponent, FormKeyboardDirective]
 })
-export class ForgotPasswordComponent {
+export class ForgotPasswordComponent implements OnDestroy {
   private methodModal: any = null;
+
+  // Named handlers so the window listeners can be removed in ngOnDestroy
+  // (anonymous listeners cannot be removed and would leak / stack on re-entry).
+  private readonly closeMfaHandler = (): void => {
+    this.showOtpDialog = false;
+  };
+  private readonly backFromMfaHandler = (): void => {
+    this.showOtpDialog = false;
+    this.isOtpSent = false;
+    this.isOtpVerified = false;
+    this.isVerified = false;
+    this.recoverIsLookedUp = false;
+    this.selectedChannel = '';
+    this.methodForm.reset();
+  };
 
   showOtpDialog = false;
   showRecoverModal = false;
@@ -68,6 +84,14 @@ export class ForgotPasswordComponent {
   // Flow customisation
   isExpiredFlow = false;
 
+  // MFA / TOTP state (populated from checkUserExists response)
+  hasMfa     = false;
+  isTotpMode = false;
+
+  // Account lockout state
+  isAccountLocked = false;
+  lockedUntil: Date | null = null;
+
 
   constructor(
     private fb: FormBuilder,
@@ -79,18 +103,8 @@ export class ForgotPasswordComponent {
     private route: ActivatedRoute
   ) {
     this.isExpiredFlow = this.route.snapshot.queryParamMap.get('expired') === 'true';
-    window.addEventListener('closeMfaDialog', () => {
-      this.showOtpDialog = false;
-    });
-    window.addEventListener('backFromMfaDialog', () => {
-      this.showOtpDialog = false;
-      this.isOtpSent = false;
-      this.isOtpVerified = false;
-      this.isVerified = false;
-      this.recoverIsLookedUp = false;
-      this.selectedChannel = '';
-      this.methodForm.reset();
-    });
+    window.addEventListener('closeMfaDialog', this.closeMfaHandler);
+    window.addEventListener('backFromMfaDialog', this.backFromMfaHandler);
     this.verifyForm = this.fb.group({
       userId: ['', Validators.required]
     });
@@ -109,7 +123,7 @@ export class ForgotPasswordComponent {
 
     this.recoverForm = this.fb.group({
       recoverMethod: ['contact', Validators.required],
-      recoverValue: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]]
+      recoverValue: ['', [Validators.required, AppValidators.contactNumber()]]
     });
   }
 
@@ -146,7 +160,16 @@ export class ForgotPasswordComponent {
             this.isOtpVerified = true;
           }
         } else {
-          this.toastr.error(resp?.message || 'Invalid OTP. Please try again.');
+          const msg = (resp as any)?.message || 'Invalid OTP. Please try again.';
+          // Lockout detected from verify response — close dialog, show lockout banner
+          if (msg.toLowerCase().includes('locked')) {
+            this.isAccountLocked = true;
+            this.lockedUntil     = null;
+            this.closeOtpDialog();
+            this.toastr.error(msg, 'Access Denied', { timeOut: 6000 });
+            return;
+          }
+          this.toastr.error(msg);
         }
       },
       error: () => {
@@ -155,6 +178,22 @@ export class ForgotPasswordComponent {
       },
     });
   }
+
+  /**
+   * Called when the OTP dialog emits (lockoutDetected) — the dialog detected
+   * a lockout internally (from a failed resend/send response).
+   */
+  onDialogLockoutDetected(): void {
+    this.isAccountLocked = true;
+    this.lockedUntil     = null;
+    this.closeOtpDialog();
+    this.toastr.error(
+      'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+      'Access Denied',
+      { timeOut: 6000 }
+    );
+  }
+
   onOtpResend() {
     this._otpManager.resendOtp(this.id, this.verifiedUserId).subscribe({
       next: () => {
@@ -177,6 +216,17 @@ export class ForgotPasswordComponent {
   onChannelChange(channel: string) {
     // Handle channel change if needed
   }
+
+  ngOnDestroy(): void {
+    // Stop the OTP countdown timer and detach window listeners to avoid leaks.
+    if (this.otpTimerId) {
+      clearInterval(this.otpTimerId);
+      this.otpTimerId = null;
+    }
+    window.removeEventListener('closeMfaDialog', this.closeMfaHandler);
+    window.removeEventListener('backFromMfaDialog', this.backFromMfaHandler);
+  }
+
   private maskContactNumber(value: string): string {
     const digits = value.replace(/\D/g, '');
     if (!digits) {
@@ -219,14 +269,31 @@ export class ForgotPasswordComponent {
     // Use checkUserExists (no password hashing) — forgot password only needs to
     // confirm the userId is valid before sending an OTP.
     this.loginService.checkUserExists(userId).subscribe({
-      next: (resp: MemberDto & { success?: boolean; message?: string; token?: string }) => {
+      next: (resp: MemberDto & { success?: boolean; message?: string; token?: string; accountLocked?: boolean; lockedUntil?: string }) => {
+        // Account locked — block the OTP flow entirely.
+        if ((resp as any)?.accountLocked === true) {
+          this.isAccountLocked = true;
+          this.lockedUntil = (resp as any).lockedUntil ? new Date((resp as any).lockedUntil) : null;
+          this.toastr.error(
+            'Your account is locked due to multiple failed attempts. Please try again after 15 minutes.',
+            'Access Denied',
+            { timeOut: 6000 }
+          );
+          this.isSubmitting = false;
+          return;
+        }
+
+        // Clear any stale lockout state on a valid response.
+        this.isAccountLocked = false;
+        this.lockedUntil = null;
+
         // Handle explicit invalid credentials response
         if (resp && resp.success === false && resp.message === 'Invalid credentials') {
           this.toastr.error('Invalid credential');
           this.isSubmitting = false;
           return;
         }
-        
+
         if (resp) {
           // Backend serialises User_Id as "user_Id" (camelCase); resp.id is always undefined
           this.id = (resp as any).user_Id ?? resp.id ?? 0;
@@ -246,6 +313,8 @@ export class ForgotPasswordComponent {
           if (this.maskedEmail && !this.maskedEmail.startsWith('(')) {
             this.maskedEmail = `(${this.maskedEmail})`;
           }
+          this.hasMfa     = resp.isMfaEnabled === true;
+          this.isTotpMode = resp.loginType === 3;
           this.openOtpDialog();
         } else {
           this.toastr.error('User name do not match our records.');
@@ -305,7 +374,7 @@ export class ForgotPasswordComponent {
     this.recoveredUserId = '';
     this.showOtpDialog = false;
     this.recoverForm.reset({ recoverMethod: 'contact', recoverValue: '' });
-    this.recoverForm.get('recoverValue')?.setValidators([Validators.required, Validators.pattern(/^[0-9]{10}$/)]);
+    this.recoverForm.get('recoverValue')?.setValidators([Validators.required, AppValidators.contactNumber()]);
     this.recoverForm.get('recoverValue')?.updateValueAndValidity();
     this.showRecoverModal = true;
   }
@@ -332,7 +401,7 @@ export class ForgotPasswordComponent {
     const valueControl = this.recoverForm.get('recoverValue');
     valueControl?.reset();
     if (method === 'contact') {
-      valueControl?.setValidators([Validators.required, Validators.pattern(/^[0-9]{10}$/)]);
+      valueControl?.setValidators([Validators.required, AppValidators.contactNumber()]);
     } else {
       valueControl?.setValidators([Validators.required, Validators.email]);
     }
@@ -376,6 +445,10 @@ export class ForgotPasswordComponent {
             next: (resp) => {
               this.isSubmitting = false;
               if (resp?.success === false) {
+                // Mark lockout if the backend says the account is locked.
+                if (resp.message?.toLowerCase().includes('locked')) {
+                  this.isAccountLocked = true;
+                }
                 this.toastr.error(resp.message || 'Failed to send OTP. Please try again.');
               } else {
                 this.otpShowMethodSelect = false;

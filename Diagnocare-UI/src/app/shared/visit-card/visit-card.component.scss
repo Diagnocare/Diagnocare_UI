@@ -1,0 +1,125 @@
+// ══════════════════════════════════════════════════════════════════════════════
+//  Shared visit card
+// ══════════════════════════════════════════════════════════════════════════════
+
+:host { display: block; }
+
+.vc-type-badge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-left: .4rem;
+  vertical-align: middle;
+}
+
+.btn-outline {
+  background: #fff;
+  color: #0891b2;
+  border: 1.5px solid #0891b2;
+  &:hover { background: #e0f2fe; }
+}
+.btn-info {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1.5px solid #ddd6fe;
+  &:hover { background: #ddd6fe; }
+}
+.btn-xs { padding: .22rem .55rem; font-size: .72rem; }
+
+.visit-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: .7rem .85rem;
+  transition: box-shadow .15s;
+  &:hover { box-shadow: 0 2px 10px rgba(30,91,168,.09); }
+}
+.vc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .35rem;
+}
+.vc-time {
+  font-size: .82rem;
+  font-weight: 700;
+  color: #0891b2;
+  i { margin-right: 4px; }
+}
+.vc-status {
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  white-space: nowrap;
+
+  &--done      { background: #d1fae5; color: #065f46; }
+  &--cancelled { background: #fee2e2; color: #991b1b; }
+}
+.vc-contact { margin-bottom: .3rem; }
+.vc-name {
+  font-weight: 700;
+  font-size: .82rem;
+  color: #1e293b;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vc-meta, .vc-member, .vc-purpose, .vc-notes {
+  font-size: .74rem;
+  color: #64748b;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  i { width: 13px; margin-right: 3px; }
+}
+.vc-meta a { color: #0891b2; text-decoration: none; &:hover { text-decoration: underline; } }
+.vc-map-link { margin-left: .35rem; color: #0891b2; }
+.vc-member { font-size: .76rem; color: #374151; margin-bottom: .3rem; }
+.vc-purpose { font-weight: 500; }
+
+.vc-actions {
+  display: flex;
+  gap: .35rem;
+  margin-top: .45rem;
+  flex-wrap: wrap;
+}
+
+// ── Theme overrides ───────────────────────────────────────────────────────────
+:host-context(html[data-theme="dark"]) {
+  .visit-card      { border-color: #334155 !important;
+                     &:hover { box-shadow: 0 2px 10px rgba(0,0,0,.35) !important; } }
+  .vc-name         { color: #e2e8f0 !important; }
+  .vc-meta, .vc-member, .vc-notes { color: #64748b !important; }
+  .vc-member       { color: #94a3b8 !important; }
+  .btn-outline     { background: #0f172a !important; border-color: #0891b2 !important; color: #38bdf8 !important;
+                     &:hover { background: #082f49 !important; } }
+}
+:host-context(html[data-theme="midnight"]) {
+  .visit-card      { border-color: #21262d !important; }
+  .vc-name         { color: #cdd6f4 !important; }
+  .vc-meta, .vc-member, .vc-notes { color: #6e7681 !important; }
+  .vc-member       { color: #a6adc8 !important; }
+  .btn-outline     { background: #020408 !important; border-color: #0891b2 !important; color: #38bdf8 !important;
+                     &:hover { background: #041f30 !important; } }
+}
+:host-context(html[data-theme="warm"]) {
+  .visit-card      { border-color: #ddc9a8 !important; }
+  .vc-name         { color: #3d2b1f !important; }
+  .vc-meta, .vc-member, .vc-notes { color: #9e8272 !important; }
+  .btn-outline     { background: #fffdf7 !important; border-color: #c47028 !important; color: #9c5a28 !important;
+                     &:hover { background: #fdf3e3 !important; } }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .visit-card    { border-color: #334155 !important; }
+    .vc-name       { color: #e2e8f0 !important; }
+  }
+}

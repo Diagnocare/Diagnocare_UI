@@ -7,6 +7,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { MemberDto }           from 'src/app/models/member/member.dto';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { VisitScheduleGetDto } from 'src/app/models/visitSchedule/visit-schedule.dto';
+import { AppValidators }       from 'src/app/shared/validators/app-validators';
 
 export interface VisitEditData {
   assignedMemberId: number;
@@ -55,7 +56,7 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
       visitDate:        [this.visit.visitDate,         Validators.required],
       visitTime:        [this.visit.visitTime,         [
         Validators.required,
-        Validators.pattern(/^([01]\d|2[0-3]):[0-5]\d$/),
+        AppValidators.time24h(),
       ]],
     });
   }
@@ -64,7 +65,7 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
 
   isInvalid(field: string): boolean {
     const c = this.form.get(field);
-    return !!(c?.invalid && (c.touched || c.dirty));
+    return !!(c?.invalid && c.touched);
   }
 
   save(): void {

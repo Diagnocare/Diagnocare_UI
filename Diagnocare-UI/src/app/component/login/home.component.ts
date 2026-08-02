@@ -27,36 +27,42 @@ export class HomeComponent implements OnInit {
   daysLeft = 0;
   expiryDisplay = '';
 
-  /** True only when a Super Admin JWT is present in the session. */
-  get isSuperAdmin(): boolean {
-    return this._tokenService.isSuperAdmin();
-  }
-
   constructor(
     private _pathologyService: PathologyService,
     private _tokenService: TokenService,
   ) {}
 
   ngOnInit(): void {
+    // Always fetch the current registration state from the server so the home page
+    // reflects live data — registration and licence expiry can change over time.
+    this.loadFromServer();
+  }
+
+  private loadFromServer(): void {
     this._pathologyService.getPublicInfo().subscribe({
       next: (info) => {
-        if (!info?.isRegistered) {
-          this.navState = 'unregistered';
-          return;
-        }
-        if (!info.date_of_Expiry) {
-          this.navState = 'registered';
-          return;
-        }
-        this.daysLeft = this.daysUntil(info.date_of_Expiry);
-        const _ed = new Date(info.date_of_Expiry);
-        this.expiryDisplay = `${_ed.getDate().toString().padStart(2,'0')}-${(_ed.getMonth()+1).toString().padStart(2,'0')}-${_ed.getFullYear()}`;
-        this.navState = this.daysLeft <= EXTEND_WINDOW_DAYS ? 'extend' : 'registered';
+        this.applyPublicInfo(info);
       },
       error: () => {
         this.navState = 'unregistered';
       },
     });
+  }
+
+  /** Maps a GetPublicInfo response (from cache or server) to the nav state. */
+  private applyPublicInfo(info: any): void {
+    if (!info?.isRegistered) {
+      this.navState = 'unregistered';
+      return;
+    }
+    if (!info.date_of_Expiry) {
+      this.navState = 'registered';
+      return;
+    }
+    this.daysLeft = this.daysUntil(info.date_of_Expiry);
+    const _ed = new Date(info.date_of_Expiry);
+    this.expiryDisplay = `${_ed.getDate().toString().padStart(2,'0')}-${(_ed.getMonth()+1).toString().padStart(2,'0')}-${_ed.getFullYear()}`;
+    this.navState = this.daysLeft <= EXTEND_WINDOW_DAYS ? 'extend' : 'registered';
   }
 
   private daysUntil(isoDate: string): number {

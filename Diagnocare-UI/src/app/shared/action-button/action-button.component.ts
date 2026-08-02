@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
  * Each type has a fixed icon and colour — only the click handler and optional
  * title override change per usage site.
  */
-export type ActionButtonType = 'view' | 'edit' | 'delete' | 'print';
+export type ActionButtonType = 'view' | 'edit' | 'delete' | 'print' | 'download' | 'reactivate' | 'hard-delete';
 
 interface ActionConfig {
   cssClass: string;
@@ -19,6 +19,12 @@ const ACTION_CONFIG: Record<ActionButtonType, ActionConfig> = {
   edit:   { cssClass: 'btn-edit',   icon: 'fa-pencil', defaultTitle: 'Edit' },
   delete: { cssClass: 'btn-delete', icon: 'fa-trash',  defaultTitle: 'Delete' },
   print:  { cssClass: 'btn-print',  icon: 'fa-print',  defaultTitle: 'Print' },
+  // Reuses btn-view styling (guaranteed to exist) with a download glyph.
+  download: { cssClass: 'btn-view', icon: 'fa-download', defaultTitle: 'Download Report' },
+  // Restore a soft-deleted patient. Reuses btn-view (green-ish) with an undo glyph.
+  reactivate: { cssClass: 'btn-view', icon: 'fa-rotate-left', defaultTitle: 'Reactivate' },
+  // Permanent delete — reuses the red btn-delete styling with a distinct glyph.
+  'hard-delete': { cssClass: 'btn-delete', icon: 'fa-trash-can-arrow-up', defaultTitle: 'Delete Permanently' },
 };
 
 /**

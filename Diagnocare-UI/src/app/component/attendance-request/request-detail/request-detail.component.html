@@ -1,0 +1,143 @@
+<div class="ar-page">
+  <div class="ar-hero">
+    <button class="btn btn-back" (click)="back()"><i class="fa fa-arrow-left"></i> Back to requests</button>
+    <div class="ar-hero-text">
+      <h1><i class="fa fa-clipboard-list"></i> Request Details</h1>
+    </div>
+  </div>
+
+  <app-loading-spinner [isLoading]="isLoading" message="Loading…"></app-loading-spinner>
+
+  <div *ngIf="!isLoading && request" class="detail-grid">
+
+    <!-- Left: request story (same for User and Admin) -->
+    <div class="card detail-card">
+      <div class="card-top">
+        <div>
+          <h2 *ngIf="isAdmin">{{ request.employeeName }}</h2>
+          <h2 *ngIf="!isAdmin">{{ request.attendanceDate | date:'dd MMM yyyy' }}</h2>
+          <span class="sub">
+            <ng-container *ngIf="isAdmin">{{ request.attendanceDate | date:'dd MMM yyyy' }} · </ng-container>{{ request.dayName }}
+          </span>
+        </div>
+        <app-request-status-badge [status]="request.requestStatus"></app-request-status-badge>
+      </div>
+
+      <dl class="detail-list">
+        <div>
+          <dt>Currently recorded</dt>
+          <dd>{{ request.currentStatusLabel || 'Unmarked' }}</dd>
+        </div>
+        <div>
+          <dt>{{ isAdmin ? 'Employee requested' : 'You requested' }}</dt>
+          <dd class="strong">{{ request.requestedStatusLabel }}</dd>
+        </div>
+        <div *ngIf="request.approvedStatusLabel">
+          <dt>Applied</dt>
+          <dd [class.changed]="request.approvedStatus !== request.requestedStatus">
+            {{ request.approvedStatusLabel }}
+            <span *ngIf="request.approvedStatus !== request.requestedStatus" class="changed-note">(changed by admin)</span>
+          </dd>
+        </div>
+        <div class="full">
+          <dt>Reason</dt>
+          <dd>{{ request.reason || '—' }}</dd>
+        </div>
+        <div class="full" *ngIf="request.adminRemarks">
+          <dt>Admin remarks</dt>
+          <dd class="remarks">{{ request.adminRemarks }}</dd>
+        </div>
+      </dl>
+
+      <div class="timeline">
+        <i class="fa fa-clock"></i>
+        Submitted {{ request.created | date:'dd MMM yyyy, h:mm a' }}
+        <span *ngIf="request.reviewedAt">
+          · Reviewed {{ request.reviewedAt | date:'dd MMM yyyy, h:mm a' }}
+          <ng-container *ngIf="request.reviewedByName">by {{ request.reviewedByName }}</ng-container>
+        </span>
+      </div>
+
+      <!-- Owner (User) actions -->
+      <div *ngIf="request.canEdit || request.canCancel" class="owner-actions">
+        <button *ngIf="request.canEdit" class="btn btn-primary" (click)="editRequest()"><i class="fa fa-pen"></i> Edit</button>
+        <button *ngIf="request.canCancel" class="btn btn-danger" (click)="confirmMode = 'cancel'"><i class="fa fa-xmark"></i> Cancel Request</button>
+      </div>
+    </div>
+
+    <!-- Right: admin decision panel -->
+    <div *ngIf="isAdmin" class="card action-card">
+      <ng-container *ngIf="isPending; else closedNote">
+        <h3><i class="fa fa-gavel"></i> Decision</h3>
+        <div class="form-group">
+          <label class="form-label">Attendance to apply</label>
+          <select class="form-select" [(ngModel)]="appliedStatus">
+            <option *ngFor="let s of allStatuses" [ngValue]="s.value">{{ s.label }}</option>
+          </select>
+          <small *ngIf="statusChanged" class="override-note">
+            <i class="fa fa-triangle-exclamation"></i>
+            Overriding request ({{ request.requestedStatusLabel }} → {{ statusLabel(appliedStatus) }}).
+          </small>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" (click)="confirmMode = 'approve'"><i class="fa fa-check"></i> Approve</button>
+          <button class="btn btn-danger" (click)="confirmMode = 'reject'"><i class="fa fa-xmark"></i> Reject</button>
+        </div>
+      </ng-container>
+      <ng-template #closedNote>
+        <div class="closed-note">
+          <i class="fa fa-lock"></i>
+          <p>This request has been <strong>{{ request.requestStatusLabel }}</strong> and is now read-only.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Approve confirm -->
+  <div *ngIf="confirmMode === 'approve' && request" class="modal-backdrop" (click)="closeConfirm()">
+    <div class="modal-card card" (click)="$event.stopPropagation()">
+      <h3>Approve request</h3>
+      <p>
+        Sets <strong>{{ request.employeeName }}</strong>'s attendance for
+        <strong>{{ request.attendanceDate | date:'dd MMM yyyy' }}</strong>
+        to <strong>{{ statusLabel(appliedStatus) }}</strong>.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Remarks <span class="optional">(optional)</span></label>
+        <textarea class="form-control" [(ngModel)]="approveRemarks" rows="2" maxlength="500" placeholder="Note for the employee…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="btn btn-success" [disabled]="isSaving" (click)="doApprove()">{{ isSaving ? 'Approving…' : 'Confirm Approve' }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject confirm -->
+  <div *ngIf="confirmMode === 'reject' && request" class="modal-backdrop" (click)="closeConfirm()">
+    <div class="modal-card card" (click)="$event.stopPropagation()">
+      <h3>Reject request</h3>
+      <p>Attendance stays unchanged. Please explain why.</p>
+      <div class="form-group">
+        <label class="form-label">Remarks <span class="req">*</span></label>
+        <textarea class="form-control" [(ngModel)]="rejectRemarks" rows="2" maxlength="500" placeholder="Reason for rejection…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="btn btn-danger" [disabled]="isSaving || !rejectRemarks.trim()" (click)="doReject()">{{ isSaving ? 'Rejecting…' : 'Confirm Reject' }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owner cancel confirm -->
+  <div *ngIf="confirmMode === 'cancel' && request" class="modal-backdrop" (click)="closeConfirm()">
+    <div class="modal-card card" (click)="$event.stopPropagation()">
+      <h3>Cancel request?</h3>
+      <p>This withdraws your request. It cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" (click)="closeConfirm()">Keep it</button>
+        <button class="btn btn-danger" (click)="doCancel()">Cancel request</button>
+      </div>
+    </div>
+  </div>
+</div>

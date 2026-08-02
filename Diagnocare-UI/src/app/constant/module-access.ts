@@ -12,6 +12,8 @@ import { Role, RoleId } from './enums';
  *  patientsLink     – Single "Patients" nav link (for Collection Boys with limited access)
  *  patientTestsLink – Single "My Reports" nav link (for Doctors reviewing test results)
  *  myVisits         – Single "My Visits" nav link (for members who receive field-visit assignments)
+ *  userPanel        – "User Panel" dropdown (self-service: attendance, holidays, visits, salary)
+ *                     for non-admin staff (User, Assistant, Collection Boy, Doctor)
  */
 export interface ModuleAccess {
   home:             boolean;
@@ -22,77 +24,104 @@ export interface ModuleAccess {
   patientsLink:     boolean;
   patientTestsLink: boolean;
   myVisits:         boolean;
+  /** True for non-admin staff who can view their own attendance (read-only). */
+  myAttendance:     boolean;
+  /**
+   * True for non-admin staff (User, Assistant, Collection Boy, Doctor) who get the
+   * self-service "User Panel" dropdown grouping My Attendance, Holidays, My Visits & My Salary.
+   */
+  userPanel:        boolean;
+  /** Attendance correction requests — shared view: staff raise/track, admins review. */
+  attendanceRequests: boolean;
   /** Route to navigate to immediately after a successful login. */
   landingRoute:     string;
 }
 
 export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
-  [Role.Super_Admin.id]: {
-    home:             true,
-    labOps:           true,
-    summaryReports:   true,
-    labSetup:         true,
-    adminPanel:       true,
-    patientsLink:     false,
-    patientTestsLink: false,
-    myVisits:         false,   // Admins manage the schedule, they don't receive assignments
-    landingRoute:     '/pathology',
-  },
   [Role.Admin.id]: {
-    home:             true,
-    labOps:           true,
-    summaryReports:   true,
-    labSetup:         true,
-    adminPanel:       true,
-    patientsLink:     false,
+    home: true,
+    labOps: true,
+    summaryReports: true,
+    labSetup: true,
+    adminPanel: true,
+    patientsLink: false,
     patientTestsLink: false,
-    myVisits:         false,   // Admins manage the schedule, they don't receive assignments
-    landingRoute:     '/pathology',
+    myVisits: false,
+    myAttendance: false, // Admins see all staff via the full Attendance module
+    userPanel: false, // Admins use the full Admin Panel instead
+    attendanceRequests: true, // Admins review/approve requests
+    landingRoute: '/pathology',
+  },
+  [Role.Super_Admin.id]: {
+    home: true,
+    labOps: true,
+    summaryReports: true,
+    labSetup: true,
+    adminPanel: true,
+    patientsLink: false,
+    patientTestsLink: false,
+    myVisits: true,
+    myAttendance: true, // doctors can view their own attendance
+    userPanel: false, // self-service User Panel dropdown
+    attendanceRequests: true, // doctors can raise/track their own requests
+    landingRoute: '/pathology',
   },
   [Role.User.id]: {
-    home:             true,
-    labOps:           true,
-    summaryReports:   false,
-    labSetup:         false,
-    adminPanel:       false,
-    patientsLink:     false,
+    home: true,
+    labOps: true,
+    summaryReports: false,
+    labSetup: false,
+    adminPanel: false,
+    patientsLink: false,
     patientTestsLink: false,
-    myVisits:         true,    // staff members can be assigned field visits
-    landingRoute:     '/patients',
+    myVisits: true,
+    myAttendance: true, // staff members can view their own attendance
+    userPanel: true, // self-service User Panel dropdown
+    attendanceRequests: true, // staff can raise/track their own requests
+    landingRoute: '/patients',
   },
   [Role.Assistant.id]: {
-    home:             true,
-    labOps:           true,
-    summaryReports:   false,
-    labSetup:         false,
-    adminPanel:       false,
-    patientsLink:     false,
+    home: true,
+    labOps: true,
+    summaryReports: true, // Assistants can view the Summary Reports
+    labSetup: false,
+    adminPanel: false,
+    patientsLink: false,
     patientTestsLink: false,
-    myVisits:         true,    // staff members can be assigned field visits
-    landingRoute:     '/patients',
+    myVisits: true,
+    myAttendance: true, // staff members can view their own attendance
+    userPanel: true, // self-service User Panel dropdown
+    attendanceRequests: true, // staff can raise/track their own requests
+    landingRoute: '/patients',
   },
   [Role.Collection_Boy.id]: {
-    home:             false,
-    labOps:           false,
-    summaryReports:   false,
-    labSetup:         false,
-    adminPanel:       false,
-    patientsLink:     true,    // see patient list for sample collection
+    home: false,
+    labOps: false,
+    summaryReports: false,
+    labSetup: false,
+    adminPanel: false,
+    patientsLink: true,
     patientTestsLink: false,
-    myVisits:         true,    // collection boys are commonly assigned field visits
-    landingRoute:     '/patients',
+    myVisits: true,
+    myAttendance: true, // collection boys can view their own attendance
+    userPanel: true, // self-service User Panel dropdown
+    attendanceRequests: true, // collection boys can raise/track their own requests
+    landingRoute: '/patients',
   },
   [Role.Doctor.id]: {
-    home:             false,
-    labOps:           false,
-    summaryReports:   false,
-    labSetup:         false,
-    adminPanel:       false,
-    patientsLink:     false,
-    patientTestsLink: true,    // view patient test reports
-    myVisits:         true,    // doctors can be assigned field visits
-    landingRoute:     '/patient-tests',
-  },
+    home: false,
+    labOps: false,
+    summaryReports: false,
+    labSetup: false,
+    adminPanel: false,
+    patientsLink: false,
+    patientTestsLink: true,
+    myVisits: true,
+    myAttendance: true, // doctors can view their own attendance
+    userPanel: true, // self-service User Panel dropdown
+    attendanceRequests: true, // doctors can raise/track their own requests
+    landingRoute: '/patient-tests',
+  }
 };
 
 /** Fallback when role is unknown or not yet set. */
@@ -105,5 +134,8 @@ export const DEFAULT_ACCESS: ModuleAccess = {
   patientsLink:     false,
   patientTestsLink: false,
   myVisits:         false,
+  myAttendance:     false,
+  userPanel:        false,
+  attendanceRequests: false,
   landingRoute:     '/pathology',
 };

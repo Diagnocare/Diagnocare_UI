@@ -65,32 +65,24 @@
     <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
       <thead>
         <tr>
-          <th *ngFor="let d of weekDays"
-              style="text-align:center;font-size:0.7em;font-weight:700;color:#8a96a8;padding:4px 0;text-transform:uppercase;background:#fff;">
+          <th *ngFor="let d of weekDays" class="dp-th">
             {{ d }}
           </th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let week of calendarWeeks">
-          <td *ngFor="let day of week" style="padding:1px;background:#fff;">
+          <td *ngFor="let day of week" class="dp-td">
             <button
               type="button"
+              class="dp-day"
+              [class.dp-day--selected]="day.isSelected"
+              [class.dp-day--today]="day.isToday && !day.isSelected"
+              [class.dp-day--other]="!day.inMonth"
+              [class.dp-day--disabled]="day.isDisabled"
               [disabled]="day.isDisabled"
               (mousedown)="selectDay(day)"
               [title]="day.date | date:'dd-MM-yyyy'"
-              style="display:block;width:100%;height:32px;border:none;border-radius:6px;cursor:pointer;font-size:0.82em;font-weight:500;background:transparent;color:#1a2e4a;"
-              [style.background]="day.isSelected ? 'linear-gradient(135deg,#1E5BA8,#667eea)'
-                                : day.isToday    ? '#dbeafe'
-                                : 'transparent'"
-              [style.color]="day.isSelected ? '#ffffff'
-                           : day.isToday    ? '#1E5BA8'
-                           : !day.inMonth   ? '#c5cedc'
-                           : '#1a2e4a'"
-              [style.font-weight]="(day.isSelected || day.isToday) ? '700' : '500'"
-              [style.opacity]="day.isDisabled ? '0.35' : '1'"
-              [style.cursor]="day.isDisabled ? 'not-allowed' : 'pointer'"
-              [style.box-shadow]="day.isSelected ? '0 2px 6px rgba(30,91,168,0.35)' : 'none'"
             >{{ day.date.getDate() }}</button>
           </td>
         </tr>

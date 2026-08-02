@@ -18,6 +18,16 @@
   </span>
 </div>
 
+<!-- ── PIN Expiring Soon Banner ────────────────────────────────────────── -->
+<div class="dc-licence-banner dc-pin-expiry-warning" *ngIf="isPinExpiringSoon">
+  <i class="fa fa-key"></i>
+  <span>
+    Your session PIN expires in
+    <strong>{{ pinDaysLeft }} day{{ pinDaysLeft !== 1 ? 's' : '' }}</strong>.
+    <a class="dc-licence-banner-link" (click)="redirectionToModule({route:'change-pin'})">Change PIN now</a>
+  </span>
+</div>
+
 <header class="dc-header" [class.dc-header-expired]="isLicenceExpired">
 
   <!-- ── Brand ── -->
@@ -125,11 +135,27 @@
       <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
     </a> -->
 
-    <!-- My Visits — for members who receive field-visit assignments -->
-    <a *ngIf="access.myVisits" class="dc-nav-link" href="#"
-       (click)="redirectionToModule({route:'my-visits'}); $event.preventDefault()">
-      <i class="fa fa-route"></i><span>My Visits</span>
-    </a>
+    <!-- User Panel dropdown — self-service views for non-admin staff -->
+    <div class="dc-nav-item dc-dropdown-host"
+         *ngIf="access.userPanel"
+         [class.dc-nav-disabled]="isLicenceExpired">
+      <button class="dc-nav-link dc-dropdown-trigger" type="button"
+              [disabled]="isLicenceExpired"
+              [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
+        <i class="fa fa-user-circle"></i><span>User Panel</span>
+        <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
+        <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
+      </button>
+      <div class="dc-dropdown" *ngIf="!isLicenceExpired">
+        <div class="dc-dropdown-header"><i class="fa fa-user-circle"></i> User Panel</div>
+        <a *ngFor="let item of userOptions"
+           class="dc-dropdown-item dc-dropdown-item--iconic"
+           [id]="item.id"
+           (click)="redirectionToModule(item)">
+          <i class="fas {{ item.icon }} dc-item-icon"></i> {{ item.label }}
+        </a>
+      </div>
+    </div>
 
     <!-- Admin Panel dropdown — disabled when licence expired -->
     <div class="dc-nav-item dc-dropdown-host"
@@ -145,7 +171,7 @@
       <div class="dc-dropdown" *ngIf="!isLicenceExpired">
         <div class="dc-dropdown-header"><i class="fa fa-shield-alt"></i> Admin Panel</div>
         <ng-container *ngFor="let item of adminOptions">
-          <a *ngIf="!item.superAdminOnly || isSuperAdmin"
+          <a *ngIf="!item.adminOnly || isAdmin"
              class="dc-dropdown-item dc-dropdown-item--iconic"
              [id]="item.id"
              (click)="redirectionToModule(item)">
@@ -260,11 +286,19 @@
     <i class="fa fa-flask"></i> Patient Reports
   </a>
 
-  <!-- My Visits (mobile) -->
-  <a *ngIf="access.myVisits" class="dc-mobile-item" href="#"
-     (click)="redirectionToModule({route:'my-visits'}); mobileNavOpen=false; $event.preventDefault()">
-    <i class="fa fa-route"></i> My Visits
-  </a>
+  <!-- User Panel group (mobile) — self-service views for non-admin staff -->
+  <div class="dc-mobile-group" *ngIf="access.userPanel" [class.dc-mobile-group-disabled]="isLicenceExpired">
+    <div class="dc-mobile-group-label">
+      User Panel
+      <i class="fa fa-lock dc-expired-icon-sm" *ngIf="isLicenceExpired"></i>
+    </div>
+    <ng-container *ngIf="!isLicenceExpired">
+      <a *ngFor="let item of userOptions" class="dc-mobile-item dc-mobile-sub"
+         (click)="redirectionToModule(item); mobileNavOpen=false">
+        <i class="fa {{ item.icon }}"></i> {{ item.label }}
+      </a>
+    </ng-container>
+  </div>
 
   <!-- Licence-expired notice in mobile drawer -->
   <div class="dc-mobile-expired-notice" *ngIf="isLicenceExpired">
@@ -318,7 +352,7 @@
     </div>
     <ng-container *ngIf="!isLicenceExpired">
       <ng-container *ngFor="let item of adminOptions">
-        <a *ngIf="!item.superAdminOnly || isSuperAdmin"
+        <a *ngIf="!item.adminOnly || isAdmin"
            class="dc-mobile-item dc-mobile-sub"
            (click)="redirectionToModule(item); mobileNavOpen=false">
           <i class="fa {{ item.icon }}"></i> {{ item.label }}

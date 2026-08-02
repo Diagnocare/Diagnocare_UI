@@ -2372,3 +2372,72 @@
   .calc-row     { padding: 0.6rem 1rem; }
   .calc-section-title { padding: 0.45rem 1rem; }
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  THEME OVERRIDES
+// ══════════════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .stat-card             { background: #1e293b !important;
+                           &.card-payable { background: linear-gradient(135deg, #0c1a3a 0%, #1e293b 60%) !important; }
+                           &.card-paid    { background: linear-gradient(135deg, #0a1f12 0%, #1e293b 60%) !important; }
+                           &.card-pending { background: linear-gradient(135deg, #1f1408 0%, #1e293b 60%) !important; }
+                           &.card-count   { background: linear-gradient(135deg, #160f2c 0%, #1e293b 60%) !important; } }
+  .salary-row            { border-bottom-color: #273548 !important;
+                           td { background: #1e293b !important; }
+                           &.row-alt td { background: #1a2538 !important; }
+                           &.row-active td { background: #0c2340 !important; }
+                           &:hover td { background: #0f2648 !important; }
+                           &.row-editing td { background: #1f1a08 !important; } }
+  .payment-item          { background: #0f172a !important; border-color: #273548 !important; }
+  .pay-mode-badge        { background: #0c1a3a !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+  .form-input            { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+  .btn-cancel            { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
+}
+
+:host-context(html[data-theme="midnight"]) {
+  .stat-card             { background: #0d1117 !important;
+                           &.card-payable { background: linear-gradient(135deg, #041624 0%, #0d1117 60%) !important; }
+                           &.card-paid    { background: linear-gradient(135deg, #031008 0%, #0d1117 60%) !important; }
+                           &.card-pending { background: linear-gradient(135deg, #100a02 0%, #0d1117 60%) !important; }
+                           &.card-count   { background: linear-gradient(135deg, #0c0717 0%, #0d1117 60%) !important; } }
+  .salary-row            { border-bottom-color: #161b22 !important;
+                           td { background: #0d1117 !important; }
+                           &.row-alt td { background: #0a0e14 !important; }
+                           &.row-active td { background: #041f30 !important; }
+                           &:hover td { background: #0a1928 !important; }
+                           &.row-editing td { background: #0e0c02 !important; } }
+  .payment-item          { background: #020408 !important; border-color: #161b22 !important; }
+  .pay-mode-badge        { background: #041624 !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+  .form-input            { background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important; }
+  .btn-cancel            { background: #161b22 !important; color: #a6adc8 !important; border-color: #21262d !important; }
+}
+
+:host-context(html[data-theme="warm"]) {
+  .stat-card             { background: #fffdf7 !important;
+                           &.card-payable { background: linear-gradient(135deg, #eff6ff 0%, #fffdf7 60%) !important; }
+                           &.card-paid    { background: linear-gradient(135deg, #f0fdf4 0%, #fffdf7 60%) !important; }
+                           &.card-pending { background: linear-gradient(135deg, #fffbeb 0%, #fffdf7 60%) !important; }
+                           &.card-count   { background: linear-gradient(135deg, #f5f3ff 0%, #fffdf7 60%) !important; } }
+  .salary-row            { border-bottom-color: #e8d9c0 !important;
+                           td { background: #fffdf7 !important; }
+                           &.row-alt td { background: #fdf6ea !important; }
+                           &.row-active td { background: #fbefd8 !important; }
+                           &:hover td { background: #f5e9d2 !important; } }
+  .payment-item          { background: #fef9f0 !important; border-color: #e8d9c0 !important; }
+  .form-input            { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important; }
+  .btn-cancel            { background: #f5ede0 !important; color: #7a5c4e !important; border-color: #ddc9a8 !important; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .stat-card   { background: #1e293b !important; }
+    .salary-row  { border-bottom-color: #273548 !important;
+                   td { background: #1e293b !important; }
+                   &.row-alt td { background: #1a2538 !important; }
+                   &:hover td { background: #0c2340 !important; } }
+    .payment-item { background: #0f172a !important; border-color: #273548 !important; }
+    .form-input  { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    .btn-cancel  { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
+  }
+}

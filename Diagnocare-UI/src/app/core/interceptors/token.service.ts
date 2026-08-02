@@ -85,7 +85,7 @@ export class TokenService {
    */
   private generateUUID(): string {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return this.generateUUID();
+      return crypto.randomUUID();
     }
     // RFC 4122 §4.4 compliant fallback
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -217,7 +217,15 @@ export class TokenService {
     return !!this.getToken();
   }
 
-  /** Remove the stored JWT and clear all auth state for this tab and all sibling tabs. */
+  /**
+   * Remove the stored JWT and clear all auth state for this tab and all sibling tabs.
+   * Deliberately does NOT clear the cached pathology policy settings (grace buffer,
+   * max discount, session lockout) — that cache is keyed to the browser/pathology,
+   * not the login session, and is kept fresh by PathologyService whenever the
+   * corresponding value is updated (see updateGraceBuffer/updateMaxDiscount/
+   * updateSessionLockout). Clearing it here would force a DB round-trip on every
+   * login even when nothing changed.
+   */
   removeToken(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
@@ -364,7 +372,6 @@ export class TokenService {
   }
 
   isAdmin(): boolean    { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
-  isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
 
@@ -379,5 +386,107 @@ export class TokenService {
     if (!decoded?.exp) return -1;
     const remaining = decoded.exp * 1000 - Date.now();
     return remaining > 0 ? remaining : 0;
+  }
+
+  // ── Grace buffer ───────────────────────────────────────────────────────────
+
+  private readonly GRACE_BUFFER_KEY         = 'diagnocare_grace_buffer_minutes';
+  private readonly MAX_DISCOUNT_KEY         = 'diagnocare_max_discount_percent';
+  private readonly SESSION_LOCKOUT_KEY      = 'diagnocare_session_lockout_minutes';
+
+  /**
+   * Persist the pathology-configured grace buffer (in minutes) to localStorage.
+   * Called by the lab-setup component when the admin saves the setting, and also
+   * by AppComponent on init when it fetches pathology info.
+   */
+  setGraceBufferMinutes(minutes: number): void {
+    localStorage.setItem(this.GRACE_BUFFER_KEY, String(minutes));
+  }
+
+  /**
+   * Retrieve the grace buffer duration (in minutes).
+   * Returns 0 if not configured (disables grace-period PIN auth).
+   */
+  getGraceBufferMinutes(): number {
+    const raw = localStorage.getItem(this.GRACE_BUFFER_KEY);
+    if (!raw) return 0;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }
+
+  /**
+   * Returns true when the stored JWT is expired BUT the expiry happened within
+   * the pathology-configured grace buffer window.
+   *
+   * Formula:
+   *   milliseconds_since_expiry = now - (exp * 1000)
+   *   within_grace = milliseconds_since_expiry <= graceBufferMinutes * 60 * 1000
+   *
+   * Returns false when:
+   *   • No token is stored
+   *   • Grace buffer is 0 (disabled)
+   *   • Token expired longer ago than the grace window
+   */
+  // ── Max discount ───────────────────────────────────────────────────────────
+
+  /** Persist the admin-configured maximum discount percentage. */
+  setMaxDiscountPercent(percent: number): void {
+    localStorage.setItem(this.MAX_DISCOUNT_KEY, String(percent));
+  }
+
+  /**
+   * Returns the maximum discount percentage allowed (0–99).
+   * Default 50 if not yet configured.
+   */
+  getMaxDiscountPercent(): number {
+    const raw = localStorage.getItem(this.MAX_DISCOUNT_KEY);
+    if (!raw) return 50;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 50 : Math.min(parsed, 99);
+  }
+
+  // ── Session lockout ────────────────────────────────────────────────────────
+
+  /** Persist the admin-configured session lockout threshold (minutes). */
+  setSessionLockoutMinutes(minutes: number): void {
+    localStorage.setItem(this.SESSION_LOCKOUT_KEY, String(minutes));
+  }
+
+  /**
+   * Returns the session lockout threshold in minutes.
+   * 0 means screen lock is disabled. Default 30.
+   */
+  getSessionLockoutMinutes(): number {
+    const raw = localStorage.getItem(this.SESSION_LOCKOUT_KEY);
+    if (!raw) return 30;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 30 : parsed;
+  }
+
+  /**
+   * True when pathology policy settings (grace buffer, max discount, session
+   * lockout) are already cached in localStorage from a previous load.
+   * AppComponent uses this to skip the DB round-trip on repeat page loads.
+   */
+  hasCachedPolicies(): boolean {
+    return localStorage.getItem(this.GRACE_BUFFER_KEY) !== null;
+  }
+
+  /** Clear cached pathology policy settings (called on logout). */
+  clearCachedPolicies(): void {
+    localStorage.removeItem(this.GRACE_BUFFER_KEY);
+    localStorage.removeItem(this.MAX_DISCOUNT_KEY);
+    localStorage.removeItem(this.SESSION_LOCKOUT_KEY);
+  }
+
+  isWithinGracePeriod(): boolean {
+    const graceMs = this.getGraceBufferMinutes() * 60 * 1000;
+    if (graceMs <= 0) return false;
+
+    const decoded = this.decodeToken();
+    if (!decoded?.exp) return false;
+
+    const expiredAgoMs = Date.now() - decoded.exp * 1000;
+    return expiredAgoMs > 0 && expiredAgoMs <= graceMs;
   }
 }

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
@@ -8,7 +8,7 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { ToastrService } from 'ngx-toastr';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 
-type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confirm';
+type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confirm' | 'removed';
 
 @Component({
   selector: 'app-setup-mfa',
@@ -18,6 +18,21 @@ type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confir
   imports: [CommonModule, FormsModule]
 })
 export class SetupMfaComponent implements OnInit {
+  /**
+   * When true, the component is rendered inside another page (e.g. the Settings
+   * page) and skips its own page wrapper + gradient header banner.
+   * Consumed by the Settings host template as <app-setup-mfa [embedded]="true">.
+   */
+  @Input() embedded = false;
+
+  /**
+   * Emits whenever MFA is enabled (true) or removed (false), so a host page
+   * (e.g. Settings) can refresh anything that depends on MFA status — such as
+   * whether "Authenticator App" can be chosen as the preferred login method —
+   * without requiring a manual page refresh.
+   */
+  @Output() mfaStatusChanged = new EventEmitter<boolean>();
+
   userName: string = '';
 
   state: PageState = 'loading';
@@ -41,6 +56,8 @@ export class SetupMfaComponent implements OnInit {
   verifyCode: string = '';
   deviceName: string = '';     // user-supplied label, e.g. "My iPhone"
   verifying: boolean = false;
+  /** Masks the entered TOTP code (like a password); eye toggle reveals it. */
+  otpVisible: boolean = false;
 
   // Disable-confirm state
   disableCode: string = '';
@@ -132,6 +149,7 @@ export class SetupMfaComponent implements OnInit {
         this.verifying = false;
         if (res.success) {
           this.toastr.success('Authenticator app linked successfully!', 'MFA Enabled');
+          this.mfaStatusChanged.emit(true);
           this.loadStatus();
         } else {
           this.error = res.message || 'Invalid code. Please try again.';
@@ -171,7 +189,12 @@ export class SetupMfaComponent implements OnInit {
         this.disabling = false;
         if (res.success) {
           this.toastr.success('MFA removed successfully.', 'Success');
-          this.beginSetup();
+          this.mfaStatusChanged.emit(false);
+          // Server has wiped the secret, so the codes on the phone are already
+          // inert. Show a dedicated screen reminding the user to also delete the
+          // now-defunct entry from their authenticator app — the app itself
+          // exposes no way for us to remove it remotely.
+          this.state = 'removed';
         } else {
           this.error = res.message || 'Invalid code. Please try again.';
         }
@@ -187,6 +210,20 @@ export class SetupMfaComponent implements OnInit {
     this.state       = 'configured';
     this.disableCode = '';
     this.error       = '';
+  }
+
+  /** From the post-removal screen: start a fresh enrollment. */
+  setUpAgain(): void {
+    this.beginSetup();
+  }
+
+  /** From the post-removal screen: leave the flow. */
+  finishRemoval(): void {
+    if (this.embedded) {
+      this.beginSetup();
+    } else {
+      this.router.navigate(['/settings']);
+    }
   }
 
   copyKey(): void {

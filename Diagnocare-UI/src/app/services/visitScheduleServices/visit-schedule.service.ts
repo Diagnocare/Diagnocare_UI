@@ -32,6 +32,11 @@ export class VisitScheduleService {
     return this.http.get<VisitScheduleGetDto[]>(`${this.base}GetMyVisits?memberId=${memberId}&date=${d}`);
   }
 
+  /** Member's own visit calendar summary for a month (self-service). */
+  getMyCalendar(year: number, month: number): Observable<VisitCalendarDayDto[]> {
+    return this.http.get<VisitCalendarDayDto[]>(`${this.base}GetMyCalendar?year=${year}&month=${month}`);
+  }
+
   update(dto: VisitScheduleUpdateDto): Observable<any> {
     return this.http.put(`${this.base}Update`, dto);
   }

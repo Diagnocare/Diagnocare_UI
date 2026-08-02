@@ -201,6 +201,12 @@
         </div>
       </div>
 
+      <!-- Cash Change Calculator -->
+      <app-payment-calculator
+        [requiredAmount]="topupMode ? prefillAmount : netAmount"
+        [resetTrigger]="visible">
+      </app-payment-calculator>
+
       <!-- Error message -->
       <div class="pm-save-error" *ngIf="saveError">
         <i class="fa fa-exclamation-circle"></i>
@@ -209,11 +215,11 @@
 
       <!-- ── Footer Actions ── -->
       <div class="pm-actions">
-        <button type="button" class="pm-btn pm-btn--cancel" (click)="cancel()" [disabled]="isSaving">
+        <button type="button" class="dc-btn dc-btn--cancel" (click)="cancel()" [disabled]="isSaving">
           <i class="fa fa-times"></i> Cancel
         </button>
         <button type="submit"
-                class="pm-btn pm-btn--save"
+                class="dc-btn dc-btn--save"
                 [disabled]="!isFormValid || isSaving">
           <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
           {{ isSaving ? 'Saving…' : 'Confirm Payment' }}

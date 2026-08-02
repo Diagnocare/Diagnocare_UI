@@ -1,0 +1,73 @@
+<app-loading-spinner [isLoading]="isLoading" message="Loading…"></app-loading-spinner>
+
+<div class="ar-stage">
+  <div class="ar-shell" *ngIf="!isLoading">
+
+    <!-- Hero header -->
+    <div class="ar-hero">
+      <button class="hero-back" (click)="cancel()"><i class="fa fa-arrow-left"></i> Back</button>
+      <div class="hero-text">
+        <span class="brand-pill"><i class="fa fa-heart-pulse"></i> DIAGNOCARE</span>
+        <h1>{{ isEdit ? 'Edit Attendance Request' : 'New Attendance Request' }}</h1>
+        <p class="subtitle">Propose a correction to your attendance — an admin will review it.</p>
+      </div>
+    </div>
+
+    <!-- Form card -->
+    <form [formGroup]="form" (ngSubmit)="save()" class="ar-card">
+
+      <div class="field">
+        <label class="field-label">Attendance Date <span class="req">*</span></label>
+        <div class="input-icon ar-datefield" [class.invalid]="f['attendanceDate'].touched && f['attendanceDate'].invalid">
+          <i class="fa fa-calendar-days lead-icon"></i>
+          <app-date-picker formControlName="attendanceDate"
+                           inputClass="form-control"
+                           [max]="today"
+                           placeholder="Select date"></app-date-picker>
+        </div>
+        <small *ngIf="isEdit" class="field-hint">Date can't be changed — cancel and create a new request for a different day.</small>
+        <small *ngIf="f['attendanceDate'].touched && f['attendanceDate'].invalid" class="field-error">
+          Please choose a date (today or earlier).
+        </small>
+      </div>
+
+      <div *ngIf="loadedRequest?.currentStatusLabel" class="current-note">
+        <i class="fa fa-circle-info"></i>
+        Currently recorded as <strong>{{ loadedRequest?.currentStatusLabel }}</strong> for this date.
+      </div>
+
+      <div class="field">
+        <label class="field-label">Requested Status <span class="req">*</span></label>
+        <div class="input-icon" [class.invalid]="f['requestedStatus'].touched && f['requestedStatus'].invalid">
+          <i class="fa fa-clipboard-check lead-icon"></i>
+          <select formControlName="requestedStatus" class="form-control has-icon">
+            <option value="" disabled>Select status…</option>
+            <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+          </select>
+          <i class="fa fa-chevron-down trail-icon"></i>
+        </div>
+        <small *ngIf="f['requestedStatus'].touched && f['requestedStatus'].invalid" class="field-error">
+          Please select the status you're requesting.
+        </small>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Reason <span class="optional">(optional)</span></label>
+        <div class="input-icon textarea-wrap">
+          <i class="fa fa-file-lines lead-icon top"></i>
+          <textarea formControlName="reason" rows="4" maxlength="500" class="form-control has-icon"
+                    placeholder="e.g. I was present but forgot to check in."></textarea>
+          <span class="char-count">{{ f['reason'].value?.length || 0 }}/500</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn-gradient" [disabled]="isSaving">
+          <i class="fa fa-paper-plane" *ngIf="!isSaving"></i>
+          {{ isSaving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Submit Request') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

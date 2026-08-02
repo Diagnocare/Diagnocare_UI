@@ -1,463 +1,186 @@
-// ── Page body wrapper ─────────────────────────────────────────────────────────
-.mv-body {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 1.25rem 1rem 2rem;
+// ══════════════════════════════════════════════════════════════════════════════
+//  My Visits — container layout (calendar + card come from shared components)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.vs-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  padding: 1.25rem 1.25rem 2rem;
 }
 
-// ── Refresh button override ───────────────────────────────────────────────────
-.mv-refresh-btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  color: #fff;
-  border-radius: 8px;
-  font-size: .82rem;
-  font-weight: 600;
-  padding: .45rem .9rem;
-  transition: background .15s;
-
-  &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.25);
-  }
-  &:disabled { opacity: .6; cursor: default; }
+.vs-calendar-panel,
+.vs-detail-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(30,91,168,.08);
+  padding: 1.25rem;
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-.mv-empty {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 18px;
-  padding: 3rem 1.5rem;
-  text-align: center;
-  box-shadow: 0 8px 32px rgba(30, 91, 168, .14);
+.vs-detail-panel {
+  min-height: 400px;
 
-  .mv-empty-icon {
-    width: 72px;
-    height: 72px;
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    border-radius: 50%;
+  &--empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1.25rem;
-
-    i {
-      font-size: 2rem;
-      color: #059669;
-    }
-  }
-
-  h3 {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: .4rem;
-  }
-
-  p {
-    font-size: .88rem;
-    color: #64748b;
-    margin: 0;
   }
 }
 
-// ── Progress panel ────────────────────────────────────────────────────────────
-.mv-panel {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 14px;
-  padding: 1rem 1.1rem .9rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 20px rgba(30, 91, 168, .12);
-}
-
-.mv-progress-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: .65rem;
-}
-
-.mv-progress-stats {
-  display: flex;
-  align-items: center;
-  gap: .9rem;
-  flex-wrap: wrap;
-}
-
-.mv-stat {
-  font-size: .8rem;
-  font-weight: 600;
-  color: #475569;
-
-  strong {
-    font-size: 1rem;
-    font-weight: 800;
-    color: #0f172a;
-  }
-
-  i { margin-right: 4px; }
-
-  &--done    { color: #059669; }
-  &--pending { color: #d97706; }
-}
-
-.mv-pct {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #0f172a;
-  flex-shrink: 0;
-}
-
-.mv-progress-bar-track {
-  height: 8px;
-  background: #e2e8f0;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.mv-progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #059669, #34d399);
-  border-radius: 99px;
-  transition: width .5s cubic-bezier(.4, 0, .2, 1);
-  min-width: 4px;
-}
-
-// ── Visit card ────────────────────────────────────────────────────────────────
-.mv-card {
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 16px;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 20px rgba(30, 91, 168, .1);
-  overflow: hidden;
-  border-left: 4px solid #f59e0b;   // pending = amber
-  transition: transform .15s, box-shadow .15s;
-  animation: cardIn .25s ease both;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(30, 91, 168, .16);
-  }
-
-  &--done {
-    border-left-color: #10b981;
-    background: rgba(240, 253, 244, 0.97);
-
-    .mvc-topbar { background: #f0fdf4; }
-  }
-
-  &--cancelled {
-    border-left-color: #ef4444;
-    background: rgba(254, 242, 242, 0.97);
-    opacity: .8;
-
-    .mvc-topbar { background: #fef2f2; }
-  }
-}
-
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-// Stagger animation for multiple cards
-@for $i from 1 through 20 {
-  .mv-card:nth-child(#{$i}) {
-    animation-delay: #{($i - 1) * 0.05}s;
-  }
-}
-
-// ── Card top bar ──────────────────────────────────────────────────────────────
-.mvc-topbar {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .6rem .9rem;
-  background: #f8fafc;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
-}
-
-.mvc-time-badge {
-  display: flex;
-  align-items: center;
-  gap: .35rem;
-  font-size: .95rem;
-  font-weight: 800;
-  color: #0891b2;
-  flex: 1;
-
-  i { font-size: .85rem; }
-}
-
-.mvc-seq {
-  font-size: .72rem;
-  font-weight: 700;
+.empty-state {
+  text-align: center;
   color: #94a3b8;
-  background: #e2e8f0;
-  border-radius: 6px;
-  padding: 2px 7px;
+  i { font-size: 3rem; margin-bottom: .75rem; }
+  p { font-size: .9rem; }
 }
 
-.mvc-status {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  font-size: .72rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 99px;
-  background: #fef3c7;
-  color: #92400e;
-
-  &--done      { background: #d1fae5; color: #065f46; }
-  &--cancelled { background: #fee2e2; color: #991b1b; }
-}
-
-// ── Card body ─────────────────────────────────────────────────────────────────
-.mvc-contact {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .75rem .9rem .45rem;
-  flex-wrap: wrap;
-}
-
-.mvc-contact-name {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  flex: 1;
-  min-width: 0;
-
-  i { color: #0891b2; font-size: .9rem; flex-shrink: 0; }
-}
-
-.mvc-type-badge {
-  font-size: .7rem;
-  font-weight: 600;
-  color: #0891b2;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-  padding: 2px 9px;
-  border-radius: 99px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-// ── Details section ───────────────────────────────────────────────────────────
-.mvc-details {
-  padding: 0 .9rem .7rem;
-  display: flex;
-  flex-direction: column;
-  gap: .5rem;
-}
-
-// Big phone CTA button
-.mvc-call-btn {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  background: linear-gradient(135deg, #0891b2, #0e7490);
-  color: #fff;
-  text-decoration: none;
-  border-radius: 10px;
-  padding: .55rem .9rem;
-  font-size: .9rem;
-  font-weight: 700;
-  transition: opacity .15s, transform .1s;
-  width: fit-content;
-
-  i { font-size: .85rem; }
-
-  &:hover {
-    opacity: .9;
-    transform: scale(1.01);
-    color: #fff;
-    text-decoration: none;
-  }
-  &:active { transform: scale(.98); }
-}
-
-// Address row with map button
-.mvc-address-row {
-  display: flex;
-  align-items: flex-start;
-  gap: .45rem;
-  font-size: .83rem;
-  color: #374151;
-
-  > i {
-    color: #94a3b8;
-    flex-shrink: 0;
-    margin-top: 3px;
-    font-size: .8rem;
-  }
-}
-
-.mvc-address-text {
-  flex: 1;
-  line-height: 1.45;
-}
-
-.mvc-map-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  font-size: .75rem;
-  font-weight: 700;
-  color: #0891b2;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-  border-radius: 7px;
-  padding: 2px 9px;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background .12s;
-
-  &:hover {
-    background: #bae6fd;
-    color: #0369a1;
-    text-decoration: none;
-  }
-}
-
-.mvc-meta-row {
-  display: flex;
-  align-items: flex-start;
-  gap: .45rem;
-  font-size: .82rem;
-  color: #374151;
-  line-height: 1.45;
-
-  > i {
-    color: #94a3b8;
-    flex-shrink: 0;
-    margin-top: 2px;
-    font-size: .78rem;
-  }
-}
-
-.mvc-notes {
-  font-style: italic;
-  color: #64748b;
-}
-
-// ── Completion done-bar (tap to view details) ─────────────────────────────────
-.mvc-done-bar {
+.detail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 0 .9rem .75rem;
-  padding: .55rem .85rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background .15s;
-
-  &:hover {
-    background: #dcfce7;
-    border-color: #86efac;
-  }
+  margin-bottom: 1rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid #e2e8f0;
 }
-
-.mvc-done-bar-label {
+.detail-title {
   display: flex;
   align-items: center;
-  gap: .4rem;
-  font-size: .8rem;
-  font-weight: 700;
-  color: #065f46;
-
-  i { color: #059669; }
-}
-
-.mvc-done-bar-cta {
-  display: flex;
-  align-items: center;
-  gap: .3rem;
-  font-size: .75rem;
-  font-weight: 700;
-  color: #0891b2;
-
-  i { font-size: .7rem; }
-}
-
-// ── Mark complete CTA ─────────────────────────────────────────────────────────
-.mvc-action {
-  padding: 0 .9rem .9rem;
-}
-
-.mvc-complete-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: .5rem;
-  background: linear-gradient(135deg, #059669, #10b981);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: .7rem 1rem;
-  font-size: .92rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  i { color: #0891b2; }
+}
+
+// Refresh button in the detail header
+.btn-outline {
+  background: #fff;
+  color: #0891b2;
+  border: 1.5px solid #0891b2;
+  &:hover { background: #e0f2fe; }
+}
+
+// ── Status filter chips ───────────────────────────────────────────────────────
+.vc-status-filter {
+  display: flex;
+  gap: .4rem;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+}
+
+.vc-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .28rem .7rem;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: .75rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity .15s, transform .1s;
-  letter-spacing: .01em;
+  transition: all .15s;
 
-  i { font-size: .9rem; }
+  &:hover { border-color: #0891b2; color: #0891b2; }
 
-  &:hover {
-    opacity: .92;
-    transform: translateY(-1px);
+  &.active {
+    background: #0891b2; border-color: #0891b2; color: #fff;
+    .vc-filter-count { background: rgba(255,255,255,.25); color: #fff; }
   }
-  &:active { transform: translateY(0) scale(.99); }
+
+  &--pending.active { background: #f59e0b; border-color: #f59e0b; }
+  &--done.active    { background: #16a34a; border-color: #16a34a; }
+}
+
+.vc-filter-count {
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: .7rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+
+.no-visits {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem 0;
+  i { font-size: 2.5rem; margin-bottom: .5rem; }
+  p { margin-bottom: .75rem; }
+}
+
+.visit-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
 }
 
 // ── Responsive ────────────────────────────────────────────────────────────────
-
-/* iPad / tablet (≤ 768px) ─────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .mv-body { max-width: 100%; }
-
-  // Slightly tighter padding on tablet
-  .mvc-topbar   { padding: .55rem .85rem; }
-  .mvc-contact  { padding: .65rem .85rem .4rem; }
-  .mvc-details  { padding: 0 .85rem .6rem; }
-  .mvc-action   { padding: 0 .85rem .85rem; }
-  .mvc-done-bar { margin: 0 .85rem .65rem; }
+@media (max-width: 900px) {
+  .vs-layout { grid-template-columns: 1fr; padding: 1rem; }
+  .vs-calendar-panel { max-width: 480px; margin: 0 auto; }
+  .vs-detail-panel   { min-height: 320px; }
+}
+@media (max-width: 600px) {
+  .vs-layout { padding: .75rem .75rem 2rem; }
+  .visit-card-grid { grid-template-columns: 1fr; }
+  .detail-header { flex-wrap: wrap; gap: .5rem; }
+  .vc-status-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: .25rem;
+  }
+}
+@media (min-width: 1440px) {
+  .vs-layout {
+    grid-template-columns: 380px 1fr;
+    padding: 1.5rem 2rem 2.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
 }
 
-/* Mobile (≤ 480px) ────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .mv-body { padding: .875rem .65rem 2rem; }
-
-  .mv-pct { font-size: .95rem; }
-
-  .mvc-call-btn { width: 100%; justify-content: center; }
-
-  .mv-progress-stats { gap: .5rem; }
-
-  // Complete button already full-width, just ensure font is comfortable
-  .mvc-complete-btn { font-size: .88rem; }
-
-  // Done bar wraps on very small screens
-  .mvc-done-bar { flex-direction: column; align-items: flex-start; gap: .3rem; }
-  .mvc-done-bar-cta { margin-left: 1.15rem; }
+// ── Theme overrides (panels + chips) ──────────────────────────────────────────
+:host-context(html[data-theme="dark"]) {
+  .vs-calendar-panel, .vs-detail-panel { background: #1e293b !important; }
+  .detail-header  { border-bottom-color: #334155 !important; }
+  .detail-title   { color: #e2e8f0 !important; }
+  .empty-state    { color: #475569 !important; }
+  .btn-outline    { background: #0f172a !important; border-color: #0891b2 !important; color: #38bdf8 !important;
+                    &:hover { background: #082f49 !important; } }
+  .vc-filter-chip { background: #0f172a !important; border-color: #334155 !important; color: #64748b !important; }
+  .vc-filter-count{ background: #273548 !important; color: #94a3b8 !important; }
 }
-
-/* Small mobile (≤ 360px) ──────────────────────────────────────────────── */
-@media (max-width: 360px) {
-  .mv-body { padding: .75rem .5rem 2rem; }
-
-  .mvc-time-badge { font-size: .85rem; }
-  .mvc-contact-name { font-size: .92rem; }
+:host-context(html[data-theme="midnight"]) {
+  .vs-calendar-panel, .vs-detail-panel { background: #0d1117 !important; }
+  .detail-header  { border-bottom-color: #21262d !important; }
+  .detail-title   { color: #cdd6f4 !important; }
+  .empty-state    { color: #30363d !important; }
+  .btn-outline    { background: #020408 !important; border-color: #0891b2 !important; color: #38bdf8 !important;
+                    &:hover { background: #041f30 !important; } }
+  .vc-filter-chip { background: #020408 !important; border-color: #21262d !important; color: #6e7681 !important; }
+  .vc-filter-count{ background: #161b22 !important; color: #a6adc8 !important; }
 }
-
-/* Large monitor / Mac (≥ 1200px) ──────────────────────────────────────── */
-@media (min-width: 1200px) {
-  .mv-body { max-width: 720px; }
+:host-context(html[data-theme="warm"]) {
+  .vs-calendar-panel, .vs-detail-panel { background: #fffdf7 !important; }
+  .detail-header  { border-bottom-color: #ddc9a8 !important; }
+  .detail-title   { color: #3d2b1f !important; }
+  .empty-state    { color: #9e8272 !important; }
+  .btn-outline    { background: #fffdf7 !important; border-color: #c47028 !important; color: #9c5a28 !important;
+                    &:hover { background: #fdf3e3 !important; } }
+  .vc-filter-chip { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #7a5c4e !important; }
+  .vc-filter-count{ background: #ddc9a8 !important; color: #5c3d2a !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .vs-calendar-panel, .vs-detail-panel { background: #1e293b !important; }
+    .detail-header { border-bottom-color: #334155 !important; }
+    .detail-title  { color: #e2e8f0 !important; }
+    .vc-filter-chip{ background: #0f172a !important; border-color: #334155 !important; color: #64748b !important; }
+  }
 }

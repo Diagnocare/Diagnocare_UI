@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════
    ACCOUNT PAGES — Shared styles
-   Used by: Profile, Settings, Change Password, Setup MFA
+   Used by: Profile, Settings, Change Password, Change PIN, Setup MFA
 
    Include in each component's styleUrls BEFORE the
    component-specific file:
@@ -9,20 +9,42 @@
    Class naming: acct-*
    Each component uses these classes in its HTML and adds
    only its own unique classes in its own .css file.
+
+   ── Theming convention ──────────────────────────────────
+   Banner gradients are driven by CSS custom properties
+   (--acct-banner / --acct-card-banner) declared in :host.
+   Each theme only needs to re-declare those vars (plus a
+   few surface/text colors) inside its own region below, so
+   the header/card banners always match the active theme
+   background instead of staying a fixed blue/purple.
+
+   All theme overrides are grouped by theme (Dark, Midnight,
+   Warm, System) — keep each theme's rules inside its region.
 ══════════════════════════════════════════════════════ */
 
+:host {
+  /* Default (Light) banner gradients — themes override these vars */
+  --acct-banner:      linear-gradient(135deg, #1e5ba8 0%, #667eea 60%, #764ba2 100%);
+  --acct-card-banner: linear-gradient(135deg, #1e5ba8 0%, #667eea 100%);
+  --acct-banner-shadow: rgba(30, 91, 168, 0.22);
+}
+
 /* ── Page wrapper ──────────────────────────────────── */
+/* Centered, width-constrained content so account pages stay
+   balanced instead of hugging the left edge on wide screens. */
 .acct-page {
   padding: 1em 1.5em 4em;
+  max-width: 820px;
+  margin-inline: auto;
 }
 
 /* ── Page-level header (gradient banner) ───────────── */
 .acct-header {
-  background: linear-gradient(135deg, #1e5ba8 0%, #667eea 60%, #764ba2 100%);
+  background: var(--acct-banner, linear-gradient(135deg, #1e5ba8 0%, #667eea 60%, #764ba2 100%));
   padding: 1.1em 1.5em;
   border-radius: 0.65em;
   margin-bottom: 1.5em;
-  box-shadow: 0 4px 16px rgba(30, 91, 168, 0.22);
+  box-shadow: 0 4px 16px var(--acct-banner-shadow);
 }
 
 .acct-title {
@@ -55,7 +77,7 @@
   align-items: flex-start;
   gap: 0.85em;
   padding: 1em 1.25em;
-  background: linear-gradient(135deg, #1e5ba8 0%, #667eea 100%);
+  background: var(--acct-card-banner, linear-gradient(135deg, #1e5ba8 0%, #667eea 100%));
   color: #fff;
 }
 .acct-card-header > i {
@@ -89,3 +111,63 @@
 }
 .msg-error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 .msg-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+/* ══════════════════════════════════════════════════════
+   THEME OVERRIDES  (host-context beats component scope)
+   One region per theme — keep each theme's rules together.
+══════════════════════════════════════════════════════ */
+
+/* ══ DARK ══════════════════════════════════════════════ */
+:host-context(html[data-theme="dark"]) {
+  --acct-banner:      linear-gradient(135deg, #1e3a5f 0%, #273548 100%);
+  --acct-card-banner: linear-gradient(135deg, #1e3a5f 0%, #24344c 100%);
+  --acct-banner-shadow: rgba(0, 0, 0, 0.45);
+}
+:host-context(html[data-theme="dark"]) .acct-page       { background: transparent; }
+:host-context(html[data-theme="dark"]) .acct-card       { background: #1e293b; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+:host-context(html[data-theme="dark"]) .acct-card-body  { background: #1e293b; color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .acct-title      { color: #fff; }
+:host-context(html[data-theme="dark"]) .acct-subtitle   { color: rgba(255,255,255,0.82); }
+:host-context(html[data-theme="dark"]) .msg-error       { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+:host-context(html[data-theme="dark"]) .msg-success     { background: rgba(34,197,94,0.14); color: #86efac; border-color: rgba(34,197,94,0.4); }
+
+/* ══ MIDNIGHT ══════════════════════════════════════════ */
+:host-context(html[data-theme="midnight"]) {
+  --acct-banner:      linear-gradient(135deg, #161b2e 0%, #0d1117 100%);
+  --acct-card-banner: linear-gradient(135deg, #11162a 0%, #0d1117 100%);
+  --acct-banner-shadow: rgba(0, 0, 0, 0.6);
+}
+:host-context(html[data-theme="midnight"]) .acct-page       { background: transparent; }
+:host-context(html[data-theme="midnight"]) .acct-card       { background: #0d1117; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+:host-context(html[data-theme="midnight"]) .acct-card-body  { background: #0d1117; color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .acct-title      { color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .acct-subtitle   { color: rgba(205,214,244,0.75); }
+:host-context(html[data-theme="midnight"]) .msg-error       { background: #200e0e; color: #f87171; border-color: #6b1111; }
+:host-context(html[data-theme="midnight"]) .msg-success     { background: rgba(45,212,140,0.1); color: #6ee7b7; border-color: rgba(45,212,140,0.34); }
+
+/* ══ WARM ══════════════════════════════════════════════ */
+:host-context(html[data-theme="warm"]) {
+  --acct-banner:      linear-gradient(135deg, #9c5a28 0%, #c47028 100%);
+  --acct-card-banner: linear-gradient(135deg, #9c5a28 0%, #c47028 100%);
+  --acct-banner-shadow: rgba(100, 60, 20, 0.28);
+}
+:host-context(html[data-theme="warm"]) .acct-page       { background: transparent; }
+:host-context(html[data-theme="warm"]) .acct-card       { background: #fffdf7; box-shadow: 0 4px 20px rgba(100,60,20,0.12); }
+:host-context(html[data-theme="warm"]) .acct-card-body  { background: #fffdf7; color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .acct-title      { color: #fff; }
+:host-context(html[data-theme="warm"]) .acct-subtitle   { color: rgba(255,255,255,0.85); }
+:host-context(html[data-theme="warm"]) .msg-error       { background: #fdf0ee; color: #c0392b; border-color: #e8a09a; }
+:host-context(html[data-theme="warm"]) .msg-success     { background: #f0fdf4; color: #2e7d32; border-color: #a5d6a7; }
+
+/* ══ SYSTEM (follows OS dark mode) ═════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    --acct-banner:      linear-gradient(135deg, #1e3a5f 0%, #273548 100%);
+    --acct-card-banner: linear-gradient(135deg, #1e3a5f 0%, #24344c 100%);
+    --acct-banner-shadow: rgba(0, 0, 0, 0.45);
+  }
+  :host-context(html[data-theme="system"]) .acct-card       { background: #1e293b; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  :host-context(html[data-theme="system"]) .acct-card-body  { background: #1e293b; color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .msg-error       { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+  :host-context(html[data-theme="system"]) .msg-success     { background: rgba(34,197,94,0.14); color: #86efac; border-color: rgba(34,197,94,0.4); }
+}

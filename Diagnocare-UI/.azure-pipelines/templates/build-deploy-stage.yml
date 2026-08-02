@@ -185,13 +185,34 @@ stages:
                 icacls "${{ parameters.targetPath }}" /grant IIS_IUSRS:(OI)(CI)M /T
               failOnStandardError: false
 
+          # Single-file transfer instead of copying every Angular build file individually —
+          # SFTP's per-file round-trip overhead dominates once the app has enough files
+          # (locales, chunks, fonts, etc.), so zipping first and copying ONE file over SSH
+          # is dramatically faster than CopyFilesOverSSH's file-by-file copy.
+          - powershell: |
+              $zipPath = '$(Pipeline.Workspace)/deploy-package-${{ lower(parameters.envLabel) }}.zip'
+              if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+              Compress-Archive -Path '$(Pipeline.Workspace)/${{ parameters.artifactName }}/*' -DestinationPath $zipPath -Force
+              Write-Host "Created $zipPath"
+            displayName: 'Zip ${{ parameters.envLabel }} deployment package'
+
           - task: CopyFilesOverSSH@0
-            displayName: 'Copy files to ${{ parameters.envLabel }} server'
+            displayName: 'Copy deployment package to ${{ parameters.envLabel }} server'
             inputs:
               sshEndpoint: '${{ parameters.sshEndpoint }}'
-              sourceFolder: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
-              contents: '**'
+              sourceFolder: '$(Pipeline.Workspace)'
+              contents: 'deploy-package-${{ lower(parameters.envLabel) }}.zip'
               targetFolder: '${{ parameters.targetPath }}'
               cleanTargetFolder: true
               isWindowsOnTarget: true
-              readyTimeout: '20000'
+              readyTimeout: '90000'
+
+          - task: SSH@0
+            displayName: 'Extract ${{ parameters.envLabel }} deployment package'
+            inputs:
+              sshEndpoint: '${{ parameters.sshEndpoint }}'
+              runOptions: 'commands'
+              commands: |
+                powershell -NoProfile -Command "Expand-Archive -Path '${{ parameters.targetPath }}\deploy-package-${{ lower(parameters.envLabel) }}.zip' -DestinationPath '${{ parameters.targetPath }}' -Force"
+                powershell -NoProfile -Command "Remove-Item '${{ parameters.targetPath }}\deploy-package-${{ lower(parameters.envLabel) }}.zip' -Force"
+              failOnStandardError: false

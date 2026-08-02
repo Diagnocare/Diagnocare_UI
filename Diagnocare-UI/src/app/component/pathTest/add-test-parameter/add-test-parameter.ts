@@ -11,10 +11,11 @@ import { UnitService }    from 'src/app/services/unitServices/unit.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { TestItemParameter } from 'src/app/models/path-test/parameter/parameter.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 
 @Component({
   selector: 'app-add-test-parameter',
-  imports: [ReactiveFormsModule, CommonModule, LoadingSpinnerComponent],
+  imports: [ReactiveFormsModule, CommonModule, LoadingSpinnerComponent, FormKeyboardDirective],
   templateUrl: './add-test-parameter.html',
   styleUrls: ['./add-test-parameter.scss'],
   encapsulation: ViewEncapsulation.None 
@@ -75,8 +76,7 @@ export class AddTestParameter implements OnInit, OnDestroy {
         this.testItem = testData;
       },
       error: (err) => {
-        console.error('Failed to load test details:', err);
-        this.toastr.error('Failed to load test details', 'Error');
+        console.error('Failed to load test details:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -113,8 +113,7 @@ export class AddTestParameter implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Failed to load parameters:', err);
-        this.toastr.error('Failed to load parameters', 'Error');
+        console.error('Failed to load parameters:', err);   // message shown centrally by ErrorInterceptor
         this.addRow();
       }
     });
@@ -214,8 +213,7 @@ export class AddTestParameter implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          console.error('Failed to save parameters:', err);
-          this.toastr.error('Failed to save test parameters', 'Error');
+          console.error('Failed to save parameters:', err);   // message shown centrally by ErrorInterceptor
         }
       });
   }

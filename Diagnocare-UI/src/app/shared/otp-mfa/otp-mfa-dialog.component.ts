@@ -1,8 +1,11 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
+import { Router } from '@angular/router';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 
 export interface MethodDef {
   key:        string;               // internal key used for routing
@@ -42,11 +45,41 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() otpMessage          = '';
   @Input() resendDisabled      = false;
   @Input() id: number          = 0;
+  /**
+   * When set to a future Date, the dialog switches to a lockout view:
+   * method picker, OTP input, and Resend button are all hidden/disabled.
+   * Pass `lockedUntil` from the parent component after receiving an
+   * `accountLocked` response from the backend.
+   */
+  @Input() lockoutEnd: Date | null = null;
+  /**
+   * When provided, this function is called instead of loginService.generateOtp().
+   * Allows reusing the dialog outside the login flow (e.g. Settings PIN setup).
+   * Receives the selected method ('phone' | 'email') and must return an Observable.
+   */
+  @Input() sendOtpFn: ((method: string) => Observable<any>) | null = null;
+  /** Label for the back/cancel navigation button (default: 'Back to Login'). */
+  @Input() backLabel = 'Back to Login';
+  /** Error message to show after a failed verify attempt; set by parent. */
+  @Input() verifyError = '';
 
   // ── Outputs ───────────────────────────────────────────────────────
-  @Output() verify        = new EventEmitter<{ code: string; authType: number }>();
-  @Output() channelChange = new EventEmitter<string>();
-  @Output() close         = new EventEmitter<void>();
+  @Output() verify           = new EventEmitter<{ code: string; authType: number }>();
+  @Output() channelChange    = new EventEmitter<string>();
+  @Output() close            = new EventEmitter<void>();
+  @Output() back             = new EventEmitter<void>();
+  /**
+   * Emitted whenever the dialog detects a lockout from a backend API response
+   * (resend or send OTP returning "Account is locked").
+   * The parent should close the dialog and show the lockout banner.
+   */
+  @Output() lockoutDetected  = new EventEmitter<void>();
+  /**
+   * Emitted when the 5-minute session timer expires.
+   * The parent can listen to this to close the dialog and update UI state.
+   * The component also auto-calls logout and navigates to /login.
+   */
+  @Output() sessionExpired   = new EventEmitter<void>();
 
   // ── Form ──────────────────────────────────────────────────────────
   form: FormGroup;
@@ -57,10 +90,32 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   /** Non-empty while the "method unavailable" message screen is showing. */
   unavailableTitle   = '';
   unavailableMessage = '';
+  /**
+   * Set to true when a backend API response (resend / send OTP) explicitly
+   * indicates the account is locked, even if the parent hasn't yet updated
+   * the [lockoutEnd] input.  Complements the input-based isLocked check so
+   * the dialog enforces lockout regardless of whether the parent is aware.
+   */
+  private lockedFromBackend = false;
 
   pendingMethod   = '';
   resendRemaining = 0;
+  isSendingOtp    = false;
+  /** Masks the entered code (like a password); the eye toggle reveals it. */
+  otpVisible      = false;
   private timerId: any = null;
+  /** Wall-clock deadlines so the timers stay accurate when the tab is
+   *  backgrounded (setInterval is throttled/suspended in hidden tabs). */
+  private resendDeadline  = 0;
+  private sessionDeadline = 0;
+  /** Recomputes both timers the moment the tab regains focus. */
+  private timerVisibilityHandler: (() => void) | null = null;
+
+  // ── Session timer (5 minutes) ─────────────────────────────────────
+  readonly sessionSeconds     = 300; // 5 minutes
+  sessionRemaining            = 300;
+  sessionExpiredFlag          = false;
+  private sessionTimerId: any = null;
 
   // ── Static method definitions (always all shown) ──────────────────
   readonly methods: MethodDef[] = [
@@ -90,17 +145,87 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     },
   ];
 
-  constructor(private fb: FormBuilder, private loginService: LoginService) {
+  constructor(
+    private fb: FormBuilder,
+    private loginService: LoginService,
+    private router: Router,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
+  ) {
     this.form = this.fb.group({
       code:   [''],
       digits: this.fb.array(
-        Array.from({ length: 6 }, () => this.fb.control('', [Validators.pattern('[0-9]')])),
+        Array.from({ length: 6 }, () => this.fb.control('', [AppValidators.singleDigit()])),
       ),
       channel: [''],
     });
   }
 
+  // ── Lockout helpers ───────────────────────────────────────────────
+
+  /**
+   * True when the account is locked — either because:
+   *   a) the parent passed a future [lockoutEnd] date, OR
+   *   b) a backend API call returned an "Account is locked" response.
+   * The getter is intentionally cheap (no async / no HTTP) so it can be
+   * called freely from the template.
+   */
+  get isLocked(): boolean {
+    return this.lockedFromBackend ||
+           (this.lockoutEnd != null && this.lockoutEnd > new Date());
+  }
+
+  /** Formatted lockout end time shown in the lockout message panel. */
+  get lockoutUntilLabel(): string {
+    if (!this.lockoutEnd) return '';
+    return this.lockoutEnd.toLocaleTimeString([], {
+      hour:   '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  /**
+   * Human-readable lockout message shown in the lockout view.
+   * Uses the exact time when available; falls back to a generic message
+   * when lockout was detected from a backend response without a timestamp.
+   */
+  get lockoutMessage(): string {
+    if (this.lockoutEnd) {
+      return `Your account is locked due to multiple failed attempts. Please try again after 15 minutes (at ${this.lockoutUntilLabel}). OTP and MFA are disabled during this period.`;
+    }
+    return 'Your account is locked due to multiple failed attempts. Please try again after 15 minutes. OTP and MFA are disabled during this period.';
+  }
+
+  /** Returns true when a backend response message signals an account lockout. */
+  private isLockoutResponse(resp: any): boolean {
+    return typeof resp?.message === 'string' &&
+           resp.message.toLowerCase().includes('locked');
+  }
+
+  /**
+   * Switches the dialog into lockout mode based on a backend response.
+   * Stops the resend timer, hides all OTP UI, and notifies the parent.
+   */
+  private applyBackendLockout(): void {
+    this.lockedFromBackend = true;
+    this.clearResendTimer();
+    this.resendRemaining  = 0;
+    this.showOtpInput     = false;
+    this.showMethodPicker = false;
+    this.activeTotpMode   = false;
+    this.lockoutDetected.emit();
+  }
+
   ngOnInit(): void {
+    this.startSessionTimer();
+    if (this.isLocked) {
+      // Account locked — keep all OTP/method UI hidden.
+      this.showMethodPicker = false;
+      this.showOtpInput     = false;
+      this.activeTotpMode   = false;
+      return;
+    }
     this.activeTotpMode  = this.isTotpMode;
     this.showMethodPicker = this.showMethodSelect && !this.showOtpInput && !this.isTotpMode;
     this.startResendTimer();
@@ -108,6 +233,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearResendTimer();
+    this.clearSessionTimer();
   }
 
   // ── Validity helpers ──────────────────────────────────────────────
@@ -219,10 +345,25 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   // ── OTP send ──────────────────────────────────────────────────────
 
   sendOtpRequest(): void {
-    if (!this.userId || !this.selectedMethod) return;
-    this.showOtpInput = true;
-    this.loginService.generateOtp(this.id, this.userId, this.selectedMethod).subscribe({
-      next: () => this.startResendTimer(),
+    if (this.isLocked || !this.userId || !this.selectedMethod || this.isSendingOtp) return;
+    this.isSendingOtp = true;
+    const sender$ = this.sendOtpFn
+      ? this.sendOtpFn(this.selectedMethod)
+      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+    sender$.subscribe({
+      next: (resp: any) => {
+        this.isSendingOtp = false;
+        if (resp?.success === false) {
+          if (this.isLockoutResponse(resp)) {
+            this.applyBackendLockout();
+          }
+          // OTP not sent — leave showOtpInput = false and don't start the timer
+          return;
+        }
+        this.showOtpInput = true;
+        this.startResendTimer();
+      },
+      error: () => { this.isSendingOtp = false; },
     });
   }
 
@@ -254,6 +395,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   // ── Events ────────────────────────────────────────────────────────
 
   onVerify(): void {
+    if (this.isLocked) return;
     this.verify.emit({ code: this.buildCode(), authType: this.currentAuthType });
   }
 
@@ -264,16 +406,33 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   }
 
   onBack(): void {
+    this.back.emit();
     window.dispatchEvent(new CustomEvent('backFromMfaDialog', { bubbles: true }));
   }
 
   onResend(): void {
-    if (!this.userId || !this.selectedMethod) return;
-    this.loginService.generateOtp(this.id, this.userId, this.selectedMethod).subscribe({
-      next: () => {
-        this.resendRemaining = this.resendSeconds;
+    if (this.isLocked || !this.userId || !this.selectedMethod || this.isSendingOtp) return;
+    this.isSendingOtp = true;
+    this.clearDigits();
+    this.focusInput(0);
+    const sender$ = this.sendOtpFn
+      ? this.sendOtpFn(this.selectedMethod)
+      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+    sender$.subscribe({
+      next: (resp: any) => {
+        this.isSendingOtp = false;
+        if (resp?.success === false) {
+          if (this.isLockoutResponse(resp)) {
+            // Account locked — enter lockout view; DO NOT start the resend timer
+            this.applyBackendLockout();
+          }
+          // OTP not sent — don't start timer regardless
+          return;
+        }
+        // OTP sent successfully — start the cooldown timer
         this.startResendTimer();
       },
+      error: () => { this.isSendingOtp = false; },
     });
   }
 
@@ -299,11 +458,14 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     if (event.key === 'Backspace') {
       const input = event.target as HTMLInputElement;
       if (input.value) {
+        // Box is filled — clear it and stay on this box.
         event.preventDefault();
         this.digits.at(index).setValue('');
         input.value = '';
         this.form.get('code')?.setValue(this.buildCode(), { emitEvent: false });
+        return;   // do NOT move focus; a second backspace will navigate back
       }
+      // Box is already empty — move to the previous box.
       if (index > 0) this.focusInput(index - 1);
     }
   }
@@ -328,15 +490,95 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
   startResendTimer(): void {
     this.clearResendTimer();
+    this.resendDeadline  = Date.now() + this.resendSeconds * 1000;
     this.resendRemaining = this.resendSeconds;
-    this.timerId = setInterval(() => {
-      if (this.resendRemaining > 0) this.resendRemaining--;
-      if (this.resendRemaining === 0) this.clearResendTimer();
-    }, 1000);
+    this.timerId = setInterval(() => this.tickResend(), 1000);
+  }
+
+  /** Derives the resend countdown from its wall-clock deadline. */
+  private tickResend(): void {
+    this.resendRemaining = Math.max(0, Math.round((this.resendDeadline - Date.now()) / 1000));
+    if (this.resendRemaining === 0) this.clearResendTimer();
   }
 
   clearResendTimer(): void {
     if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+  }
+
+  // ── Session timer ─────────────────────────────────────────────────
+
+  /** Formatted mm:ss countdown shown in the dialog header. */
+  get sessionRemainingLabel(): string {
+    const m = Math.floor(this.sessionRemaining / 60).toString().padStart(2, '0');
+    const s = (this.sessionRemaining % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  /** True when the session is in the final 60 seconds (shows red). */
+  get sessionUrgent(): boolean {
+    return this.sessionRemaining <= 60 && !this.sessionExpiredFlag;
+  }
+
+  startSessionTimer(): void {
+    this.clearSessionTimer();
+    this.sessionDeadline    = Date.now() + this.sessionSeconds * 1000;
+    this.sessionRemaining   = this.sessionSeconds;
+    this.sessionExpiredFlag = false;
+    // Wrap in ngZone.run() so each tick triggers Angular change detection
+    // even when called from outside the zone (e.g. login/interceptor context).
+    this.ngZone.run(() => {
+      this.sessionTimerId = setInterval(() => this.tickSession(), 1000);
+    });
+    this.attachTimerVisibilityHandler();
+  }
+
+  /** Derives the session countdown from its wall-clock deadline and expires
+   *  it once the deadline passes — accurate regardless of tab throttling. */
+  private tickSession(): void {
+    if (this.sessionExpiredFlag) return;
+    this.sessionRemaining = Math.max(0, Math.round((this.sessionDeadline - Date.now()) / 1000));
+    if (this.sessionRemaining <= 0) {
+      this.onSessionExpired();
+    }
+    this.cdr.detectChanges();   // force re-render of ring + progress bar
+  }
+
+  clearSessionTimer(): void {
+    if (this.sessionTimerId) { clearInterval(this.sessionTimerId); this.sessionTimerId = null; }
+    this.detachTimerVisibilityHandler();
+  }
+
+  /** Background tabs throttle/suspend setInterval, so recompute the timers the
+   *  instant the page becomes visible again (and expire immediately if due). */
+  private attachTimerVisibilityHandler(): void {
+    if (this.timerVisibilityHandler) return;
+    this.timerVisibilityHandler = () => {
+      if (document.visibilityState !== 'visible') return;
+      this.ngZone.run(() => {
+        if (this.sessionTimerId) this.tickSession();
+        if (this.timerId)        this.tickResend();
+      });
+    };
+    document.addEventListener('visibilitychange', this.timerVisibilityHandler);
+  }
+
+  private detachTimerVisibilityHandler(): void {
+    if (!this.timerVisibilityHandler) return;
+    document.removeEventListener('visibilitychange', this.timerVisibilityHandler);
+    this.timerVisibilityHandler = null;
+  }
+
+  private onSessionExpired(): void {
+    this.clearSessionTimer();
+    this.clearResendTimer();
+    this.sessionExpiredFlag = true;
+    this.sessionExpired.emit();
+    // Auto logout — call the service then navigate to login
+    try {
+      this.loginService.logout().subscribe({ complete: () => this.router.navigate(['/login']) });
+    } catch {
+      this.router.navigate(['/login']);
+    }
   }
 
   private clearDigits(): void {

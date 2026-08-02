@@ -265,7 +265,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.calcLoadingUserId = null;
         },
         error: () => {
-          this.toastr.error('Failed to calculate salary. Please try again.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isCalculating     = false;
           this.calcLoadingUserId = null;
         },
@@ -423,7 +423,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         },
         error: () => {
-          this.toastr.error('Failed to load salary data.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isLoading = false;
         },
       });
@@ -536,7 +536,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           };
         },
         error: () => {
-          this.toastr.error('Failed to calculate payable salary.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isCalculatingForPayment = false;
         },
       });
@@ -624,7 +624,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.isAddingPayment = false;
         },
         error: () => {
-          this.toastr.error('Failed to record payment.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isAddingPayment = true;
         },
       });
@@ -648,7 +648,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           if (!this.userList.length) this.toastr.warning('Could not load employee list.', 'Warning');
         },
         error: () => {
-          this.toastr.error('Failed to load config data.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isLoadingConfigTab = false;
         },
       });
@@ -747,7 +747,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.refreshConfigs();
         },
         error: () => {
-          this.toastr.error('Failed to save salary config.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isSavingConfig = false;
         },
       });

@@ -107,20 +107,34 @@
 
 /* ── Inline edit button ────────────────────────────── */
 .btn-edit {
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  background: #eef4ff;
+  border: 1.5px solid #b8d0f5;
   color: #1e5ba8;
-  font-size: 0.8em;
+  font-size: 0.78em;
+  font-weight: 600;
   cursor: pointer;
-  padding: 0.2em 0.5em;
-  border-radius: 0.35em;
-  transition: background 0.15s;
+  padding: 0.28em 0.8em;
+  border-radius: 1.5em;
+  letter-spacing: 0.01em;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.btn-edit:hover { background: #eef2ff; }
+.btn-edit:hover {
+  background: #dce8ff;
+  border-color: #1e5ba8;
+  box-shadow: 0 2px 8px rgba(30, 91, 168, 0.18);
+  transform: translateY(-1px);
+}
+.btn-edit:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
 
-/* ── OTP helpers ───────────────────────────────────── */
+/* ── OTP helpers (legacy, kept for safety) ─────────── */
 .otp-hint {
   font-size: 0.82em;
   color: #475569;
@@ -128,10 +142,232 @@
 }
 .otp-links {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-top: 0.25em;
+  gap: 0em;
+  flex-wrap: nowrap;
 }
+.otp-links .btn { flex-shrink: 0; white-space: nowrap; line-height: 1.5; }
+.otp-links .otp-sep { color: #cbd5e1; margin: 0 0.5em; font-size: 0.85em; user-select: none; }
+
+/* ── Redesigned OTP step ───────────────────────────── */
+.prof-otp-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65em;
+  padding: 0.1em 0;
+}
+
+/* Input row (icon + input + send button) */
+.prof-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.prof-input-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.prof-input-icon {
+  position: absolute;
+  left: 0.75em;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 0.82em;
+  pointer-events: none;
+}
+
+.prof-input {
+  padding-left: 2.1em !important;
+  border-radius: 8px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  font-size: 0.88em !important;
+  height: 2.4em;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.prof-input:focus {
+  border-color: #1e5ba8 !important;
+  box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.12) !important;
+}
+
+.prof-send-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.45em 1em;
+  background: linear-gradient(135deg, #1e5ba8, #667eea);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85em;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.prof-send-btn:hover:not(:disabled) { opacity: 0.88; }
+.prof-send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Sent badge */
+.prof-otp-sent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 20px;
+  padding: 0.3em 0.8em;
+  align-self: flex-start;
+}
+.prof-otp-sent-badge i { color: #22c55e; }
+
+/* 6-box OTP input */
+.prof-otp-boxes {
+  display: flex;
+  gap: 0.4em;
+  align-items: center;
+}
+
+.prof-otp-box {
+  width: 2.6em;
+  height: 3em;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #1e293b;
+  background: #f8fafc;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  caret-color: #1e5ba8;
+}
+.prof-otp-box:focus {
+  border-color: #1e5ba8;
+  box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.15);
+  background: #fff;
+}
+
+/* Verify button */
+.prof-verify-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.6em 1.2em;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  align-self: flex-start;
+}
+.prof-verify-btn:hover:not(:disabled) { opacity: 0.88; }
+.prof-verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Actions row (resend + links) */
+.prof-otp-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.1em;
+  flex-wrap: wrap;
+}
+
+.prof-action-sep {
+  color: #cbd5e1;
+  margin: 0 0.45em;
+  font-size: 0.85em;
+  user-select: none;
+}
+
+/* Resend button */
+.prof-resend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.75;
+  transition: color 0.15s;
+}
+.prof-resend-btn.prof-resend-active {
+  color: #1e5ba8;
+  cursor: pointer;
+  opacity: 1;
+}
+.prof-resend-btn.prof-resend-active:hover { color: #1557a0; text-decoration: underline; }
+
+/* Circular SVG countdown */
+.prof-resend-circle-wrap {
+  position: relative;
+  width: 1.5em;
+  height: 1.5em;
+  flex-shrink: 0;
+}
+
+.prof-resend-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.prof-resend-track {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 3;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+}
+
+.prof-resend-progress {
+  fill: none;
+  stroke: #1e5ba8;
+  stroke-width: 3;
+  stroke-dasharray: 100;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.prof-resend-count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55em;
+  font-weight: 700;
+  color: #1e5ba8;
+}
+
+/* Back & cancel links */
+.prof-back-link,
+.prof-cancel-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82em;
+  font-weight: 500;
+  cursor: pointer;
+  color: #64748b;
+  transition: color 0.15s;
+}
+.prof-back-link:hover  { color: #1e5ba8; text-decoration: underline; }
+.prof-cancel-link:hover { color: #dc2626; text-decoration: underline; }
 
 /* ── Responsive ─────────────────────────────────────── */
 @media (max-width: 600px) {
@@ -140,4 +376,80 @@
   .details-col     { width: 100%; }
   .field-label     { min-width: 7em; }
   .profile-card-body { padding: 1em; }
+}
+
+/* ══════════════════════════════════════════════════════
+   THEME OVERRIDES  (:host-context beats [_ngcontent] scope)
+══════════════════════════════════════════════════════ */
+
+/* ── Dark ─────────────────────────── */
+:host-context(html[data-theme="dark"]) .field-row         { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .field-label       { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .field-label i     { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .field-value       { color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .field-divider     { background: #334155; }
+:host-context(html[data-theme="dark"]) .btn-edit          { color: #5b9cf6; background: #1a2a42; border-color: #2d4a72; }
+:host-context(html[data-theme="dark"]) .btn-edit:hover    { background: #1e3a5f; border-color: #5b9cf6; box-shadow: 0 2px 8px rgba(91,156,246,0.2); }
+:host-context(html[data-theme="dark"]) .otp-hint          { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .profile-avatar    { border-color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .prof-otp-box      { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .prof-otp-box:focus { border-color: #5b9cf6 !important; box-shadow: 0 0 0 3px rgba(91,156,246,0.18) !important; background: #0f172a !important; }
+:host-context(html[data-theme="dark"]) .prof-input        { background-color: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .prof-otp-sent-badge { background: rgba(34,197,94,0.14) !important; border-color: rgba(34,197,94,0.4) !important; color: #86efac !important; }
+:host-context(html[data-theme="dark"]) .prof-back-link,
+:host-context(html[data-theme="dark"]) .prof-cancel-link  { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .prof-resend-btn   { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .prof-resend-btn.prof-resend-active { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .prof-resend-track { stroke: #334155; }
+:host-context(html[data-theme="dark"]) .prof-resend-progress { stroke: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .prof-resend-count { color: #5b9cf6; }
+
+/* ── Midnight ─────────────────────── */
+:host-context(html[data-theme="midnight"]) .field-row         { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .field-label       { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .field-label i     { color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .field-value       { color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .field-divider     { background: #21262d; }
+:host-context(html[data-theme="midnight"]) .btn-edit          { color: #4d9ef0; background: #0e1520; border-color: #1e3352; }
+:host-context(html[data-theme="midnight"]) .btn-edit:hover    { background: #11162a; border-color: #4d9ef0; box-shadow: 0 2px 8px rgba(77,158,240,0.2); }
+:host-context(html[data-theme="midnight"]) .otp-hint          { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .profile-avatar    { border-color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .prof-otp-box      { background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .prof-otp-box:focus { border-color: #4d9ef0 !important; box-shadow: 0 0 0 3px rgba(77,158,240,0.18) !important; }
+:host-context(html[data-theme="midnight"]) .prof-input        { background-color: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .prof-otp-sent-badge { background: rgba(45,212,140,0.1) !important; border-color: rgba(45,212,140,0.34) !important; color: #6ee7b7 !important; }
+:host-context(html[data-theme="midnight"]) .prof-resend-track { stroke: #21262d; }
+:host-context(html[data-theme="midnight"]) .prof-resend-progress { stroke: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .prof-resend-count { color: #4d9ef0; }
+
+/* ── Warm ─────────────────────────── */
+:host-context(html[data-theme="warm"]) .field-row         { background: #fef9f0; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .field-label       { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .field-label i     { color: #9c5a28; }
+:host-context(html[data-theme="warm"]) .field-value       { color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .field-divider     { background: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .btn-edit          { color: #9c5a28; background: #fef3e2; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .btn-edit:hover    { background: #fde8c8; border-color: #9c5a28; box-shadow: 0 2px 8px rgba(156,90,40,0.15); }
+:host-context(html[data-theme="warm"]) .otp-hint          { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .prof-otp-box      { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .prof-otp-box:focus { border-color: #9c5a28 !important; box-shadow: 0 0 0 3px rgba(156,90,40,0.12) !important; }
+:host-context(html[data-theme="warm"]) .prof-input        { background-color: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .prof-resend-progress { stroke: #9c5a28; }
+:host-context(html[data-theme="warm"]) .prof-resend-count { color: #9c5a28; }
+:host-context(html[data-theme="warm"]) .prof-resend-btn.prof-resend-active { color: #9c5a28; }
+
+/* ── System (OS dark) ─────────────── */
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .field-row         { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .field-label       { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .field-label i     { color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .field-value       { color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .field-divider     { background: #334155; }
+  :host-context(html[data-theme="system"]) .btn-edit          { color: #5b9cf6; background: #1a2a42; border-color: #2d4a72; }
+  :host-context(html[data-theme="system"]) .btn-edit:hover    { background: #1e3a5f; border-color: #5b9cf6; box-shadow: 0 2px 8px rgba(91,156,246,0.2); }
+  :host-context(html[data-theme="system"]) .otp-hint          { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .profile-avatar    { border-color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .prof-otp-box      { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .prof-input        { background-color: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .prof-otp-sent-badge { background: rgba(34,197,94,0.14) !important; border-color: rgba(34,197,94,0.4) !important; color: #86efac !important; }
 }

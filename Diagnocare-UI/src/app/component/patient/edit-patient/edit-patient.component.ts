@@ -8,17 +8,20 @@ import { takeUntil, filter } from 'rxjs/operators';
 import { PatientEditDto } from 'src/app/models/patient/patient-edit.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { CommonService } from 'src/app/shared/common.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { salutation, ageGroup, gender, maritalStatus, relations, referredByType } from 'src/app/constant/enums';
 import { tabOrderEdit, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 
 @Component({
   selector: 'app-edit-patient',
   templateUrl: './edit-patient.component.html',
   styleUrls: ['./edit-patient.component.scss'],
   standalone: true,
-  imports: [ReactiveFormsModule,FormsModule,CommonModule,LoadingSpinnerComponent
-  ]
+  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective]
 })
 export class EditPatientComponent implements OnInit, OnDestroy {
   
@@ -26,6 +29,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   formSubmitted: boolean = false;
+  readonly tabFields = tabOrderEdit;
   componentTitle = "Edit Patient Form";
   param:string="";
   usertype:string="";
@@ -54,7 +58,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
       patient_Marital_Status: ["", [Validators.required]],
       relation: ["", Validators.required],
       relative_Name: ["", Validators.required],
-      patient_Contact: ["", [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      patient_Contact: ["", [Validators.required, AppValidators.contactNumber()]],
       patient_Email: ["", Validators.email]
     });
   }
@@ -130,9 +134,9 @@ export class EditPatientComponent implements OnInit, OnDestroy {
 
         this.isLoading = false;
       },
+      // Message shown centrally by ErrorInterceptor; here we just reset state.
       error: () => {
         this.isLoading = false;
-        this.toastr.error('Failed to load patient details', 'Error');
       }
     });
   }
@@ -142,6 +146,11 @@ export class EditPatientComponent implements OnInit, OnDestroy {
   getTabIndex(controlName: string): number {
     const idx = tabOrderEdit.indexOf(controlName);
     return idx === -1 ? -1 : idx + 1;
+  }
+
+  isFieldInvalid(field: string): boolean {
+    const c = this.editPatientForm.get(field);
+    return !!(c?.invalid && (c.touched || this.formSubmitted));
   }
 
     // Removed duplicate loadPatient. Only the new version with patientDialingContact split is used.
@@ -233,18 +242,24 @@ export class EditPatientComponent implements OnInit, OnDestroy {
         patientAddress:       formValue.patient_Address ?? '',
         relation:             formValue.relation ?? '',
         relativeName:         formValue.relative_Name ?? '',
-        patientContact:       `${formValue.country_Code}-${formValue.patient_Contact}`,
+        patientContact:       `${formValue.patient_Contact ?? ''}`,
         patientEmail:         formValue.patient_Email ?? ''
       };
 
       this._patientService.updatePatientDetails(payload).pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          this.toastr.success('Patient updated successfully', 'Success');
-          this._route.navigate(['/patients']);
+        next: (res: any) => {
           this.isLoading = false;
+          // API returns an OperationResult (HTTP 200 even on business failure),
+          // so honour the success flag rather than assuming success.
+          if (res?.success ?? res) {
+            this.toastr.success(res?.message || 'Patient updated successfully', 'Success');
+            this._route.navigate(['/patients']);
+          } else {
+            this.toastr.error(res?.message || 'Failed to update patient. Please try again.', 'Error');
+          }
         },
-        error: (err) => {
-          this.toastr.error('Failed to update patient', 'Error');
+        // HTTP/network errors are surfaced centrally by ErrorInterceptor.
+        error: () => {
           this.isLoading = false;
         }
       });

@@ -10,6 +10,9 @@ import { MemberService }           from 'src/app/services/memberService/member.s
 import { filterActiveMembers }     from 'src/app/shared/member-utils';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { DatePickerComponent }     from 'src/app/shared/date-picker/date-picker.component';
+import { AppValidators }            from 'src/app/shared/validators/app-validators';
+import { VisitCalendarComponent }  from 'src/app/shared/visit-calendar/visit-calendar.component';
+import { VisitCardComponent }      from 'src/app/shared/visit-card/visit-card.component';
 
 import {
   VisitCompleteModalComponent,
@@ -39,7 +42,7 @@ interface CalendarDay {
 @Component({
   selector:    'app-visit-schedule',
   standalone:  true,
-  imports:     [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, VisitCompleteModalComponent, VisitEditModalComponent, DatePickerComponent],
+  imports:     [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, VisitCompleteModalComponent, VisitEditModalComponent, DatePickerComponent, VisitCalendarComponent, VisitCardComponent],
   providers:   [DatePipe],
   templateUrl: './visit-schedule.component.html',
   styleUrls:   ['./visit-schedule.component.scss'],
@@ -132,7 +135,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         this.loadCalendar();
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
-      error: () => { this.toastr.error('Failed to update visit.', 'Error'); this.savingEdit = false; },
+      error: () => { this.savingEdit = false; },   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -187,7 +190,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       contactType:      [null,  Validators.required],
       contactName:      ['',    Validators.required],
       visitDate:        ['',    Validators.required],
-      visitTime:        ['',    [Validators.required, Validators.pattern(/^([01]\d|2[0-3]):[0-5]\d$/)]],
+      visitTime:        ['',    [Validators.required, AppValidators.time24h()]],
       purpose:          [''],
       notes:            [''],
     });
@@ -355,9 +358,8 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     this.selectedDate = null; this.loadCalendar();
   }
 
-  selectDay(day: CalendarDay): void {
-    if (!day.inMonth) return;
-    const iso = this.toIso(day.date);
+  /** Day selected from the shared calendar (emits an ISO date string). */
+  onDaySelected(iso: string): void {
     this.showForm = false;
     this.loadDayVisits(iso);
     this.assignForm.patchValue({ visitDate: iso });
@@ -404,7 +406,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
           this.doCreateVisit(created.id!);
         },
         error: () => {
-          this.toastr.error('Failed to save contact. Please try again.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.savingForm = false;
         },
       });
@@ -431,7 +433,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
       error: () => {
-        this.toastr.error('Failed to assign visit.', 'Error');
+        // Message shown centrally by ErrorInterceptor.
         this.savingForm = false;
       },
     });
@@ -466,7 +468,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
       error: () => {
-        this.toastr.error('Failed to update visit.', 'Error');
+        // Message shown centrally by ErrorInterceptor.
         this.savingComplete = false;
       },
     });
@@ -487,7 +489,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
         this.loadCalendar();
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },
-      error: () => this.toastr.error('Failed to delete visit.', 'Error'),
+      error: () => { /* message shown centrally by ErrorInterceptor */ },
     });
   }
 
@@ -509,7 +511,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
 
   isInvalid(field: string): boolean {
     const c = this.assignForm.get(field);
-    return !!(c?.invalid && (c.touched || c.dirty));
+    return !!(c?.invalid && c.touched);
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }

@@ -21,3 +21,10 @@ button[disabled] {
   background: #ccc;
   cursor: not-allowed;
 }
+
+:host-context(html[data-theme="dark"])     .contact-delete-container { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0; }
+:host-context(html[data-theme="midnight"]) .contact-delete-container { background: #0d1117 !important; border-color: #21262d !important; color: #cdd6f4; }
+:host-context(html[data-theme="warm"])     .contact-delete-container { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .contact-delete-container { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0; }
+}

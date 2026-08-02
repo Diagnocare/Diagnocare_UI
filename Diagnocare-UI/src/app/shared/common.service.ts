@@ -1,13 +1,18 @@
 import { Injectable } from '@angular/core';
-import { ValidatorFn, AbstractControl, ValidationErrors, FormGroup, AsyncValidatorFn } from '@angular/forms';
-import { PathologyFormKeys, validationMessages } from '../constant/constants';
+import { AbstractControl, FormGroup } from '@angular/forms';
+import { loginFormProperty } from '../constant/constants';
 import { Observable, map } from 'rxjs';
 import { InstitutionType } from '../constant/enums';
+import { TokenService } from '../core/interceptors/token.service';
+import { collectFormErrors, resolveFirstError } from './validators/validation-messages';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CommonService {
+
+  constructor(private tokenService: TokenService) {}
+
 isFormDisabled(arg0: FormGroup<any>) {
 throw new Error('Method not implemented.');
 }
@@ -119,113 +124,59 @@ throw new Error('Method not implemented.');
 
       return invalidControls;
     }
- getAccessToken() {
-    const token = sessionStorage.getItem('authToken');
-    return token ?? '';
+ getAccessToken(): string {
+    return this.tokenService.getToken() ?? '';
   }
 
-  stringOnlyValidator(): ValidatorFn {
-      return (control: AbstractControl): ValidationErrors | null => {
-        const value = control.value;
+  // ── Validators ────────────────────────────────────────────────────────────
+  // Custom validators now live in ./validators/app-validators.ts (AppValidators).
+  // Import and use them directly in forms, e.g.:
+  //   name:   ['', [Validators.required, AppValidators.stringOnly()]],
+  //   mobile: ['', [Validators.required, AppValidators.contactNumber()]],
+  //   dob:    ['', [Validators.required, AppValidators.noFutureDate()]],
 
-        if (value === null || value === '') {
-          return null; // allow empty, use Validators.required separately if needed
-        }
-        
-        const regex = /^[A-Za-z\s]+$/; // allows letters and spaces only
-        return regex.test(value) ? null : { stringOnly: true };
-      };
-    }
+  // ── Centralised control-level helpers ─────────────────────────────────────
 
-    checkFutureDate(): ValidatorFn {
-      return (control: AbstractControl): ValidationErrors | null => {
-        const value = control.value;
+  /**
+   * Returns a human-readable error message for a single reactive form control.
+   *
+   * @param control  The AbstractControl to inspect (may be null/undefined)
+   * @param label    Display name of the field, e.g. 'Email Address'
+   *
+   * Used by FieldErrorComponent; can also be called directly in templates:
+   *   {{ cs.getControlError(form.get('email'), 'Email') }}
+   */
+  getControlError(control: AbstractControl | null | undefined, label: string): string {
+    // Delegates to the centralised message map (validators/validation-messages.ts).
+    return resolveFirstError(control, label);
+  }
 
-        if (value === null || value === '') {
-          return null; // allow empty, use Validators.required separately if needed
-        }
-        
-        const inputDate = new Date(control.value);
-        const today = new Date();
+  /**
+   * Returns true when a control should display its error state.
+   *
+   * @param control    The AbstractControl to check
+   * @param forceShow  Pass true after a submit attempt to force-reveal errors
+   *                   on untouched controls (e.g. bound to a "submitted" flag)
+   */
+  isControlInvalid(control: AbstractControl | null | undefined, forceShow = false): boolean {
+    if (!control) return false;
+    // Reveal on blur/tab-out (touched) or submit (forceShow), not while typing (dirty).
+    return !!(control.invalid && (control.touched || forceShow));
+  }
 
-        // Normalize both to midnight to avoid time-of-day issues
-        inputDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
+  // ── Form-level helpers (existing) ──────────────────────────────────────────
 
-        // ❌ If input date is greater than today → invalid
-        return inputDate > today ? { noFutureDate: true } : null;
+    /** Labels an error message with the login-form display name where known. */
+    private labelFor = (key: string): string =>
+      (loginFormProperty as Record<string, string>)[key] ?? key;
 
-      };
-    }
-
+    /** Touched/dirty error messages for a form. Delegates to the central map. */
     getFormValidationErrors(form: FormGroup): string[] {
-      const messages: string[] = [];
-      
-      Object.keys(form.controls).forEach(key => {
-        const control = form.get(key);
-        const controlErrors = (control?.touched || control?.dirty) ? control?.errors : null;
-        
-        if (controlErrors) {
-          Object.keys(controlErrors).forEach(errorKey => {
-            switch (errorKey) {
-              case 'required':
-                messages.push(validationMessages.required(key as  PathologyFormKeys));
-                break;
-              case 'minlength':
-                messages.push(validationMessages.minLength(key as PathologyFormKeys,controlErrors[errorKey].requiredLength));
-                break;
-              case 'pattern':
-                messages.push(validationMessages.pattern(key as PathologyFormKeys,'10 digits'));
-                break;
-              case 'email':
-                messages.push(validationMessages.email(key as PathologyFormKeys));
-                break;
-              case 'stringOnly':
-                messages.push(validationMessages.stringOnly(key as PathologyFormKeys));
-                break;
-              case 'noFutureDate':
-                messages.push(validationMessages.noFutureDate(key as PathologyFormKeys));
-                break;
-            }
-          });
-        }
-      });
-      return messages;
+      return collectFormErrors(form, this.labelFor);
     }
 
-    
-
-    getNextButtonDisabledStatus(form:FormGroup):string[]{
-      const messages: string[] = [];
-      Object.keys(form.controls).forEach(key => {
-        const control = form.get(key);
-        const controlErrors = control?.errors;
-        
-        if (controlErrors) {
-          Object.keys(controlErrors).forEach(errorKey => {
-            switch (errorKey) {
-              case 'required':
-                messages.push(`${key} is required`);
-                break;
-              case 'minlength':
-                messages.push(`${key} must be at least ${controlErrors[errorKey].requiredLength} characters`);
-                break;
-              case 'pattern':
-                messages.push(`${key} must be 6 or 10 digits`);
-                break;
-              case 'email':
-                messages.push(`${key} must be a valid email`);
-                break;
-              case 'stringOnly':
-                messages.push(`${key} must have only character, number not allowed`);
-                break;
-              case 'noFutureDate':
-                messages.push(`${key} cannot have future date`);
-                break;
-            }
-          });
-        }
-      });
-      return messages;
+    /** All error messages for a form (ignores touched/dirty). */
+    getNextButtonDisabledStatus(form: FormGroup): string[] {
+      return collectFormErrors(form, this.labelFor, false);
     }
 }

@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions } from 'src/app/constant/constants';
+import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
 import { Role, RoleId } from 'src/app/constant/enums';
 import { ModuleAccess, MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
@@ -12,6 +12,7 @@ import { LoginService } from 'src/app/services/loginServices/login.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { LicenceService } from 'src/app/services/licenceServices/licence.service';
+import { PinService } from 'src/app/services/pinServices/pin.service';
 
 @Component({
   selector: 'app-header',
@@ -21,11 +22,16 @@ import { LicenceService } from 'src/app/services/licenceServices/licence.service
   imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent]
 })
 
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
+  // Named handler so the profile-updated listener can be removed on destroy
+  // (anonymous listeners leak and stack when the header is re-created).
+  private readonly profileUpdatedHandler = (): void => { this.fetchProfileImage(); };
+
   labOperationMenu = Object.values(labOperationMenu);
   summaryReportMenu = Object.values(summaryReportMenu);
   profileMenu = Object.values(profileMenu);
   adminOptions = Object.values(adminOptions);
+  userOptions = Object.values(userOptions);
   labSetupMenu =Object.values(labSetupMenu);
 
   userName: string | null = null;
@@ -34,8 +40,8 @@ export class HeaderComponent implements OnInit {
 
   /** Resolved from the JWT role claim — drives all nav visibility. */
   access: ModuleAccess = DEFAULT_ACCESS;
-  /** True only for Super Admin — controls super-admin-only items inside Admin Panel. */
-  isSuperAdmin = false;
+  /** True only for Admin — controls admin-only items inside Admin Panel. */
+  isAdmin = false;
   /** Human-readable role label shown in the profile dropdown. */
   roleLabel = '';
 
@@ -46,6 +52,10 @@ export class HeaderComponent implements OnInit {
   isLicenceExpiringSoon = false;
   licenceDaysLeft: number | null = null;
   licenceExpiryDate: Date | null = null;
+
+  // ── PIN expiry state ────────────────────────────────────────────────────────
+  isPinExpiringSoon  = false;
+  pinDaysLeft: number | null = null;
 
   toggleMobileNav(): void {
     this.mobileNavOpen = !this.mobileNavOpen;
@@ -58,16 +68,15 @@ export class HeaderComponent implements OnInit {
     private confirmModal: ConfirmModalService,
     private tokenService: TokenService,
     private loginService: LoginService,
-    private licenceSvc: LicenceService
+    private licenceSvc: LicenceService,
+    private pinService: PinService,
   ) {
     this.extractUserName();
     this.extractPathologyId();
     this.checkAdminPanelAccess();
     this.fetchProfileImage();
     // Listen for profile update event
-    window.addEventListener('diagnocare-profile-updated', () => {
-      this.fetchProfileImage();
-    });
+    window.addEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
   }
 
   ngOnInit(): void {
@@ -77,6 +86,16 @@ export class HeaderComponent implements OnInit {
       this.licenceDaysLeft       = this.licenceSvc.daysLeft;
       this.licenceExpiryDate     = this.licenceSvc.expiryDate;
     });
+
+    // ── PIN expiry banner ────────────────────────────────────────────────────
+    if (this.userName) {
+      this.isPinExpiringSoon = this.pinService.isPinExpiringSoon(this.userName);
+      this.pinDaysLeft       = this.pinService.getPinDaysLeft(this.userName);
+    }
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
   }
 
   navigateToHome() {
@@ -112,7 +131,7 @@ export class HeaderComponent implements OnInit {
   checkAdminPanelAccess(): void {
     const role = this.tokenService.getUserRole();
     this.access      = role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
-    this.isSuperAdmin = this.tokenService.isSuperAdmin();
+    this.isAdmin = this.tokenService.isAdmin();
 
     // Derive the readable role label directly from the Role config
     this.roleLabel = role !== null
@@ -194,14 +213,21 @@ export class HeaderComponent implements OnInit {
       title: 'Confirm Logout',
       message: 'Are you sure you want to logout?',
       confirmText: 'Logout',
-      cancelText: 'Cancel'
+      cancelText: 'Cancel',
+      showLoadingOnConfirm: true
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      // Await the backend call so ActiveSessionId is cleared in the DB
-      // before the login page loads. This prevents a spurious session-conflict
-      // dialog on the very next login attempt.
-      this.loginService.logout().subscribe(() => {
-        window.location.href = '/';
+      // Keep the modal open with a spinner while the backend clears ActiveSessionId.
+      this.confirmModal.setLoading(true);
+      this.loginService.logout().subscribe({
+        next: () => {
+          this.confirmModal.dismiss();
+          window.location.href = '/';
+        },
+        error: () => {
+          // Re-enable the modal so the user can try again or cancel.
+          this.confirmModal.setLoading(false);
+        }
       });
     });
   }

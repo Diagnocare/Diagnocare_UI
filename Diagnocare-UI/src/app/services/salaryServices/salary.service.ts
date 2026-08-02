@@ -12,6 +12,8 @@ import {
   UserSalaryConfigDTO,
   SaveSalaryConfigDTO,
   CalculatePayableSalaryDTO,
+  UserSalarySummaryDTO,
+  SalaryPaymentDTO,
 } from 'src/app/models/salary/salary.dto';
 
 @Injectable({ providedIn: 'root' })
@@ -87,6 +89,53 @@ export class SalaryService {
       .get<CalculatePayableSalaryDTO>(
         `${this.baseUrl}${apiEndpoints.calculatePayableSalary}?userId=${userId}&year=${year}&month=${month}`
       )
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
+   * GET api/salary/GetMySalary
+   * Self-service — returns the logged-in staff member's own salary summary,
+   * including a month-by-month payment history. The backend resolves the user
+   * from the JWT, so no userId is sent from the client.
+   */
+  getMySalary(): Observable<UserSalarySummaryDTO> {
+    return this.http
+      .get<UserSalarySummaryDTO>(`${this.baseUrl}${apiEndpoints.getMySalary}`)
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
+   * GET api/salary/GenerateMySalaryReceipt?month=YYYY-MM
+   * Self-service — returns the logged-in staff member's salary payment receipt
+   * for the given month as a PDF blob. The backend resolves the user from the JWT.
+   */
+  getMySalaryReceipt(month: string): Observable<Blob> {
+    return this.http
+      .get(`${this.baseUrl}${apiEndpoints.generateMySalaryReceipt}?month=${month}`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
+   * GET api/salary/GetMyPayments
+   * Self-service — returns every actual salary payment made to the logged-in user.
+   */
+  getMyPayments(): Observable<SalaryPaymentDTO[]> {
+    return this.http
+      .get<SalaryPaymentDTO[]>(`${this.baseUrl}${apiEndpoints.getMyPayments}`)
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
+   * GET api/salary/GenerateMyPaymentReceipt?paymentId=X
+   * Self-service — returns a PDF receipt for a single payment (ownership-validated server-side).
+   */
+  getMyPaymentReceipt(paymentId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.baseUrl}${apiEndpoints.generateMyPaymentReceipt}?paymentId=${paymentId}`, {
+        responseType: 'blob',
+      })
       .pipe(catchError(this.errorHandler));
   }
 

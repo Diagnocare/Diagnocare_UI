@@ -176,8 +176,8 @@ export class ReportTemplateDesignerComponent implements OnInit, OnDestroy, After
           this.toastr.success(`Loaded: ${detail.templateName}`, 'Template Loaded');
         },
         error: () => {
+          // Message shown centrally by ErrorInterceptor.
           this.isLoading = false;
-          this.toastr.error('Failed to load template.', 'Error');
         }
       });
   }
@@ -302,8 +302,8 @@ ${this.htmlBody}
         this.loadExistingTemplates();
       },
       error: () => {
+        // Message shown centrally by ErrorInterceptor.
         this.isSaving = false;
-        this.toastr.error('Failed to save template. Please try again.', 'Error');
       }
     });
   }

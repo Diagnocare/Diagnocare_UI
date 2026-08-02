@@ -19,6 +19,13 @@ import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.c
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import {
+  calculatePatientStatus,
+  hasPendingTests,
+  resolvePaymentStatus,
+  getPaymentBadgeLabel as paymentBadgeLabel,
+  getPaymentStatusClass as paymentStatusClass
+} from 'src/app/utilities/patient-status.util';
 
 @Component({
   selector: 'app-patient-test-list',
@@ -66,6 +73,12 @@ export class PatientTestListComponent implements OnInit {
 
   /** True while a report is being fetched from the backend. */
   isGeneratingReport: boolean = false;
+
+  /** True while a PDF download is in progress. */
+  isDownloadingPdf: boolean = false;
+
+  /** True while a CSV download is in progress. */
+  isDownloadingCsv: boolean = false;
 
   showPatientIdInput: boolean = false;
   enteredPatientId: string = '';
@@ -160,21 +173,12 @@ export class PatientTestListComponent implements OnInit {
     if (this.showAllTests) {
       filtered = [...this.allPatientTests];
     } else {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - this.RECENT_DAYS);
-      cutoff.setHours(0, 0, 0, 0);
-
+      // Default view shows only outstanding work: Pending / Partial reports
+      // (plus just-cancelled bookings so their settled payment status is visible).
+      // Completed reports are hidden here and reached via the "All Reports" toggle.
       filtered = this.allPatientTests.filter(test => {
-        // Always show tests that are not yet completed (Pending / Partial)
         const status = (test.is_Report_Generated || 'Pending').trim();
-        if (status !== 'Completed') return true;
-
-        // For completed tests: only show if registered within the last 15 days
-        if (!test.registration_Date) return true;
-        const testDate = this.parseDMMMYYYY(test.registration_Date);
-        if (!testDate) return true;   // unparseable → include (fail-safe)
-
-        return testDate >= cutoff;
+        return status !== 'Completed';
       });
     }
 
@@ -347,20 +351,18 @@ export class PatientTestListComponent implements OnInit {
    * that may not include payment_Status.
    */
   getPaymentStatus(test: patientTest): string {
-    if (!test.bill_Reciept) return 'Pending';
-    const status = (test.bill_Reciept.payment_Status || '').trim();
-    if (status) return status;
-    // Fallback: derive from pending amount
-    return (test.bill_Reciept.amount_Pending || 0) > 0 ? 'Partial' : 'Paid';
+    // Delegates to the shared resolver so cancelled bookings show
+    // "Payment Settled" / "Payment Not Needed" consistently everywhere.
+    return resolvePaymentStatus(test);
+  }
+
+  /** Full badge text, e.g. "Payment : Paid" or "Payment Settled". */
+  getPaymentBadgeLabel(test: patientTest): string {
+    return paymentBadgeLabel(test);
   }
 
   getPaymentStatusClass(test: patientTest): string {
-    const status = this.getPaymentStatus(test);
-    switch (status) {
-      case 'Paid':    return 'badge-success';
-      case 'Partial': return 'badge-warning';
-      default:        return 'badge-danger';
-    }
+    return paymentStatusClass(test);
   }
 
   // ── Payment Modal ──────────────────────────────────────────────────────
@@ -648,9 +650,66 @@ export class PatientTestListComponent implements OnInit {
         },
         error: (err: unknown) => {
           this.isGeneratingReport = false;
+          // Inline banner kept; HTTP error message shown centrally by ErrorInterceptor.
           this.errorMessage = 'Failed to generate test report. Please try again.';
-          this.toastr.error('Failed to generate report.', 'Error');
           console.error('generateTestReport error:', err);
+        }
+      });
+  }
+
+  /** Downloads the current report as a real, full-A4 PDF (rendered server-side). */
+  downloadReportPdf(): void {
+    this.downloadReport('pdf');
+  }
+
+  /** Downloads the current report's data as a CSV file. */
+  downloadReportCsv(): void {
+    this.downloadReport('csv');
+  }
+
+  /**
+   * Shared download path for the PDF / CSV buttons on the Create Test Report overlay.
+   * Requests the file as a Blob from the backend and saves it via an anchor click.
+   */
+  private downloadReport(format: 'pdf' | 'csv'): void {
+    if (!this.selectedPatientTest || !this.selectedTestDetail) return;
+
+    const patientTestId = Number(this.selectedPatientTest.patient_Test_Id);
+    const testCode      = this.selectedTestDetail.testCode;
+
+    if (format === 'pdf') this.isDownloadingPdf = true;
+    else                  this.isDownloadingCsv = true;
+    this.errorMessage = '';
+
+    this.testReportGenerationService
+      .downloadTestReport(patientTestId, testCode, format, this.pathBranch || undefined)
+      .subscribe({
+        next: (blob: Blob) => {
+          if (format === 'pdf') this.isDownloadingPdf = false;
+          else                  this.isDownloadingCsv = false;
+
+          if (!blob || blob.size === 0) {
+            this.toastr.warning('Report generated but no file was returned.', 'Warning');
+            return;
+          }
+
+          const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
+          const filename = `${safeName}_${testCode}.${format}`;
+
+          const url    = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href     = url;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        },
+        error: (err: unknown) => {
+          if (format === 'pdf') this.isDownloadingPdf = false;
+          else                  this.isDownloadingCsv = false;
+          this.errorMessage = `Failed to download ${format.toUpperCase()}. Please try again.`;
+          console.error(`downloadReport(${format}) error:`, err);
         }
       });
   }
@@ -667,18 +726,6 @@ export class PatientTestListComponent implements OnInit {
    */
   private openHtmlReportTab(htmlContent: string, _cssStyles: string | undefined, tabTitle: string): void {
     let html = htmlContent;
-
-    // ── Fix download filename extension ──────────────────────────────────────
-    // The backend's dgDownload() sets anchor.download with a .pdf extension,
-    // but the content is HTML. Chrome's PDF viewer chokes when the user opens
-    // a downloaded .pdf file that is actually HTML.
-    // Replace every occurrence of  anchor.download = '…something….pdf'
-    // with                          anchor.download = '…something….html'
-    // so the browser saves it as an HTML file and opens it correctly.
-    html = html.replace(
-      /(anchor\.download\s*=\s*['"])([^'"]*?)\.pdf(['"'])/gi,
-      '$1$2.html$3'
-    );
 
     // ── Inject <title> if absent ─────────────────────────────────────────────
     if (!html.includes('<title>')) {
@@ -783,7 +830,7 @@ export class PatientTestListComponent implements OnInit {
         if (refundItems.length === 0) {
           const n = bookingCancels.length;
           this.toastr.success(`${n} booking${n > 1 ? 's' : ''} cancelled.`, 'Cancelled');
-          this.loadPatientTests();
+          this.updatePatientStatusAfterCancellation();
           return;
         }
 
@@ -802,19 +849,59 @@ export class PatientTestListComponent implements OnInit {
               `${n} booking${n > 1 ? 's' : ''} cancelled. ₹${totalEligibleRefund.toFixed(2)} refunded.`,
               'Cancelled & Refunded'
             );
-            this.loadPatientTests();
+            this.updatePatientStatusAfterCancellation();
           },
           error: () => {
             this.toastr.warning(
               'Booking(s) cancelled but refund failed. Please retry from the Receipts page.',
               'Partial Success'
             );
-            this.loadPatientTests();
+            this.updatePatientStatusAfterCancellation();
           }
         });
       },
       error: (err: Error) => {
         this.cancelModalRef?.setError(err.message || 'Failed to cancel. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Updates the patient status after booking cancellation.
+   * If there are no pending tests remaining, automatically updates patient status to "Completed".
+   * Refreshes the UI without requiring a manual page reload.
+   */
+  private updatePatientStatusAfterCancellation(): void {
+    // Reload patient tests to get updated data
+    this.testReportService.getAllPatientTests(this.patientId).subscribe({
+      next: (updatedTests: patientTest[]) => {
+        this.allPatientTests = updatedTests;
+
+        // Calculate new patient status based on updated tests
+        const newStatus = calculatePatientStatus(updatedTests);
+
+        // Only update if there are no pending tests (status should be Completed)
+        if (newStatus === 'Completed' && hasPendingTests(updatedTests) === false) {
+          this.patientService.updatePatientStatus(this.patientId, newStatus).subscribe({
+            next: () => {
+              // Status updated successfully
+              this.filterTests();
+              this.toastr.info('Patient status updated to Completed', 'Status Update');
+            },
+            error: (err) => {
+              // Log error but continue (status update is non-critical)
+              console.warn('Failed to update patient status:', err);
+              this.filterTests();
+            }
+          });
+        } else {
+          // Just refresh the view without updating status
+          this.filterTests();
+        }
+      },
+      error: (error) => {
+        console.error('Failed to reload patient tests:', error);
+        this.loadPatientTests();
       }
     });
   }

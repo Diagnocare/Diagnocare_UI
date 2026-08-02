@@ -1,45 +1,92 @@
 <!-- Full-screen spinner while OTP verification is in progress -->
-<app-loading-spinner [isLoading]="isSubmitting" message="Verifying, please wait…">
+<app-loading-spinner [isLoading]="isSubmitting" message="Verifying, please wait&hellip;">
 </app-loading-spinner>
 
 <div class="otp-overlay" (click)="onClose()">
   <div class="otp-card" (click)="$event.stopPropagation()">
 
-    <!-- ── Header ─────────────────────────────────────────────── -->
+    <!-- Header -->
     <div class="otp-header">
       <div class="otp-header-left">
         <div class="otp-header-icon">
           <i class="fa"
-             [class.fa-mobile-alt]="activeTotpMode"
-             [class.fa-exclamation-triangle]="unavailableMessage"
-             [class.fa-shield]="!activeTotpMode && !unavailableMessage"></i>
+             [class.fa-ban]="isLocked"
+             [class.fa-mobile-alt]="!isLocked && activeTotpMode"
+             [class.fa-exclamation-triangle]="!isLocked && !activeTotpMode && unavailableMessage"
+             [class.fa-shield]="!isLocked && !activeTotpMode && !unavailableMessage"></i>
         </div>
         <div>
           <h3 class="otp-title">
-            <ng-container *ngIf="unavailableMessage">{{ unavailableTitle }}</ng-container>
-            <ng-container *ngIf="!unavailableMessage && activeTotpMode">Authenticator App</ng-container>
-            <ng-container *ngIf="!unavailableMessage && !activeTotpMode">Verify Your Identity</ng-container>
+            <ng-container *ngIf="isLocked">Account Locked</ng-container>
+            <ng-container *ngIf="!isLocked && unavailableMessage">{{ unavailableTitle }}</ng-container>
+            <ng-container *ngIf="!isLocked && !unavailableMessage && activeTotpMode">Authenticator App</ng-container>
+            <ng-container *ngIf="!isLocked && !unavailableMessage && !activeTotpMode">Verify Your Identity</ng-container>
           </h3>
           <p class="otp-subtitle">
-            <ng-container *ngIf="unavailableMessage">This method is not available on your account</ng-container>
-            <ng-container *ngIf="!unavailableMessage && activeTotpMode">Enter the 6-digit code from your authenticator app</ng-container>
-            <ng-container *ngIf="!unavailableMessage && !activeTotpMode">Two-factor authentication required</ng-container>
+            <ng-container *ngIf="isLocked">OTP and MFA are disabled during the lockout period</ng-container>
+            <ng-container *ngIf="!isLocked && unavailableMessage">This method is not available on your account</ng-container>
+            <ng-container *ngIf="!isLocked && !unavailableMessage && activeTotpMode">Enter the 6-digit code from your authenticator app</ng-container>
+            <ng-container *ngIf="!isLocked && !unavailableMessage && !activeTotpMode">Two-factor authentication required</ng-container>
           </p>
         </div>
       </div>
+      <!-- Session countdown timer -->
+      <div class="otp-session-timer"
+           [class.otp-session-urgent]="sessionUrgent"
+           [class.otp-session-expired]="sessionExpiredFlag"
+           *ngIf="!isLocked">
+        <!-- Mini circular ring -->
+        <div class="otp-session-ring-wrap" *ngIf="!sessionExpiredFlag">
+          <svg class="otp-session-ring-svg" viewBox="0 0 24 24">
+            <circle class="otp-ring-track" cx="12" cy="12" r="9"/>
+            <circle class="otp-ring-progress"
+                    [class.otp-ring-progress--urgent]="sessionUrgent"
+                    cx="12" cy="12" r="9"
+                    [style.stroke-dashoffset]="56.5 - (sessionRemaining / sessionSeconds) * 56.5"/>
+          </svg>
+        </div>
+        <i class="fa fa-ban" *ngIf="sessionExpiredFlag"></i>
+        <span *ngIf="!sessionExpiredFlag">{{ sessionRemainingLabel }}</span>
+        <span *ngIf="sessionExpiredFlag">Expired</span>
+      </div>
+
       <button type="button" class="otp-close-btn" (click)="onClose()"
               aria-label="Close" title="Cancel verification">
         <i class="fa fa-times"></i>
       </button>
     </div>
 
-    <!-- ── Body ───────────────────────────────────────────────── -->
+    <!-- Session progress bar (thin strip depletes left→right over 5 min) -->
+    <div class="otp-session-progress-bar" *ngIf="!isLocked">
+      <div class="otp-session-progress-fill"
+           [class.otp-session-progress-urgent]="sessionUrgent"
+           [class.otp-session-progress-expired]="sessionExpiredFlag"
+           [style.width.%]="sessionExpiredFlag ? 0 : (sessionRemaining / sessionSeconds) * 100">
+      </div>
+    </div>
+
+    <!-- Body -->
     <div class="otp-body">
 
-      <!-- ══════════════════════════════════════════════════════
+      <!-- ================================================================
+           VIEW: Account locked
+           Shown instead of all OTP/method content when isLocked is true.
+      ================================================================ -->
+      <div *ngIf="isLocked" class="otp-step otp-unavailable">
+        <div class="otp-unavail-icon">
+          <i class="fa fa-ban"></i>
+        </div>
+        <p class="otp-unavail-msg">{{ lockoutMessage }}</p>
+        <button type="button" class="otp-btn otp-btn-ghost otp-btn-full"
+                (click)="onBack()">
+          <i class="fa fa-arrow-left"></i> {{ backLabel }}
+        </button>
+      </div>
+
+      <!-- ================================================================
            VIEW: Method unavailable message
-      ══════════════════════════════════════════════════════ -->
-      <div *ngIf="unavailableMessage" class="otp-step otp-unavailable">
+      ================================================================ -->
+      <div *ngIf="!isLocked && unavailableMessage" class="otp-step otp-unavailable">
         <div class="otp-unavail-icon">
           <i class="fa fa-lock"></i>
         </div>
@@ -50,14 +97,14 @@
         </button>
         <button type="button" class="otp-btn otp-btn-ghost otp-btn-full otp-btn-mt"
                 (click)="onBack()">
-          <i class="fa fa-sign-in"></i> Back to Login
+          <i class="fa fa-sign-in"></i> {{ backLabel }}
         </button>
       </div>
 
-      <!-- ══════════════════════════════════════════════════════
+      <!-- ================================================================
            VIEW: Method picker — all methods always displayed
-      ══════════════════════════════════════════════════════ -->
-      <div *ngIf="showMethodPicker && !activeTotpMode && !unavailableMessage" class="otp-step">
+      ================================================================ -->
+      <div *ngIf="!isLocked && showMethodPicker && !activeTotpMode && !unavailableMessage" class="otp-step">
         <p class="otp-step-label">Choose how you'd like to verify your identity:</p>
 
         <div class="otp-method-list">
@@ -90,15 +137,15 @@
 
         <div class="otp-step-actions otp-step-actions--single">
           <button type="button" class="otp-btn otp-btn-ghost" (click)="onBack()">
-            <i class="fa fa-arrow-left"></i> Back to Login
+            <i class="fa fa-arrow-left"></i> {{ backLabel }}
           </button>
         </div>
       </div>
 
-      <!-- ══════════════════════════════════════════════════════
+      <!-- ================================================================
            VIEW: Confirm & Send (phone / email)
-      ══════════════════════════════════════════════════════ -->
-      <div *ngIf="selectedMethod && !showOtpInput && !activeTotpMode && !unavailableMessage"
+      ================================================================ -->
+      <div *ngIf="!isLocked && selectedMethod && !showOtpInput && !activeTotpMode && !unavailableMessage"
            class="otp-step">
 
         <div class="otp-send-info">
@@ -135,24 +182,30 @@
           <button type="button" class="otp-btn otp-btn-ghost" (click)="resetMethod()">
             <i class="fa fa-arrow-left"></i> Change Method
           </button>
-          <button type="button" class="otp-btn otp-btn-primary" (click)="sendOtpRequest()">
-            <i class="fa fa-paper-plane"></i> Send OTP
+          <button type="button" class="otp-btn otp-btn-primary" (click)="sendOtpRequest()"
+                  [disabled]="isSendingOtp">
+            <ng-container *ngIf="!isSendingOtp">
+              <i class="fa fa-paper-plane"></i> Send OTP
+            </ng-container>
+            <ng-container *ngIf="isSendingOtp">
+              <span class="otp-spinner"></span> Sending&hellip;
+            </ng-container>
           </button>
         </div>
       </div>
 
-      <!-- QR Code (if applicable) ────────────────────────────── -->
-      <div *ngIf="showQr" class="otp-qr-wrap">
+      <!-- QR Code (if applicable) -->
+      <div *ngIf="!isLocked && showQr" class="otp-qr-wrap">
         <img *ngIf="qrCodeData" [src]="qrCodeData" alt="QR Code" class="otp-qr-img" />
         <div *ngIf="!qrCodeData" class="otp-qr-placeholder">
           <i class="fa fa-qrcode"></i>
         </div>
       </div>
 
-      <!-- ══════════════════════════════════════════════════════
+      <!-- ================================================================
            VIEW: Enter code (OTP or TOTP)
-      ══════════════════════════════════════════════════════ -->
-      <div *ngIf="(showOtpInput || activeTotpMode) && !unavailableMessage" class="otp-step">
+      ================================================================ -->
+      <div *ngIf="!isLocked && (showOtpInput || activeTotpMode) && !unavailableMessage" class="otp-step">
 
         <div class="otp-sent-banner" [class.otp-sent-banner-totp]="activeTotpMode"
              *ngIf="otpSentMessage">
@@ -169,7 +222,7 @@
             <ng-container *ngFor="let _ of digits.controls; let i = index">
               <input
                 class="otp-box"
-                type="text"
+                [type]="otpVisible ? 'text' : 'password'"
                 inputmode="numeric"
                 maxlength="1"
                 autocomplete="one-time-code"
@@ -178,8 +231,18 @@
                 (keydown)="onKeydown(i, $event)"
                 (paste)="onPaste($event)"
               />
-              <span class="otp-box-sep" *ngIf="i === 2">—</span>
+              <span class="otp-box-sep" *ngIf="i === 2">&mdash;</span>
             </ng-container>
+          </div>
+
+          <!-- Show / hide the entered code (masked like a password by default) -->
+          <div class="otp-show-row">
+            <button type="button" class="otp-show-toggle"
+                    (click)="otpVisible = !otpVisible"
+                    [attr.aria-label]="otpVisible ? 'Hide code' : 'Show code'">
+              <i class="fa" [class.fa-eye]="!otpVisible" [class.fa-eye-slash]="otpVisible"></i>
+              {{ otpVisible ? 'Hide code' : 'Show code' }}
+            </button>
           </div>
 
           <!-- Resend (OTP only) -->
@@ -193,25 +256,36 @@
               </svg>
               <span class="otp-countdown-num">{{ resendRemaining }}</span>
             </div>
+            <!-- Resend button is disabled during cooldown, lockout, or while sending -->
             <button type="button" class="otp-btn otp-btn-resend"
-                    [disabled]="resendRemaining > 0" (click)="onResend()">
-              <i class="fa fa-refresh"></i> Resend OTP
+                    [disabled]="resendRemaining > 0 || isLocked || isSendingOtp" (click)="onResend()">
+              <ng-container *ngIf="!isSendingOtp">
+                <i class="fa fa-refresh"></i> Resend OTP
+              </ng-container>
+              <ng-container *ngIf="isSendingOtp">
+                <span class="otp-spinner"></span> Sending&hellip;
+              </ng-container>
             </button>
           </div>
 
           <!-- TOTP refresh hint -->
           <p class="otp-totp-hint" *ngIf="activeTotpMode">
             <i class="fa fa-info-circle"></i>
-            Code refreshes every 30 seconds — use the current one shown in your app.
+            Code refreshes every 30 seconds &mdash; use the current one shown in your app.
           </p>
 
+          <!-- Verify error from parent (e.g. wrong OTP in profile/settings flow) -->
+          <div *ngIf="verifyError" class="otp-verify-error">
+            <i class="fa fa-exclamation-circle"></i> {{ verifyError }}
+          </div>
+
           <button type="submit" class="otp-btn otp-btn-primary otp-btn-full"
-                  [disabled]="isSubmitting">
+                  [disabled]="isSubmitting || isLocked">
             <ng-container *ngIf="!isSubmitting">
               <i class="fa fa-check-circle"></i> Verify Code
             </ng-container>
             <ng-container *ngIf="isSubmitting">
-              <span class="otp-spinner"></span> Verifying…
+              <span class="otp-spinner"></span> Verifying&hellip;
             </ng-container>
           </button>
 

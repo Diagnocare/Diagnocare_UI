@@ -1,0 +1,310 @@
+<app-loading-spinner [isLoading]="isLoading" [message]="spinnerMessage"></app-loading-spinner>
+
+<div class="page-container">
+
+  <!-- ── Page header ──────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>My Attendance</h1>
+      <p class="subtitle">{{ viewMode === 'weekly' ? 'Weekly' : 'Monthly' }} attendance record — read-only view</p>
+
+      <!-- Status legend bar -->
+      <div class="legend-bar">
+        <span class="legend-item" *ngFor="let s of statusList">
+          <span class="legend-chip" [ngClass]="s.chipClass">{{ s.shortLabel }}</span>
+          <span class="legend-lbl">{{ s.label }}</span>
+        </span>
+        <span class="legend-item">
+          <span class="legend-chip chip-h">H</span>
+          <span class="legend-lbl">Holiday</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <a class="request-btn" routerLink="/attendance-requests"
+         title="See your correction requests or raise a new one">
+        <i class="fa fa-pen-to-square"></i> Request Correction
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Controls bar ─────────────────────────────────────────────────── -->
+  <div class="controls-bar">
+
+    <!-- View toggle -->
+    <div class="view-toggle">
+      <button class="toggle-btn"
+              [class.active]="viewMode === 'weekly'"
+              (click)="switchView('weekly')"
+              [disabled]="isLoading"
+              title="Weekly view">
+        <i class="fa fa-calendar-week"></i> Week
+      </button>
+      <button class="toggle-btn"
+              [class.active]="viewMode === 'monthly'"
+              (click)="switchView('monthly')"
+              [disabled]="isLoading"
+              title="Monthly view">
+        <i class="fa fa-calendar-alt"></i> Month
+      </button>
+    </div>
+
+    <!-- Fortnight selector — monthly view only -->
+    <div class="view-toggle fn-toggle" *ngIf="viewMode === 'monthly'">
+      <button class="toggle-btn"
+              [class.active]="selectedFortnight === '1'"
+              (click)="selectedFortnight = '1'"
+              [disabled]="isLoading"
+              title="Days 1 to 15">
+        1 – 15
+      </button>
+      <button class="toggle-btn"
+              [class.active]="selectedFortnight === '2'"
+              (click)="selectedFortnight = '2'"
+              [disabled]="isLoading"
+              [title]="'Days 16 to ' + lastDayOfMonth">
+        16 – {{ lastDayOfMonth }}
+      </button>
+    </div>
+
+    <!-- Period navigator -->
+    <div class="period-nav">
+      <button class="nav-btn" (click)="prevPeriod()" [disabled]="isLoading"
+              [title]="viewMode === 'weekly' ? 'Previous week' : 'Previous month'">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+      <span class="period-label">{{ periodLabel }}</span>
+      <button class="nav-btn" (click)="nextPeriod()"
+              [disabled]="isLoading || isCurrentPeriod"
+              [title]="viewMode === 'weekly' ? 'Next week' : 'Next month'">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+
+  </div><!-- /controls-bar -->
+
+  <!-- ── Content ──────────────────────────────────────────────────────── -->
+  <div class="content-container">
+    <ng-container *ngIf="!isLoading">
+
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="!row">
+        <div class="empty-icon">📅</div>
+        <h3>No Attendance Data</h3>
+        <p>No attendance records found for this period.</p>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════
+           WEEKLY VIEW
+           ══════════════════════════════════════════════════════════ -->
+      <div class="grid-wrapper" *ngIf="viewMode === 'weekly' && row">
+        <table class="attendance-table">
+          <thead>
+            <tr class="header-row">
+              <th class="col-name sticky-col">
+                <span class="user-col-label">Date</span>
+              </th>
+              <th
+                class="col-day"
+                *ngFor="let date of columnDates"
+                [class.col-today]="date.toDateString() === today.toDateString()"
+                [class.col-future]="date > today"
+                [class.col-holiday]="isHolidayDate(date)"
+              >
+                <div class="day-header">
+                  <span class="day-name">{{ date | date:'EEE' }}</span>
+                  <span class="day-date">{{ date | date:'dd MMM' }}</span>
+                  <span class="holiday-badge" *ngIf="isHolidayDate(date)" [title]="getHolidayName(date)">H</span>
+                </div>
+              </th>
+              <th class="col-summary">Summary</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr class="user-row">
+              <td class="col-name sticky-col">
+                <div class="user-info">
+                  <div class="user-avatar">{{ row.fullName.charAt(0).toUpperCase() }}</div>
+                  <span class="user-name">{{ row.fullName }}</span>
+                </div>
+              </td>
+
+              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td">
+                <span
+                  class="att-cell"
+                  [ngClass]="cellClass(cell)"
+                  [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
+                  [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                  [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                  (click)="requestCorrection(cell)">
+                  {{ cellLabel(cell) }}
+                  <i class="fa fa-pen req-pen" *ngIf="!cell.isFuture && !cell.isHoliday"></i>
+                </span>
+              </td>
+
+              <td class="col-summary">
+                <div class="row-summary">
+                  <ng-container *ngFor="let item of rowSummaryRange(row.cells, 0, row.cells.length)">
+                    <span *ngIf="item.count > 0" class="rs"
+                          [ngClass]="'rs-' + item.config.value.toLowerCase()"
+                          [title]="item.config.label">
+                      {{ item.count }}<small>{{ item.config.shortLabel }}</small>
+                    </span>
+                  </ng-container>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div><!-- /weekly grid-wrapper -->
+
+
+      <!-- ══════════════════════════════════════════════════════════
+           MONTHLY VIEW — two fortnights
+           ══════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="viewMode === 'monthly' && row">
+
+        <!-- ── 1st Fortnight: days 1–15 ──────────────────────────── -->
+        <div class="fortnight-block" *ngIf="showFortnight1">
+          <div class="fortnight-title">
+            <i class="fa fa-calendar-day"></i>
+            First Fortnight
+            <span class="fn-range">1 – 15</span>
+          </div>
+
+          <div class="grid-wrapper monthly-view">
+            <table class="attendance-table">
+              <thead>
+                <tr class="header-row">
+                  <th class="col-name sticky-col"><span class="user-col-label">Date</span></th>
+                  <th
+                    class="col-day"
+                    *ngFor="let date of fortnight1Dates"
+                    [class.col-today]="date.toDateString() === today.toDateString()"
+                    [class.col-future]="date > today"
+                    [class.col-holiday]="isHolidayDate(date)"
+                  >
+                    <div class="day-header">
+                      <span class="day-name">{{ date | date:'EE' }}</span>
+                      <span class="day-date">{{ date | date:'d' }}</span>
+                      <span class="holiday-badge" *ngIf="isHolidayDate(date)" [title]="getHolidayName(date)">H</span>
+                    </div>
+                  </th>
+                  <th class="col-summary">Summary</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr class="user-row">
+                  <td class="col-name sticky-col">
+                    <div class="user-info">
+                      <div class="user-avatar">{{ row.fullName.charAt(0).toUpperCase() }}</div>
+                      <span class="user-name">{{ row.fullName }}</span>
+                    </div>
+                  </td>
+
+                  <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td">
+                    <span
+                      class="att-cell"
+                      [ngClass]="cellClass(cell)"
+                      [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
+                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      (click)="requestCorrection(cell)">
+                      {{ cellLabel(cell) }}
+                    </span>
+                  </td>
+
+                  <td class="col-summary">
+                    <div class="row-summary">
+                      <ng-container *ngFor="let item of rowSummaryRange(row.cells, 0, 15)">
+                        <span *ngIf="item.count > 0" class="rs"
+                              [ngClass]="'rs-' + item.config.value.toLowerCase()"
+                              [title]="item.config.label">
+                          {{ item.count }}<small>{{ item.config.shortLabel }}</small>
+                        </span>
+                      </ng-container>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div><!-- /fortnight-block 1 -->
+
+        <!-- ── 2nd Fortnight: days 16–end ────────────────────────── -->
+        <div class="fortnight-block" *ngIf="showFortnight2">
+          <div class="fortnight-title">
+            <i class="fa fa-calendar-day"></i>
+            Second Fortnight
+            <span class="fn-range">16 – {{ lastDayOfMonth }}</span>
+          </div>
+
+          <div class="grid-wrapper monthly-view">
+            <table class="attendance-table">
+              <thead>
+                <tr class="header-row">
+                  <th class="col-name sticky-col"><span class="user-col-label">Date</span></th>
+                  <th
+                    class="col-day"
+                    *ngFor="let date of fortnight2Dates"
+                    [class.col-today]="date.toDateString() === today.toDateString()"
+                    [class.col-future]="date > today"
+                    [class.col-holiday]="isHolidayDate(date)"
+                  >
+                    <div class="day-header">
+                      <span class="day-name">{{ date | date:'EE' }}</span>
+                      <span class="day-date">{{ date | date:'d' }}</span>
+                      <span class="holiday-badge" *ngIf="isHolidayDate(date)" [title]="getHolidayName(date)">H</span>
+                    </div>
+                  </th>
+                  <th class="col-summary">Summary</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr class="user-row">
+                  <td class="col-name sticky-col">
+                    <div class="user-info">
+                      <div class="user-avatar">{{ row.fullName.charAt(0).toUpperCase() }}</div>
+                      <span class="user-name">{{ row.fullName }}</span>
+                    </div>
+                  </td>
+
+                  <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td">
+                    <span
+                      class="att-cell"
+                      [ngClass]="cellClass(cell)"
+                      [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
+                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      (click)="requestCorrection(cell)">
+                      {{ cellLabel(cell) }}
+                    </span>
+                  </td>
+
+                  <td class="col-summary">
+                    <div class="row-summary">
+                      <ng-container *ngFor="let item of rowSummaryRange(row.cells, 15, row.cells.length)">
+                        <span *ngIf="item.count > 0" class="rs"
+                              [ngClass]="'rs-' + item.config.value.toLowerCase()"
+                              [title]="item.config.label">
+                          {{ item.count }}<small>{{ item.config.shortLabel }}</small>
+                        </span>
+                      </ng-container>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div><!-- /fortnight-block 2 -->
+
+      </ng-container><!-- /monthly view -->
+
+    </ng-container>
+  </div><!-- /content-container -->
+
+</div><!-- /page-container -->

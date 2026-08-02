@@ -7,6 +7,22 @@
   margin-left: 0;
 }
 
+/* Primary actions sit on the dark gradient page background here, so render
+   them as solid white pills with brand-blue text (matches the header-button
+   treatment used on .page-header banners elsewhere). */
+.action-bar .btn-primary {
+  background: #ffffff !important;
+  color: #1e5ba8 !important;
+  border: 1.5px solid #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.action-bar .btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #17457f !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
 /* Selected Tests Column Styling */
 .selected-list .selected-item {
   color: #fff !important;
@@ -317,14 +333,47 @@
   .columns {
     flex-direction: column;
   }
-  
+
   .col-md-4 {
     flex: 0 0 100%;
     min-width: 100%;
   }
-  
+
   .card {
     height: auto;
     min-height: 18.75em;
+  }
+}
+
+/* ══ THEME OVERRIDES ══════════════════════════════════════════════ */
+
+:host-context(html[data-theme="dark"]) {
+  .list-item {
+    &:nth-child(odd)  { background: #1e293b !important; }
+    &:nth-child(even) { background: #1a2538 !important; }
+    &:hover { background: #0c2340 !important; }
+  }
+}
+:host-context(html[data-theme="midnight"]) {
+  .list-item {
+    &:nth-child(odd)  { background: #0d1117 !important; }
+    &:nth-child(even) { background: #0a0e14 !important; }
+    &:hover { background: #041f30 !important; }
+  }
+}
+:host-context(html[data-theme="warm"]) {
+  .list-item {
+    &:nth-child(odd)  { background: #fffdf7 !important; }
+    &:nth-child(even) { background: #fdf6ea !important; }
+    &:hover { background: #fbefd8 !important; }
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .list-item {
+      &:nth-child(odd)  { background: #1e293b !important; }
+      &:nth-child(even) { background: #1a2538 !important; }
+      &:hover { background: #0c2340 !important; }
+    }
   }
 }

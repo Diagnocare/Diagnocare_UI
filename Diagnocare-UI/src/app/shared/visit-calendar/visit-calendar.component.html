@@ -1,0 +1,36 @@
+<div class="cal-nav">
+  <button class="cal-nav-btn" (click)="onPrev()" title="Previous month"><i class="fa fa-chevron-left"></i></button>
+  <span class="cal-month-label">{{ viewLabel }}</span>
+  <button class="cal-nav-btn" (click)="onNext()" title="Next month"><i class="fa fa-chevron-right"></i></button>
+</div>
+
+<table class="cal-table">
+  <thead>
+    <tr>
+      <th *ngFor="let d of weekDays" class="cal-dow">{{ d }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let week of calendarWeeks">
+      <td *ngFor="let day of week"
+          class="cal-cell"
+          [class.other-month]="!day.inMonth"
+          [class.today]="day.isToday"
+          [class.selected]="isSelected(day)"
+          [class.has-visits]="day.visitInfo && day.inMonth"
+          (click)="onSelect(day)">
+        <span class="cal-day-num">{{ day.date.getDate() }}</span>
+        <span class="cal-badge" *ngIf="day.visitInfo && day.inMonth"
+              [class.cal-badge--all-done]="day.visitInfo.pendingCount === 0">
+          {{ day.visitInfo.count }}
+        </span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="cal-legend">
+  <span class="leg-item"><span class="leg-dot leg-dot--pending"></span> Pending</span>
+  <span class="leg-item"><span class="leg-dot leg-dot--done"></span> All Done</span>
+  <span class="leg-item"><span class="leg-dot leg-dot--today"></span> Today</span>
+</div>

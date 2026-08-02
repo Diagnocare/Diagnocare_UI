@@ -63,9 +63,40 @@ export class PatientService {
     );
   }
 
-  deletePatientDetails(patientId: string): Observable<boolean> {
-    const deleteUrl = this.patienturl + apiEndpoints.delete + "?patientId=" + patientId;
-    return this.httpClient.delete<boolean>(deleteUrl).pipe(
+  /**
+   * Soft delete (deactivate) a patient. The record is retained but hidden from
+   * normal lists; reversible via reactivatePatient. Returns the API OperationResult.
+   * DELETE api/patient/Delete
+   */
+  deletePatientDetails(patientId: string, reason?: string): Observable<any> {
+    let deleteUrl = `${this.patienturl}${apiEndpoints.delete}?patientId=${encodeURIComponent(patientId)}`;
+    if (reason) {
+      deleteUrl += `&reason=${encodeURIComponent(reason)}`;
+    }
+    return this.httpClient.delete<any>(deleteUrl).pipe(
+      catchError(this.errorHandler)
+    );
+  }
+
+  /**
+   * Reactivates a previously soft-deleted patient.
+   * PUT api/patient/Reactivate
+   */
+  reactivatePatient(patientId: string): Observable<any> {
+    const url = `${this.patienturl}${apiEndpoints.reactivate}?patientId=${encodeURIComponent(patientId)}`;
+    return this.httpClient.put<any>(url, null).pipe(
+      catchError(this.errorHandler)
+    );
+  }
+
+  /**
+   * Permanently deletes a patient and all dependent records. Irreversible —
+   * use only for genuine erasure requests / junk records.
+   * DELETE api/patient/HardDelete
+   */
+  hardDeletePatient(patientId: string): Observable<any> {
+    const url = `${this.patienturl}${apiEndpoints.hardDelete}?patientId=${encodeURIComponent(patientId)}`;
+    return this.httpClient.delete<any>(url).pipe(
       catchError(this.errorHandler)
     );
   }
@@ -130,6 +161,22 @@ export class PatientService {
   removeTestCodes(patientTestId: number, testCodes: string[], reason?: string): Observable<any> {
     const url = this.patienturl + apiEndpoints.removeTests;
     return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null }).pipe(
+      catchError(this.errorHandler)
+    );
+  }
+
+  /**
+   * Updates the status of a patient based on their test completion status.
+   * Called after booking cancellation or test completion to auto-update patient status.
+   * PUT api/patient/UpdatePatientStatus
+   *
+   * @param patientId The patient ID to update
+   * @param newStatus The new patient status ('Pending' | 'Partial' | 'Completed')
+   * @returns Observable indicating success
+   */
+  updatePatientStatus(patientId: string, newStatus: string): Observable<any> {
+    const url = `${this.patienturl}/UpdatePatientStatus`;
+    return this.httpClient.put<any>(url, { patientId, status: newStatus }).pipe(
       catchError(this.errorHandler)
     );
   }

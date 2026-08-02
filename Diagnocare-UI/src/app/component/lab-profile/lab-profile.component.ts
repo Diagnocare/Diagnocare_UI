@@ -5,15 +5,20 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ToastrService } from 'ngx-toastr';
 
-import { PathologyService }        from 'src/app/services/pathologyServices/pathology.service';
-import { PathologyLogoService }    from 'src/app/services/pathologyServices/pathology-logo.service';
-import { PathologyEditDto }        from 'src/app/models/pathology/pathology-edit.dto';
+import { PathologyService }             from 'src/app/services/pathologyServices/pathology.service';
+import { PathologyProfileCacheService } from 'src/app/services/pathologyServices/pathology-profile-cache.service';
+import { PathologyProfileDto }          from 'src/app/models/pathology/pathology-profile.dto';
+import { PathologyEditDto }             from 'src/app/models/pathology/pathology-edit.dto';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
+import { FieldErrorComponent }     from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective }   from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective }    from 'src/app/shared/directives/numeric-only.directive';
+import { AppValidators }           from 'src/app/shared/validators/app-validators';
 
 @Component({
   selector: 'app-lab-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent],
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective],
   templateUrl: './lab-profile.component.html',
   styleUrls: ['./lab-profile.component.scss'],
 })
@@ -22,22 +27,57 @@ export class LabProfileComponent implements OnInit, OnDestroy {
   form!: FormGroup;
   loadState: 'loading' | 'loaded' | 'error' = 'loading';
   isSaving = false;
+  isRefreshing = false;
+  submitted = false;
 
-  /** Preview URL for the logo (read from / written to PathologyLogoService). */
+  /** Tab order for keyboard navigation across all editable lab-profile fields. */
+  readonly tabFields = [
+    'path_Motto', 'path_Tagline',
+    'path_AltContactNo', 'path_Website',
+    'path_GSTNo', 'path_PANNo', 'path_RegNo', 'path_NABLNo',
+    'path_DirectorName', 'path_LabInCharge',
+    'path_ReportHeader', 'path_ReportFooter', 'path_SignatoryName',
+    'path_CountryCode', 'path_Currency',
+  ];
+
+  /** Preview URL for the logo — loaded via GetProfile, updated on upload. */
   logoPreview: string | null = null;
 
-  // Licence info (read-only display)
-  licenseKey:        string | null = null;
-  licenseType:       string | null = null;
-  licenseExpiry:     string | null = null;
-  licenseKeyVisible  = false;
+  // Identity + license — read-only display, sourced from the shared PathologyManager
+  // API (see PathologyService.getProfile). Editing these here would be silently
+  // overwritten on the next refresh, so they aren't part of the editable form.
+  pathName: string | null = null;
+  pathBranch: string | null = null;
+  pathCode: string | null = null;
+  pathCategory: string | null = null;
+  pathAddress1: string | null = null;
+  pathAddress2: string | null = null;
+  pathCity: string | null = null;
+  pathState: string | null = null;
+  pathCountry: string | null = null;
+  pathPincode: string | null = null;
+  pathContactNo: string | null = null;
+  pathEmail: string | null = null;
+
+  licenseType:      string | null = null;
+  licenseStatus:    string | null = null;
+  licenseIsActive   = false;
+  licenseExpiry:    string | null = null;
+
+  /** True when the identity/license fields above came from the shared API rather
+   *  than a local fallback (see PathologyProfileDto.sourcedFromSharedApi). */
+  sharedDataAvailable = true;
+
+  /** True while the fields on screen are the client-side cached copy, before the
+   *  background refresh (if any) has completed. */
+  fromCache = false;
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
     private pathologyService: PathologyService,
-    private logoService:      PathologyLogoService,
+    private profileCache:     PathologyProfileCacheService,
     private toastr:           ToastrService,
   ) {}
 
@@ -51,99 +91,137 @@ export class LabProfileComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ── Form ──────────────────────────────────────────────────────────
+  // ── Form (local-only fields — the shared identity/license fields above are
+  //    read-only display, not part of this form) ─────────────────────
 
   private buildForm(): void {
     this.form = this.fb.group({
-      // Identity
-      path_Name:        ['', [Validators.required, Validators.maxLength(150)]],
-      path_Branch:      ['', Validators.maxLength(100)],
       path_Motto:       ['', Validators.maxLength(250)],
       path_Tagline:     ['', Validators.maxLength(150)],
 
-      // Address
-      path_Address1:    ['', [Validators.required, Validators.maxLength(200)]],
-      path_Address2:    ['', Validators.maxLength(200)],
-      path_City:        ['', [Validators.required, Validators.maxLength(80)]],
-      path_State:       ['', [Validators.required, Validators.maxLength(80)]],
-      path_Country:     ['India', [Validators.required, Validators.maxLength(80)]],
-      path_Pincode:     ['', Validators.pattern('^[0-9]{4,10}$')],
-
-      // Contact
-      path_ContactNo:   ['', [Validators.required, Validators.pattern('^[0-9]{7,15}$')]],
-      path_AltContactNo:['', Validators.pattern('^[0-9]{7,15}$')],
-      path_Email:       ['', [Validators.required, Validators.email]],
+      path_AltContactNo:['', AppValidators.contactNumber()],
       path_Website:     ['', Validators.maxLength(200)],
 
-      // Legal
       path_GSTNo:       ['', Validators.maxLength(50)],
       path_PANNo:       ['', Validators.maxLength(20)],
       path_RegNo:       ['', Validators.maxLength(80)],
       path_NABLNo:      ['', Validators.maxLength(80)],
 
-      // People
       path_DirectorName:['', Validators.maxLength(150)],
       path_LabInCharge: ['', Validators.maxLength(150)],
 
-      // Report branding
       path_ReportHeader:  ['', Validators.maxLength(500)],
       path_ReportFooter:  ['', Validators.maxLength(500)],
       path_SignatoryName: ['', Validators.maxLength(150)],
 
-      // Regional
       path_CountryCode: ['+91', Validators.maxLength(10)],
       path_Currency:    ['INR', Validators.maxLength(10)],
     });
   }
 
+  // ── Load (cache-first, time-based expiry) ──────────────────────────
+
   private loadProfile(): void {
-    this.pathologyService.getPathology()
+    const cached = this.profileCache.get();
+    if (cached) {
+      this.applyProfile(cached);
+      this.fromCache = true;
+      this.loadState = 'loaded';
+
+      // Cheap change-check: only re-download the full profile if the shared version
+      // changed (a super-admin edited the pathology or extended the license). If it's
+      // unchanged, we don't hit the profile endpoint at all.
+      this.pathologyService.getProfileVersion()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (res) => {
+            if (res?.version != null && res.version !== cached.version) {
+              this.fetchProfile(/* showSpinner */ false);
+            }
+          },
+          error: () => { /* keep the cached copy on a version-check failure */ },
+        });
+      return;
+    }
+
+    this.fetchProfile(/* showSpinner */ true);
+  }
+
+  private fetchProfile(showSpinner: boolean): void {
+    if (showSpinner) this.loadState = 'loading';
+
+    this.pathologyService.getProfile()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
-          this.form.patchValue({
-            path_Name:          data.path_Name         ?? '',
-            path_Branch:        data.path_Branch        ?? '',
-            path_Motto:         (data as any).path_Motto       ?? '',
-            path_Tagline:       (data as any).path_Tagline     ?? '',
-            path_Address1:      data.path_Address1      ?? '',
-            path_Address2:      data.path_Address2      ?? '',
-            path_City:          data.path_City           ?? '',
-            path_State:         data.path_State          ?? '',
-            path_Country:       data.path_Country        ?? 'India',
-            path_Pincode:       data.path_Pincode        ?? '',
-            path_ContactNo:     data.path_ContactNo      ?? '',
-            path_AltContactNo:  (data as any).path_AltContactNo ?? '',
-            path_Email:         data.path_Email          ?? '',
-            path_Website:       (data as any).path_Website      ?? '',
-            path_GSTNo:         (data as any).path_GSTNo        ?? '',
-            path_PANNo:         (data as any).path_PANNo        ?? '',
-            path_RegNo:         (data as any).path_RegNo        ?? '',
-            path_NABLNo:        (data as any).path_NABLNo       ?? '',
-            path_DirectorName:  (data as any).path_DirectorName ?? '',
-            path_LabInCharge:   (data as any).path_LabInCharge  ?? '',
-            path_ReportHeader:  (data as any).path_ReportHeader ?? '',
-            path_ReportFooter:  (data as any).path_ReportFooter ?? '',
-            path_SignatoryName: (data as any).path_SignatoryName ?? '',
-            path_CountryCode:   data.path_CountryCode   ?? '+91',
-            path_Currency:      data.path_Currency       ?? 'INR',
-          });
-
-          // Logo is stored locally under key 'pathology_logo' — not in the DB
-          this.logoPreview = this.logoService.get();
-
-          // Licence info — read-only display
-          this.licenseKey    = (data as any).licenseKey    ?? null;
-          this.licenseType   = data.license_Type           ?? null;
-          this.licenseExpiry = data.date_of_Expiry         ?? null;
-
+          this.applyProfile(data);
+          this.profileCache.set(data);
+          this.fromCache = false;
           this.loadState = 'loaded';
+          this.isRefreshing = false;
         },
         error: () => {
-          this.loadState = 'error';
-          this.toastr.error('Could not load lab profile.');
+          // Keep any cached copy on screen; only surface the error state if we
+          // have nothing to show at all.
+          if (this.loadState !== 'loaded') this.loadState = 'error';
+          this.isRefreshing = false;
         },
       });
+  }
+
+  /** Bypasses the cache and re-fetches immediately (e.g. after a Super Admin change). */
+  refresh(): void {
+    this.isRefreshing = true;
+    this.profileCache.clear();
+    this.fetchProfile(false);
+  }
+
+  private applyProfile(data: PathologyProfileDto): void {
+    this.form.patchValue({
+      path_Motto:         data.path_Motto         ?? '',
+      path_Tagline:       data.path_Tagline       ?? '',
+      path_AltContactNo:  data.path_AltContactNo  ?? '',
+      path_Website:       data.path_Website       ?? '',
+      path_GSTNo:         data.path_GSTNo         ?? '',
+      path_PANNo:         data.path_PANNo         ?? '',
+      path_RegNo:         data.path_RegNo         ?? '',
+      path_NABLNo:        data.path_NABLNo        ?? '',
+      path_DirectorName:  data.path_DirectorName  ?? '',
+      path_LabInCharge:   data.path_LabInCharge   ?? '',
+      path_ReportHeader:  data.path_ReportHeader  ?? '',
+      path_ReportFooter:  data.path_ReportFooter  ?? '',
+      path_SignatoryName: data.path_SignatoryName ?? '',
+      path_CountryCode:   data.path_CountryCode   ?? '+91',
+      path_Currency:      data.path_Currency      ?? 'INR',
+    });
+
+    // Identity + address + contact — read-only, sourced from the shared registry.
+    this.pathName      = data.path_Name;
+    this.pathBranch     = data.path_Branch;
+    this.pathCode       = data.path_Code;
+    this.pathCategory   = data.path_Category;
+    this.pathAddress1   = data.path_Address1;
+    this.pathAddress2   = data.path_Address2 ?? null;
+    this.pathCity       = data.path_City;
+    this.pathState      = data.path_State;
+    this.pathCountry    = data.path_Country;
+    this.pathPincode    = data.path_Pincode;
+    this.pathContactNo  = data.path_ContactNo;
+    this.pathEmail      = data.path_Email;
+
+    this.sharedDataAvailable = data.sourcedFromSharedApi;
+
+    // Logo — path_Logo is a raw base64 string (no data-URI prefix) from the API.
+    const rawLogo = data.path_Logo;
+    this.logoPreview = rawLogo
+      ? (rawLogo.startsWith('data:') ? rawLogo : `data:image/png;base64,${rawLogo}`)
+      : null;
+
+    // License — masked/summary only. There is no raw key in this DTO at all.
+    this.licenseType     = data.license_Type      || null;
+    this.licenseStatus   = data.license_Status    || null;
+    this.licenseIsActive = data.license_IsActive;
+    this.licenseExpiry   = data.license_ExpiryDate || null;
   }
 
   // ── Logo handling ─────────────────────────────────────────────────
@@ -164,20 +242,29 @@ export class LabProfileComponent implements OnInit, OnDestroy {
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
       this.logoPreview = dataUrl;
-      // Persist locally as 'pathology_logo' — survives page reloads
-      this.logoService.save(dataUrl);
+      // Upload logo to the database via the dedicated endpoint
+      this.pathologyService.uploadLogo(dataUrl)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next:  () => {
+            this.toastr.success('Logo uploaded successfully.');
+            this.profileCache.clear(); // Next load should reflect the new logo.
+          },
+          error: () => { /* message shown centrally by ErrorInterceptor */ },
+        });
     };
     reader.readAsDataURL(file);
   }
 
   removeLogo(): void {
     this.logoPreview = null;
-    this.logoService.remove();
   }
 
-  // ── Save ──────────────────────────────────────────────────────────
+  // ── Save (local-only fields only — identity/address/contact/license are
+  //    managed centrally and aren't part of this form) ────────────────
 
   save(): void {
+    this.submitted = true;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toastr.warning('Please fix the highlighted fields before saving.');
@@ -185,9 +272,23 @@ export class LabProfileComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving = true;
-    // Logo is stored locally (localStorage key 'pathology_logo') — exclude from the backend DTO
-    const { path_Logo, ...formValue } = this.form.value as any;
-    const dto: PathologyEditDto = formValue;
+    const dto: PathologyEditDto = {
+      ...this.form.value,
+      // Identity/address/contact are read-only in this UI (managed via the shared
+      // registry — see applyProfile), but the local Update endpoint still requires
+      // Path_Name and matches the row by it. Echo back the currently displayed
+      // values unchanged so the local row stays in sync and validation passes.
+      path_Name:      this.pathName      ?? undefined,
+      path_Branch:    this.pathBranch    ?? undefined,
+      path_Address1:  this.pathAddress1  ?? undefined,
+      path_Address2:  this.pathAddress2  ?? undefined,
+      path_City:      this.pathCity      ?? undefined,
+      path_State:     this.pathState     ?? undefined,
+      path_Country:   this.pathCountry   ?? undefined,
+      path_Pincode:   this.pathPincode   ?? undefined,
+      path_ContactNo: this.pathContactNo ?? undefined,
+      path_Email:     this.pathEmail     ?? undefined,
+    };
 
     this.pathologyService.updatePathology(dto).pipe(takeUntil(this.destroy$)).subscribe({
       next:  () => this.onSaveSuccess(),
@@ -197,20 +298,25 @@ export class LabProfileComponent implements OnInit, OnDestroy {
 
   private onSaveSuccess(): void {
     this.isSaving = false;
+    this.profileCache.clear(); // Local-only fields changed — next load should reflect them.
     this.toastr.success('Lab profile saved successfully.');
   }
 
   private onSaveError(): void {
+    // Message shown centrally by ErrorInterceptor.
     this.isSaving = false;
-    this.toastr.error('Failed to save lab profile. Please try again.');
   }
 
   // ── Template helpers ──────────────────────────────────────────────
 
+  /** @deprecated Use <app-field-error> instead. Kept for backward compat. */
   hasError(field: string): boolean {
     const c = this.form.get(field);
-    return !!(c?.invalid && c?.touched);
+    return !!(c?.invalid && (c?.touched || this.submitted));
   }
+
+  /** Expose for template use with [class.is-error]. */
+  isInvalid(field: string): boolean { return this.hasError(field); }
 
   get formattedLicenseExpiry(): string {
     if (!this.licenseExpiry) return '—';
@@ -218,22 +324,11 @@ export class LabProfileComponent implements OnInit, OnDestroy {
     return `${d.getDate().toString().padStart(2,'0')}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`;
   }
 
-  get maskedLicenseKey(): string {
-    if (!this.licenseKey) return '—';
-    if (this.licenseKeyVisible) return this.licenseKey;
-    const len = this.licenseKey.length;
-    return this.licenseKey.substring(0, 4) + '•'.repeat(Math.max(0, len - 8)) + this.licenseKey.substring(len - 4);
-  }
-
-  toggleKeyVisibility(): void {
-    this.licenseKeyVisible = !this.licenseKeyVisible;
-  }
-
-  copyLicenseKey(): void {
-    if (!this.licenseKey) return;
-    navigator.clipboard.writeText(this.licenseKey).then(
-      () => this.toastr.success('License key copied to clipboard.'),
-      () => this.toastr.error('Could not copy to clipboard.'),
-    );
+  /** Joins the address parts, skipping any that are empty. */
+  get formattedAddress(): string {
+    const parts = [this.pathAddress1, this.pathAddress2, this.pathCity, this.pathState, this.pathCountry, this.pathPincode]
+      .map((x) => (x ?? '').trim())
+      .filter((x) => x.length > 0);
+    return parts.length ? parts.join(', ') : '—';
   }
 }
