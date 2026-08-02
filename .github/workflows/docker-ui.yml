@@ -13,11 +13,11 @@ on:
   push:
     branches: [master_UI]
     paths:
-      - "Diagnocare_UI/**"
+      - "Diagnocare-UI/**"
       - ".github/workflows/docker-ui.yml"
   pull_request:
     paths:
-      - "Diagnocare_UI/**"
+      - "Diagnocare-UI/**"
       - ".github/workflows/docker-ui.yml"
   workflow_dispatch: {}      # allow manual runs from the Actions tab
 
@@ -62,8 +62,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./Diagnocare_UI
-          file: ./Diagnocare_UI/Dockerfile
+          context: ./Diagnocare-UI
+          file: ./Diagnocare-UI/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
