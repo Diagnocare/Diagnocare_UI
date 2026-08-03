@@ -398,15 +398,71 @@ html[data-theme="warm"] .form-input {
   background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important;
 }
 
+/* ── Radio / choice pills (Gender, Marital Status, Type, …) ───────────────────
+   `.radio-pill span` is a near-white chip with dark ink. In the dark themes the
+   blanket light-text rule turned the label white on that white chip, so the
+   options were unreadable. Used by add-patient, add-test-modal and friends, so
+   it is themed once here. The CHECKED state keeps its brand gradient + white
+   label, which is correct in every theme. */
+html[data-theme="dark"]   .radio-pill span,
+html[data-theme="system"] .radio-pill span {
+  background: #0f172a !important; border-color: #334155 !important; color: #cbd5e1 !important;
+}
+html[data-theme="dark"]   .radio-pill:hover span,
+html[data-theme="system"] .radio-pill:hover span {
+  background: #273548 !important; border-color: #5b9cf6 !important; color: #e2e8f0 !important;
+}
+html[data-theme="midnight"] .radio-pill span {
+  background: #020408 !important; border-color: #21262d !important; color: #a6adc8 !important;
+}
+html[data-theme="midnight"] .radio-pill:hover span {
+  background: #161b22 !important; border-color: #4d9ef0 !important; color: #cdd6f4 !important;
+}
+html[data-theme="warm"] .radio-pill span {
+  background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #5c4636 !important;
+}
+html[data-theme="warm"] .radio-pill:hover span {
+  background: #f4e8d8 !important; border-color: #c4985a !important; color: #3d2b1f !important;
+}
+/* Selected pill — re-assert the white label so the blanket rules can't dull it */
+html[data-theme="dark"]     .radio-pill input[type="radio"]:checked + span,
+html[data-theme="midnight"] .radio-pill input[type="radio"]:checked + span,
+html[data-theme="warm"]     .radio-pill input[type="radio"]:checked + span,
+html[data-theme="system"]   .radio-pill input[type="radio"]:checked + span { color: #fff !important; }
+
+/* Native radio/checkbox glyphs — tint them to the theme's accent so they are
+   visible on dark surfaces instead of rendering as dim grey rings. */
+html[data-theme="dark"]     input[type="radio"], html[data-theme="dark"]     input[type="checkbox"] { accent-color: #5b9cf6; }
+html[data-theme="midnight"] input[type="radio"], html[data-theme="midnight"] input[type="checkbox"] { accent-color: #4d9ef0; }
+html[data-theme="warm"]     input[type="radio"], html[data-theme="warm"]     input[type="checkbox"] { accent-color: #c4985a; }
+html[data-theme="system"]   input[type="radio"], html[data-theme="system"]   input[type="checkbox"] { accent-color: #5b9cf6; }
+
+/* ── Section / field labels on dark form surfaces ─────────────────────────────
+   Small uppercase group headings (IDENTITY, DEMOGRAPHICS, CONTACT …) and field
+   labels are often hardcoded to a mid grey that muddies against dark cards.
+   Nudge them to the theme's secondary ink for a clearly legible hierarchy. */
+html[data-theme="dark"]     :is(.section-label, .form-section-title, .field-label, .form-label),
+html[data-theme="system"]   :is(.section-label, .form-section-title, .field-label, .form-label) { color: #94a3b8 !important; }
+html[data-theme="midnight"] :is(.section-label, .form-section-title, .field-label, .form-label) { color: #a6adc8 !important; }
+html[data-theme="warm"]     :is(.section-label, .form-section-title, .field-label, .form-label) { color: #7a5c4e !important; }
+
 /* ── SVG / icon-font visibility ───────────────────────────────────────────────
    Icons drawn with `currentColor` follow their parent's themed colour and are
    fine. These are the ones that DON'T: icons hardcoded to a dark ink colour,
    which disappear on the dark surfaces above. Make them inherit instead. */
-html[data-theme="dark"]     :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card) :is(svg, i, .fa),
-html[data-theme="midnight"] :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card) :is(svg, i, .fa),
-html[data-theme="system"]   :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card) :is(svg, i, .fa) {
+html[data-theme="dark"]     :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa),
+html[data-theme="midnight"] :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa),
+html[data-theme="warm"]     :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa),
+html[data-theme="system"]   :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa) {
   color: inherit;
 }
+
+/* SVGs that inherit their stroke/fill from CSS `currentColor` follow the themed
+   text colour automatically. These two rules make that opt-in explicit for icons
+   that would otherwise stay black on a dark surface. */
+html[data-theme="dark"]     svg:not([fill]):not([stroke]),
+html[data-theme="midnight"] svg:not([fill]):not([stroke]),
+html[data-theme="system"]   svg:not([fill]):not([stroke]) { fill: currentColor; }
 
 /* ── Confirm modal (shared logout / delete dialog) ────────────────────────────
    Bootstrap's .modal-content stays light by default, but the heading rules above
