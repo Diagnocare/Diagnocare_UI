@@ -37,6 +37,21 @@
       </ul>
     </div>
 
+    <!-- Already renewed elsewhere? Pull the latest licence from the licence server -->
+    <div class="le-refresh-box">
+      <button type="button" class="le-btn le-btn-refresh"
+              [disabled]="refreshing"
+              [title]="refreshTooltip"
+              (click)="refreshLicence()">
+        <i class="fa fa-sync-alt" [class.fa-spin]="refreshing"></i>
+        {{ refreshing ? 'Checking…' : 'Check for Updated Licence' }}
+      </button>
+      <p class="le-refresh-msg" *ngIf="refreshMessage"
+         [class.le-refresh-warn]="refreshMessageKind === 'warn'">
+        {{ refreshMessage }}
+      </p>
+    </div>
+
     <!-- Renew call to action — Super Admin sees Extend button; others see contact message -->
     <div class="le-cta-box">
 
