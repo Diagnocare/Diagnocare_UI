@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { environment } from 'src/environments/environment';
 
 /**
  * Public Help / Contact Us page.
@@ -23,22 +24,26 @@ export class HelpComponent {
 
   currentYear = new Date().getFullYear();
 
-  /** GitHub project board — used to add a new item (issue). */
-  readonly issueBoardUrl = 'https://github.com/orgs/Diagnocare/projects/1/views/2';
+  /**
+   * Feedback / help portal URL.
+   *
+   * Configured per environment (`helpUrl` in src/environments/environment*.ts),
+   * so dev, qa, uat and production can each point at their own portal without a
+   * code change — Angular swaps the environment file at build time via the
+   * `fileReplacements` entries in angular.json.
+   */
+  readonly helpUrl = environment.helpUrl;
+
+  /** Submit a new issue / suggestion. */
+  readonly issueBoardUrl = this.helpUrl;
 
   /**
-   * Same board, pre-filtered to the signed-in GitHub user's own items.
+   * Check the status of an already-submitted item.
    *
-   * GitHub Projects v2 has NO "author / created-by" filter, so a board cannot be
-   * scoped by who opened an item. The only per-visitor self-filter it supports is
-   * `assignee:@me`, where `@me` resolves to whoever is logged into GitHub.
-   *
-   * For this to show a user "only what I created", they must be set as the
-   * ASSIGNEE of the issue they open (self-assign when adding the item).
+   * The portal issues a tracking ID on submit, which is entered on the same
+   * page — so this points at the same configurable URL.
    */
-  readonly myIssuesUrl =
-    'https://github.com/orgs/Diagnocare/projects/1/views/2?filterQuery=' +
-    encodeURIComponent('assignee:@me');
+  readonly myIssuesUrl = this.helpUrl;
 
   /**
    * Contact details shown on the page.

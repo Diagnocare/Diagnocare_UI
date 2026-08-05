@@ -12,6 +12,7 @@ import { SessionSignalRService } from './services/sessionSignalR/session-signalr
 import { SessionLockService }   from './core/services/session-lock.service';
 import { ThemeService }         from './services/themeServices/theme.service';
 import { PathologyService }     from './services/pathologyServices/pathology.service';
+import { NavigationHistoryService } from './core/services/navigation-history.service';
 
 /**
  * Session model
@@ -68,6 +69,9 @@ export class AppComponent implements OnInit, OnDestroy {
     private sessionLock:     SessionLockService,
     private themeService:    ThemeService,
     private pathologyService:PathologyService,
+    // Injected so it is created at bootstrap and starts recording navigation
+    // history immediately (used by Help to return to its entry page).
+    private navigationHistory: NavigationHistoryService,
   ) {}
 
   ngOnInit(): void {
