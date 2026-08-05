@@ -51,7 +51,11 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   const isLogoutPath = req.url.includes(apiEndpoints.logout) ||
                        req.url.includes(apiEndpoints.clearSession);
   const isOtpPath = req.url.includes(controllerEndpoints.otp);
-  const isBasicAuth = (isLoginPath || isOtpPath) && !isLogoutPath;
+  // Fingerprint ASSERTION runs mid-login (no JWT yet) and is protected by the
+  // BasicAuth policy — attach Basic auth. Registration / status / disable are
+  // called by an already-authenticated user, so they fall through to Bearer.
+  const isFpAssertPath = req.url.includes(controllerEndpoints.fingerprint + 'assert');
+  const isBasicAuth = (isLoginPath || isOtpPath || isFpAssertPath) && !isLogoutPath;
   if (isBasicAuth) {
     return next(req.clone({ setHeaders: { Authorization: authConfig.getBasicAuthHeader() } }));
   }

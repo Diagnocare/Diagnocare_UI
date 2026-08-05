@@ -9,6 +9,7 @@ export const controllerEndpoints = {
   login: 'api/login/',
   otp: 'api/Otp/',
   mfa: 'api/Mfa/',
+  fingerprint: 'api/Fingerprint/',
   address: 'api/addressManager/',
   collectionBoy: 'api/collectionBoys/',
   doctor: 'api/doctors/',
@@ -26,6 +27,7 @@ export const controllerEndpoints = {
   salary:     'api/salary/',
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
+  feedback:      'api/feedback/',
 };
 
 export const apiEndpoints = {
@@ -37,6 +39,13 @@ export const apiEndpoints = {
   cancelOtp:"cancel-otp",
   verifyOtp: "verify-otp",
   verify:    "Verify",         // unified endpoint — VerifyAuthRequest
+  // ── Fingerprint (WebAuthn / FIDO2) ──
+  fpStatus:          "status",           // GET  api/Fingerprint/status?userName=
+  fpRegisterBegin:   "register/begin",   // POST api/Fingerprint/register/begin?userName=
+  fpRegisterComplete:"register/complete",// POST api/Fingerprint/register/complete?userName=&label=
+  fpAssertBegin:     "assert/begin",     // POST api/Fingerprint/assert/begin?userName=
+  fpAssertComplete:  "assert/complete",  // POST api/Fingerprint/assert/complete?userName=
+  fpDisable:         "disable",          // POST api/Fingerprint/disable?userName=
   resetPassword: 'ForgotPassword',
   validateOldPassword:"ValidateOldPassword",
   getPathologyExpiryDate:"GetPathologyExpiryDate",
