@@ -5,7 +5,7 @@ export const environment = {
   // API locally, so the deployed dev-server build hung on every other browser.)
   // diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   // For local development against a locally-running API, temporarily switch to:
-  diagnocareApiURL: 'https://localhost:44346/',
+  diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   loginUIUrl: 'http://diagnocaredev/',
   // Help / feedback system (issue + suggestion submission portal).
   helpUrl: 'https://feedback-system-rosy.vercel.app/',
