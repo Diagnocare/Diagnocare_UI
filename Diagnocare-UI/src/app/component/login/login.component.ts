@@ -15,6 +15,7 @@ import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.serv
 import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
 
 @Component({
   selector: 'app-login',
@@ -126,6 +127,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private _tokenService:    TokenService,
     private _router:          Router,
     private _route:           ActivatedRoute,
+    private _fingerprint:     FingerprintService,
   ) {
     window.addEventListener('closeMfaDialog', this.closeMfaHandler);
     window.addEventListener('pageshow', this.onPageShow);
@@ -324,7 +326,10 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Use the user's preferred channel (loginType) to auto-select and send OTP
         const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-        if (response?.loginType === 3 && this.hasMfa) {
+        if (response?.loginType === 4) {
+          // Fingerprint (WebAuthn) — no code to type; run the browser ceremony directly.
+          this.loginWithFingerprint(raw.userId);
+        } else if (response?.loginType === 3 && this.hasMfa) {
           // Authenticator App (TOTP) — no OTP to generate/send; open dialog in TOTP mode
           this.isTotpMode    = true;
           this.selectedMethod = null;
@@ -369,6 +374,50 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Fingerprint (WebAuthn) login ─────────────────────────────────────────────
+
+  /**
+   * Runs the WebAuthn assertion ceremony for a user whose preferred loginType is
+   * Fingerprint (4). On success, hands off to the shared post-verify navigation.
+   * On failure (cancelled prompt, no enrolled credential, agent error) the user
+   * can fall back to another factor via the OTP dialog.
+   */
+  private loginWithFingerprint(userId: string): void {
+    if (!FingerprintService.isSupported()) {
+      this.isSubmitting = false;
+      this.toastr.error('This browser does not support fingerprint sign-in. Please use another method.');
+      this.showOtpInput = false;
+      this.openOtpDialog();   // fallback: let the user pick email / phone
+      return;
+    }
+
+    this.isVerifyingOtp = true;
+    this._fingerprint.loginWithFingerprint(userId).subscribe({
+      next: (resp: any) => {
+        this.isVerifyingOtp = false;
+        this.isSubmitting   = false;
+        if (!resp?.success) {
+          const msg = resp?.message || 'Fingerprint verification failed.';
+          if (String(msg).toLowerCase().includes('locked')) {
+            this.isAccountLocked = true;
+            this.toastr.error(msg, 'Access Denied', { timeOut: 6000 });
+            return;
+          }
+          this.toastr.error(msg);
+          return;
+        }
+        this.handleSuccessfulLogin(resp);
+      },
+      error: (err: any) => {
+        this.isVerifyingOtp = false;
+        this.isSubmitting   = false;
+        const msg = err?.message || (typeof err === 'string' ? err : '') ||
+          'Fingerprint sign-in was cancelled or failed. Please try again.';
+        this.toastr.error(msg);
+      },
+    });
+  }
+
   // ── OTP dialog events ──────────────────────────────────────────────────────
 
   /**
@@ -393,7 +442,11 @@ export class LoginComponent implements OnInit, OnDestroy {
       code: event.code,
     }).subscribe({
       next: (resp) => {
+        // Clear the verifying spinner first, before any early return below —
+        // an invalid code is still a completed request, so the dialog must go
+        // back to an editable state instead of spinning forever.
         this.isVerifyingOtp = false;
+
         if (!resp?.success) {
           const msg = (resp as any)?.message || 'Invalid code. Please try again.';
           // Lockout detected from verification response — close dialog, show lockout banner

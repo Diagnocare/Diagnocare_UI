@@ -21,38 +21,6 @@ export class TemplateService {
    * Returns the list of available templates (lightweight metadata only —
    * no htmlBody / cssStyles in this response).
    */
-  /**
-   * Saves a brand-new template to the database.
-   * The backend creates the record and returns the assigned templateId.
-   */
-  saveTemplate(payload: {
-    templateName: string;
-    description?: string;
-    category?: string;
-    htmlBody: string;
-    cssStyles: string;
-  }): Observable<TemplateDetailDTO> {
-    return this.http
-      .post<TemplateDetailDTO>(this.baseUrl + apiEndpoints.add, payload)
-      .pipe(catchError(this.errorHandler));
-  }
-
-  /**
-   * Updates an existing template identified by templateId.
-   */
-  updateTemplate(payload: {
-    templateId: number;
-    templateName: string;
-    description?: string;
-    category?: string;
-    htmlBody: string;
-    cssStyles: string;
-  }): Observable<TemplateDetailDTO> {
-    return this.http
-      .put<TemplateDetailDTO>(this.baseUrl + apiEndpoints.update, payload)
-      .pipe(catchError(this.errorHandler));
-  }
-
   getTemplates(): Observable<TemplateListDTO[]> {
     return this.http
       .get<TemplateListDTO[]>(this.baseUrl + apiEndpoints.getAllList)

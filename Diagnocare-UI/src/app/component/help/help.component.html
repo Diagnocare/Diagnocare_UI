@@ -4,8 +4,8 @@
     <span class="help-logo-icon"><i class="fa fa-heartbeat"></i></span>
     <span class="help-logo-text">Diagno<span class="help-logo-accent">care</span></span>
   </a>
-  <a routerLink="/home" class="help-back">
-    <i class="fas fa-arrow-left"></i> Back to Home
+  <a (click)="goBack()" class="help-back" role="button" tabindex="0" (keydown.enter)="goBack()">
+    <i class="fas fa-arrow-left"></i> {{ backLabel }}
   </a>
 </nav>
 
@@ -70,13 +70,20 @@
         you check the status of your report later.
       </p>
     </div>
+    <!-- Buttons, not links: each click fetches a fresh short-lived token first,
+         which is then passed to the portal in the URL fragment. -->
     <div class="help-issue-actions">
-      <a class="help-issue-btn" [href]="issueBoardUrl" target="_blank" rel="noopener noreferrer">
-        <i class="fas fa-plus-circle"></i> Submit Feedback
-      </a>
-      <a class="help-issue-btn help-issue-btn-outline" [href]="myIssuesUrl" target="_blank" rel="noopener noreferrer">
-        <i class="fas fa-user-check"></i> Track My Issues
-      </a>
+      <button type="button" class="help-issue-btn"
+              [disabled]="opening !== null" (click)="openSubmit()">
+        <i class="fas" [ngClass]="opening === 'new' ? 'fa-spinner fa-spin' : 'fa-plus-circle'"></i>
+        Submit Feedback
+      </button>
+
+      <button type="button" class="help-issue-btn help-issue-btn-outline"
+              [disabled]="opening !== null" (click)="openTrack()">
+        <i class="fas" [ngClass]="opening === 'track' ? 'fa-spinner fa-spin' : 'fa-user-check'"></i>
+        Track My Issues
+      </button>
     </div>
   </section>
 
