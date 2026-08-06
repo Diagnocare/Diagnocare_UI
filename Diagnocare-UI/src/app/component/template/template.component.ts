@@ -3,14 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { TemplateService } from 'src/app/services/templateServices/template.service';
 import { TemplateListDTO } from 'src/app/models/template/template-list.dto';
 import { TemplateDetailDTO } from 'src/app/models/template/template-detail.dto';
-import { TokenService } from 'src/app/core/interceptors/token.service';
 
 export type DownloadFormat = 'pdf' | 'docx';
 
@@ -71,18 +69,8 @@ export class TemplateComponent implements OnInit, OnDestroy {
   constructor(
     private templateService: TemplateService,
     private sanitizer: DomSanitizer,
-    private toastr: ToastrService,
-    private router: Router,
-    private tokenService: TokenService
+    private toastr: ToastrService
   ) {}
-
-  get isAdmin(): boolean {
-    return this.tokenService.isAdmin();
-  }
-
-  openDesigner(): void {
-    this.router.navigate(['/template-designer']);
-  }
 
   ngOnInit(): void {
     this.loadTemplates();
