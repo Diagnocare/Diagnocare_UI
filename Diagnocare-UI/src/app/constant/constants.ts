@@ -32,7 +32,6 @@ export const controllerEndpoints = {
 
 export const apiEndpoints = {
   getPublicInfo: 'GetPublicInfo',
-  extendLicense: 'ExtendLicense',
   uploadImage: 'addImage',
   generateOTP:"generate-otp",
   resendOtp:"resend-otp",

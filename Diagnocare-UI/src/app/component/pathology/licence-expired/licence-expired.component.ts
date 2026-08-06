@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { LicenceService }   from 'src/app/services/licenceServices/licence.service';
-import { TokenService }     from 'src/app/core/interceptors/token.service';
 import { LoginService }     from 'src/app/services/loginServices/login.service';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
 
 @Component({
   selector: 'app-licence-expired',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule],
   templateUrl: './licence-expired.component.html',
   styleUrls: ['./licence-expired.component.scss']
 })
@@ -31,7 +30,6 @@ export class LicenceExpiredComponent implements OnInit {
 
   constructor(
     private licenceSvc:   LicenceService,
-    private tokenService: TokenService,
     private loginService: LoginService,
     private pathologyService: PathologyService,
     private router: Router
