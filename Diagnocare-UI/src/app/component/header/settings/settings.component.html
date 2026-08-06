@@ -159,14 +159,20 @@
           <input class="radio-input" type="radio" name="authType"
                  [id]="'authType_' + opt.value"
                  [value]="opt.value"
-                 [disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled"
+                 [disabled]="(opt.value === AuthType.AuthenticationApp && !isMfaEnabled)
+                           || (opt.value === AuthType.Fingerprint && !isFingerprintEnabled)"
                  [(ngModel)]="selectedAuthType">
           <label class="radio-label" [for]="'authType_' + opt.value"
-                 [class.radio-label--disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
+                 [class.radio-label--disabled]="(opt.value === AuthType.AuthenticationApp && !isMfaEnabled)
+                                              || (opt.value === AuthType.Fingerprint && !isFingerprintEnabled)">
             {{ opt.label }}
             <span class="radio-hint"
                   *ngIf="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
               — set up the Authenticator App below first
+            </span>
+            <span class="radio-hint"
+                  *ngIf="opt.value === AuthType.Fingerprint && !isFingerprintEnabled">
+              — register your fingerprint below first
             </span>
           </label>
         </div>
@@ -185,6 +191,11 @@
        SECTION: AUTHENTICATOR APP (merged from its own page)
   ══════════════════════════════════════ -->
   <app-setup-mfa [embedded]="true" (mfaStatusChanged)="onMfaStatusChanged($event)"></app-setup-mfa>
+
+  <!-- ══════════════════════════════════════
+       SECTION: FINGERPRINT (WebAuthn)
+  ══════════════════════════════════════ -->
+  <app-setup-fingerprint [embedded]="true" (statusChanged)="onFingerprintStatusChanged($event)"></app-setup-fingerprint>
 
   <!-- ══════════════════════════════════════
        SECTION: APPEARANCE / THEME

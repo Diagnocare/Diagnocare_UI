@@ -1,0 +1,154 @@
+/* ── Fingerprint section ─────────────────────────────────────────────────── */
+
+.fp-card { overflow: hidden; }
+
+/* Icon badge in the header */
+.fp-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--acct-surface, #eef2f7);
+  color: var(--acct-muted, #64748b);
+  font-size: 1.35rem;
+  flex: 0 0 auto;
+  transition: background .2s ease, color .2s ease;
+}
+.fp-badge--on {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, .28);
+}
+
+/* Status pills next to the title */
+.fp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  padding: .15rem .5rem;
+  border-radius: 999px;
+  margin-left: .5rem;
+  vertical-align: middle;
+}
+.fp-pill--on  { background: rgba(22, 163, 74, .12);  color: #16a34a; }
+.fp-pill--off { background: rgba(100, 116, 139, .14); color: #64748b; }
+
+/* Loading */
+.fp-loading {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--acct-muted, #64748b);
+  padding: .5rem 0;
+}
+
+/* Empty state */
+.fp-empty {
+  text-align: center;
+  padding: 1.25rem 1rem .5rem;
+}
+.fp-empty-icon {
+  font-size: 2.6rem;
+  color: var(--acct-border, #cbd5e1);
+  margin-bottom: .5rem;
+}
+.fp-empty-text { font-weight: 600; margin: 0; }
+.fp-empty-sub  { color: var(--acct-muted, #64748b); font-size: .85rem; margin: .15rem 0 0; }
+
+/* Field */
+.fp-field { margin: .9rem 0; }
+.fp-field label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  margin-bottom: .35rem;
+}
+.fp-optional { color: var(--acct-muted, #94a3b8); font-weight: 400; }
+
+/* Primary register button — full width, prominent */
+.fp-primary-btn {
+  width: 100%;
+  justify-content: center;
+  gap: .5rem;
+  padding: .7rem 1rem;
+  font-size: .95rem;
+}
+.fp-primary-btn:disabled { opacity: .7; cursor: progress; }
+
+/* Registered credential list */
+.fp-cred-list {
+  list-style: none;
+  margin: 0 0 .9rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.fp-cred-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .65rem .8rem;
+  border: 1px solid var(--acct-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--acct-surface, #f8fafc);
+}
+.fp-cred-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, .1);
+  color: #2563eb;
+  flex: 0 0 auto;
+}
+.fp-cred-main { display: flex; flex-direction: column; line-height: 1.25; }
+.fp-cred-name { font-weight: 600; font-size: .9rem; }
+.fp-cred-date { color: var(--acct-muted, #64748b); font-size: .76rem; }
+
+/* Add-another row */
+.fp-add-row {
+  display: flex;
+  gap: .5rem;
+  align-items: stretch;
+  margin-bottom: .6rem;
+}
+.fp-add-row .form-input { flex: 1 1 auto; }
+.fp-add-row .dc-btn { white-space: nowrap; }
+
+/* Remove link */
+.fp-remove-link {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: .25rem 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.fp-remove-link:hover { text-decoration: underline; }
+
+/* Notes / messages */
+.fp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .6rem .75rem;
+  border-radius: 8px;
+  font-size: .85rem;
+  margin-top: .75rem;
+}
+.fp-note .fa { margin-top: .1rem; }
+.fp-note--warn  { background: rgba(234, 179, 8, .12);  color: #a16207; }
+.fp-note--error { background: rgba(220, 38, 38, .10);  color: #b91c1c; }

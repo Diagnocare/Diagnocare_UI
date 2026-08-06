@@ -77,10 +77,28 @@ export class PathologyService {
         ).pipe(catchError(this.errorHandler));
       }
 
-      /** Public (no-auth) — check if pathology is registered and get expiry info */
-      getPublicInfo(): Observable<PathologyPublicInfoDto> {
+      /**
+       * Public (no-auth) — check if pathology is registered and get licence info.
+       * Works both before and after login.
+       *
+       * @param refresh  false (default) → licence details come from the server-side cache.
+       *                 true            → pulls the latest licence from the shared
+       *                                   PathologyManager API. Capped at 5 refreshes per hour;
+       *                                   past that the API still returns 200 with cached values
+       *                                   and `rateLimited: true`, so this never throws for
+       *                                   over-refreshing. Check `refreshesRemaining` for the
+       *                                   quota left.
+       */
+      getPublicInfo(refresh: boolean = false): Observable<PathologyPublicInfoDto> {
+        // An empty HttpParams adds no query string, so the default call is byte-for-byte
+        // the same request this method has always made.
+        let params = new HttpParams();
+        if (refresh) {
+          params = params.set('refresh', 'true');
+        }
+
         return this.httpClient.get<PathologyPublicInfoDto>(
-          this.url + apiEndpoints.getPublicInfo
+          this.url + apiEndpoints.getPublicInfo, { params }
         ).pipe(catchError(this.errorHandler));
       }
 

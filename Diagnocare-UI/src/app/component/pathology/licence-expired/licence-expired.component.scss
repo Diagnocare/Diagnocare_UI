@@ -203,6 +203,35 @@
   text-decoration: none;
 }
 
+/* ── Refresh licence (pull latest from the licence server) ──────────────── */
+.le-refresh-box {
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.le-btn-refresh {
+  background: transparent;
+  border: 1.5px solid #1e5ba8 !important;
+  color: #1e5ba8;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+  }
+}
+
+.le-refresh-msg {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #15803d;
+
+  &.le-refresh-warn {
+    color: #92400e;
+  }
+}
+
 .le-cta-admin {
   color: #1e40af;
   font-weight: 600;

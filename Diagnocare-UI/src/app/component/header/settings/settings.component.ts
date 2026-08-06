@@ -11,13 +11,15 @@ import { ThemeService, Theme } from 'src/app/services/themeServices/theme.servic
 import { PinService } from 'src/app/services/pinServices/pin.service';
 import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.component';
 import { SetupMfaComponent } from '../setup-mfa/setup-mfa.component';
+import { SetupFingerprintComponent } from '../setup-fingerprint/setup-fingerprint.component';
+import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['../account-pages.shared.css', './settings.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, OtpMfaDialogComponent, SetupMfaComponent]
+  imports: [CommonModule, FormsModule, OtpMfaDialogComponent, SetupMfaComponent, SetupFingerprintComponent]
 })
 export class SettingsComponent implements OnInit {
   user: any;
@@ -39,6 +41,12 @@ export class SettingsComponent implements OnInit {
    * it can only be selected once MFA has actually been configured.
    */
   isMfaEnabled = false;
+
+  /**
+   * Whether at least one WebAuthn fingerprint credential is registered.
+   * Drives whether "Fingerprint" can be chosen as the preferred login method.
+   */
+  isFingerprintEnabled = false;
 
   // ── Session PIN ──────────────────────────────────────────────────────────
   hasPinSet = false;
@@ -96,6 +104,7 @@ export class SettingsComponent implements OnInit {
     private themeService: ThemeService,
     private pinService:   PinService,
     private router:       Router,
+    private fingerprint:  FingerprintService,
   ) {
     const token = this.common.getAccessToken();
     if (token) {
@@ -116,6 +125,13 @@ export class SettingsComponent implements OnInit {
     this.headerService.getMFAStatus(this.userName).subscribe({
       next: (status) => { this.isMfaEnabled = status?.isMfaEnabled === true; },
       error: () => { this.isMfaEnabled = false; },
+    });
+
+    // Load fingerprint status so the "Fingerprint" login-method option can be
+    // disabled until at least one credential is registered.
+    this.fingerprint.getStatus(this.userName).subscribe({
+      next: (status: any) => { this.isFingerprintEnabled = status?.isFingerprintEnabled === true; },
+      error: () => { this.isFingerprintEnabled = false; },
     });
 
     if (this.userName) {
@@ -145,6 +161,14 @@ export class SettingsComponent implements OnInit {
       this.user = data;
       this.selectedAuthType = data.loginType;
     });
+  }
+
+  /**
+   * Called when the embedded Fingerprint panel registers or removes credentials.
+   * Keeps the "Fingerprint" preferred-login option in sync without a refresh.
+   */
+  onFingerprintStatusChanged(enabled: boolean): void {
+    this.isFingerprintEnabled = enabled;
   }
 
   get currentAuthTypeLabel(): string {
@@ -317,6 +341,10 @@ export class SettingsComponent implements OnInit {
     }
     if (newType === AuthType.AuthenticationApp && !this.isMfaEnabled) {
       this.errorMsg = 'Set up the Authenticator App below before choosing it as your login method.';
+      return;
+    }
+    if (newType === AuthType.Fingerprint && !this.isFingerprintEnabled) {
+      this.errorMsg = 'Register your fingerprint below before choosing it as your login method.';
       return;
     }
     this.headerService.updateAuthType(this.userName, Number(newType)).subscribe({

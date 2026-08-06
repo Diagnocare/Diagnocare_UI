@@ -122,6 +122,54 @@
   color: #fff;
 }
 
+/* ── Refresh Licence button (pulls latest from the licence server) ─ */
+.dc-nav-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1.1rem;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 2rem;
+  background: transparent;
+  color: rgba(255,255,255,0.9);
+  font-size: 0.87rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.dc-nav-refresh:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  border-color: #fff;
+  color: #fff;
+}
+.dc-nav-refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Refresh feedback strip ─────────────────────────────────────── */
+.dc-refresh-note {
+  position: fixed;
+  top: 64px;            /* sits just below the fixed navbar */
+  left: 0; right: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #065f46;
+  border-bottom: 1px solid #a7f3d0;
+}
+.dc-refresh-note.dc-refresh-warn {
+  background: #fffbeb;
+  color: #92400e;
+  border-bottom-color: #fcd34d;
+}
+
 /* ── Licence Expiry Banner ──────────────────────────────────────── */
 .dc-expiry-banner {
   position: fixed;
