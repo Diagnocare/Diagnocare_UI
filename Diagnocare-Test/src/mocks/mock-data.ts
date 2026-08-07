@@ -148,12 +148,6 @@ export const MOCK_PATHOLOGY_PUBLIC_INFO_UNREGISTERED = {
   isRegistered: false,
 };
 
-export const MOCK_EXTEND_LICENSE_RESPONSE = {
-  success:        true,
-  licenseKey:     'EXT-LIC-XYZ-9999',
-  date_of_Expiry: '2027-12-31',
-};
-
 export const MOCK_REGISTER_RESPONSE = {
   success:    true,
   licenseKey: 'REG-LIC-ABCD-1234',

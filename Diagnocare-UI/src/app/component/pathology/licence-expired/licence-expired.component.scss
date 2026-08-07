@@ -154,10 +154,6 @@
   color: #92400e;
   line-height: 1.6;
   margin: 0 0 16px;
-
-  &.le-cta-admin {
-    color: #1e40af;
-  }
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
@@ -196,13 +192,6 @@
   color: #64748b;
 }
 
-.le-btn-extend {
-  background: linear-gradient(135deg, #15803d, #22c55e);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
-  text-decoration: none;
-}
-
 /* ── Refresh licence (pull latest from the licence server) ──────────────── */
 .le-refresh-box {
   text-align: center;
@@ -230,13 +219,6 @@
   &.le-refresh-warn {
     color: #92400e;
   }
-}
-
-.le-cta-admin {
-  color: #1e40af;
-  font-weight: 600;
-
-  i { color: #1d4ed8; margin-right: 4px; }
 }
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
