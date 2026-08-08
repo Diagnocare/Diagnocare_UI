@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
+import { PathologyProfileCacheService } from 'src/app/services/pathologyServices/pathology-profile-cache.service';
 import { TokenService }     from 'src/app/core/interceptors/token.service';
 
 /** How many days before expiry the "Extend Licence" button appears */
@@ -42,6 +43,7 @@ export class HomeComponent implements OnInit {
 
   constructor(
     private _pathologyService: PathologyService,
+    private _profileCache: PathologyProfileCacheService,
     private _tokenService: TokenService,
   ) {}
 
@@ -75,6 +77,10 @@ export class HomeComponent implements OnInit {
 
     this.refreshing = true;
     this.clearRefreshMessage();
+
+    // The cached lab profile (12h TTL) carries licence type/status/expiry. Drop it
+    // now so the profile page can't keep showing the pre-refresh licence.
+    this._profileCache.clear();
 
     this._pathologyService.getPublicInfo(true).subscribe({
       next: (info) => {
