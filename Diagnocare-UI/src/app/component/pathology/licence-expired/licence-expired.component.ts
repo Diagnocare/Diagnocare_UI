@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { LicenceService }   from 'src/app/services/licenceServices/licence.service';
 import { LoginService }     from 'src/app/services/loginServices/login.service';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
+import { PathologyProfileCacheService } from 'src/app/services/pathologyServices/pathology-profile-cache.service';
 
 @Component({
   selector: 'app-licence-expired',
@@ -32,6 +33,7 @@ export class LicenceExpiredComponent implements OnInit {
     private licenceSvc:   LicenceService,
     private loginService: LoginService,
     private pathologyService: PathologyService,
+    private profileCache: PathologyProfileCacheService,
     private router: Router
   ) {}
 
@@ -60,6 +62,11 @@ export class LicenceExpiredComponent implements OnInit {
 
     this.refreshing = true;
     this.refreshMessage = '';
+
+    // Drop every client-side copy of the licence before asking for the fresh one:
+    // the cached lab profile (12h TTL) and LicenceService's once-per-session expiry.
+    this.profileCache.clear();
+    this.licenceSvc.reset();
 
     this.pathologyService.getPublicInfo(true).subscribe({
       next: (info) => {

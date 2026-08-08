@@ -63,6 +63,15 @@ export class LicenceService {
     );
   }
 
+  /**
+   * Drops the once-per-session guard so the next load() calls the API again.
+   * Call this after a forced licence refresh — otherwise the in-memory expiry
+   * captured on the first load keeps being served for the rest of the session.
+   */
+  reset(): void {
+    this.loaded = false;
+  }
+
   // ── Synchronous accessors (valid after load() has completed) ──────────────
 
   get isExpired(): boolean       { return this._expired$.getValue(); }
