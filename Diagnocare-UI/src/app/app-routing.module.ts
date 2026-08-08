@@ -27,9 +27,8 @@ export const routes: Routes = [
     loadComponent: () => import('./component/help/help.component').then(m => m.HelpComponent) },
   { path: 'register-pathology', title: 'Register Pathology',
     loadComponent: () => import('./component/pathology/register-pathology/register-pathology.component').then(m => m.RegisterPathologyComponent) },
-  { path: 'extend-license', title: 'Extend Licence',
-    loadComponent: () => import('./component/pathology/extend-license/extend-license.component').then(m => m.ExtendLicenseComponent),
-    canActivate: [roleGuard(Role.Admin.id)] },
+  // Note: there is deliberately no 'extend-license' route. Licence extension is
+  // performed in the shared Diagnocare application — this app only reads the licence.
 
   // Licence expired — accessible even when licence has expired (public, no layout header)
   { path: 'licence-expired', title: 'Licence Expired',

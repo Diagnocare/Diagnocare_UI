@@ -30,7 +30,6 @@ module.exports = {
     '../Diagnocare_UI/src/app/shared/common.service.ts',
     '../Diagnocare_UI/src/app/component/receipt/bill-receipt.ts',
     '../Diagnocare_UI/src/app/component/login/home.component.ts',
-    '../Diagnocare_UI/src/app/component/extend-license/extend-license.component.ts',
     '../Diagnocare_UI/src/app/component/pathology/register-pathology/register-pathology.component.ts',
     '../Diagnocare_UI/src/app/component/lab-profile/lab-profile.component.ts',
     '!**/*.spec.ts',

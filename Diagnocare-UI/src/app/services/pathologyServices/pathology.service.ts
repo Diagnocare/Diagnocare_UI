@@ -9,7 +9,6 @@ import { PathologyRegisterDto } from 'src/app/models/pathology/pathology-registe
 import { PathologyRegisterResponseDto } from 'src/app/models/pathology/pathology-register-response.dto';
 import { PathologyPublicInfoDto } from 'src/app/models/pathology/pathology-public-info.dto';
 import { PathologyProfileDto } from 'src/app/models/pathology/pathology-profile.dto';
-import { PathologyExtendLicenseDto, PathologyExtendLicenseResponseDto } from 'src/app/models/pathology/pathology-extend-license.dto';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { CommonService } from 'src/app/shared/common.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -102,12 +101,9 @@ export class PathologyService {
         ).pipe(catchError(this.errorHandler));
       }
 
-      /** Public (no-auth) — extend an existing pathology licence */
-      extendLicense(dto: PathologyExtendLicenseDto): Observable<PathologyExtendLicenseResponseDto> {
-        return this.httpClient.post<PathologyExtendLicenseResponseDto>(
-          this.url + apiEndpoints.extendLicense, dto
-        ).pipe(catchError(this.errorHandler));
-      }
+      // Note: no extendLicense() here by design. Licence extension lives in the
+      // shared Diagnocare application; this app only reads licence state via
+      // getPublicInfo() / getActiveLicense().
 
       /**
        * PUT — updates the grace buffer duration (minutes) stored in token_expiry_in_minutes.
