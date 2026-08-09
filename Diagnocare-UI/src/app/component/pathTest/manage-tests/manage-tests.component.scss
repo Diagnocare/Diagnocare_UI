@@ -347,21 +347,21 @@
 
 /* ══ THEME OVERRIDES ══════════════════════════════════════════════ */
 
-:host-context(html[data-theme="dark"]) {
+html[data-theme="dark"] .page-container {
   .list-item {
     &:nth-child(odd)  { background: #1e293b !important; }
     &:nth-child(even) { background: #1a2538 !important; }
     &:hover { background: #0c2340 !important; }
   }
 }
-:host-context(html[data-theme="midnight"]) {
+html[data-theme="midnight"] .page-container {
   .list-item {
     &:nth-child(odd)  { background: #0d1117 !important; }
     &:nth-child(even) { background: #0a0e14 !important; }
     &:hover { background: #041f30 !important; }
   }
 }
-:host-context(html[data-theme="warm"]) {
+html[data-theme="warm"] .page-container {
   .list-item {
     &:nth-child(odd)  { background: #fffdf7 !important; }
     &:nth-child(even) { background: #fdf6ea !important; }
@@ -369,7 +369,7 @@
   }
 }
 @media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
+  html[data-theme="system"] .page-container {
     .list-item {
       &:nth-child(odd)  { background: #1e293b !important; }
       &:nth-child(even) { background: #1a2538 !important; }
