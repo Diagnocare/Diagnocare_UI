@@ -1013,6 +1013,228 @@
   transform: scale(0.96);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Create Test Report — header actions
+   ──────────────────────────────────────────────────────────────────────────
+   These sit on the coloured overlay header, so they follow the same
+   "solid-white primary + translucent glass secondary" language the app already
+   uses for on-gradient toolbars (page headers, the close button above, the
+   attendance legend) instead of the stock cyan .btn-info, which was off-palette.
+   ══════════════════════════════════════════════════════════════════════════ */
+.overlay-header .header-actions .btn,
+.header-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  font-size: 0.84em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s ease, border-color 0.18s ease,
+              transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+/* Primary action — solid white, brand-tinted label (matches page-header CTAs) */
+.header-actions .btn.btn-primary {
+  background: #ffffff;
+  color: #15803d;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+.header-actions .btn.btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24);
+}
+
+/* Secondary actions (View / PDF / CSV) — translucent glass on the header */
+.header-actions .btn.btn-info {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.header-actions .btn.btn-info:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.85);
+  transform: translateY(-1px);
+}
+.header-actions .btn.btn-info:active:not(:disabled) { transform: scale(0.97); }
+
+/* Busy / disabled — keep the label legible while work is in flight */
+.header-actions .btn:disabled {
+  opacity: 0.65;
+  cursor: progress;
+  transform: none;
+  box-shadow: none;
+}
+.header-actions .btn .fa-spinner { opacity: 0.9; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CREATE TEST REPORT — refined surface
+   ──────────────────────────────────────────────────────────────────────────
+   The panel used to be one flat green gradient, which filled all the empty
+   space below the table and sat outside the product's palette. It now follows
+   the same identity as the rest of the app: brand-gradient header, calm neutral
+   work surface, and the data presented on a crisp white card.
+   ══════════════════════════════════════════════════════════════════════════ */
+.parameter-overlay-backdrop {
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.parameter-container {
+  /* Neutral work surface — replaces the full-panel green gradient */
+  background: #f6f8fc;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.42), 0 2px 10px rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+/* ── Header — the app's signature gradient ─────────────────────────────── */
+.parameter-header {
+  padding: 1.15em 1.6em;
+  background: linear-gradient(135deg, #1E5BA8 0%, #667eea 55%, #764ba2 100%);
+  border-bottom: none;
+  box-shadow: 0 2px 14px rgba(30, 91, 168, 0.28);
+}
+
+.parameter-header h2 {
+  font-size: 1.32em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+/* Test code / name reads as a subtle chip rather than loose grey text */
+.parameter-header .subtitle {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5em;
+  padding: 0.22em 0.7em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.parameter-header .header-actions { gap: 0.5em; }
+
+/* Primary button label picks up the brand blue now the header is blue */
+.header-actions .btn.btn-primary { color: #1E5BA8; }
+
+/* ── Data table — presented on a clean white card ──────────────────────── */
+.parameter-list-table {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.parameter-list-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef2f9;
+  color: #334155;
+  font-size: 0.78em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85em 1em;
+  border: none;
+  border-bottom: 1px solid #dbe3ef;
+  white-space: nowrap;
+}
+
+.parameter-list-table tbody td {
+  padding: 0.7em 1em;
+  border: none;
+  border-bottom: 1px solid #eef2f7;
+  color: #1e293b;
+  font-size: 0.9em;
+  vertical-align: middle;
+}
+
+.parameter-list-table tbody tr:last-child td { border-bottom: none; }
+.parameter-list-table tbody tr { transition: background 0.14s ease; }
+.parameter-list-table tbody tr:hover { background: #f7faff; }
+
+/* Result inputs — quiet until focused, then brand-tinted */
+.parameter-list-table input.form-control,
+.parameter-list-table input[type="text"],
+.parameter-list-table input[type="number"] {
+  border: 1.5px solid #dbe3ef;
+  border-radius: 9px;
+  padding: 0.5em 0.8em;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #0f2744;
+  background: #fbfcfe;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.parameter-list-table input.form-control:focus,
+.parameter-list-table input[type="text"]:focus,
+.parameter-list-table input[type="number"]:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #1E5BA8;
+  box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.14);
+}
+
+/* ── Theme variants ────────────────────────────────────────────────────── */
+:host-context(html[data-theme="dark"]) .parameter-container,
+:host-context(html[data-theme="system"]) .parameter-container { background: #0f172a; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .parameter-list-table,
+:host-context(html[data-theme="system"]) .parameter-list-table { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .parameter-list-table thead th,
+:host-context(html[data-theme="system"]) .parameter-list-table thead th {
+  background: #273548; color: #cbd5e1; border-bottom-color: #334155;
+}
+:host-context(html[data-theme="dark"]) .parameter-list-table tbody td,
+:host-context(html[data-theme="system"]) .parameter-list-table tbody td { color: #e2e8f0; border-bottom-color: #273548; }
+:host-context(html[data-theme="dark"]) .parameter-list-table tbody tr:hover,
+:host-context(html[data-theme="system"]) .parameter-list-table tbody tr:hover { background: #223049; }
+:host-context(html[data-theme="dark"]) .parameter-list-table input,
+:host-context(html[data-theme="system"]) .parameter-list-table input {
+  background: #0f172a; border-color: #334155; color: #e2e8f0;
+}
+
+:host-context(html[data-theme="midnight"]) .parameter-container { background: #020408; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table thead th {
+  background: #161b22; color: #a6adc8; border-bottom-color: #21262d;
+}
+:host-context(html[data-theme="midnight"]) .parameter-list-table tbody td { color: #cdd6f4; border-bottom-color: #161b22; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table tbody tr:hover { background: #161b22; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table input {
+  background: #020408; border-color: #21262d; color: #cdd6f4;
+}
+
+:host-context(html[data-theme="warm"]) .parameter-container { background: #f5ede0; border-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .parameter-list-table { background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .parameter-list-table thead th {
+  background: #f4e8d8; color: #5c4636; border-bottom-color: #e8d9c0;
+}
+:host-context(html[data-theme="warm"]) .parameter-list-table tbody td { color: #3d2b1f; border-bottom-color: #f0e6d6; }
+:host-context(html[data-theme="warm"]) .parameter-list-table tbody tr:hover { background: #fdf6ea; }
+:host-context(html[data-theme="warm"]) .parameter-list-table input {
+  background: #fffdf7; border-color: #ddc9a8; color: #3d2b1f;
+}
+
 /* Detail Loading */
 .detail-loading {
   display: flex;

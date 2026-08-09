@@ -325,3 +325,72 @@
   background: #174d90;
   box-shadow: 0 2px 8px rgba(30, 91, 168, 0.25);
 }
+
+/* ══════════════════════════ THEME OVERRIDES ══════════════════════════════
+   The modal card is a light surface; the app's global theme rules force
+   label/span text light (for dark page backgrounds), which hides text on the
+   light card. Theme the surfaces + text per palette so everything stays
+   readable in dark / midnight / warm / system. */
+:host-context(html[data-theme="dark"]) .pcm-modal        { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .pcm-header       { border-bottom-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-amount-strip { background: #273548; border-bottom-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-strip-label  { color: #94a3b8 !important; }
+:host-context(html[data-theme="dark"]) .pcm-strip-value  { color: #5b9cf6 !important; }
+:host-context(html[data-theme="dark"]) .pcm-input-label  { color: #cbd5e1 !important; }
+:host-context(html[data-theme="dark"]) .pcm-input        { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-result--idle { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-footer       { border-top-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-btn-clear    { color: #94a3b8 !important; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-btn-clear:hover { background: #273548; border-color: #475569; }
+
+:host-context(html[data-theme="midnight"]) .pcm-modal        { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .pcm-header       { border-bottom-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-amount-strip { background: #161b22; border-bottom-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-strip-label  { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .pcm-strip-value  { color: #4d9ef0 !important; }
+:host-context(html[data-theme="midnight"]) .pcm-input-label  { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .pcm-input        { background: #020408; color: #cdd6f4; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-result--idle { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-footer       { border-top-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-btn-clear    { color: #a6adc8 !important; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-btn-clear:hover { background: #161b22; border-color: #30363d; }
+
+:host-context(html[data-theme="warm"]) .pcm-modal        { background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .pcm-header       { border-bottom-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-amount-strip { background: #fef9f0; border-bottom-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-strip-label  { color: #7a5c4e !important; }
+:host-context(html[data-theme="warm"]) .pcm-strip-value  { color: #9c5a28 !important; }
+:host-context(html[data-theme="warm"]) .pcm-input-label  { color: #4a3728 !important; }
+:host-context(html[data-theme="warm"]) .pcm-input        { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .pcm-result--idle { background: #fef9f0; border-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-footer       { border-top-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-btn-clear    { color: #7a5c4e !important; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .pcm-btn-clear:hover { background: #fef9f0; border-color: #c4a882; }
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .pcm-modal        { background: #1e293b; }
+  :host-context(html[data-theme="system"]) .pcm-header       { border-bottom-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-amount-strip { background: #273548; border-bottom-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-strip-label  { color: #94a3b8 !important; }
+  :host-context(html[data-theme="system"]) .pcm-strip-value  { color: #5b9cf6 !important; }
+  :host-context(html[data-theme="system"]) .pcm-input-label  { color: #cbd5e1 !important; }
+  :host-context(html[data-theme="system"]) .pcm-input        { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-result--idle { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-footer       { border-top-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-btn-clear    { color: #94a3b8 !important; border-color: #334155; }
+}
+
+/* Semantic result panels keep their light tints in every theme, so re-assert
+   their coloured text with !important to beat the global light-text rule
+   (otherwise the labels get whitened and vanish on the tint). */
+.pcm-result--balance .pcm-result-icon,
+.pcm-result--balance .pcm-result-amount { color: #c07800 !important; }
+.pcm-result--balance .pcm-result-label  { color: #7a5100 !important; }
+.pcm-result--balance .pcm-result-sub    { color: #a07030 !important; }
+.pcm-result--return .pcm-result-icon,
+.pcm-result--return .pcm-result-amount  { color: #1a8c7a !important; }
+.pcm-result--return .pcm-result-label   { color: #0e5249 !important; }
+.pcm-result--return .pcm-result-sub     { color: #2a7060 !important; }
+.pcm-result--complete .pcm-result-icon  { color: #2d8c4e !important; }
+.pcm-result--complete .pcm-result-label { color: #1a5c30 !important; }
+.pcm-result--complete .pcm-result-sub   { color: #3a7a50 !important; }

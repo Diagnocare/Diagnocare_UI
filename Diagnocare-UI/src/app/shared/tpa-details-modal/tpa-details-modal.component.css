@@ -265,3 +265,59 @@
 .tdm-btn--save:disabled:hover {
   background: #cbd5e1;
 }
+
+/* ══════════════════════════ THEME OVERRIDES ══════════════════════════════
+   Light modal surface + the app's global light-text rules would hide text on
+   the card. Theme surfaces + text per palette for every mode. */
+:host-context(html[data-theme="dark"]) .tdm-modal        { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .tdm-header       { background: #273548; border-bottom-color: #334155; }
+:host-context(html[data-theme="dark"]) .tdm-title        { color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .tdm-subtitle     { color: #94a3b8 !important; }
+:host-context(html[data-theme="dark"]) .tdm-label        { color: #cbd5e1 !important; }
+:host-context(html[data-theme="dark"]) .tdm-close-btn    { background: #334155; color: #cbd5e1; }
+:host-context(html[data-theme="dark"]) .tdm-input        { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .tdm-input--readonly { background: #273548; color: #cbd5e1; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .tdm-btn--cancel  { background: #334155; color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .tdm-btn--cancel:hover { background: #3f4d63; }
+
+:host-context(html[data-theme="midnight"]) .tdm-modal        { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .tdm-header       { background: #161b22; border-bottom-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .tdm-title        { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .tdm-subtitle     { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .tdm-label        { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .tdm-close-btn    { background: #21262d; color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .tdm-input        { background: #020408; color: #cdd6f4; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .tdm-input--readonly { background: #161b22; color: #a6adc8; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .tdm-btn--cancel  { background: #21262d; color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .tdm-btn--cancel:hover { background: #30363d; }
+
+:host-context(html[data-theme="warm"]) .tdm-modal        { background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .tdm-header       { background: #fef4e4; border-bottom-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .tdm-title        { color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .tdm-subtitle     { color: #7a5c4e !important; }
+:host-context(html[data-theme="warm"]) .tdm-label        { color: #4a3728 !important; }
+:host-context(html[data-theme="warm"]) .tdm-close-btn    { background: #fef9f0; color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .tdm-input        { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .tdm-input--readonly { background: #fef9f0; color: #5c4636; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .tdm-btn--cancel  { background: #fef9f0; color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .tdm-btn--cancel:hover { background: #f4e8d8; }
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .tdm-modal        { background: #1e293b; }
+  :host-context(html[data-theme="system"]) .tdm-header       { background: #273548; border-bottom-color: #334155; }
+  :host-context(html[data-theme="system"]) .tdm-title        { color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .tdm-subtitle     { color: #94a3b8 !important; }
+  :host-context(html[data-theme="system"]) .tdm-label        { color: #cbd5e1 !important; }
+  :host-context(html[data-theme="system"]) .tdm-close-btn    { background: #334155; color: #cbd5e1; }
+  :host-context(html[data-theme="system"]) .tdm-input        { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .tdm-input--readonly { background: #273548; color: #cbd5e1; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .tdm-btn--cancel  { background: #334155; color: #e2e8f0 !important; }
+}
+
+/* Coloured text that sits on tints/next to labels — re-assert with !important
+   so the global light-text rule can't whiten it away in themed modes. */
+.tdm-required    { color: #dc2626 !important; }
+.tdm-field-error { color: #dc2626 !important; }
+.tdm-status--pending  { color: #92400e !important; }
+.tdm-status--approved { color: #1e40af !important; }
+.tdm-status--settled  { color: #166534 !important; }
