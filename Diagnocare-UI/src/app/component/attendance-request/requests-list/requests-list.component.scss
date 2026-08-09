@@ -109,3 +109,23 @@
   h3 { margin: 0 0 0.35rem; color: var(--text-primary, #334155); font-size: 1.05rem; }
   p { color: var(--text-secondary, #94a3b8); margin-bottom: 1rem; }
 }
+
+/* ── Theme-visibility guard ────────────────────────────────────────────────
+   These already use theme-aware CSS vars (dark in warm/light themes, light in
+   dark themes), but the app's global `[data-theme] p/span/li !important` rules
+   whiten them on the light card. Re-assert with !important so the correct
+   theme colour wins on every surface in every mode. */
+.ar-table .date              { color: var(--text-primary, #1e293b) !important; }
+.ar-table .day,
+.ar-table .muted,
+.ar-table .reason-cell,
+.ar-table th                 { color: var(--text-secondary, #64748b) !important; }
+.ar-table .transition .to    { color: var(--text-primary, #1e293b) !important; }
+.ar-table .transition .arrow { color: var(--text-secondary, #adb5bd) !important; }
+.ar-table .changed           { color: #b45309 !important; }
+.chip-bar .chip              { color: var(--text-secondary, #64748b) !important; }
+.chip-bar .chip.active       { color: #fff !important; }
+.filter-panel label          { color: var(--text-secondary, #94a3b8) !important; }
+.pager .page-info            { color: var(--text-secondary, #64748b) !important; }
+.empty-state h3              { color: var(--text-primary, #334155) !important; }
+.empty-state p               { color: var(--text-secondary, #94a3b8) !important; }

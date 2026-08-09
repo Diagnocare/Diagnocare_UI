@@ -431,13 +431,18 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
                 <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                        [disabled]="!updatedFormData.group.testGroupId || editSubGroupsLoading"
                         (change)="onEditSubGroupSelect()">
-                  <option value="" disabled selected>Choose subgroup…</option>
-                  <ng-container *ngFor="let s of subGroups">
-                    <option *ngIf="s.parentGroupId === updatedFormData.group.testGroupId" [value]="s.testGroupId">
-                      {{ s.testGroupId }} — {{ s.name }}
-                    </option>
-                  </ng-container>
+                  <option value="" disabled selected>
+                    {{ !updatedFormData.group.testGroupId ? 'Select a group first…'
+                       : editSubGroupsLoading ? 'Loading subgroups…'
+                       : 'Choose subgroup…' }}
+                  </option>
+                  <option *ngFor="let s of editSubGroups" [value]="s.testGroupId">
+                    {{ s.testGroupId }} — {{ s.name }}
+                  </option>
+                  <option *ngIf="updatedFormData.group.testGroupId && !editSubGroupsLoading && editSubGroups.length === 0"
+                          value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
             </div>
@@ -490,13 +495,18 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
                 <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                        [disabled]="!updatedFormData.group.testGroupId || editSubGroupsLoading"
                         (change)="onEditSubGroupChangedForTest()">
-                  <option value="" disabled selected>Choose subgroup…</option>
-                  <ng-container *ngFor="let s of subGroups">
-                    <option *ngIf="s.parentGroupId === updatedFormData.group.testGroupId" [value]="s.testGroupId">
-                      {{ s.testGroupId }} — {{ s.name }}
-                    </option>
-                  </ng-container>
+                  <option value="" disabled selected>
+                    {{ !updatedFormData.group.testGroupId ? 'Select a group first…'
+                       : editSubGroupsLoading ? 'Loading subgroups…'
+                       : 'Choose subgroup…' }}
+                  </option>
+                  <option *ngFor="let s of editSubGroups" [value]="s.testGroupId">
+                    {{ s.testGroupId }} — {{ s.name }}
+                  </option>
+                  <option *ngIf="updatedFormData.group.testGroupId && !editSubGroupsLoading && editSubGroups.length === 0"
+                          value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
             </div>
@@ -504,14 +514,17 @@
             <div class="form-group" *ngIf="updatedFormData.subGroup.testGroupId">
               <label class="form-label required">Test</label>
               <select class="form-control" [(ngModel)]="updatedFormData.test.testCode"
+                      [disabled]="editTestsLoading"
                       (change)="onEditTestSelect()">
-                <option value="" disabled selected>Choose a test…</option>
-                <ng-container *ngFor="let t of tests">
-                  <option *ngIf="t.subGroupId === updatedFormData.subGroup.testGroupId" [value]="t.testCode">
-                    {{ t.testCode }} — {{ t.testName }}
-                  </option>
-                </ng-container>
-                <option *ngIf="tests.length == 0" value="" disabled>No tests in this subgroup</option>
+                <option value="" disabled selected>
+                  {{ editTestsLoading ? 'Loading tests…' : 'Choose a test…' }}
+                </option>
+                <option *ngFor="let t of editTests" [value]="t.testCode">
+                  {{ t.testCode }} — {{ t.testName }}
+                </option>
+                <option *ngIf="!editTestsLoading && editTests.length === 0" value="" disabled>
+                  No tests in this subgroup
+                </option>
               </select>
             </div>
 

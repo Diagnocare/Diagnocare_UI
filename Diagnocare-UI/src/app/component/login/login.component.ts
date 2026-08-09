@@ -4,7 +4,7 @@ import { ToastrService } from 'ngx-toastr';
 import { LoginModel } from '../../models/auth/loginModel';
 import { CommonModule } from '@angular/common';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
-import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, NavigationExtras, Router, RouterModule } from '@angular/router';
 import { CommonService } from '../../shared/common.service';
 import { Role } from '../../constant/enums';
 import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
@@ -478,9 +478,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     console.log('handleSuccessfulLogin: expiryDaysLeft =', expiryDaysLeft);
     if (expiryDaysLeft !== null && expiryDaysLeft <= 0) {
       console.log('handleSuccessfulLogin: password expired, redirecting to forgot-password');
-      this.closeOtpDialog();
       this.toastr.warning('Your password has expired. Please reset it to continue.');
-      this._router.navigate(['forgot-password'], { queryParams: { expired: true } });
+      this.navigateAfterLogin(['forgot-password'], { queryParams: { expired: true } });
       return;
     }
 console.log('handleSuccessfulLogin: password not expired, proceeding with login');
@@ -490,39 +489,64 @@ console.log('handleSuccessfulLogin: resp.token =', resp.token);
       console.log('handleSuccessfulLogin: token already stored, proceeding with navigation');
       this.toastr.success('Login successful!');
 
-      this.closeOtpDialog();
-      console.log('closed OTP dialog');
       if (this.passwordUpdated === false) {
-        this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
+        this.navigateAfterLogin(['change-password'], { queryParams: { forceChange: true } });
       } else {
         this.storePasswordExpiryWarning();
-        this._router.navigate([this.resolveLandingRoute()]);
+        this.navigateAfterLogin([this.resolveLandingRoute()]);
       }
     } else {
       console.log('handleSuccessfulLogin: no token returned, calling refreshToken()');
+      // Keep the dialog spinner up across the refresh round-trip so the login
+      // form never becomes visible/editable mid-flight.
+      this.isVerifyingOtp = true;
       this._loginService.refreshToken().subscribe({
         next: (tokenResp) => {
           if (tokenResp?.success) {
             // Token already stored in localStorage by refreshToken()'s tap().
             this.toastr.success('Login successful!');
-            this.closeOtpDialog();
-            console.log('closed OTP dialog');
             if (this.passwordUpdated === false) {
               console.log('handleSuccessfulLogin: password not updated, redirecting to change-password');
-              this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
+              this.navigateAfterLogin(['change-password'], { queryParams: { forceChange: true } });
             } else {
               console.log('handleSuccessfulLogin: password updated, storing expiry warning and navigating to landing route');
               this.storePasswordExpiryWarning();
-              this._router.navigate([this.resolveLandingRoute()]);
-              console.log('handleSuccessfulLogin: navigation complete');
+              this.navigateAfterLogin([this.resolveLandingRoute()]);
             }
           } else {
+            this.isVerifyingOtp = false;
             this.toastr.error('Failed to retrieve authentication token.');
           }
         },
-        error: () => { this.toastr.error('Failed to retrieve authentication token.'); },
+        error: () => {
+          this.isVerifyingOtp = false;
+          this.toastr.error('Failed to retrieve authentication token.');
+        },
       });
     }
+  }
+
+  /**
+   * Navigates away from /login while keeping the OTP dialog mounted.
+   *
+   * Closing the dialog first (showOtpDialog = false) unmounts the full-screen
+   * overlay synchronously, while Router.navigate() only resolves on the next
+   * microtask (later still if a guard/resolver runs). That gap is what made the
+   * login page flash for a split second after a correct OTP. Keeping the dialog
+   * — and its spinner — up until the navigation promise settles means the user
+   * goes straight from "Verifying…" to the landing page.
+   *
+   * If navigation is rejected or blocked by a guard, the dialog is closed so the
+   * user isn't stuck behind a permanent overlay.
+   */
+  private navigateAfterLogin(commands: any[], extras?: NavigationExtras): void {
+    this.isVerifyingOtp = true;   // spinner stays until the route actually changes
+    this._router.navigate(commands, extras)
+      .catch(() => false)
+      .then((ok) => {
+        this.isVerifyingOtp = false;
+        if (!ok) this.closeOtpDialog();
+      });
   }
 
   /**

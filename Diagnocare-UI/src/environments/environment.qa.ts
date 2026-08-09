@@ -1,4 +1,6 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: false,
   diagnocareApiURL: 'http://diagnocare-qaapi:83/',
   loginUIUrl: 'http://diagnocare-qa:82/',
