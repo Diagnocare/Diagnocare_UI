@@ -1,4 +1,6 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: false,
   // Dev SERVER API — must be reachable from client browsers on the dev network.
   // (Was 'https://localhost:44346/', which only works on a machine running the

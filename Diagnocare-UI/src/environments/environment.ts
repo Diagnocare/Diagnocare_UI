@@ -1,4 +1,6 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: false,
   // Default/base environment. Same latent localhost bug as environment.development.ts
   // was fixed here too so any build that falls back to this file (no fileReplacement)
