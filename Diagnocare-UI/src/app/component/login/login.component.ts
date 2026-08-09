@@ -433,7 +433,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isVerifyingOtp = true;
 
     this._loginService.verifyAuth({
       authType: event.authType,
@@ -445,8 +444,6 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Clear the verifying spinner first, before any early return below —
         // an invalid code is still a completed request, so the dialog must go
         // back to an editable state instead of spinning forever.
-        this.isVerifyingOtp = false;
-
         if (!resp?.success) {
           const msg = (resp as any)?.message || 'Invalid code. Please try again.';
           // Lockout detected from verification response — close dialog, show lockout banner
@@ -461,6 +458,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           return;
         }
         this.handleSuccessfulLogin(resp);
+        this.isVerifyingOtp = false;
       },
       error: () => {
         this.isVerifyingOtp = false;
