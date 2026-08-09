@@ -217,7 +217,7 @@ export class LoginService {
   }
 
   /**
-   * Lightweight session health-check — called every 30 s by AppComponent.
+   * Lightweight session health-check — called on AppComponent's session poll.
    * Uses the interceptor-equipped HttpClient so the auth interceptor handles
    * any SESSION_TERMINATED 401 response automatically (marks session terminated
    * and redirects to /login).  Callers should swallow errors for non-session
