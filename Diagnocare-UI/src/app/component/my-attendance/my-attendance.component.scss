@@ -588,6 +588,10 @@ $clr-holiday-light: #fef3c7;
 :host-context(html[data-theme="warm"]) {
   .grid-wrapper    { border-color: #ddc9a8 !important; }
   .sticky-col      { background: #fffdf7 !important; }
+  // The sticky Date column turns cream in warm, so its header label + the user
+  // name (white/force-lit by default) must become dark to stay readable.
+  .user-col-label  { color: #3d2b1f !important; }
+  .user-name       { color: #3d2b1f !important; }
   .user-row        { border-bottom-color: #e8d9c0 !important;
                      td { background: #fffdf7 !important; }
                      .sticky-col { background: #fffdf7 !important; } }

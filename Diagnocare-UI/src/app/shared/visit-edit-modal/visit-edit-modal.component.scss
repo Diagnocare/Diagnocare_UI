@@ -151,3 +151,56 @@
   background: #0891b2; color: #fff; border: 1.5px solid #0891b2;
   &:hover:not(:disabled) { background: #0369a1; border-color: #0369a1; }
 }
+
+/* ══════════════════ THEME OVERRIDES (all modes) ══════════════════════════
+   Light modal surface + global light-text rules would hide text; theme the
+   surfaces and text per palette so it stays readable everywhere. */
+:host-context(html[data-theme="dark"]) {
+  .vem-modal   { background: #1e293b; }
+  .vem-header, .vem-footer { background: #273548; border-color: #334155; }
+  .vem-title    { color: #e2e8f0 !important; }
+  .vem-subtitle { color: #94a3b8 !important; }
+  .vem-label    { color: #cbd5e1 !important; }
+  .vem-close    { color: #94a3b8; &:hover { background: #334155; color: #e2e8f0; } }
+  .vem-select, .vem-input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  .vem-chip     { background: #273548; color: #94a3b8 !important; border-color: #334155; }
+  .vem-btn-cancel { background: #273548; color: #e2e8f0 !important; border-color: #334155;
+                    &:hover:not(:disabled) { background: #334155; } }
+}
+:host-context(html[data-theme="midnight"]) {
+  .vem-modal   { background: #0d1117; }
+  .vem-header, .vem-footer { background: #161b22; border-color: #21262d; }
+  .vem-title    { color: #cdd6f4 !important; }
+  .vem-subtitle { color: #a6adc8 !important; }
+  .vem-label    { color: #cdd6f4 !important; }
+  .vem-close    { color: #a6adc8; &:hover { background: #21262d; color: #cdd6f4; } }
+  .vem-select, .vem-input { background: #020408; color: #cdd6f4; border-color: #21262d; }
+  .vem-chip     { background: #161b22; color: #a6adc8 !important; border-color: #21262d; }
+  .vem-btn-cancel { background: #161b22; color: #cdd6f4 !important; border-color: #21262d;
+                    &:hover:not(:disabled) { background: #21262d; } }
+}
+:host-context(html[data-theme="warm"]) {
+  .vem-modal   { background: #fffdf7; }
+  .vem-header, .vem-footer { background: #fef9f0; border-color: #e8d9c0; }
+  .vem-title    { color: #3d2b1f !important; }
+  .vem-subtitle { color: #7a5c4e !important; }
+  .vem-label    { color: #4a3728 !important; }
+  .vem-close    { color: #7a5c4e; &:hover { background: #f4e8d8; color: #3d2b1f; } }
+  .vem-select, .vem-input { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+  .vem-chip     { background: #fef9f0; color: #7a5c4e !important; border-color: #ddc9a8; }
+  .vem-btn-cancel { background: #fef9f0; color: #3d2b1f !important; border-color: #ddc9a8;
+                    &:hover:not(:disabled) { background: #f4e8d8; } }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .vem-modal   { background: #1e293b; }
+    .vem-header, .vem-footer { background: #273548; border-color: #334155; }
+    .vem-title    { color: #e2e8f0 !important; }
+    .vem-subtitle { color: #94a3b8 !important; }
+    .vem-label    { color: #cbd5e1 !important; }
+    .vem-close    { color: #94a3b8; }
+    .vem-select, .vem-input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+    .vem-chip     { background: #273548; color: #94a3b8 !important; border-color: #334155; }
+    .vem-btn-cancel { background: #273548; color: #e2e8f0 !important; border-color: #334155; }
+  }
+}
