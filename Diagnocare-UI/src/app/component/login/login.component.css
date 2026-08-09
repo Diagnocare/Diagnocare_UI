@@ -7,6 +7,11 @@
 .lp-root {
   display: flex;
   min-height: 100vh;
+  /* Do NOT let the two panels stretch to match each other's height. The right
+     card changes height whenever a banner appears (validation error, lockout,
+     session-ended); with the default `stretch` that growth is transferred to the
+     left panel, whose vertically-centred content then visibly jumps. */
+  align-items: flex-start;
 }
 
 input[type="password"]::-ms-reveal,
@@ -18,14 +23,24 @@ input[type="password"]::-ms-clear {
    LEFT PANEL
 ══════════════════════════════════════════════════════════════════════ */
 .lp-left {
-  position: relative;
+  /* Pinned to the viewport so this panel is always exactly one screen tall,
+     independent of the login card. `sticky` keeps it in view if the right side
+     grows tall enough to scroll the page, and still establishes the containing
+     block the decorative circles are absolutely positioned against — the same
+     job the `relative` it replaces was doing. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
   flex: 1 1 55%;
   background: linear-gradient(135deg, #0f1f4b 0%, #1E5BA8 40%, #667eea 78%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 3rem 3.5rem;
-  overflow: hidden;
+  /* x hidden keeps the circles clipped; y auto means an unusually short viewport
+     scrolls this panel internally rather than clipping the feature list. */
+  overflow: hidden auto;
 }
 
 /* Decorative background circles */
@@ -167,6 +182,9 @@ input[type="password"]::-ms-clear {
 ══════════════════════════════════════════════════════════════════════ */
 .lp-right {
   flex: 0 0 45%;
+  /* This side owns the page height now: it fills the viewport, and grows past it
+     (scrolling the page) if the card ever gets taller. The left panel stays put. */
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -394,9 +412,17 @@ input[type="password"]::-ms-clear {
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .lp-root { flex-direction: column; }
+  /* Stacked layout — the panels sit one above the other, so there is no sibling
+     whose height could disturb the other. Release the viewport pin entirely;
+     leaving it would trap the left panel at one screen tall and make it stick
+     over the form while scrolling. */
+  .lp-root { flex-direction: column; align-items: stretch; }
 
   .lp-left {
+    position: relative;
+    top: auto;
+    height: auto;
+    overflow: hidden;
     flex: none;
     padding: 3rem 2rem 2.5rem;
     text-align: center;
@@ -414,6 +440,7 @@ input[type="password"]::-ms-clear {
 
   .lp-right {
     flex: none;
+    min-height: 0;
     padding: 2rem 1.25rem 3rem;
   }
 }
