@@ -1,5 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { catchError, throwError } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
@@ -27,9 +28,22 @@ export const SKIP_ERROR_TOAST_HEADER = 'X-Skip-Error-Toast';
  * Note: endpoints that return HTTP 200 with a failure body (e.g. OperationResult
  * { success:false }) are NOT HTTP errors and are intentionally left to the caller
  * to interpret via result.success.
+ *
+ * 403 handling
+ * ────────────
+ * A 403 means the session is valid but the role is not permitted — the server-side
+ * counterpart of roleGuard. Rather than a toast the user can miss behind a
+ * half-rendered screen, we send them to /access-denied, which names the role and
+ * the thing that was refused.
+ *
+ * Requests that opted out of toasts (SKIP_ERROR_TOAST_HEADER — background polls,
+ * badge counts, anything speculative) do NOT trigger the redirect. A background
+ * poll for a resource this role can't see must not yank the user off the page they
+ * are working on.
  */
 export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const toastr = inject(ToastrService);
+  const router = inject(Router);
 
   // Honour per-request opt-out, then strip the header so it never leaves the app.
   const skipToast = req.headers.has(SKIP_ERROR_TOAST_HEADER);
@@ -49,8 +63,16 @@ export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((err: unknown) => {
       if (err instanceof HttpErrorResponse && !skipToast && !isAuthFlow) {
-        // 401 is handled by AuthInterceptor (refresh / redirect). Don't toast it.
-        if (err.status !== 401) {
+        if (err.status === 403) {
+          // Role refused by the API. Send the user somewhere that explains why,
+          // unless we're already there (a 403 while ON /access-denied would loop).
+          if (!router.url.startsWith('/access-denied')) {
+            router.navigate(['/access-denied'], {
+              queryParams: { attempted: router.url, reason: 'api' },
+            });
+          }
+        } else if (err.status !== 401) {
+          // 401 is handled by AuthInterceptor (refresh / redirect). Don't toast it.
           toastr.error(extractErrorMessage(err), 'Error');
         }
       }

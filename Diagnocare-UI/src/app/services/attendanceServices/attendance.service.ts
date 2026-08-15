@@ -14,6 +14,8 @@ import {
   UpdateAttendanceRequestDTO,
   ApproveAttendanceRequestDTO,
   RejectAttendanceRequestDTO,
+  WithdrawAttendanceRequestDTO,
+  DecideWithdrawalDTO,
   AttendanceRequestFilter,
   PagedResult,
 } from 'src/app/models/attendanceRequest/attendance-request.model';
@@ -163,6 +165,16 @@ export class AttendanceService {
       .pipe(catchError(this.errorHandler));
   }
 
+  /**
+   * Ask for an already-approved request to be undone.
+   * Does not change attendance — it returns the request to the admin queue.
+   */
+  requestWithdrawal(id: number, dto: WithdrawAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
+    return this.http
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.withdrawRequest}`, dto)
+      .pipe(catchError(this.errorHandler));
+  }
+
   // ── Admin ───────────────────────────────────────────────────────────────────
 
   getAllRequests(filter: AttendanceRequestFilter): Observable<PagedResult<AttendanceRequestDTO>> {
@@ -172,6 +184,7 @@ export class AttendanceService {
 
     if (filter.userId)   params = params.set('userId', filter.userId);
     if (filter.status)   params = params.set('status', filter.status);
+    if (filter.awaitingDecision) params = params.set('awaitingDecision', true);
     if (filter.fromDate) params = params.set('fromDate', filter.fromDate);
     if (filter.toDate)   params = params.set('toDate', filter.toDate);
     if (filter.search)   params = params.set('search', filter.search);
@@ -204,6 +217,20 @@ export class AttendanceService {
   rejectRequest(id: number, dto: RejectAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
       .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectRequest}`, dto)
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /** Admin grants a withdrawal — reverts the attendance record. */
+  approveWithdrawal(id: number, dto: DecideWithdrawalDTO): Observable<AttendanceRequestDTO> {
+    return this.http
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveWithdrawal}`, dto)
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /** Admin refuses a withdrawal — request returns to Approved, attendance untouched. */
+  rejectWithdrawal(id: number, dto: DecideWithdrawalDTO): Observable<AttendanceRequestDTO> {
+    return this.http
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectWithdrawal}`, dto)
       .pipe(catchError(this.errorHandler));
   }
 

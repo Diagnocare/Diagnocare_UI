@@ -371,7 +371,14 @@ export class TokenService {
     return current !== null && roles.includes(current);
   }
 
-  isAdmin(): boolean    { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+  /** True for Admin OR Super Admin — i.e. "can see the Admin Panel". */
+  isAdmin(): boolean { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+
+  /**
+   * True only for Super Admin. Use this — not isAdmin() — to gate owner-level
+   * surfaces: lab profile writes, payroll, licence and role assignment.
+   */
+  isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
 

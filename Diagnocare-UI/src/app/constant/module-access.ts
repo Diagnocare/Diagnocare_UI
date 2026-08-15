@@ -46,9 +46,12 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel: true,
     patientsLink: false,
     patientTestsLink: false,
-    myVisits: false,
-    myAttendance: false, // Admins see all staff via the full Attendance module
-    userPanel: false, // Admins use the full Admin Panel instead
+    // Admin is a salaried staff member too. Payroll moved to Super Admin only, so
+    // without the User Panel an Admin would have no route to their own payslips at
+    // all — the admin Salary module used to be their only way in.
+    myVisits: true,
+    myAttendance: true,
+    userPanel: true,
     attendanceRequests: true, // Admins review/approve requests
     landingRoute: '/pathology',
   },
@@ -60,10 +63,14 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel: true,
     patientsLink: false,
     patientTestsLink: false,
+    // Super Admin is a staff member too and has attendance, visits and a salary
+    // record like anyone else. Previously myVisits/myAttendance were true while
+    // userPanel was false, so those links had no dropdown to render into and were
+    // simply unreachable. Turning the panel on makes the flags coherent.
     myVisits: true,
-    myAttendance: true, // doctors can view their own attendance
-    userPanel: false, // self-service User Panel dropdown
-    attendanceRequests: true, // doctors can raise/track their own requests
+    myAttendance: true,
+    userPanel: true,
+    attendanceRequests: true, // reviews everyone's, and can raise their own
     landingRoute: '/pathology',
   },
   [Role.User.id]: {
@@ -83,7 +90,10 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
   [Role.Assistant.id]: {
     home: true,
     labOps: true,
-    summaryReports: true, // Assistants can view the Summary Reports
+    // Summary reports expose per-referrer revenue, discount patterns and the full
+    // rate card. That is management information, not bench work — a lab assistant
+    // needs the worklist, not the commercials. Matches the ReportViewers policy.
+    summaryReports: false,
     labSetup: false,
     adminPanel: false,
     patientsLink: false,

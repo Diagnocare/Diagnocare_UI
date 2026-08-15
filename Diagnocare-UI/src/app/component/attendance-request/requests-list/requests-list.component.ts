@@ -31,22 +31,46 @@ import {
 export class RequestsListComponent implements OnInit {
 
   readonly RequestStatus = RequestStatus;
+
+  /**
+   * Sentinel for the admin's default view. Not a real RequestStatus — it maps to the
+   * `awaitingDecision` flag, which the server expands to Pending + WithdrawalRequested.
+   * Negative so it can never collide with a status value.
+   */
+  static readonly AWAITING_DECISION = -1;
+  readonly AWAITING_DECISION = RequestsListComponent.AWAITING_DECISION;
+
   readonly statusOptions = [
     { value: 0, label: 'All' },
+    // Admin's working queue: both things that need a decision, in one list.
+    { value: RequestsListComponent.AWAITING_DECISION, label: 'Awaiting decision' },
     { value: RequestStatus.Pending, label: 'Pending' },
     { value: RequestStatus.Approved, label: 'Approved' },
+    { value: RequestStatus.WithdrawalRequested, label: 'Withdrawal requested' },
     { value: RequestStatus.Rejected, label: 'Rejected' },
-    { value: RequestStatus.Cancelled, label: 'Cancelled' },
+    // Labels match REQUEST_STATUS_CONFIG — Cancelled is what withdrawing an unreviewed
+    // request produces; Withdrawn is an approved one whose attendance was rolled back.
+    { value: RequestStatus.Cancelled, label: 'Withdrawn' },
+    { value: RequestStatus.Withdrawn, label: 'Reverted' },
   ];
+
+  /**
+   * Chips shown to employees. "Awaiting decision" is an admin queue view and would be
+   * meaningless in a personal list, so it is filtered out rather than duplicated as a
+   * second array that could drift from statusOptions.
+   */
+  get userStatusOptions() {
+    return this.statusOptions.filter(o => o.value !== this.AWAITING_DECISION);
+  }
 
   isAdmin = false;
   rows: AttendanceRequestDTO[] = [];
   total = 0;
   isLoading = false;
 
-  // Admin default: Pending first (actionable). User default: All.
+  // Admin default: everything awaiting a decision (actionable). User default: All.
   filter: AttendanceRequestFilter = {
-    status: RequestStatus.Pending,
+    status: RequestsListComponent.AWAITING_DECISION,
     search: '', fromDate: '', toDate: '',
     page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc',
   };
@@ -67,9 +91,14 @@ export class RequestsListComponent implements OnInit {
   load(): void {
     this.isLoading = true;
     if (this.isAdmin) {
+      // The AWAITING_DECISION sentinel is not a status — translate it into the flag the
+      // server understands, and drop `status` so it can't be sent as a negative number.
+      const awaiting = this.filter.status === this.AWAITING_DECISION;
+
       const payload: AttendanceRequestFilter = {
         ...this.filter,
-        status: this.filter.status || undefined,
+        status: awaiting ? undefined : (this.filter.status || undefined),
+        awaitingDecision: awaiting ? true : undefined,
         search: this.filter.search?.trim() || undefined,
         fromDate: this.filter.fromDate || undefined,
         toDate: this.filter.toDate || undefined,
@@ -79,7 +108,10 @@ export class RequestsListComponent implements OnInit {
         error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
       });
     } else {
-      this.service.getMyRequests(this.filter.status || undefined).subscribe({
+      // Users have no "awaiting decision" view — their own list is short enough to read
+      // whole. Guard against the sentinel leaking through if the option is ever shown.
+      const status = this.filter.status === this.AWAITING_DECISION ? undefined : (this.filter.status || undefined);
+      this.service.getMyRequests(status).subscribe({
         next: (rows) => { this.rows = rows; this.total = rows.length; this.isLoading = false; },
         error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
       });
@@ -89,7 +121,7 @@ export class RequestsListComponent implements OnInit {
   applyFilters(): void { this.filter.page = 1; this.load(); }
 
   resetFilters(): void {
-    this.filter = { status: this.isAdmin ? RequestStatus.Pending : 0, search: '', fromDate: '', toDate: '',
+    this.filter = { status: this.isAdmin ? this.AWAITING_DECISION : 0, search: '', fromDate: '', toDate: '',
                     page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc' };
     this.load();
   }
@@ -114,10 +146,24 @@ export class RequestsListComponent implements OnInit {
     this.router.navigate(['/attendance-requests', r.requestId, 'edit']);
   }
 
-  cancel(r: AttendanceRequestDTO, ev: Event): void {
+  /**
+   * Take a request back.
+   *
+   * An unreviewed (Pending) request needs no reason, so it goes straight through from
+   * the list. An Approved one requires an explanation, and a cramped table row is the
+   * wrong place to ask for it — that case hands off to the detail view, which owns the
+   * confirmation and the textarea.
+   */
+  withdraw(r: AttendanceRequestDTO, ev: Event): void {
     ev.stopPropagation();
-    this.service.cancelRequest(r.requestId).subscribe({
-      next: () => { this.toastr.success('Request cancelled.'); this.load(); },
+
+    if (r.withdrawalNeedsApproval) {
+      this.router.navigate(['/attendance-requests', r.requestId]);
+      return;
+    }
+
+    this.service.requestWithdrawal(r.requestId, {}).subscribe({
+      next: () => { this.toastr.success('Request withdrawn.'); this.load(); },
       error: (msg) => this.toastr.error(msg),
     });
   }

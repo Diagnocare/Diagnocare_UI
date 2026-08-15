@@ -19,7 +19,15 @@ import {
  * Single shared detail view for BOTH User and Admin.
  * - Everyone sees the read-only request story (requested/applied/remarks/timeline).
  * - Owner (User) sees Edit / Cancel while Pending (driven by server flags).
- * - Admin sees the Approve / Reject panel with a status-override selector while Pending.
+ * - Owner sees "Request withdrawal" once Approved — an approved correction can no
+ *   longer be edited, so asking for it to be undone is their only remaining move.
+ *   The ask goes back to the admin queue; attendance does not change until granted.
+ * - Admin sees Approve / Reject with a status-override selector while Pending, and
+ *   Grant / Refuse withdrawal while WithdrawalRequested.
+ *
+ * Every action's availability comes from a server-computed flag on the DTO. This
+ * component must not re-derive the state machine — the server owns it, and a
+ * disagreement between the two shows up as a button that 409s.
  */
 @Component({
   selector: 'app-request-detail',
@@ -43,7 +51,19 @@ export class RequestDetailComponent implements OnInit {
   appliedStatus = 0;
   approveRemarks = '';
   rejectRemarks = '';
-  confirmMode: 'approve' | 'reject' | 'cancel' | null = null;
+
+  // Withdrawal state
+  /** Owner's reason for asking that an approved correction be undone. Required. */
+  withdrawReason = '';
+  /** Admin's remark when granting or refusing. Required only when refusing. */
+  withdrawDecisionRemarks = '';
+
+  // 'cancel' is gone: withdrawing a Pending request now covers it, under one word the
+  // employee actually uses. The cancel endpoint still exists server-side.
+  confirmMode:
+    | 'approve' | 'reject'
+    | 'withdraw' | 'withdrawApprove' | 'withdrawReject'
+    | null = null;
 
   constructor(
     private service: AttendanceService,
@@ -76,15 +96,87 @@ export class RequestDetailComponent implements OnInit {
   get isPending(): boolean { return this.request?.requestStatus === RequestStatus.Pending; }
   get statusChanged(): boolean { return !!this.request && this.appliedStatus !== this.request.requestedStatus; }
 
+  /** Admin has a withdrawal to decide on this request. */
+  get isWithdrawalPending(): boolean { return !!this.request?.isWithdrawalPending; }
+
   // ── Owner actions ─────────────────────────────────────────────
   editRequest(): void {
     if (this.request) this.router.navigate(['/attendance-requests', this.request.requestId, 'edit']);
   }
-  doCancel(): void {
+  /** True when confirming will start a review rather than take effect immediately. */
+  get withdrawalNeedsApproval(): boolean { return !!this.request?.withdrawalNeedsApproval; }
+
+  /**
+   * Owner takes the request back.
+   *
+   * Pending  → done on confirm; nobody has reviewed it, so no reason is demanded.
+   * Approved → starts a review; reason required, and the success message says plainly
+   *            that nothing has changed yet. Telling someone their attendance is fixed
+   *            while it is still pending is a lie they'd discover at payroll.
+   */
+  doWithdraw(): void {
     if (!this.request) return;
-    this.service.cancelRequest(this.request.requestId).subscribe({
-      next: (r) => { this.request = r; this.confirmMode = null; this.toastr.success('Request cancelled.'); },
-      error: (msg) => { this.toastr.error(msg); this.confirmMode = null; },
+
+    const needsApproval = this.withdrawalNeedsApproval;
+    const reason = this.withdrawReason?.trim();
+
+    if (needsApproval && !reason) {
+      this.toastr.warning('Please say why this should be undone.');
+      return;
+    }
+
+    this.isSaving = true;
+    this.service.requestWithdrawal(this.request.requestId, { reason: reason || undefined }).subscribe({
+      next: (r) => {
+        this.request = r;
+        this.isSaving = false;
+        this.confirmMode = null;
+        this.withdrawReason = '';
+        this.toastr.success(
+          needsApproval
+            ? 'Sent to your administrator. Your attendance stays as it is until they review it.'
+            : 'Request withdrawn. You can file a new one for that day whenever you like.');
+      },
+      error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
+    });
+  }
+
+  // ── Admin withdrawal decisions ────────────────────────────────
+  doApproveWithdrawal(): void {
+    if (!this.request) return;
+    this.isSaving = true;
+    this.service.approveWithdrawal(this.request.requestId, {
+      remarks: this.withdrawDecisionRemarks?.trim() || undefined,
+    }).subscribe({
+      next: (r) => {
+        this.request = r;
+        this.isSaving = false;
+        this.confirmMode = null;
+        this.withdrawDecisionRemarks = '';
+        this.toastr.success('Withdrawal granted — attendance reverted.');
+      },
+      error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
+    });
+  }
+
+  doRejectWithdrawal(): void {
+    if (!this.request) return;
+    if (!this.withdrawDecisionRemarks?.trim()) {
+      this.toastr.warning('Remarks are required to refuse a withdrawal.');
+      return;
+    }
+    this.isSaving = true;
+    this.service.rejectWithdrawal(this.request.requestId, {
+      remarks: this.withdrawDecisionRemarks.trim(),
+    }).subscribe({
+      next: (r) => {
+        this.request = r;
+        this.isSaving = false;
+        this.confirmMode = null;
+        this.withdrawDecisionRemarks = '';
+        this.toastr.success('Withdrawal refused — the approved attendance stands.');
+      },
+      error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }
 

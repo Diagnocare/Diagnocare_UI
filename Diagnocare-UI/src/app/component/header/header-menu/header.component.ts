@@ -40,8 +40,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   /** Resolved from the JWT role claim — drives all nav visibility. */
   access: ModuleAccess = DEFAULT_ACCESS;
-  /** True only for Admin — controls admin-only items inside Admin Panel. */
+  /** True for Admin or Super Admin — controls whether the Admin Panel is shown. */
   isAdmin = false;
+  /** True only for Super Admin — hides owner-level items (payroll) from Admin. */
+  isSuperAdmin = false;
   /** Human-readable role label shown in the profile dropdown. */
   roleLabel = '';
 
@@ -131,7 +133,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   checkAdminPanelAccess(): void {
     const role = this.tokenService.getUserRole();
     this.access      = role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
-    this.isAdmin = this.tokenService.isAdmin();
+    this.isAdmin      = this.tokenService.isAdmin();
+    this.isSuperAdmin = this.tokenService.isSuperAdmin();
 
     // Derive the readable role label directly from the Role config
     this.roleLabel = role !== null

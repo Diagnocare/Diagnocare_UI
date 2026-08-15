@@ -84,11 +84,15 @@ export const routes: Routes = [
         loadComponent: () => import('./component/patient/edit-patient/edit-patient.component').then(m => m.EditPatientComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
 
-      // Patient Tests — all lab staff + Doctor (read-only for Doctor handled in component)
+      // Patient Tests — all lab staff + Doctor (read-only for Doctor handled in component).
+      // These two carried no guard at all, so collection boys could reach clinical
+      // results. Now matches the API's ReportPrint policy.
       { path: 'patient-tests', title: 'Patient Tests',
-        loadComponent: () => import('./component/patient-test/patient-test-list/patient-test-list.component').then(m => m.PatientTestListComponent) },
+        loadComponent: () => import('./component/patient-test/patient-test-list/patient-test-list.component').then(m => m.PatientTestListComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'patient-tests/view/:id', title: 'View Test',
-        loadComponent: () => import('./component/patient-test/view-test/view-test.component').then(m => m.ViewTestComponent) },
+        loadComponent: () => import('./component/patient-test/view-test/view-test.component').then(m => m.ViewTestComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'patient-tests/edit/:id', title: 'Edit Test',
         loadComponent: () => import('./component/patient-test/edit-test/edit-test.component').then(m => m.EditTestComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
@@ -97,18 +101,22 @@ export const routes: Routes = [
       { path: 'manage-tests', title: 'Manage Tests',
         loadComponent: () => import('./component/pathTest/manage-tests/manage-tests.component').then(m => m.ManageTestsComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+      // Defining test parameters is the lab assistant's core task — they were
+      // previously locked out of the one screen their role exists to use.
+      // Mirrors the API's TestResultEntry policy.
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter',
         loadComponent: () => import('./component/pathTest/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.Assistant.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id', title: 'Edit Test',
         loadComponent: () => import('./component/pathTest/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Summary Reports — container shell with child routes rendered in its <router-outlet>
+      // Admin / Super Admin / Doctor only, matching the API's ReportViewers policy.
       {
         path: 'reports',
         loadComponent: () => import('./component/summary-report/summary-report-container.component').then(m => m.SummaryReportContainerComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id)],
+        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)],
         children: [
           // Default redirect to patient-register when no child is specified
           { path: '', redirectTo: 'patient-register', pathMatch: 'full' },
@@ -126,19 +134,19 @@ export const routes: Routes = [
           { path: 'collection-boys-wise', redirectTo: 'referrer-collection' },
           { path: 'reporting-doctor-wise', title: 'Reporting Doctor Wise',
             loadComponent: () => import('./component/summary-report/reports/reporting-doctor-wise.component').then(m => m.ReportingDoctorWiseComponent),
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
           { path: 'discount-authority-wise', title: 'Discount Authority Wise',
             loadComponent: () => import('./component/summary-report/reports/discount-authority-wise.component').then(m => m.DiscountAuthorityWiseComponent) },
           { path: 'patient-history-wise', title: 'Patient History Wise',
             loadComponent: () => import('./component/summary-report/reports/patient-history-wise.component').then(m => m.PatientHistoryWiseComponent),
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
           { path: 'worksheet', title: 'Worksheet Report',
             loadComponent: () => import('./component/summary-report/reports/worksheet-report.component').then(m => m.WorksheetReportComponent) },
           { path: 'register-reports', title: 'Register Reports',
             loadComponent: () => import('./component/summary-report/reports/register-reports.component').then(m => m.RegisterReportsComponent) },
           { path: 'patient-diagnosis', title: 'Patient Diagnosis Report',
             loadComponent: () => import('./component/summary-report/reports/patient-diagnosis-report.component').then(m => m.PatientDiagnosisReportComponent),
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Assistant.id, Role.Super_Admin.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
           { path: 'pndt-test', title: 'PNDT Test Report',
             loadComponent: () => import('./component/summary-report/reports/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
           { path: 'master-test-list', title: 'Master Test List',
@@ -156,7 +164,9 @@ export const routes: Routes = [
       { path: 'template', title: 'Report Templates',
         loadComponent: () => import('./component/template/template.component').then(m => m.TemplateComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
-      // Lab Setup & Profile — Admin+
+      // Lab Setup & Profile — Admin may view, only Super Admin may save.
+      // The API enforces the write half (PathologyController writes are SuperAdminOnly);
+      // the components render read-only for Admin.
       { path: 'lab-setup', title: 'Lab Setup',
         loadComponent: () => import('./component/lab-setup/lab-setup.component').then(m => m.LabSetupComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -168,9 +178,11 @@ export const routes: Routes = [
       { path: 'attendance', title: 'Attendance',
         loadComponent: () => import('./component/attendance/attendance.component').then(m => m.AttendanceComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      // Payroll is owner-only: an Admin with salary access could edit their own pay.
+      // Mirrors SalaryController, where every administrative action is SuperAdminOnly.
       { path: 'salary', title: 'Salary',
         loadComponent: () => import('./component/salary/salary.component').then(m => m.SalaryComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
       { path: 'holidays', title: 'Holiday Calendar',
         loadComponent: () => import('./component/holiday/holiday.component').then(m => m.HolidayComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -189,17 +201,17 @@ export const routes: Routes = [
       // My Attendance — read-only self-service view (doctors, collection boys, lab staff)
       { path: 'my-attendance', title: 'My Attendance',
         loadComponent: () => import('./component/my-attendance/my-attendance.component').then(m => m.MyAttendanceComponent),
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Holidays — reuses HolidayComponent, which renders read-only for non-admins
       { path: 'my-holidays', title: 'Holiday Calendar',
         loadComponent: () => import('./component/holiday/holiday.component').then(m => m.HolidayComponent),
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Salary — read-only own salary summary & payment history
       { path: 'my-salary', title: 'My Salary',
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
@@ -210,13 +222,20 @@ export const routes: Routes = [
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/new', title: 'New Attendance Request',
         loadComponent: () => import('./component/attendance-request/request-form/request-form.component').then(m => m.RequestFormComponent),
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/:id/edit', title: 'Edit Attendance Request',
         loadComponent: () => import('./component/attendance-request/request-form/request-form.component').then(m => m.RequestFormComponent),
-        canActivate: [roleGuard(Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/:id', title: 'Attendance Request',
         loadComponent: () => import('./component/attendance-request/request-detail/request-detail.component').then(m => m.RequestDetailComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Access denied — reachable by every authenticated role by design. Sits inside
+      // the layout so the header stays available and the user can navigate away
+      // using nav they do have. Deliberately has no roleGuard: guarding the page
+      // that explains guard failures would loop.
+      { path: 'access-denied', title: 'Access Denied',
+        loadComponent: () => import('./component/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
 
       // Account / Header pages
       { path: 'profile', title: 'Profile',

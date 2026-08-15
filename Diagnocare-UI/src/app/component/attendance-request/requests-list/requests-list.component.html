@@ -15,7 +15,7 @@
 
   <!-- User: status chips -->
   <div *ngIf="!isAdmin" class="chip-bar">
-    <button *ngFor="let f of statusOptions" class="chip"
+    <button *ngFor="let f of userStatusOptions" class="chip"
             [class.active]="filter.status === f.value" (click)="setStatus(f.value)">
       {{ f.label }}
     </button>
@@ -97,7 +97,14 @@
             <td *ngIf="!isAdmin" class="reason-cell">{{ r.reason || '—' }}</td>
             <td class="actions-col">
               <button *ngIf="r.canEdit" class="icon-btn" title="Edit" (click)="edit(r, $event)"><i class="fa fa-pen"></i></button>
-              <button *ngIf="r.canCancel" class="icon-btn danger" title="Cancel" (click)="cancel(r, $event)"><i class="fa fa-xmark"></i></button>
+              <!-- One withdraw affordance. An unreviewed request goes in a click; an
+                   approved one needs a reason, so that case opens the detail view where
+                   the reason can be typed rather than faking a one-click version of it. -->
+              <button *ngIf="!isAdmin && r.canWithdraw" class="icon-btn danger"
+                      [title]="r.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw'"
+                      (click)="withdraw(r, $event)">
+                <i class="fa fa-rotate-left"></i>
+              </button>
               <i class="fa fa-chevron-right chevron"></i>
             </td>
           </tr>
