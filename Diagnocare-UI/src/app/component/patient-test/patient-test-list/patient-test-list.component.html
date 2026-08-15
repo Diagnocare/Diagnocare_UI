@@ -442,7 +442,7 @@
                 title="Complete payment to unlock report">
           <i class="fa fa-credit-card"></i> Pay Now
         </button>
-        <!-- Report actions — only when fully paid: View / PDF / CSV -->
+        <!-- Report actions — only when fully paid: View / PDF -->
         <ng-container *ngIf="!selectedPatientTest || getPaymentStatus(selectedPatientTest) === 'Paid'">
           <button class="btn btn-info"
                   (click)="generateTestReportPDF()"
@@ -457,13 +457,6 @@
                   [title]="isDownloadingPdf ? 'Preparing PDF…' : 'Download the report as a PDF file'">
             <i class="fa" [ngClass]="isDownloadingPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf-o'"></i>
             {{ isDownloadingPdf ? 'Preparing…' : 'PDF' }}
-          </button>
-          <button class="btn btn-info"
-                  (click)="downloadReportCsv()"
-                  [disabled]="isDownloadingCsv"
-                  [title]="isDownloadingCsv ? 'Preparing CSV…' : 'Download the report data as a CSV file'">
-            <i class="fa" [ngClass]="isDownloadingCsv ? 'fa-spinner fa-spin' : 'fa-file-excel-o'"></i>
-            {{ isDownloadingCsv ? 'Preparing…' : 'CSV' }}
           </button>
         </ng-container>
         <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">
