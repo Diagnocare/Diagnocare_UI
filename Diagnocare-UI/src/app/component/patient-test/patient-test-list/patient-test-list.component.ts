@@ -77,9 +77,6 @@ export class PatientTestListComponent implements OnInit {
   /** True while a PDF download is in progress. */
   isDownloadingPdf: boolean = false;
 
-  /** True while a CSV download is in progress. */
-  isDownloadingCsv: boolean = false;
-
   showPatientIdInput: boolean = false;
   enteredPatientId: string = '';
   private navigatedViaQueryParam: boolean = false;
@@ -657,36 +654,24 @@ export class PatientTestListComponent implements OnInit {
       });
   }
 
-  /** Downloads the current report as a real, full-A4 PDF (rendered server-side). */
-  downloadReportPdf(): void {
-    this.downloadReport('pdf');
-  }
-
-  /** Downloads the current report's data as a CSV file. */
-  downloadReportCsv(): void {
-    this.downloadReport('csv');
-  }
-
   /**
-   * Shared download path for the PDF / CSV buttons on the Create Test Report overlay.
+   * Downloads the current report as a real, full-A4 PDF (rendered server-side).
    * Requests the file as a Blob from the backend and saves it via an anchor click.
    */
-  private downloadReport(format: 'pdf' | 'csv'): void {
+  downloadReportPdf(): void {
     if (!this.selectedPatientTest || !this.selectedTestDetail) return;
 
     const patientTestId = Number(this.selectedPatientTest.patient_Test_Id);
     const testCode      = this.selectedTestDetail.testCode;
 
-    if (format === 'pdf') this.isDownloadingPdf = true;
-    else                  this.isDownloadingCsv = true;
+    this.isDownloadingPdf = true;
     this.errorMessage = '';
 
     this.testReportGenerationService
-      .downloadTestReport(patientTestId, testCode, format, this.pathBranch || undefined)
+      .downloadTestReport(patientTestId, testCode, this.pathBranch || undefined)
       .subscribe({
         next: (blob: Blob) => {
-          if (format === 'pdf') this.isDownloadingPdf = false;
-          else                  this.isDownloadingCsv = false;
+          this.isDownloadingPdf = false;
 
           if (!blob || blob.size === 0) {
             this.toastr.warning('Report generated but no file was returned.', 'Warning');
@@ -694,7 +679,7 @@ export class PatientTestListComponent implements OnInit {
           }
 
           const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
-          const filename = `${safeName}_${testCode}.${format}`;
+          const filename = `${safeName}_${testCode}.pdf`;
 
           const url    = URL.createObjectURL(blob);
           const anchor = document.createElement('a');
@@ -706,10 +691,9 @@ export class PatientTestListComponent implements OnInit {
           setTimeout(() => URL.revokeObjectURL(url), 2000);
         },
         error: (err: unknown) => {
-          if (format === 'pdf') this.isDownloadingPdf = false;
-          else                  this.isDownloadingCsv = false;
-          this.errorMessage = `Failed to download ${format.toUpperCase()}. Please try again.`;
-          console.error(`downloadReport(${format}) error:`, err);
+          this.isDownloadingPdf = false;
+          this.errorMessage = 'Failed to download PDF. Please try again.';
+          console.error('downloadReportPdf error:', err);
         }
       });
   }

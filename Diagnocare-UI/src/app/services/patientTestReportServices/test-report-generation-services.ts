@@ -50,23 +50,21 @@ export class TestReportGenerationServices {
   }
 
   /**
-   * Downloads the report in a binary format ('pdf' or 'csv').
+   * Downloads the report as a PDF.
    *
-   * The backend renders a real, full-A4 PDF (headless Chromium) or builds a CSV
-   * from the structured report data and streams the file back as a Blob, which
-   * the caller saves via an anchor download.
+   * The backend renders a real, full-A4 PDF (headless Chromium) and streams the
+   * file back as a Blob, which the caller saves via an anchor download.
    *
    * @param pathBranch  Optional pathology branch name passed as a query param.
    */
   downloadTestReport(
     patientTestId: number,
     testCode: string,
-    format: 'pdf' | 'csv',
     pathBranch?: string
   ): Observable<Blob> {
     let apiUrl =
       `${this.url}${apiEndpoints.generateTestReportPDF}` +
-      `?patientTestId=${patientTestId}&testCode=${testCode}&format=${format}`;
+      `?patientTestId=${patientTestId}&testCode=${testCode}&format=pdf`;
     if (pathBranch) {
       apiUrl += `&pathBranch=${encodeURIComponent(pathBranch)}`;
     }
