@@ -312,7 +312,6 @@ $clr-holiday-light: #fef3c7;
 // ── Column state tints (header cells — override gradient) ─────────
 .col-future {
   background: rgba(30, 91, 168, 0.55) !important;
-  .day-name, .day-date { color: rgba(255,255,255,0.45) !important; }
 }
 
 .col-today {

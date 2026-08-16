@@ -60,6 +60,17 @@ export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
     url.includes(apiEndpoints.logout) ||
     url.includes(apiEndpoints.clearSession);
 
+  /**
+   * Calls the app makes on its own initiative rather than because the user
+   * opened a page — the session health poll, and anything else fired from
+   * AppComponent bootstrap. A 403 on one of these must never navigate: the
+   * user would be thrown off a page they legitimately have open.
+   *
+   * SKIP_ERROR_TOAST_HEADER is the general-purpose opt-out for this, but no
+   * caller sets it today, so the poll is named explicitly here.
+   */
+  const isBackgroundCall = url.includes(apiEndpoints.ping);
+
   return next(req).pipe(
     catchError((err: unknown) => {
       if (err instanceof HttpErrorResponse && !skipToast && !isAuthFlow) {

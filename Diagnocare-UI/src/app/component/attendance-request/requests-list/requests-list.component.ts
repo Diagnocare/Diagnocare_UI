@@ -83,8 +83,8 @@ export class RequestsListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.isAdmin = this.token.isAdmin();
-    if (!this.isAdmin) this.filter.status = 0;   // users default to All of their own
+    this.isReviewer = this.token.isSuperAdmin();
+    if (!this.isReviewer) this.filter.status = 0;   // users default to All of their own
     this.load();
   }
 

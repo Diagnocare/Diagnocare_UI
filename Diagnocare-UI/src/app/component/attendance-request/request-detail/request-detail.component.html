@@ -14,10 +14,10 @@
     <div class="card detail-card">
       <div class="card-top">
         <div>
-          <h2 *ngIf="isAdmin">{{ request.employeeName }}</h2>
-          <h2 *ngIf="!isAdmin">{{ request.attendanceDate | date:'dd MMM yyyy' }}</h2>
+          <h2 *ngIf="isReviewer">{{ request.employeeName }}</h2>
+          <h2 *ngIf="!isReviewer">{{ request.attendanceDate | date:'dd MMM yyyy' }}</h2>
           <span class="sub">
-            <ng-container *ngIf="isAdmin">{{ request.attendanceDate | date:'dd MMM yyyy' }} · </ng-container>{{ request.dayName }}
+            <ng-container *ngIf="isReviewer">{{ request.attendanceDate | date:'dd MMM yyyy' }} · </ng-container>{{ request.dayName }}
           </span>
         </div>
         <app-request-status-badge [status]="request.requestStatus"></app-request-status-badge>
@@ -29,7 +29,7 @@
           <dd>{{ request.currentStatusLabel || 'Unmarked' }}</dd>
         </div>
         <div>
-          <dt>{{ isAdmin ? 'Employee requested' : 'You requested' }}</dt>
+          <dt>{{ isReviewer ? 'Employee requested' : 'You requested' }}</dt>
           <dd class="strong">{{ request.requestedStatusLabel }}</dd>
         </div>
         <div *ngIf="request.approvedStatusLabel">

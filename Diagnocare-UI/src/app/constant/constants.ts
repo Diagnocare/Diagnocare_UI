@@ -113,6 +113,8 @@ export const apiEndpoints = {
   getPathologyDefault:   'GetPathologyDefault',
   setDefaultTemplate:   'SetDefaultTemplate',
   addPayment:    'AddPayment',
+  /** Settles every salary component for a month, one payment row per component. */
+  payAllComponents: 'PayAllComponents',
   addTestWithReceipt: 'AddTestWithReceipt',
   getSalaryConfig:          'GetConfig',
   saveSalaryConfig:         'SaveConfig',
@@ -288,15 +290,23 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
 };
 
 /**
- * User Panel navigation items.
- * Self-service views for non-admin staff (User, Assistant, Collection Boy, Doctor).
- * Mirrors the Admin Panel dropdown but scoped to the logged-in user's own data.
+ * User Panel navigation items — self-service views scoped to the logged-in user.
+ *
+ * `access` names the ModuleAccess flag that decides whether the item appears.
+ * The header filters on it, so the panel is no longer all-or-nothing: a role can
+ * be given the User Panel for a single item without also being shown links its
+ * route guard would deny. Admin is exactly that case — salary administration is
+ * Super Admin only, so an Admin gets My Salary here and nothing else, while
+ * still seeing everyone's holidays via the Admin Panel.
  */
-export const userOptions: Record<string, { id: string; label: string; route: string; icon?: string }> = {
-  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check' },
-  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route'          },
-  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave' },
-  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt'   },
+export const userOptions: Record<string, {
+  id: string; label: string; route: string; icon?: string;
+  access: 'myAttendance' | 'myVisits' | 'mySalary' | 'myHolidays';
+}> = {
+  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check', access: 'myAttendance' },
+  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route',          access: 'myVisits'     },
+  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave', access: 'mySalary'    },
+  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt',   access: 'myHolidays'   },
 };
 
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {

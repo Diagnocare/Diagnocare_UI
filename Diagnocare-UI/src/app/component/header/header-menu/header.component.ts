@@ -31,8 +31,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
   summaryReportMenu = Object.values(summaryReportMenu);
   profileMenu = Object.values(profileMenu);
   adminOptions = Object.values(adminOptions);
+  /** Every possible User Panel item; `visibleUserOptions` is what renders. */
   userOptions = Object.values(userOptions);
   labSetupMenu =Object.values(labSetupMenu);
+
+  /**
+   * The User Panel items this role may actually open, filtered by each item's
+   * matching ModuleAccess flag. Recomputed in checkAdminPanelAccess() once the
+   * role is resolved. Never bind the raw `userOptions` list — that hands a role
+   * links its own route guard will bounce it off of.
+   */
+  visibleUserOptions: typeof this.userOptions = [];
 
   userName: string | null = null;
   profilePhotoUrl: string | null = null;

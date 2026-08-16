@@ -14,6 +14,7 @@ import {
   CalculatePayableSalaryDTO,
   UserSalarySummaryDTO,
   SalaryPaymentDTO,
+  PayAllComponentsDTO,
 } from 'src/app/models/salary/salary.dto';
 
 @Injectable({ providedIn: 'root' })
@@ -56,6 +57,19 @@ export class SalaryService {
   addPayment(payload: AddPaymentDTO): Observable<any> {
     return this.http
       .post(`${this.baseUrl}${apiEndpoints.addPayment}`, payload)
+      .pipe(catchError(this.errorHandler));
+  }
+
+  /**
+   * POST api/salary/PayAllComponents
+   * Settles every salary component for the month in one call. The backend writes
+   * ONE payment row per component that still has a balance, so payment history
+   * itemises Base Salary / Travel Allowance / Other Allowance instead of showing
+   * a single lump sum. Returns the rows it created.
+   */
+  payAllComponents(payload: PayAllComponentsDTO): Observable<any> {
+    return this.http
+      .post(`${this.baseUrl}${apiEndpoints.payAllComponents}`, payload)
       .pipe(catchError(this.errorHandler));
   }
 

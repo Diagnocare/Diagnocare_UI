@@ -72,7 +72,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   };
 
   isLoading: boolean = false;
-  currentStep = 1;
+  currentStep = 3;
 
   /** Exposed for [tabFields] binding on the form element. */
   readonly tabFields = tabOrderAdd;
@@ -660,8 +660,32 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   selectGroup(g: GroupSubGroupModel)    { this.selectedGroupId = g.testGroupId; this.getSubGroupList(g); }
   selectSubGroup(s: GroupSubGroupModel) { this.selectedSubGroupId = s.testGroupId; this.getMedicalTestList(s); }
 
+  /**
+   * A test with no parameters configured cannot be booked — there is nothing to
+   * enter results into and its report would render an empty table. The server
+   * rejects such a booking (PatientService.ValidateTestsAreBookableAsync); this
+   * stops the operator picking one and only finding out on Save.
+   *
+   * Mirrors AddTestModalComponent.isTestBookable — the two test pickers are
+   * separate components, so a rule added to one has to be added to both.
+   */
+  isTestBookable(t: TestItem): boolean {
+    return (t?.parameterCount ?? 0) > 0;
+  }
+
   toggleTestSelection(t: TestItem) {
     this.focusedTestId = t.testCode;
+
+    // Selecting is blocked, but de-selecting must always work — otherwise a test
+    // whose last parameter was deleted after it was picked would be stuck in the
+    // basket with no way to remove it.
+    if (!this.isTestBookable(t) && !this.selectedTestIds.has(t.testCode)) {
+      this.toastr.warning(
+        `${t.testName} has no parameters configured, so it cannot be booked.`,
+        'Test not available');
+      return;
+    }
+
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
@@ -682,6 +706,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   modalTestClose() {
+    // Catches anything that got in before its parameters were removed.
+    const unbookable = this.selectedTests.filter(t => !this.isTestBookable(t));
+    if (unbookable.length) {
+      this.toastr.error(
+        `Remove ${unbookable.map(t => t.testName).join(', ')} — no parameters configured.`,
+        'Test not available');
+      return;
+    }
+
     this.patientForm.patchValue({
       test_Name:   this.selectedTests.map(t => t.testName).join(', '),
       test_Amount: this.totalAmount

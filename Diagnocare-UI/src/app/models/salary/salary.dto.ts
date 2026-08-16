@@ -28,13 +28,29 @@ export enum PaymentFor {
   BaseSalary      = 1,
   TravelAllowance = 2,
   OtherAllowance  = 3,
+  /**
+   * UI-only sentinel for "settle every component at once", offered on Full
+   * payments. It is NEVER sent as a payment source or persisted — selecting it
+   * routes the save to PayAllComponents, which writes one real row per
+   * component (each with its own source of 1/2/3).
+   */
+  AllComponents   = 99,
 }
 
 export const PaymentForLabels: Record<PaymentFor, string> = {
   [PaymentFor.BaseSalary]:      'Base Salary',
   [PaymentFor.TravelAllowance]: 'Travel Allowance',
   [PaymentFor.OtherAllowance]:  'Other Allowance',
+  [PaymentFor.AllComponents]:   'All Components',
 };
+
+/** Request body for POST api/salary/PayAllComponents. */
+export interface PayAllComponentsDTO {
+  salaryId:     number;
+  paymentMonth: string;
+  paymentDate:  string;
+  reference?:   string | null;
+}
 
 // ── Salary config (per user, persisted setting) ───────────────────────────────
 

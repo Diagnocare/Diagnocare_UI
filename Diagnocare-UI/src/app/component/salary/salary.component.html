@@ -404,8 +404,13 @@
               </div>
             </div>
 
-            <!-- Revenue % component -->
-            <div class="salary-component-card" [class.active]="hasPercentComponent">
+            <!-- Revenue % component — hidden until phase 2.
+                 Deliberately *ngIf rather than deleted: an employee already
+                 configured on a revenue % keeps the value, which round-trips
+                 untouched on save. Flip revenuePercentEnabled to restore. -->
+            <div class="salary-component-card"
+                 *ngIf="revenuePercentEnabled"
+                 [class.active]="hasPercentComponent">
               <div class="scc-header">
                 <span class="scc-icon pct-icon"><i class="fa fa-percent"></i></span>
                 <div>
@@ -654,8 +659,15 @@
                             [class.fa-coins]="pay.paymentType !== 'Full'"></i>
               {{ pay.paymentType === 'Full' ? 'Full' : 'Partial' }}
             </span>
-            <span *ngIf="pay.paymentType !== 'Full'" class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
-              {{ paymentForLabel(pay.paymentSource) }}
+            <!-- Component badge now shows for Full as well as Partial: a Full
+                 payment settles one component, so which one is the whole point.
+                 Legacy rows written before that change settled the entire month
+                 while stored as Base Salary — isLegacyFullSalary() spots those by
+                 their amount exceeding the component cap and labels them
+                 "Full salary" rather than mislabelling them as base salary. -->
+            <span class="pay-for-badge"
+                  [ngClass]="isLegacyFullSalary(pay) ? 'pay-for-fullsalary' : paymentForClass(pay.paymentSource)">
+              {{ isLegacyFullSalary(pay) ? 'Full salary' : paymentForLabel(pay.paymentSource) }}
             </span>
           </div>
         </div>
@@ -724,12 +736,14 @@
   <!-- ── Modal body ── -->
   <div class="pm-body">
 
-    <!-- Payment For (Partial only) — full-width row of radio cards -->
-    <div class="pm-field pm-field-full" *ngIf="paymentForm.paymentType === PaymentType.Partial">
+    <!-- Payment For — shown for Partial AND Full. Full settles the selected
+         component in full, so the operator must still choose which one;
+         "All Components" (Full only) settles all three in one action. -->
+    <div class="pm-field pm-field-full">
       <label class="pm-label">Payment For <span class="req">*</span></label>
       <div class="pm-radio-group">
         <label
-          *ngFor="let opt of paymentForOptions"
+          *ngFor="let opt of visiblePaymentForOptions"
           class="pm-radio-card"
           [class.pm-radio-active]="paymentForm.paymentFor === opt.value"
         >
@@ -744,6 +758,7 @@
             [class.fa-money-bill-wave]="opt.value === 1"
             [class.fa-car]="opt.value === 2"
             [class.fa-plus-circle]="opt.value === 3"
+            [class.fa-layer-group]="opt.value === 99"
           ></i>
           <span class="pm-radio-label">{{ opt.label }}</span>
         </label>
@@ -784,13 +799,18 @@
         <!-- Locked hint: explains where the number came from -->
         <div class="pm-hint pm-hint-calc" *ngIf="isFullPaymentAmountLocked">
           <i class="fa fa-info-circle"></i>
-          Net payable (after leave deductions) minus payments already recorded.
+          <ng-container *ngIf="isPayingAllComponents; else singleComponentHint">
+            Everything still outstanding this month. A separate payment is recorded
+            for each component, so history stays itemised.
+          </ng-container>
+          <ng-template #singleComponentHint>
+            Full {{ paymentForLabel(paymentForm.paymentFor) }} for this month (after leave
+            deductions) minus what has already been paid against it.
+          </ng-template>
         </div>
         <div class="pm-hint" *ngIf="!paymentAmountError && !isFullPaymentAmountLocked">
           Max:
-          <ng-container *ngIf="paymentForm.paymentType === PaymentType.Partial">
-            {{ paymentForLabel(paymentForm.paymentFor) }} pending —
-          </ng-container>
+          {{ paymentForLabel(paymentForm.paymentFor) }} pending —
           {{ formatINR(pendingForSelectedType) }}
         </div>
         <div class="pm-error" *ngIf="paymentAmountError">{{ paymentAmountError }}</div>

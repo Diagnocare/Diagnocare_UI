@@ -42,7 +42,8 @@ export class RequestDetailComponent implements OnInit {
   readonly allStatuses = ALL_ATTENDANCE_STATUSES;
   readonly statusLabel = attendanceStatusLabel;
 
-  isAdmin = false;
+  /** True for the reviewer (Super Admin) — see requests-list for why not the isAdmin() helper. */
+  isReviewer = false;
   request: AttendanceRequestDTO | null = null;
   isLoading = false;
   isSaving = false;
@@ -74,7 +75,7 @@ export class RequestDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.isAdmin = this.token.isAdmin();
+    this.isReviewer = this.token.isSuperAdmin();
     const id = +(this.route.snapshot.paramMap.get('id') || 0);
     if (!id) { this.router.navigate(['/attendance-requests']); return; }
     this.load(id);
@@ -82,7 +83,7 @@ export class RequestDetailComponent implements OnInit {
 
   private load(id: number): void {
     this.isLoading = true;
-    const call = this.isAdmin ? this.service.getRequest(id) : this.service.getMyRequest(id);
+    const call = this.isReviewer ? this.service.getRequest(id) : this.service.getMyRequest(id);
     call.subscribe({
       next: (r) => {
         this.request = r;

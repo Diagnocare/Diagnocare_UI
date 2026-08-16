@@ -41,8 +41,6 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
   selectedDate = '';
   memberId   = 0;
 
-  /** True for Admin / Super Admin — shows all-staff visits instead of own. */
-  isAdmin = false;
 
   // ── Calendar state (owned here; the shared calendar renders it) ────────────
   viewYear  = new Date().getFullYear();
@@ -64,7 +62,6 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.isAdmin = this._tokenSvc.isAdmin();
     const uid = this._tokenSvc.decodeToken()?.uid;
     if (uid && !isNaN(Number(uid))) this.memberId = +uid;
 
@@ -85,24 +82,27 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
     this.statusFilter = 'all';
     const dateStr = this.selectedDate || this.toIso(this.today);
 
-    const source$ = this.isAdmin
-      ? this._visitSvc.getByDate(dateStr)
-      : this._visitSvc.getMyVisits(this.memberId, dateStr);
+    // Always the signed-in member's own visits, for every role.
+    //
+    // This used to branch on the isAdmin() helper and call getByDate(), the
+    // all-staff endpoint — so an Admin or Super Admin opening "My Visits" got
+    // the whole lab's schedule. The all-staff view is its own screen
+    // (/visit-schedule, Admin Panel -> Visit Schedule); this one is
+    // self-service and has no business showing other people's assignments.
+    if (!this.memberId) { this.visits = []; this.isLoading = false; return; }
 
-    if (!this.isAdmin && !this.memberId) { this.visits = []; this.isLoading = false; return; }
-
-    source$.pipe(takeUntil(this.destroy$)).subscribe({
+    this._visitSvc.getMyVisits(this.memberId, dateStr)
+      .pipe(takeUntil(this.destroy$)).subscribe({
       next: data => { this.visits = data ?? []; this.isLoading = false; },
       error: ()  => { this.visits = [];         this.isLoading = false; },
     });
   }
 
   loadCalendar(): void {
-    const source$ = this.isAdmin
-      ? this._visitSvc.getCalendar(this.viewYear, this.viewMonth)
-      : this._visitSvc.getMyCalendar(this.viewYear, this.viewMonth);
-
-    source$.pipe(takeUntil(this.destroy$)).subscribe({
+    // Own calendar for every role — see loadVisits() for why this is not
+    // branched by role.
+    this._visitSvc.getMyCalendar(this.viewYear, this.viewMonth)
+      .pipe(takeUntil(this.destroy$)).subscribe({
       next: data => { this.calendarData = data ?? []; },
       error: ()  => { this.calendarData = []; },
     });

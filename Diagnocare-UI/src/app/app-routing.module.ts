@@ -40,6 +40,14 @@ export const routes: Routes = [
     loadComponent: () => import('./component/layout/layout.component').then(m => m.LayoutComponent),
     canActivate: [authGuard, licenceGuard, pinExpiryGuard],
     children: [
+      // Access denied — every role may open it; it is where roleGuard and the
+      // 403 handler send people. Deliberately inside the authenticated layout
+      // so the header and whatever nav the user does have stay available.
+      // It carries NO roleGuard: guarding the "you are not allowed" page would
+      // be a redirect loop.
+      { path: 'access-denied', title: 'Access Denied',
+        loadComponent: () => import('./component/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
+
       // Pathology dashboard — Admin / User / Assistant only
       { path: 'pathology', title: 'Pathology',
         loadComponent: () => import('./component/pathology/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
@@ -175,6 +183,10 @@ export const routes: Routes = [
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Attendance / Salary / Holidays — Admin+
+      // Attendance administration — Super Admin ONLY. An Admin records their own
+      // attendance and raises corrections through the User Panel like any other
+      // staff member; the Super Admin approves them. Letting an Admin open the
+      // all-staff module would also let them approve their own corrections.
       { path: 'attendance', title: 'Attendance',
         loadComponent: () => import('./component/attendance/attendance.component').then(m => m.AttendanceComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -199,6 +211,10 @@ export const routes: Routes = [
       // admin Attendance / Holiday / Visit / Salary modules, scoped to the user.
 
       // My Attendance — read-only self-service view (doctors, collection boys, lab staff)
+      // Admin included: attendance administration is Super Admin only, so this is
+      // an Admin's own record of their attendance. Backed by GetMyWeekly /
+      // GetMyMonthly, which are [Authorize(Policy = "AllStaffRoles")] and already
+      // answer an Admin correctly.
       { path: 'my-attendance', title: 'My Attendance',
         loadComponent: () => import('./component/my-attendance/my-attendance.component').then(m => m.MyAttendanceComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
@@ -209,6 +225,13 @@ export const routes: Routes = [
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Salary — read-only own salary summary & payment history
+      // Admin is included here, unlike /my-attendance and /my-holidays: an Admin
+      // sees everyone's attendance and holidays through the full admin modules,
+      // but salary administration is Super Admin only, so this is an Admin's one
+      // and only route to their own payslip. The backing endpoints
+      // (GetMySalary, GetMyPayments, GenerateMySalaryReceipt,
+      // GenerateMyPaymentReceipt) are scoped to the caller and carry no role
+      // policy, so they already answer an Admin correctly.
       { path: 'my-salary', title: 'My Salary',
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },

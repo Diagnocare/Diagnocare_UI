@@ -376,16 +376,21 @@
                  class="list-item test-item"
                  [class.active]="focusedTestId === t.testCode"
                  [class.test-selected]="isTestSelected(t)"
+                 [class.test-unavailable]="!isTestBookable(t)"
+                 [title]="isTestBookable(t) ? '' : 'No parameters configured — this test cannot be booked'"
                  (click)="toggleTestSelection(t)">
               <div class="icon-wrap">
                 <div class="icon">
-                  <i class="fa" [class.fa-check-circle]="isTestSelected(t)" [class.fa-circle-o]="!isTestSelected(t)"
+                  <i class="fa" *ngIf="isTestBookable(t)"
+                     [class.fa-check-circle]="isTestSelected(t)" [class.fa-circle-o]="!isTestSelected(t)"
                      [style.color]="isTestSelected(t) ? '#16a34a' : '#b0bfcc'"></i>
+                  <i class="fa fa-ban" *ngIf="!isTestBookable(t)" style="color:#c2410c"></i>
                 </div>
               </div>
               <div class="left">
                 <div class="code">{{ t.testCode }}</div>
                 <div class="name">{{ t.testName }}</div>
+                <div class="test-unavailable-note" *ngIf="!isTestBookable(t)">No parameters configured</div>
               </div>
               <div class="right">₹{{ t.price }}</div>
             </div>

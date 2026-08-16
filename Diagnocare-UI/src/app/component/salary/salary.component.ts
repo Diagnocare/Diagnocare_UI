@@ -209,10 +209,50 @@ export class SalaryComponent implements OnInit, OnDestroy {
     { value: PaymentFor.OtherAllowance,  label: PaymentForLabels[PaymentFor.OtherAllowance] },
   ];
 
+  /**
+   * Options for the Payment For picker. "All Components" is offered on Full
+   * payments only — it means "settle the whole month", and is meaningless for a
+   * Partial payment, where the amount has to belong to one component.
+   */
+  get visiblePaymentForOptions(): { value: PaymentFor; label: string }[] {
+    return this.paymentForm.paymentType === PaymentType.Full
+      ? [...this.paymentForOptions,
+         { value: PaymentFor.AllComponents, label: PaymentForLabels[PaymentFor.AllComponents] }]
+      : this.paymentForOptions;
+  }
+
+  /** True while the Full form is set to settle every component at once. */
+  get isPayingAllComponents(): boolean {
+    return this.paymentForm.paymentType === PaymentType.Full
+        && this.paymentForm.paymentFor === PaymentFor.AllComponents;
+  }
+
   /** Returns the display label for a paymentSource numeric value. */
   paymentForLabel(val: PaymentFor | number | undefined): string {
     if (val === undefined || val === null) return '—';
     return PaymentForLabels[val as PaymentFor] ?? '—';
+  }
+
+  /**
+   * True for a payment written before Full became per-component: type "Full",
+   * stored as Base Salary, but for an amount larger than the base-salary
+   * component could ever be — i.e. it actually settled the whole month.
+   *
+   * Those rows are left in the database exactly as they are; this only stops the
+   * history mislabelling them as a base-salary payment. New Full payments settle
+   * a single component and never trip this check.
+   */
+  isLegacyFullSalary(pay: { paymentType?: string; paymentSource?: number; paymentAmount?: number }): boolean {
+    if (pay?.paymentType !== 'Full') return false;
+    if ((pay?.paymentSource ?? PaymentFor.BaseSalary) !== PaymentFor.BaseSalary) return false;
+
+    const rec = this.panelRecord;
+    if (!rec) return false;
+
+    // Base-salary component cap for this record, net of PF.
+    const baseCap = Math.max(0, (rec.baseSalary ?? 0) - (rec.pfAmount ?? 0));
+    // Tolerance keeps rounding noise from flagging a legitimate full base payment.
+    return baseCap > 0 && (pay.paymentAmount ?? 0) > baseCap + 0.01;
   }
 
   /** Returns a stable CSS modifier class for a paymentSource numeric value. */
@@ -337,6 +377,17 @@ export class SalaryComponent implements OnInit, OnDestroy {
   get draftNetPayable(): number {
     return this.draftGrossSalary - this.draftPfAmount;
   }
+
+  /**
+   * Revenue-% salary is deferred to phase 2, so its configuration card is hidden.
+   *
+   * Nothing else is removed: the DTO field, the salaryType derivation, the
+   * backend column and any values already configured all stay exactly as they
+   * are. An employee previously set up on a revenue % keeps that setup and it
+   * round-trips untouched through a save — this only stops NEW ones being
+   * configured. Flip this to true to bring the feature back.
+   */
+  readonly revenuePercentEnabled = false;
 
   get hasFixedComponent(): boolean  { return (this.configDraft.baseSalary ?? 0) > 0; }
   get hasPercentComponent(): boolean { return (this.configDraft.revenuePercentage ?? 0) > 0; }
@@ -510,30 +561,26 @@ export class SalaryComponent implements OnInit, OnDestroy {
         next: result => {
           const rec = this.panelRecord!;
 
-          // Net payable after leave deductions + allowances - PF
-          const netPayable =
-            result.payableBaseSalary +
-            (rec.travelAllowance ?? 0) +
-            (rec.otherAllowance  ?? 0) -
-            (rec.pfAmount        ?? 0);
-
-          // Subtract whatever has already been paid
-          const finalAmount = Math.max(0, netPayable - (rec.totalPaid ?? 0));
-
           this.fullPaymentCalcResult     = result;
           this.isAddingPayment           = true;
           this.isFullPaymentAmountLocked = true;
           this.paymentAmountError        = '';
           this.isCalculatingForPayment   = false;
 
+          // "Full" settles ONE component, so the form opens on Base Salary and the
+          // amount is that component's remaining balance. It used to pre-fill the
+          // whole month's net and post it as a single Base Salary row, which is why
+          // Travel / Other Allowance never showed up in payment history.
+          // Switching component re-computes the amount (see onPaymentForChange).
           this.paymentForm = {
             ...this.blankPaymentForm(),
             salaryId:      rec.salaryId,
             paymentMonth:  `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
-            paymentAmount: finalAmount,
-            paymentFor:    undefined,
+            paymentAmount: 0,
+            paymentFor:    PaymentFor.BaseSalary,
             paymentType:   PaymentType.Full,
           };
+          this.paymentForm.paymentAmount = this.pendingForSelectedType;
         },
         error: () => {
           // Message shown centrally by ErrorInterceptor.
@@ -551,7 +598,16 @@ export class SalaryComponent implements OnInit, OnDestroy {
     const rec = this.panelRecord;
     if (!rec) return 0;
 
-    if (this.paymentForm.paymentType === PaymentType.Partial) {
+    // "All Components" — the sum of what is outstanding across all three.
+    if (this.paymentForm.paymentFor === PaymentFor.AllComponents) {
+      return Math.max(0, (rec.baseSalary ?? 0) - (rec.pfAmount ?? 0) - (rec.baseSalaryPaid ?? 0))
+           + Math.max(0, (rec.travelAllowance ?? 0) - (rec.travelAllowancePaid ?? 0))
+           + Math.max(0, (rec.otherAllowance  ?? 0) - (rec.otherAllowancePaid  ?? 0));
+    }
+
+    // Per-component for BOTH Partial and Full — Full settles the selected
+    // component rather than the whole month.
+    {
       switch (this.paymentForm.paymentFor) {
         case PaymentFor.BaseSalary:
           return Math.max(0, (rec.baseSalary ?? 0) - (rec.pfAmount ?? 0) - (rec.baseSalaryPaid ?? 0));
@@ -562,7 +618,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Full payment — use total pending
+    // No component selected yet — fall back to the month's total pending.
     return rec.pendingAmount ?? 0;
   }
 
@@ -575,9 +631,18 @@ export class SalaryComponent implements OnInit, OnDestroy {
 
   /** Re-validate amount whenever the Payment For selection changes. */
   onPaymentForChange(): void {
-    // Clear amount and error when switching components so the user starts fresh
-    this.paymentForm.paymentAmount = null as unknown as number;
     this.paymentAmountError = '';
+
+    // Full settles the whole of the chosen component, and its amount field is
+    // locked — so it must be re-filled on every switch, not blanked, or the user
+    // is left staring at a locked empty box.
+    if (this.paymentForm.paymentType === PaymentType.Full) {
+      this.paymentForm.paymentAmount = this.pendingForSelectedType;
+      return;
+    }
+
+    // Partial: clear amount so the user starts fresh for the new component.
+    this.paymentForm.paymentAmount = null as unknown as number;
   }
 
   onAmountInput(): void {
@@ -599,12 +664,13 @@ export class SalaryComponent implements OnInit, OnDestroy {
   }
 
   get paymentFormValid(): boolean {
-    const isPartial = this.paymentForm.paymentType === PaymentType.Partial;
     return (
       !this.paymentAmountError &&
       (this.paymentForm.paymentAmount ?? 0) > 0 &&
       !!this.paymentForm.paymentDate &&
-      (!isPartial || !!this.paymentForm.paymentFor)  // paymentFor only needed for Partial
+      // Required for BOTH types now: Full settles a specific component (or all
+      // three), so it can no longer be submitted without a choice.
+      !!this.paymentForm.paymentFor
     );
   }
 
@@ -612,7 +678,19 @@ export class SalaryComponent implements OnInit, OnDestroy {
     if (!this.paymentFormValid || !this.panelRecord) return;
     this.isAddingPayment = false;
 
-    this.salarySvc.addPayment(this.paymentForm)
+    // "All Components" is a UI-only choice — PaymentFor.AllComponents must never
+    // reach the payment table as a source. It routes to PayAllComponents, which
+    // writes one real row per component so history stays itemised.
+    const request$ = this.isPayingAllComponents
+      ? this.salarySvc.payAllComponents({
+          salaryId:     this.paymentForm.salaryId,
+          paymentMonth: this.paymentForm.paymentMonth,
+          paymentDate:  this.paymentForm.paymentDate,
+          reference:    this.paymentForm.reference ?? null,
+        })
+      : this.salarySvc.addPayment(this.paymentForm);
+
+    request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -721,7 +799,11 @@ export class SalaryComponent implements OnInit, OnDestroy {
     const hasFixed   = (this.configDraft.baseSalary ?? 0) > 0;
     const hasPct     = (this.configDraft.revenuePercentage ?? 0) > 0;
     if (!hasFixed && !hasPct) {
-      this.toastr.warning('Enter a fixed base salary, a revenue %, or both.', 'Validation');
+      this.toastr.warning(
+        this.revenuePercentEnabled
+          ? 'Enter a fixed base salary, a revenue %, or both.'
+          : 'Enter a fixed base salary.',
+        'Validation');
       return;
     }
     // Derive salaryType: 0 = fixed only, 1 = % only, 2 = both

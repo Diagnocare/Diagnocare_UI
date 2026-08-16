@@ -27,8 +27,19 @@ export interface ModuleAccess {
   /** True for non-admin staff who can view their own attendance (read-only). */
   myAttendance:     boolean;
   /**
-   * True for non-admin staff (User, Assistant, Collection Boy, Doctor) who get the
-   * self-service "User Panel" dropdown grouping My Attendance, Holidays, My Visits & My Salary.
+   * True for anyone who can read their own payslip and payment history.
+   * Includes Admin: salary administration is Super Admin only, so /my-salary is
+   * an Admin's only route to their own pay.
+   */
+  mySalary:         boolean;
+  /** True for staff who see the read-only holiday calendar in the User Panel. */
+  myHolidays:       boolean;
+  /**
+   * True for anyone who gets the self-service "User Panel" dropdown. The
+   * dropdown is a container only — which of My Attendance / My Visits /
+   * My Salary / Holiday Calendar appear inside it is decided by the four flags
+   * above, so a role can be given the panel for a single item without being
+   * shown links it would be denied. Admin is exactly that case.
    */
   userPanel:        boolean;
   /** Attendance correction requests — shared view: staff raise/track, admins review. */
@@ -83,6 +94,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     patientTestsLink: false,
     myVisits: true,
     myAttendance: true, // staff members can view their own attendance
+    mySalary: true,
+    myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // staff can raise/track their own requests
     landingRoute: '/patients',
@@ -100,6 +113,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     patientTestsLink: false,
     myVisits: true,
     myAttendance: true, // staff members can view their own attendance
+    mySalary: true,
+    myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // staff can raise/track their own requests
     landingRoute: '/patients',
@@ -114,6 +129,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     patientTestsLink: false,
     myVisits: true,
     myAttendance: true, // collection boys can view their own attendance
+    mySalary: true,
+    myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // collection boys can raise/track their own requests
     landingRoute: '/patients',
@@ -128,6 +145,8 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     patientTestsLink: true,
     myVisits: true,
     myAttendance: true, // doctors can view their own attendance
+    mySalary: true,
+    myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // doctors can raise/track their own requests
     landingRoute: '/patient-tests',
@@ -145,6 +164,8 @@ export const DEFAULT_ACCESS: ModuleAccess = {
   patientTestsLink: false,
   myVisits:         false,
   myAttendance:     false,
+  mySalary:         false,
+  myHolidays:       false,
   userPanel:        false,
   attendanceRequests: false,
   landingRoute:     '/pathology',
