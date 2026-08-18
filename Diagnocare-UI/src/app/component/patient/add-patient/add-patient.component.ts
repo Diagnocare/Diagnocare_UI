@@ -689,11 +689,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
-      this.toastr.info(`${t.testName} removed`);
     } else {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
-      this.toastr.info(`${t.testName} added`);
     }
   }
 
@@ -702,7 +700,6 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (!t) return;
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
-    this.toastr.info(`${t.testName} removed`);
   }
 
   modalTestClose() {
@@ -1062,7 +1059,6 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.isLoading = false;
         if (res) {
-          this.toastr.success('Patient Registered Successfully', 'Success');
           this._route.navigate(['/patients']);
         } else {
           // API returned HTTP 200 but the operation failed (e.g. transaction

@@ -6,7 +6,11 @@ import { Role, RoleId } from './enums';
  * Section flags:
  *  home             – Pathology dashboard home link
  *  labOps           – Full "Lab Operations" dropdown (patients, tests, receipts, etc.)
- *  summaryReports   – "Reports" dropdown (statistical / summary reports)
+ *  summaryReports   – "Reports" dropdown (statistical / summary reports).
+ *                     Granted to every role except User; kept in step with the
+ *                     API's ReportViewers policy and the /reports route guard,
+ *                     which must list the same roles or the dropdown appears and
+ *                     then every entry in it lands on Access Denied.
  *  labSetup         – "Lab Setup" dropdown (lab profile, sampling locations, etc.)
  *  adminPanel       – "Admin Panel" dropdown (users, attendance, salary, etc.)
  *  patientsLink     – Single "Patients" nav link (for Collection Boys with limited access)
@@ -62,8 +66,13 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     // all — the admin Salary module used to be their only way in.
     myVisits: true,
     myAttendance: true,
+    mySalary: true,
+    // Admin reaches the holiday calendar through the Admin Panel, so it is not
+    // duplicated in the User Panel.
+    myHolidays: false,
     userPanel: true,
-    attendanceRequests: true, // Admins review/approve requests
+    // Admin raises corrections for themselves; the Super Admin reviews them.
+    attendanceRequests: true,
     landingRoute: '/pathology',
   },
   [Role.Super_Admin.id]: {
@@ -74,13 +83,19 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     adminPanel: true,
     patientsLink: false,
     patientTestsLink: false,
-    // Super Admin is a staff member too and has attendance, visits and a salary
-    // record like anyone else. Previously myVisits/myAttendance were true while
-    // userPanel was false, so those links had no dropdown to render into and were
-    // simply unreachable. Turning the panel on makes the flags coherent.
-    myVisits: true,
-    myAttendance: true,
-    userPanel: true,
+    // Super Admin works entirely out of the Admin Panel: it already carries the
+    // all-staff Attendance, Salary, Holiday and Visit Schedule modules, each of
+    // which shows their own records alongside everyone else's. A second panel
+    // duplicating those as "My …" links would be redundant, so the User Panel is
+    // off and the four item flags below are false to match.
+    //
+    // The /my-* routes still accept Super Admin, so nothing breaks if one is
+    // opened directly — they simply are not advertised in the nav.
+    myVisits: false,
+    myAttendance: false,
+    mySalary: false,
+    myHolidays: false,
+    userPanel: false,
     attendanceRequests: true, // reviews everyone's, and can raise their own
     landingRoute: '/pathology',
   },
@@ -103,10 +118,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
   [Role.Assistant.id]: {
     home: true,
     labOps: true,
-    // Summary reports expose per-referrer revenue, discount patterns and the full
-    // rate card. That is management information, not bench work — a lab assistant
-    // needs the worklist, not the commercials. Matches the ReportViewers policy.
-    summaryReports: false,
+    summaryReports: true,
     labSetup: false,
     adminPanel: false,
     patientsLink: false,
@@ -138,7 +150,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
   [Role.Doctor.id]: {
     home: false,
     labOps: false,
-    summaryReports: false,
+    summaryReports: true,
     labSetup: false,
     adminPanel: false,
     patientsLink: false,

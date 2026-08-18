@@ -107,7 +107,7 @@ export class RequestFormComponent implements OnInit {
         requestedStatus: String(v.requestedStatus),
         reason: v.reason?.trim() || undefined,
       }).subscribe({
-        next: () => { this.toastr.success('Request updated.'); this.done(); },
+        next: () => { this.done(); },
         error: (msg) => { this.toastr.error(msg); this.isSaving = false; },
       });
     } else {
@@ -116,7 +116,7 @@ export class RequestFormComponent implements OnInit {
         requestedStatus: String(v.requestedStatus),
         reason: v.reason?.trim() || undefined,
       }).subscribe({
-        next: () => { this.toastr.success('Request submitted.'); this.done(); },
+        next: () => { this.done(); },
         error: (msg) => { this.toastr.error(msg); this.isSaving = false; },
       });
     }

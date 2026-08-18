@@ -758,6 +758,41 @@
   align-items: center;
 }
 
+// Inline failure banner for the Calculate / Pay Full actions in the side panel.
+.panel-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+  padding: 0.7em 0.85em;
+  margin-bottom: 0.75em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+
+  > .fa-exclamation-triangle {
+    flex: none;
+    margin-top: 0.12em;
+  }
+
+  > span { flex: 1 1 auto; }
+}
+
+.panel-error-dismiss {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  opacity: 0.7;
+
+  &:hover { opacity: 1; }
+}
+
 .panel-section-title {
   font-size: 0.88em;
   font-weight: 700;

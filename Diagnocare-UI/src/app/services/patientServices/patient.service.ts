@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
-import { catchError, map, Observable, of, throwError } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { map, Observable, of } from 'rxjs';
 import { PatientCreateDto } from '../../models/patient/patient-create.dto';
 import { AddPatientTestDto } from '../../models/patient/add-patient-test.dto';
 import { PatientEditDto } from '../../models/patient/patient-edit.dto';
@@ -24,25 +24,19 @@ export class PatientService {
 
   getPatientById(patientId: string): Observable<PatientEditDto> {
     const geturl = `${this.patienturl}${apiEndpoints.getById}?patientId=${encodeURIComponent(patientId)}`;
-    return this.httpClient.get<PatientEditDto>(geturl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<PatientEditDto>(geturl);
   }
 
   getSerialNPatientId(): Observable<KeyValuePair> {
     const geturl = this.patienturl + apiEndpoints.getSerialNPatientId;
     console.log(geturl);
-    return this.httpClient.get<KeyValuePair>(geturl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<KeyValuePair>(geturl);
   }
 
   AddPatient(data: PatientCreateDto): Observable<PatientCreateDto> {
     const addurl = this.patienturl + apiEndpoints.add;
     console.log(addurl);
-    return this.httpClient.post<PatientCreateDto>(addurl, data).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.post<PatientCreateDto>(addurl, data);
   }
 
   /**
@@ -51,16 +45,12 @@ export class PatientService {
    */
   addPatientTest(data: AddPatientTestDto): Observable<any> {
     const url = this.patienturl + apiEndpoints.addTestWithReceipt;
-    return this.httpClient.post<any>(url, data).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.post<any>(url, data);
   }
 
   updatePatientDetails(patient: PatientEditDto): Observable<boolean> {
     const updateUrl = this.patienturl + apiEndpoints.update;
-    return this.httpClient.put<boolean>(updateUrl, patient).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<boolean>(updateUrl, patient);
   }
 
   /**
@@ -73,9 +63,7 @@ export class PatientService {
     if (reason) {
       deleteUrl += `&reason=${encodeURIComponent(reason)}`;
     }
-    return this.httpClient.delete<any>(deleteUrl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.delete<any>(deleteUrl);
   }
 
   /**
@@ -84,9 +72,7 @@ export class PatientService {
    */
   reactivatePatient(patientId: string): Observable<any> {
     const url = `${this.patienturl}${apiEndpoints.reactivate}?patientId=${encodeURIComponent(patientId)}`;
-    return this.httpClient.put<any>(url, null).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<any>(url, null);
   }
 
   /**
@@ -96,9 +82,7 @@ export class PatientService {
    */
   hardDeletePatient(patientId: string): Observable<any> {
     const url = `${this.patienturl}${apiEndpoints.hardDelete}?patientId=${encodeURIComponent(patientId)}`;
-    return this.httpClient.delete<any>(url).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.delete<any>(url);
   }
 
   searchPatients(searchTerm: string, pageNumber: number, pageSize: number, dateFrom?: string, dateTo?: string, status?: string): Observable<any> {
@@ -112,15 +96,12 @@ export class PatientService {
     if (status) {
       searchUrl += `&status=${encodeURIComponent(status)}`;
     }
-    return this.httpClient.get<any>(searchUrl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<any>(searchUrl);
   }
   getDistinctReferredBy(referredByType:string): Observable<string[]> {
     const getUrl = `${this.patienturl}${apiEndpoints.getDistinctReferredBy}?referred_By_Type=${referredByType}`;
     return this.httpClient.get<any[]>(getUrl).pipe(
-      map((response) => this.normalizeDistinctReferredBy(response)),
-      catchError(this.errorHandler)
+      map((response) => this.normalizeDistinctReferredBy(response))
     );
   }
 
@@ -148,9 +129,7 @@ export class PatientService {
    */
   cancelPatientTest(patientTestId: number, reason?: string): Observable<any> {
     const url = this.patienturl + apiEndpoints.cancelTest;
-    return this.httpClient.put<any>(url, { patientTestId, reason: reason ?? null }).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<any>(url, { patientTestId, reason: reason ?? null });
   }
 
   /**
@@ -160,9 +139,7 @@ export class PatientService {
    */
   removeTestCodes(patientTestId: number, testCodes: string[], reason?: string): Observable<any> {
     const url = this.patienturl + apiEndpoints.removeTests;
-    return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null }).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null });
   }
 
   /**
@@ -176,13 +153,7 @@ export class PatientService {
    */
   updatePatientStatus(patientId: string, newStatus: string): Observable<any> {
     const url = `${this.patienturl}/UpdatePatientStatus`;
-    return this.httpClient.put<any>(url, { patientId, status: newStatus }).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<any>(url, { patientId, status: newStatus });
   }
 
-  private errorHandler(error: HttpErrorResponse) {
-    console.error(error);
-    return throwError(() => new Error(error.message || "Server Error"));
-  }
 }

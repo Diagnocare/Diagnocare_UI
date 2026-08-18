@@ -120,11 +120,15 @@ export const routes: Routes = [
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Summary Reports — container shell with child routes rendered in its <router-outlet>
-      // Admin / Super Admin / Doctor only, matching the API's ReportViewers policy.
+      // Every role except User, matching the API's ReportViewers policy and the
+      // summaryReports flag in module-access.ts. All three lists must stay in step:
+      // the flag only decides whether the "Reports" dropdown is drawn, so a role that
+      // has the flag but is missing here sees the menu and is denied on every click —
+      // which is exactly how Assistant behaved before.
       {
         path: 'reports',
         loadComponent: () => import('./component/summary-report/summary-report-container.component').then(m => m.SummaryReportContainerComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)],
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)],
         children: [
           // Default redirect to patient-register when no child is specified
           { path: '', redirectTo: 'patient-register', pathMatch: 'full' },
@@ -142,19 +146,19 @@ export const routes: Routes = [
           { path: 'collection-boys-wise', redirectTo: 'referrer-collection' },
           { path: 'reporting-doctor-wise', title: 'Reporting Doctor Wise',
             loadComponent: () => import('./component/summary-report/reports/reporting-doctor-wise.component').then(m => m.ReportingDoctorWiseComponent),
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
           { path: 'discount-authority-wise', title: 'Discount Authority Wise',
             loadComponent: () => import('./component/summary-report/reports/discount-authority-wise.component').then(m => m.DiscountAuthorityWiseComponent) },
           { path: 'patient-history-wise', title: 'Patient History Wise',
             loadComponent: () => import('./component/summary-report/reports/patient-history-wise.component').then(m => m.PatientHistoryWiseComponent),
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
           { path: 'worksheet', title: 'Worksheet Report',
             loadComponent: () => import('./component/summary-report/reports/worksheet-report.component').then(m => m.WorksheetReportComponent) },
           { path: 'register-reports', title: 'Register Reports',
             loadComponent: () => import('./component/summary-report/reports/register-reports.component').then(m => m.RegisterReportsComponent) },
           { path: 'patient-diagnosis', title: 'Patient Diagnosis Report',
             loadComponent: () => import('./component/summary-report/reports/patient-diagnosis-report.component').then(m => m.PatientDiagnosisReportComponent),
-            canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
+            canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
           { path: 'pndt-test', title: 'PNDT Test Report',
             loadComponent: () => import('./component/summary-report/reports/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
           { path: 'master-test-list', title: 'Master Test List',

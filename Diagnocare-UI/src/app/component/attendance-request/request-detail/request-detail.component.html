@@ -48,7 +48,7 @@
           <dd class="remarks">{{ request.adminRemarks }}</dd>
         </div>
         <div class="full" *ngIf="request.withdrawalReason">
-          <dt>{{ isAdmin ? 'Withdrawal requested because' : 'You asked to undo this because' }}</dt>
+          <dt>{{ isReviewer ? 'Withdrawal requested because' : 'You asked to undo this because' }}</dt>
           <dd class="remarks">{{ request.withdrawalReason }}</dd>
         </div>
         <div class="full" *ngIf="request.requestStatus === RequestStatus.Withdrawn">
@@ -71,23 +71,23 @@
 
       <!-- Owner (User) actions — one "take it back" button whose label tells the user
            whether it happens now or goes for review. -->
-      <div *ngIf="request.canEdit || (!isAdmin && request.canWithdraw)" class="owner-actions">
+      <div *ngIf="request.canEdit || (!isReviewer && request.canWithdraw)" class="owner-actions">
         <button *ngIf="request.canEdit" class="btn btn-primary" (click)="editRequest()">
           <i class="fa fa-pen"></i> Edit
         </button>
-        <button *ngIf="!isAdmin && request.canWithdraw" class="btn btn-danger" (click)="confirmMode = 'withdraw'">
+        <button *ngIf="!isReviewer && request.canWithdraw" class="btn btn-danger" (click)="confirmMode = 'withdraw'">
           <i class="fa fa-rotate-left"></i>
           {{ request.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw' }}
         </button>
       </div>
 
       <!-- Explain a missing button rather than leaving the employee to guess -->
-      <div *ngIf="!isAdmin && request.withdrawalBlockedReason" class="closed-note">
+      <div *ngIf="!isReviewer && request.withdrawalBlockedReason" class="closed-note">
         <i class="fa fa-lock"></i>
         <p>{{ request.withdrawalBlockedReason }}</p>
       </div>
 
-      <div *ngIf="!isAdmin && request.isWithdrawalPending" class="closed-note">
+      <div *ngIf="!isReviewer && request.isWithdrawalPending" class="closed-note">
         <i class="fa fa-hourglass-half"></i>
         <p>
           Your withdrawal is with your administrator.
@@ -97,7 +97,7 @@
     </div>
 
     <!-- Right: admin decision panel -->
-    <div *ngIf="isAdmin" class="card action-card">
+    <div *ngIf="isReviewer" class="card action-card">
       <!-- Withdrawal takes precedence: it's the newer ask on this request -->
       <ng-container *ngIf="isWithdrawalPending; else pendingOrClosed">
         <h3><i class="fa fa-rotate-left"></i> Withdrawal requested</h3>

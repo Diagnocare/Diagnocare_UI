@@ -417,7 +417,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient deactivated successfully', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Patient deactivation failed', 'Error');
@@ -453,7 +452,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient reactivated successfully', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Patient reactivation failed', 'Error');
@@ -486,7 +484,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient permanently deleted', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Permanent deletion failed', 'Error');

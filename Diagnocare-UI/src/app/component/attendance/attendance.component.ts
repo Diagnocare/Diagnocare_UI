@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
 import { isActiveByDate } from 'src/app/shared/member-utils';
-import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { UnsavedChangesModalComponent } from 'src/app/shared/unsaved-changes-modal/unsaved-changes-modal.component';
@@ -194,9 +193,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   constructor(
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
-    private toastr:        ToastrService,
     private datePipe:      DatePipe,
-    private unsavedModalSvc: UnsavedChangesModalService,
+    private unsavedModalSvc: UnsavedChangesModalService
   ) {}
 
   ngOnInit(): void {
@@ -620,7 +618,6 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     );
 
     if (!records.length) {
-      this.toastr.info('No changes to save.', 'Info');
       onSuccess?.();
       return;
     }
@@ -637,7 +634,6 @@ export class AttendanceComponent implements OnInit, OnDestroy {
               if (c.isDirty) { c.originalStatus = c.status; c.isDirty = false; }
             })
           );
-          this.toastr.success(`${records.length} record(s) saved.`, 'Saved');
           this.isSaving = false;
           onSuccess?.();
         },

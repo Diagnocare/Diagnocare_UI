@@ -380,13 +380,6 @@ export class TokenService {
    */
   isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
 
-  /**
-   * Super Admin only. Use this — not isAdmin() — for anything the lab owner
-   * alone may do (salary administration), since isAdmin() is true for a plain
-   * Admin as well.
-   */
-  isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
-
   // ── Token lifecycle ────────────────────────────────────────────────────────
 
   isTokenExpired(): boolean {

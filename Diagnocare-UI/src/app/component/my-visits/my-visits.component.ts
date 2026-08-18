@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule }  from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
-import { ToastrService } from 'ngx-toastr';
 
 import { VisitScheduleService } from 'src/app/services/visitScheduleServices/visit-schedule.service';
 import { TokenService }         from 'src/app/core/interceptors/token.service';
@@ -57,8 +56,7 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
 
   constructor(
     private _visitSvc:  VisitScheduleService,
-    private _tokenSvc:  TokenService,
-    private toastr:     ToastrService,
+    private _tokenSvc:  TokenService
   ) {}
 
   ngOnInit(): void {
@@ -151,7 +149,6 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
       completionPhotoBase64: data.photoBase64 || undefined,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.toastr.success('Visit marked as completed!', 'Done');
         this.savingComplete  = false;
         this.completingVisit = null;
         this.loadVisits();

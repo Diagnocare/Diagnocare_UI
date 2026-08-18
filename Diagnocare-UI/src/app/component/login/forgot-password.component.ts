@@ -197,7 +197,6 @@ export class ForgotPasswordComponent implements OnDestroy {
   onOtpResend() {
     this._otpManager.resendOtp(this.id, this.verifiedUserId).subscribe({
       next: () => {
-        this.toastr.info('OTP resent!');
         this.otpResendRemaining = this.otpResendSeconds;
         if (this.otpTimerId) {
           clearInterval(this.otpTimerId);
@@ -347,7 +346,6 @@ export class ForgotPasswordComponent implements OnDestroy {
       next: (resp: response) => {
         this.isSubmitting = false;
         if (resp?.success) {
-          this.toastr.success(resp?.message || 'Password updated successfully.');
           this.router.navigate(['/login']);
         } else {
           this.toastr.error(resp?.message || 'Unable to update password.');

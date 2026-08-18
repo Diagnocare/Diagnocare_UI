@@ -241,7 +241,6 @@ export class PatientTestListComponent implements OnInit {
 
   onAddTestSaved(): void {
     this.showAddTestModal = false;
-    this.toastr.success('Test added successfully.', 'Test Added');
     this.loadPatientTests();
   }
 
@@ -427,7 +426,6 @@ export class PatientTestListComponent implements OnInit {
   onPaymentSaved(): void {
     this.showPaymentModal  = false;
     this.activePaymentTest = null;
-    this.toastr.success('Payment recorded successfully.', 'Payment Saved');
     this.loadPatientTests();
   }
 
@@ -849,7 +847,7 @@ export class PatientTestListComponent implements OnInit {
   }
 
   onCancelConfirmed(payload: CancelConfirmPayload): void {
-    const { bookingCancels, reason, totalEligibleRefund } = payload;
+    const { bookingCancels, reason } = payload;
 
     // ── Step 1: Cancel or partially remove test codes per booking ─────────
     // Full cancel  → all test codes in the booking are selected → use CancelTest
@@ -875,8 +873,6 @@ export class PatientTestListComponent implements OnInit {
         );
 
         if (refundItems.length === 0) {
-          const n = bookingCancels.length;
-          this.toastr.success(`${n} booking${n > 1 ? 's' : ''} cancelled.`, 'Cancelled');
           this.updatePatientStatusAfterCancellation();
           return;
         }
@@ -891,11 +887,6 @@ export class PatientTestListComponent implements OnInit {
 
         forkJoinRxjs(refundCalls).subscribe({
           next: () => {
-            const n = bookingCancels.length;
-            this.toastr.success(
-              `${n} booking${n > 1 ? 's' : ''} cancelled. ₹${totalEligibleRefund.toFixed(2)} refunded.`,
-              'Cancelled & Refunded'
-            );
             this.updatePatientStatusAfterCancellation();
           },
           error: () => {
@@ -933,7 +924,6 @@ export class PatientTestListComponent implements OnInit {
             next: () => {
               // Status updated successfully
               this.filterTests();
-              this.toastr.info('Patient status updated to Completed', 'Status Update');
             },
             error: (err) => {
               // Log error but continue (status update is non-critical)

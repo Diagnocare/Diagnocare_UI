@@ -133,10 +133,6 @@ export class RequestDetailComponent implements OnInit {
         this.isSaving = false;
         this.confirmMode = null;
         this.withdrawReason = '';
-        this.toastr.success(
-          needsApproval
-            ? 'Sent to your administrator. Your attendance stays as it is until they review it.'
-            : 'Request withdrawn. You can file a new one for that day whenever you like.');
       },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
@@ -154,7 +150,6 @@ export class RequestDetailComponent implements OnInit {
         this.isSaving = false;
         this.confirmMode = null;
         this.withdrawDecisionRemarks = '';
-        this.toastr.success('Withdrawal granted — attendance reverted.');
       },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
@@ -175,7 +170,6 @@ export class RequestDetailComponent implements OnInit {
         this.isSaving = false;
         this.confirmMode = null;
         this.withdrawDecisionRemarks = '';
-        this.toastr.success('Withdrawal refused — the approved attendance stands.');
       },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
@@ -189,7 +183,7 @@ export class RequestDetailComponent implements OnInit {
       approvedStatus: String(this.appliedStatus),
       remarks: this.approveRemarks?.trim() || undefined,
     }).subscribe({
-      next: (r) => { this.request = r; this.isSaving = false; this.confirmMode = null; this.toastr.success('Approved — attendance updated.'); },
+      next: (r) => { this.request = r; this.isSaving = false; this.confirmMode = null; },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }
@@ -198,7 +192,7 @@ export class RequestDetailComponent implements OnInit {
     if (!this.rejectRemarks?.trim()) { this.toastr.warning('Remarks are required to reject.'); return; }
     this.isSaving = true;
     this.service.rejectRequest(this.request.requestId, { remarks: this.rejectRemarks.trim() }).subscribe({
-      next: (r) => { this.request = r; this.isSaving = false; this.confirmMode = null; this.toastr.success('Rejected — attendance unchanged.'); },
+      next: (r) => { this.request = r; this.isSaving = false; this.confirmMode = null; },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }

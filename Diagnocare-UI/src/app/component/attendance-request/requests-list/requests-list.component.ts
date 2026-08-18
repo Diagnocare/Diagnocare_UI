@@ -63,7 +63,14 @@ export class RequestsListComponent implements OnInit {
     return this.statusOptions.filter(o => o.value !== this.AWAITING_DECISION);
   }
 
-  isAdmin = false;
+  /**
+   * True when the signed-in user REVIEWS other people's requests, i.e. Super
+   * Admin. Deliberately not the isAdmin() helper: a plain Admin now raises
+   * attendance corrections for themselves like any other staff member, and the
+   * Super Admin approves them — so an Admin must get the self-service view here,
+   * not the review queue. Approving your own correction is what this prevents.
+   */
+  isReviewer = false;
   rows: AttendanceRequestDTO[] = [];
   total = 0;
   isLoading = false;
@@ -90,7 +97,7 @@ export class RequestsListComponent implements OnInit {
 
   load(): void {
     this.isLoading = true;
-    if (this.isAdmin) {
+    if (this.isReviewer) {
       // The AWAITING_DECISION sentinel is not a status — translate it into the flag the
       // server understands, and drop `status` so it can't be sent as a negative number.
       const awaiting = this.filter.status === this.AWAITING_DECISION;
@@ -121,7 +128,7 @@ export class RequestsListComponent implements OnInit {
   applyFilters(): void { this.filter.page = 1; this.load(); }
 
   resetFilters(): void {
-    this.filter = { status: this.isAdmin ? this.AWAITING_DECISION : 0, search: '', fromDate: '', toDate: '',
+    this.filter = { status: this.isReviewer ? this.AWAITING_DECISION : 0, search: '', fromDate: '', toDate: '',
                     page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc' };
     this.load();
   }
@@ -163,7 +170,7 @@ export class RequestsListComponent implements OnInit {
     }
 
     this.service.requestWithdrawal(r.requestId, {}).subscribe({
-      next: () => { this.toastr.success('Request withdrawn.'); this.load(); },
+      next: () => { this.load(); },
       error: (msg) => this.toastr.error(msg),
     });
   }

@@ -1,24 +1,13 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, forkJoin, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, forkJoin } from 'rxjs';
 
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { WeeklyAttendanceResponseDTO } from 'src/app/models/attendance/user-weekly-attendance.dto';
 import { AttendanceRecordDTO } from 'src/app/models/attendance/attendance-record.dto';
 import { MemberDto } from 'src/app/models/member/member.dto';
-import {
-  AttendanceRequestDTO,
-  CreateAttendanceRequestDTO,
-  UpdateAttendanceRequestDTO,
-  ApproveAttendanceRequestDTO,
-  RejectAttendanceRequestDTO,
-  WithdrawAttendanceRequestDTO,
-  DecideWithdrawalDTO,
-  AttendanceRequestFilter,
-  PagedResult,
-} from 'src/app/models/attendanceRequest/attendance-request.model';
+import {AttendanceRequestDTO, CreateAttendanceRequestDTO, UpdateAttendanceRequestDTO, ApproveAttendanceRequestDTO, RejectAttendanceRequestDTO, WithdrawAttendanceRequestDTO, DecideWithdrawalDTO, AttendanceRequestFilter, PagedResult} from 'src/app/models/attendanceRequest/attendance-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class AttendanceService {
@@ -37,8 +26,7 @@ export class AttendanceService {
    */
   getAllUsers(): Observable<MemberDto[]> {
     return this.http
-      .get<MemberDto[]>(this.userUrl + apiEndpoints.getAllList)
-      .pipe(catchError(this.errorHandler));
+      .get<MemberDto[]>(this.userUrl + apiEndpoints.getAllList);
   }
 
   /**
@@ -50,16 +38,14 @@ export class AttendanceService {
     return this.http
       .get<WeeklyAttendanceResponseDTO>(
         `${this.baseUrl}${apiEndpoints.getWeeklyAttendance}?startDate=${mondayDate}`
-      )
-      .pipe(catchError(this.errorHandler));
+      );
   }
 
   getMonthlyAttendance(year: number, month: number): Observable<WeeklyAttendanceResponseDTO> {
     return this.http
       .get<WeeklyAttendanceResponseDTO>(
         `${this.baseUrl}${apiEndpoints.getMonthly}?year=${year}&month=${month}`
-      )
-      .pipe(catchError(this.errorHandler));
+      );
   }
 
   /**
@@ -71,8 +57,7 @@ export class AttendanceService {
     return this.http
       .get<WeeklyAttendanceResponseDTO>(
         `${this.baseUrl}${apiEndpoints.getMyWeeklyAttendance}?startDate=${mondayDate}`
-      )
-      .pipe(catchError(this.errorHandler));
+      );
   }
 
   /**
@@ -84,8 +69,7 @@ export class AttendanceService {
     return this.http
       .get<WeeklyAttendanceResponseDTO>(
         `${this.baseUrl}${apiEndpoints.getMyMonthly}?year=${year}&month=${month}`
-      )
-      .pipe(catchError(this.errorHandler));
+      );
   }
 
   /**
@@ -106,14 +90,14 @@ export class AttendanceService {
       calls.push(
         this.http
           .post(`${this.baseUrl}${apiEndpoints.add}`, newRecords)
-          .pipe(catchError(this.errorHandler))
+
       );
 
     if (existingRecords.length)
       calls.push(
         this.http
           .put(`${this.baseUrl}${apiEndpoints.update}`, existingRecords)
-          .pipe(catchError(this.errorHandler))
+
       );
 
     // If there's nothing to do, return an immediate completion.
@@ -137,32 +121,27 @@ export class AttendanceService {
   getMyRequests(status?: number): Observable<AttendanceRequestDTO[]> {
     const q = status ? `?status=${status}` : '';
     return this.http
-      .get<AttendanceRequestDTO[]>(`${this.baseUrl}${apiEndpoints.myRequests}${q}`)
-      .pipe(catchError(this.errorHandler));
+      .get<AttendanceRequestDTO[]>(`${this.baseUrl}${apiEndpoints.myRequests}${q}`);
   }
 
   getMyRequest(id: number): Observable<AttendanceRequestDTO> {
     return this.http
-      .get<AttendanceRequestDTO>(`${this.baseUrl}${apiEndpoints.myRequests}/${id}`)
-      .pipe(catchError(this.errorHandler));
+      .get<AttendanceRequestDTO>(`${this.baseUrl}${apiEndpoints.myRequests}/${id}`);
   }
 
   createRequest(dto: CreateAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(this.requestsUrl, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(this.requestsUrl, dto);
   }
 
   updateRequest(id: number, dto: UpdateAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .put<AttendanceRequestDTO>(`${this.requestsUrl}/${id}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .put<AttendanceRequestDTO>(`${this.requestsUrl}/${id}`, dto);
   }
 
   cancelRequest(id: number): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.cancelRequest}`, {})
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.cancelRequest}`, {});
   }
 
   /**
@@ -171,8 +150,7 @@ export class AttendanceService {
    */
   requestWithdrawal(id: number, dto: WithdrawAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.withdrawRequest}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.withdrawRequest}`, dto);
   }
 
   // ── Admin ───────────────────────────────────────────────────────────────────
@@ -192,50 +170,39 @@ export class AttendanceService {
     if (filter.sortDir)  params = params.set('sortDir', filter.sortDir);
 
     return this.http
-      .get<PagedResult<AttendanceRequestDTO>>(this.requestsUrl, { params })
-      .pipe(catchError(this.errorHandler));
+      .get<PagedResult<AttendanceRequestDTO>>(this.requestsUrl, { params });
   }
 
   getRequest(id: number): Observable<AttendanceRequestDTO> {
     return this.http
-      .get<AttendanceRequestDTO>(`${this.requestsUrl}/${id}`)
-      .pipe(catchError(this.errorHandler));
+      .get<AttendanceRequestDTO>(`${this.requestsUrl}/${id}`);
   }
 
   getPendingRequestCount(): Observable<number> {
     return this.http
-      .get<number>(`${this.baseUrl}${apiEndpoints.pendingRequestCount}`)
-      .pipe(catchError(this.errorHandler));
+      .get<number>(`${this.baseUrl}${apiEndpoints.pendingRequestCount}`);
   }
 
   approveRequest(id: number, dto: ApproveAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveRequest}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveRequest}`, dto);
   }
 
   rejectRequest(id: number, dto: RejectAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectRequest}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectRequest}`, dto);
   }
 
   /** Admin grants a withdrawal — reverts the attendance record. */
   approveWithdrawal(id: number, dto: DecideWithdrawalDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveWithdrawal}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveWithdrawal}`, dto);
   }
 
   /** Admin refuses a withdrawal — request returns to Approved, attendance untouched. */
   rejectWithdrawal(id: number, dto: DecideWithdrawalDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectWithdrawal}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectWithdrawal}`, dto);
   }
 
-  private errorHandler(error: HttpErrorResponse): Observable<never> {
-    const msg = error?.error?.error || error?.error?.message || error.message || 'Server Error';
-    return throwError(() => msg);
-  }
 }

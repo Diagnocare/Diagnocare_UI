@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
-import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
@@ -106,9 +105,8 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   constructor(
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
-    private toastr:        ToastrService,
     private datePipe:      DatePipe,
-    private router:        Router,
+    private router:        Router
   ) {}
 
   /**

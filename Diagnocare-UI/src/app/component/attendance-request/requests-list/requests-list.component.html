@@ -14,7 +14,7 @@
   </div>
 
   <!-- User: status chips -->
-  <div *ngIf="!isAdmin" class="chip-bar">
+  <div *ngIf="!isReviewer" class="chip-bar">
     <button *ngFor="let f of userStatusOptions" class="chip"
             [class.active]="filter.status === f.value" (click)="setStatus(f.value)">
       {{ f.label }}
@@ -100,7 +100,7 @@
               <!-- One withdraw affordance. An unreviewed request goes in a click; an
                    approved one needs a reason, so that case opens the detail view where
                    the reason can be typed rather than faking a one-click version of it. -->
-              <button *ngIf="!isAdmin && r.canWithdraw" class="icon-btn danger"
+              <button *ngIf="!isReviewer && r.canWithdraw" class="icon-btn danger"
                       [title]="r.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw'"
                       (click)="withdraw(r, $event)">
                 <i class="fa fa-rotate-left"></i>

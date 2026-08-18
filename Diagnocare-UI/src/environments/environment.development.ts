@@ -15,6 +15,10 @@ export const environment: AppEnvironment = {
   // ?product=&env= on the help URL, so reports can be routed/filtered).
   appName: 'Diagnocare',
   envName: 'dev',
+  // Local `ng serve` — skip the OTP step (localhost only; see environment.model.ts).
+  // The deployed dev server is not localhost, so it still requires the second factor.
+  devSkipSecondFactor: true,
+
   basicAuth: {
     username: 'Admin',
     password: 'ggDgc+q0Y4xNWOadnfALUOEEi/ijWn4I0fd06Keor5Y=',

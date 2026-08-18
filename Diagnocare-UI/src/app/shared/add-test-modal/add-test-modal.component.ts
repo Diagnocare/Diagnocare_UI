@@ -289,11 +289,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
-      this.toastr.info(`${t.testName} removed`);
     } else {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
-      this.toastr.info(`${t.testName} added`);
     }
   }
 
@@ -302,7 +300,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     if (!t) return;
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
-    this.toastr.info(`${t.testName} removed`);
   }
 
   confirmTestSelection(): void {
@@ -664,7 +661,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this._patientService.addPatientTest(payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.isSaving = false;
-        this.toastr.success('Test added successfully', 'Success');
         this.saved.emit();
       },
       error: (err: Error) => {
