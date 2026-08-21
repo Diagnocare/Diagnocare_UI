@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
@@ -35,6 +34,7 @@ import {
 })
 export class SalaryComponent implements OnInit, OnDestroy {
 
+  readonly revenuePercentEnabled = false;
   // ── Tab state ──────────────────────────────────────────────────────────────
   activeTab: 'monthly' | 'config' = 'monthly';
 
@@ -134,31 +134,13 @@ export class SalaryComponent implements OnInit, OnDestroy {
     return employees.filter(r => r.fullName.toLowerCase().includes(q));
   }
 
-  /**
-   * The three header cards must satisfy payable − paid = pending.
-   *
-   * That only holds against `netPayableSalary` (leave-adjusted). `netSalary` is the
-   * fixed contract figure and carries PF on the full base, whereas `pendingAmount`
-   * is derived from the leave-adjusted base with PF recomputed on it — so summing
-   * `netSalary` here left the cards out by the leave deduction net of PF relief,
-   * which showed up most obviously as "pending ≠ payable" on a month with nothing paid.
-   */
   get displayTotals(): { payable: number; paid: number; pending: number } {
     const recs = this.filteredRecords;
     return {
-      payable: recs.reduce((s, r) => s + this.netPayableOf(r),   0),
-      paid:    recs.reduce((s, r) => s + (r.totalPaid     ?? 0),  0),
-      pending: recs.reduce((s, r) => s + (r.pendingAmount ?? 0),  0),
+      payable: recs.reduce((s, r) => s + (r.netSalary     ?? 0), 0),
+      paid:    recs.reduce((s, r) => s + (r.totalPaid     ?? 0), 0),
+      pending: recs.reduce((s, r) => s + (r.pendingAmount ?? 0), 0),
     };
-  }
-
-  /**
-   * Amount owed for the displayed month. Falls back to the contract net salary only
-   * when the server sent no month-scoped figure — with no leave deduction the two
-   * are equal anyway, so the fallback never introduces a discrepancy.
-   */
-  private netPayableOf(rec: SalaryRecordDTO): number {
-    return rec.netPayableSalary ?? rec.netSalary ?? 0;
   }
 
   get isMonthGenerated(): boolean {
@@ -180,23 +162,20 @@ export class SalaryComponent implements OnInit, OnDestroy {
   fullPaymentCalcResult: CalculatePayableSalaryDTO | null = null;
 
   /**
-   * The month's net payable: payableBaseSalary + TA + OA − PF.
-   *
-   * The PF term must come from the calculation result, not from the record: the
-   * record's `pfAmount` is contract PF on the FULL base, while `payableBaseSalary`
-   * has already had the leave deduction taken off it. Mixing the two subtracted PF
-   * against a base that no longer existed and understated the net by
-   * (leaveDeduction x pfPercentage).
+   * When a Pay Full calculation result is available, returns
+   * payableBaseSalary + TA + OA − PF (the deduction-adjusted net salary).
+   * Falls back to panelRecord.netSalary for partial payments.
    */
   get displayNetSalary(): number {
     if (this.fullPaymentCalcResult && this.panelRecord) {
-      return this.fullPaymentCalcResult.netPayableSalary
-          ?? (this.fullPaymentCalcResult.payableBaseSalary +
-              (this.panelRecord.travelAllowance ?? 0) +
-              (this.panelRecord.otherAllowance  ?? 0) -
-              (this.fullPaymentCalcResult.pfAmount ?? 0));
+      return (
+        this.fullPaymentCalcResult.payableBaseSalary +
+        (this.panelRecord.travelAllowance ?? 0) +
+        (this.panelRecord.otherAllowance  ?? 0) -
+        (this.panelRecord.pfAmount        ?? 0)
+      );
     }
-    return this.panelRecord ? this.netPayableOf(this.panelRecord) : 0;
+    return this.panelRecord?.netSalary ?? 0;
   }
 
   /**
@@ -231,50 +210,10 @@ export class SalaryComponent implements OnInit, OnDestroy {
     { value: PaymentFor.OtherAllowance,  label: PaymentForLabels[PaymentFor.OtherAllowance] },
   ];
 
-  /**
-   * Options for the Payment For picker. "All Components" is offered on Full
-   * payments only — it means "settle the whole month", and is meaningless for a
-   * Partial payment, where the amount has to belong to one component.
-   */
-  get visiblePaymentForOptions(): { value: PaymentFor; label: string }[] {
-    return this.paymentForm.paymentType === PaymentType.Full
-      ? [...this.paymentForOptions,
-         { value: PaymentFor.AllComponents, label: PaymentForLabels[PaymentFor.AllComponents] }]
-      : this.paymentForOptions;
-  }
-
-  /** True while the Full form is set to settle every component at once. */
-  get isPayingAllComponents(): boolean {
-    return this.paymentForm.paymentType === PaymentType.Full
-        && this.paymentForm.paymentFor === PaymentFor.AllComponents;
-  }
-
   /** Returns the display label for a paymentSource numeric value. */
   paymentForLabel(val: PaymentFor | number | undefined): string {
     if (val === undefined || val === null) return '—';
     return PaymentForLabels[val as PaymentFor] ?? '—';
-  }
-
-  /**
-   * True for a payment written before Full became per-component: type "Full",
-   * stored as Base Salary, but for an amount larger than the base-salary
-   * component could ever be — i.e. it actually settled the whole month.
-   *
-   * Those rows are left in the database exactly as they are; this only stops the
-   * history mislabelling them as a base-salary payment. New Full payments settle
-   * a single component and never trip this check.
-   */
-  isLegacyFullSalary(pay: { paymentType?: string; paymentSource?: number; paymentAmount?: number }): boolean {
-    if (pay?.paymentType !== 'Full') return false;
-    if ((pay?.paymentSource ?? PaymentFor.BaseSalary) !== PaymentFor.BaseSalary) return false;
-
-    const rec = this.panelRecord;
-    if (!rec) return false;
-
-    // Base-salary component cap for this record — server-supplied and leave-adjusted.
-    const baseCap = this.baseSalaryCapOf(rec);
-    // Tolerance keeps rounding noise from flagging a legitimate full base payment.
-    return baseCap > 0 && (pay.paymentAmount ?? 0) > baseCap + 0.01;
   }
 
   /** Returns a stable CSS modifier class for a paymentSource numeric value. */
@@ -299,90 +238,22 @@ export class SalaryComponent implements OnInit, OnDestroy {
   isCalcModalOpen    = false;
   isCalculating      = false;
   calcLoadingUserId: number | null = null;            // tracks which row is loading
-  /** Last CalculatePayableSalary failure, shown inline next to the action that failed. */
-  calcError          = '';
 
-  // ── HTTP error handling ────────────────────────────────────────────────────
-
-  /**
-   * Turns a failed request into a message worth showing, and logs the full
-   * response for diagnosis.
-   *
-   * CalculatePayableSalary has three distinct failure modes that all used to look
-   * identical (nothing happened, spinner stopped):
-   *   404 — the employee has no salary configured, so there is nothing to calculate
-   *   403 — the endpoint is SuperAdminOnly; ErrorInterceptor redirects to /access-denied
-   *   500 — the server threw; the real reason is in the API log, keyed by user + month
-   *
-   * The toast is deliberately left to ErrorInterceptor, which already toasts every
-   * non-401/403 failure — toasting here as well would show the user two of them.
-   * What was missing was the inline state and the console detail, both below.
-   */
-  private describeHttpError(err: unknown, context: string): string {
-    if (err instanceof HttpErrorResponse) {
-      // Full response object first, so devtools shows status, url and the body.
-      console.error(`[Salary] ${context} failed`, {
-        status:     err.status,
-        statusText: err.statusText,
-        url:        err.url,
-        serverBody: err.error,
-        error:      err,
-      });
-
-      if (err.status === 0) {
-        return 'Could not reach the server. Check your connection and try again.';
-      }
-      if (err.status === 404) {
-        return this.serverMessage(err)
-            ?? 'No salary is configured for this employee, so there is nothing to calculate.';
-      }
-      if (err.status === 403) {
-        return 'You do not have permission to calculate payable salary.';
-      }
-      if (err.status >= 500) {
-        return this.serverMessage(err)
-            ?? 'The server could not calculate this salary. Please try again shortly.';
-      }
-      return this.serverMessage(err) ?? `Request failed (${err.status} ${err.statusText}).`;
-    }
-
-    // Not an HttpErrorResponse — a bug in our own callback, or a non-HTTP throw.
-    console.error(`[Salary] ${context} failed with a non-HTTP error`, err);
-    return 'Something went wrong. Please try again.';
-  }
-
-  /** Pulls this API's `{ message }` / ProblemDetails text out of an error body. */
-  private serverMessage(err: HttpErrorResponse): string | null {
-    const body = err.error;
-    if (typeof body === 'string' && body.trim() && !body.trim().startsWith('<')) {
-      return body.trim();
-    }
-    if (body && typeof body === 'object') {
-      const text = body.message ?? body.detail ?? body.title;
-      if (typeof text === 'string' && text.trim()) return text.trim();
-    }
-    return null;
-  }
-
-  /**
-   * Net payable = payableBaseSalary + TA + OA − PF.
-   * PF comes from calcResult (computed on the leave-reduced base), not from
-   * calcRecord.pfAmount (contract PF on the full base) — see displayNetSalary.
-   */
+  /** Net payable = payableBaseSalary + TA + OA − PF */
   get calcNetPayable(): number {
     if (!this.calcResult || !this.calcRecord) return 0;
-    return this.calcResult.netPayableSalary
-        ?? (this.calcResult.payableBaseSalary +
-            (this.calcRecord.travelAllowance ?? 0) +
-            (this.calcRecord.otherAllowance  ?? 0) -
-            (this.calcResult.pfAmount        ?? 0));
+    return (
+      this.calcResult.payableBaseSalary +
+      (this.calcRecord.travelAllowance ?? 0) +
+      (this.calcRecord.otherAllowance  ?? 0) -
+      (this.calcRecord.pfAmount        ?? 0)
+    );
   }
 
   openCalcModal(rec: SalaryRecordDTO): void {
     if (this.isCalculating) return;
     this.isCalculating     = true;
     this.calcLoadingUserId = rec.userId;
-    this.calcError         = '';
 
     this.salarySvc.calculatePayableSalary(rec.userId, this.currentYear, this.currentMonth)
       .pipe(takeUntil(this.destroy$))
@@ -393,17 +264,11 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.isCalcModalOpen   = true;
           this.isCalculating     = false;
           this.calcLoadingUserId = null;
-          this.calcError         = '';
         },
-        error: (err: unknown) => {
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
           this.isCalculating     = false;
           this.calcLoadingUserId = null;
-          this.calcResult        = null;
-          this.calcRecord        = null;
-          this.isCalcModalOpen   = false;
-          this.calcError = this.describeHttpError(
-            err,
-            `CalculatePayableSalary(userId=${rec.userId}, ${this.currentYear}-${this.currentMonth})`);
         },
       });
   }
@@ -461,32 +326,18 @@ export class SalaryComponent implements OnInit, OnDestroy {
   };
 
   // ── Config live preview computations ──────────────────────────────────────
-  // Preview figures mirror SalaryRepository.AddOrUpdateUserSalaryAsync exactly —
-  // inputs snapped to whole rupees first, then PF charged on the snapped base — so
-  // the card cannot show one number and the saved record hold another.
   get draftPfAmount(): number {
-    return Math.round((Math.round(this.configDraft.baseSalary ?? 0) * (this.configDraft.pfPercentage ?? 0)) / 100);
+    return Math.round(((this.configDraft.baseSalary ?? 0) * (this.configDraft.pfPercentage ?? 0)) / 100);
   }
   get draftGrossSalary(): number {
-    return Math.round(this.configDraft.baseSalary ?? 0)
-         + Math.round(this.configDraft.travelAllowance ?? 0)
-         + Math.round(this.configDraft.otherAllowance  ?? 0);
+    return (this.configDraft.baseSalary ?? 0)
+         + (this.configDraft.travelAllowance ?? 0)
+         + (this.configDraft.otherAllowance  ?? 0);
   }
   /** Net = gross − PF on base. PF is only on base salary, not allowances. */
   get draftNetPayable(): number {
     return this.draftGrossSalary - this.draftPfAmount;
   }
-
-  /**
-   * Revenue-% salary is deferred to phase 2, so its configuration card is hidden.
-   *
-   * Nothing else is removed: the DTO field, the salaryType derivation, the
-   * backend column and any values already configured all stay exactly as they
-   * are. An employee previously set up on a revenue % keeps that setup and it
-   * round-trips untouched through a save — this only stops NEW ones being
-   * configured. Flip this to true to bring the feature back.
-   */
-  readonly revenuePercentEnabled = false;
 
   get hasFixedComponent(): boolean  { return (this.configDraft.baseSalary ?? 0) > 0; }
   get hasPercentComponent(): boolean { return (this.configDraft.revenuePercentage ?? 0) > 0; }
@@ -652,102 +503,44 @@ export class SalaryComponent implements OnInit, OnDestroy {
   openFullPayment(): void {
     if (!this.panelRecord || this.isCalculatingForPayment) return;
     this.isCalculatingForPayment = true;
-    this.calcError               = '';
-
-    // Captured now: panelRecord can be nulled by the user closing the panel while
-    // the request is still in flight, and the error handler still needs the id.
-    const userId = this.panelRecord.userId;
 
     this.salarySvc
-      .calculatePayableSalary(userId, this.currentYear, this.currentMonth)
+      .calculatePayableSalary(this.panelRecord.userId, this.currentYear, this.currentMonth)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: result => {
-          const rec = this.panelRecord;
-          // The panel can be closed mid-request; opening the payment form against a
-          // record that is no longer on screen would throw on the non-null assertion
-          // this used to make.
-          if (!rec) {
-            this.isCalculatingForPayment = false;
-            return;
-          }
+          const rec = this.panelRecord!;
+
+          // Net payable after leave deductions + allowances - PF
+          const netPayable =
+            result.payableBaseSalary +
+            (rec.travelAllowance ?? 0) +
+            (rec.otherAllowance  ?? 0) -
+            (rec.pfAmount        ?? 0);
+
+          // Subtract whatever has already been paid
+          const finalAmount = Math.max(0, netPayable - (rec.totalPaid ?? 0));
 
           this.fullPaymentCalcResult     = result;
           this.isAddingPayment           = true;
           this.isFullPaymentAmountLocked = true;
           this.paymentAmountError        = '';
           this.isCalculatingForPayment   = false;
-          this.calcError                 = '';
 
-          // "Full" settles ONE component, so the form opens on Base Salary and the
-          // amount is that component's remaining balance. It used to pre-fill the
-          // whole month's net and post it as a single Base Salary row, which is why
-          // Travel / Other Allowance never showed up in payment history.
-          // Switching component re-computes the amount (see onPaymentForChange).
           this.paymentForm = {
             ...this.blankPaymentForm(),
             salaryId:      rec.salaryId,
             paymentMonth:  `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
-            paymentAmount: 0,
-            paymentFor:    PaymentFor.BaseSalary,
+            paymentAmount: finalAmount,
+            paymentFor:    undefined,
             paymentType:   PaymentType.Full,
           };
-          this.paymentForm.paymentAmount = this.pendingForSelectedType;
         },
-        error: (err: unknown) => {
-          this.isCalculatingForPayment   = false;
-          this.fullPaymentCalcResult     = null;
-          this.isAddingPayment           = false;
-          this.isFullPaymentAmountLocked = false;
-          this.calcError = this.describeHttpError(
-            err,
-            `CalculatePayableSalary(userId=${userId}, ${this.currentYear}-${this.currentMonth}) for Pay Full`);
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isCalculatingForPayment = false;
         },
       });
-  }
-
-  /**
-   * Base-salary component cap for a record, leave-adjusted.
-   *
-   * Prefers the server's `baseSalaryCap`, which is the exact value
-   * SalaryService.GetPayableSourceCap enforces on every payment. The local
-   * fallback reproduces that formula (base − leave deduction, then PF on the
-   * remainder) for older API responses; the previous `baseSalary − pfAmount`
-   * ignored the leave deduction entirely and so could exceed the server's cap,
-   * which the API then rejected outright.
-   */
-  private baseSalaryCapOf(rec: SalaryRecordDTO): number {
-    if (rec.baseSalaryCap != null) return rec.baseSalaryCap;
-
-    // Fallback mirrors SalaryService.ComputeMonthAmounts, including its rounding:
-    // the payable base is snapped to a whole rupee BEFORE PF is charged on it, so
-    // rounding only at the end would land a rupee away from the server's cap and
-    // get the payment rejected.
-    const payableBase = Math.round(
-      Math.max(0, (rec.baseSalary ?? 0) - (rec.leaveDeductionAmount ?? 0)));
-    const pf = rec.adjustedPfAmount
-            ?? (rec.pfPercentage != null
-                  ? Math.round(payableBase * rec.pfPercentage / 100)
-                  : (rec.pfAmount ?? 0));
-    return Math.max(0, payableBase - pf);
-  }
-
-  /** Outstanding base-salary balance for the displayed month. */
-  private basePendingOf(rec: SalaryRecordDTO): number {
-    return rec.baseSalaryPending
-        ?? Math.max(0, this.baseSalaryCapOf(rec) - (rec.baseSalaryPaid ?? 0));
-  }
-
-  /** Outstanding travel-allowance balance for the displayed month. */
-  private travelPendingOf(rec: SalaryRecordDTO): number {
-    return rec.travelAllowancePending
-        ?? Math.max(0, Math.round(rec.travelAllowance ?? 0) - (rec.travelAllowancePaid ?? 0));
-  }
-
-  /** Outstanding other-allowance balance for the displayed month. */
-  private otherPendingOf(rec: SalaryRecordDTO): number {
-    return rec.otherAllowancePending
-        ?? Math.max(0, Math.round(rec.otherAllowance ?? 0) - (rec.otherAllowancePaid ?? 0));
   }
 
   /**
@@ -759,24 +552,18 @@ export class SalaryComponent implements OnInit, OnDestroy {
     const rec = this.panelRecord;
     if (!rec) return 0;
 
-    // "All Components" — the sum of what is outstanding across all three.
-    if (this.paymentForm.paymentFor === PaymentFor.AllComponents) {
-      return this.basePendingOf(rec)
-           + this.travelPendingOf(rec)
-           + this.otherPendingOf(rec);
-    }
-
-    // Per-component for BOTH Partial and Full — Full settles the selected
-    // component rather than the whole month.
-    {
+    if (this.paymentForm.paymentType === PaymentType.Partial) {
       switch (this.paymentForm.paymentFor) {
-        case PaymentFor.BaseSalary:      return this.basePendingOf(rec);
-        case PaymentFor.TravelAllowance: return this.travelPendingOf(rec);
-        case PaymentFor.OtherAllowance:  return this.otherPendingOf(rec);
+        case PaymentFor.BaseSalary:
+          return Math.max(0, (rec.baseSalary ?? 0) - (rec.pfAmount ?? 0) - (rec.baseSalaryPaid ?? 0));
+        case PaymentFor.TravelAllowance:
+          return Math.max(0, (rec.travelAllowance ?? 0) - (rec.travelAllowancePaid ?? 0));
+        case PaymentFor.OtherAllowance:
+          return Math.max(0, (rec.otherAllowance ?? 0) - (rec.otherAllowancePaid ?? 0));
       }
     }
 
-    // No component selected yet — fall back to the month's total pending.
+    // Full payment — use total pending
     return rec.pendingAmount ?? 0;
   }
 
@@ -789,31 +576,13 @@ export class SalaryComponent implements OnInit, OnDestroy {
 
   /** Re-validate amount whenever the Payment For selection changes. */
   onPaymentForChange(): void {
-    this.paymentAmountError = '';
-
-    // Full settles the whole of the chosen component, and its amount field is
-    // locked — so it must be re-filled on every switch, not blanked, or the user
-    // is left staring at a locked empty box.
-    if (this.paymentForm.paymentType === PaymentType.Full) {
-      this.paymentForm.paymentAmount = this.pendingForSelectedType;
-      return;
-    }
-
-    // Partial: clear amount so the user starts fresh for the new component.
+    // Clear amount and error when switching components so the user starts fresh
     this.paymentForm.paymentAmount = null as unknown as number;
+    this.paymentAmountError = '';
   }
 
   onAmountInput(): void {
     if (!this.panelRecord) return;
-
-    // Payments are whole rupees. Snapping on input rather than on submit means the
-    // field shows the same figure the API will store, instead of silently changing
-    // it server-side after the user confirms.
-    const raw = this.paymentForm.paymentAmount;
-    if (raw != null && !Number.isInteger(raw)) {
-      this.paymentForm.paymentAmount = Math.round(raw);
-    }
-
     const amt = this.paymentForm.paymentAmount ?? 0;
     const max = this.pendingForSelectedType;
 
@@ -831,13 +600,12 @@ export class SalaryComponent implements OnInit, OnDestroy {
   }
 
   get paymentFormValid(): boolean {
+    const isPartial = this.paymentForm.paymentType === PaymentType.Partial;
     return (
       !this.paymentAmountError &&
       (this.paymentForm.paymentAmount ?? 0) > 0 &&
       !!this.paymentForm.paymentDate &&
-      // Required for BOTH types now: Full settles a specific component (or all
-      // three), so it can no longer be submitted without a choice.
-      !!this.paymentForm.paymentFor
+      (!isPartial || !!this.paymentForm.paymentFor)  // paymentFor only needed for Partial
     );
   }
 
@@ -845,22 +613,14 @@ export class SalaryComponent implements OnInit, OnDestroy {
     if (!this.paymentFormValid || !this.panelRecord) return;
     this.isAddingPayment = false;
 
-    // "All Components" is a UI-only choice — PaymentFor.AllComponents must never
-    // reach the payment table as a source. It routes to PayAllComponents, which
-    // writes one real row per component so history stays itemised.
-    const request$ = this.isPayingAllComponents
-      ? this.salarySvc.payAllComponents({
-          salaryId:     this.paymentForm.salaryId,
-          paymentMonth: this.paymentForm.paymentMonth,
-          paymentDate:  this.paymentForm.paymentDate,
-          reference:    this.paymentForm.reference ?? null,
-        })
-      : this.salarySvc.addPayment(this.paymentForm);
-
-    request$
+    this.salarySvc.addPayment(this.paymentForm)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
+          this.toastr.success(
+            `₹ ${(this.paymentForm.paymentAmount ?? 0).toLocaleString('en-IN')} recorded for ${this.panelRecord!.fullName}.`,
+            'Payment Added',
+          );
           this.loadMonthly();
           this.isAddingPayment = false;
         },
@@ -962,11 +722,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
     const hasFixed   = (this.configDraft.baseSalary ?? 0) > 0;
     const hasPct     = (this.configDraft.revenuePercentage ?? 0) > 0;
     if (!hasFixed && !hasPct) {
-      this.toastr.warning(
-        this.revenuePercentEnabled
-          ? 'Enter a fixed base salary, a revenue %, or both.'
-          : 'Enter a fixed base salary.',
-        'Validation');
+      this.toastr.warning('Enter a fixed base salary, a revenue %, or both.', 'Validation');
       return;
     }
     // Derive salaryType: 0 = fixed only, 1 = % only, 2 = both
@@ -986,6 +742,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
+          this.toastr.success('Salary config saved successfully.', 'Saved');
           this.isSavingConfig  = false;
           this.isEditingConfig = false;
           this.refreshConfigs();
@@ -1020,17 +777,8 @@ export class SalaryComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Salary is paid in whole rupees, so no amount is ever shown with paise.
-   * maximumFractionDigits is explicit because toLocaleString defaults it to 3 —
-   * a stray 241.94 from an older record would otherwise render as "241.94"
-   * beside figures the server has already rounded to 242.
-   */
   formatINR(val: number | null | undefined): string {
-    return '₹ ' + Math.round(val ?? 0).toLocaleString('en-IN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
+    return '₹ ' + (val ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
   }
 
   userInitial(name: string | undefined): string {

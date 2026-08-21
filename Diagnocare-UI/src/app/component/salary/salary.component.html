@@ -76,7 +76,7 @@
         <div class="stat-icon"><i class="fa fa-wallet"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ formatINR(displayTotals.payable) }}</div>
-          <div class="stat-label">Total Net Payable</div>
+          <div class="stat-label">Total Net Salary</div>
         </div>
       </div>
       <div class="stat-card card-paid">
@@ -122,7 +122,7 @@
             <th class="col-amt">Travel Allow.</th>
             <th class="col-amt">Other Allow.</th>
             <!-- <th class="col-amt">PF</th> -->
-            <th class="col-amt">Net Payable</th>
+            <th class="col-amt">Net Salary</th>
             <th class="col-amt">Paid</th>
             <!-- <th class="col-amt">Pending</th> -->
             <th class="col-status">Status</th>
@@ -165,18 +165,7 @@
             <!-- <td class="col-amt amt-pf">
               <span class="pf-badge">{{ formatINR(rec.pfAmount) }}</span>
             </td> -->
-            <td class="col-amt amt-net">
-              {{ formatINR(rec.netPayableSalary ?? rec.netSalary) }}
-              <span
-                *ngIf="(rec.leaveDeductionAmount ?? 0) > 0"
-                class="text-muted"
-                [title]="'Contract net ' + formatINR(rec.netSalary)
-                       + ' less leave deduction ' + formatINR(rec.leaveDeductionAmount)
-                       + ' (PF recalculated on the reduced base)'"
-              >
-                <i class="fa fa-info-circle"></i>
-              </span>
-            </td>
+            <td class="col-amt amt-net">{{ formatINR(rec.netSalary) }}</td>
             <td class="col-amt amt-paid">{{ formatINR(rec.totalPaid) }}</td>
             <!-- <td class="col-amt" [class.amt-pending]="(rec.pendingAmount ?? 0) > 0">
               {{ formatINR(rec.pendingAmount) }}
@@ -546,8 +535,8 @@
   <!-- Summary strip -->
   <div class="panel-summary">
     <div class="ps-item">
-      <div class="ps-val">{{ formatINR(panelRecord.netPayableSalary ?? panelRecord.netSalary) }}</div>
-      <div class="ps-lbl">Net Payable</div>
+      <div class="ps-val">{{ formatINR(panelRecord.netSalary) }}</div>
+      <div class="ps-lbl">Net Salary</div>
     </div>
     <div class="ps-sep"></div>
     <div class="ps-item">
@@ -570,39 +559,11 @@
     </div>
   </div>
 
-  <!--
-    Salary breakdown — ordered so the column actually adds up to Net Payable.
-    The leave deduction comes off the base FIRST, and PF is then charged on what
-    remains, so PF must be shown as adjustedPfAmount. Listing contract PF against
-    the full base left this ladder short by (leave deduction x PF%).
-  -->
+  <!-- Salary breakdown -->
   <div class="panel-breakdown">
     <div class="pb-row">
       <span class="pb-key">Base Salary</span>
       <span class="pb-val">{{ formatINR(panelRecord.baseSalary) }}</span>
-    </div>
-    <div class="pb-row pb-deduction" *ngIf="(panelRecord.leaveDeductionAmount ?? 0) > 0">
-      <span class="pb-key">
-        <i class="fa fa-calendar-times pb-icon"></i> Leave Deduction
-        <small class="text-muted">
-          ({{ panelRecord.absentDays ?? 0 }} absent, {{ panelRecord.halfDays ?? 0 }} half-day;
-          {{ panelRecord.allowedLeavesPerMonth ?? 0 }} allowed)
-        </small>
-      </span>
-      <span class="pb-val">− {{ formatINR(panelRecord.leaveDeductionAmount) }}</span>
-    </div>
-    <div class="pb-row" *ngIf="(panelRecord.leaveDeductionAmount ?? 0) > 0">
-      <span class="pb-key">Payable Base Salary</span>
-      <span class="pb-val">{{ formatINR(panelRecord.payableBaseSalary) }}</span>
-    </div>
-    <div class="pb-row pb-deduction">
-      <span class="pb-key">
-        <i class="fa fa-shield-alt pb-icon"></i> PF Deduction
-        <small class="text-muted" *ngIf="panelRecord.pfPercentage != null">
-          ({{ panelRecord.pfPercentage }}%)
-        </small>
-      </span>
-      <span class="pb-val">− {{ formatINR(panelRecord.adjustedPfAmount ?? panelRecord.pfAmount) }}</span>
     </div>
     <div class="pb-row pb-allow" *ngIf="(panelRecord.travelAllowance ?? 0) > 0">
       <span class="pb-key"><i class="fa fa-car pb-icon"></i> Travel Allowance</span>
@@ -612,13 +573,13 @@
       <span class="pb-key"><i class="fa fa-plus-circle pb-icon"></i> Other Allowance</span>
       <span class="pb-val allow-other-color">+ {{ formatINR(panelRecord.otherAllowance) }}</span>
     </div>
-    <div class="pb-row pb-total">
-      <span class="pb-key">Net Payable</span>
-      <span class="pb-val">{{ formatINR(panelRecord.netPayableSalary ?? panelRecord.netSalary) }}</span>
+    <div class="pb-row pb-deduction">
+      <span class="pb-key"><i class="fa fa-shield-alt pb-icon"></i> PF Deduction</span>
+      <span class="pb-val">− {{ formatINR(panelRecord.pfAmount) }}</span>
     </div>
-    <div class="pb-row" *ngIf="(panelRecord.leaveDeductionAmount ?? 0) > 0">
-      <span class="pb-key text-muted">Contract Net Salary (before leave)</span>
-      <span class="pb-val text-muted">{{ formatINR(panelRecord.netSalary) }}</span>
+    <div class="pb-row pb-total">
+      <span class="pb-key">Net Salary</span>
+      <span class="pb-val">{{ formatINR(panelRecord.netSalary) }}</span>
     </div>
   </div>
 
@@ -678,19 +639,6 @@
       </div>
     </div>
 
-    <!--
-      Calculate / Pay Full failure. Both actions used to fail silently — the spinner
-      stopped and nothing else changed — because their error callbacks only reset a
-      flag. Full response detail is logged to the console alongside this.
-    -->
-    <div class="panel-error" *ngIf="calcError" role="alert">
-      <i class="fa fa-exclamation-triangle"></i>
-      <span>{{ calcError }}</span>
-      <button type="button" class="panel-error-dismiss" (click)="calcError = ''" aria-label="Dismiss">
-        <i class="fa fa-times"></i>
-      </button>
-    </div>
-
     <!-- No payments -->
     <div class="no-payments" *ngIf="panelRecord.payments.length === 0 && !isAddingPayment">
       <i class="fa fa-inbox"></i> No payments recorded yet.
@@ -711,15 +659,8 @@
                             [class.fa-coins]="pay.paymentType !== 'Full'"></i>
               {{ pay.paymentType === 'Full' ? 'Full' : 'Partial' }}
             </span>
-            <!-- Component badge now shows for Full as well as Partial: a Full
-                 payment settles one component, so which one is the whole point.
-                 Legacy rows written before that change settled the entire month
-                 while stored as Base Salary — isLegacyFullSalary() spots those by
-                 their amount exceeding the component cap and labels them
-                 "Full salary" rather than mislabelling them as base salary. -->
-            <span class="pay-for-badge"
-                  [ngClass]="isLegacyFullSalary(pay) ? 'pay-for-fullsalary' : paymentForClass(pay.paymentSource)">
-              {{ isLegacyFullSalary(pay) ? 'Full salary' : paymentForLabel(pay.paymentSource) }}
+            <span class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
+              {{ paymentForLabel(pay.paymentSource) }}
             </span>
           </div>
         </div>
@@ -764,7 +705,7 @@
   <div class="pm-stats">
     <div class="pm-stat">
       <div class="pm-stat-val">{{ formatINR(displayNetSalary) }}</div>
-      <div class="pm-stat-lbl">Net Payable</div>
+      <div class="pm-stat-lbl">Net Salary</div>
     </div>
     <div class="pm-stat-sep"></div>
     <div class="pm-stat">
@@ -788,14 +729,12 @@
   <!-- ── Modal body ── -->
   <div class="pm-body">
 
-    <!-- Payment For — shown for Partial AND Full. Full settles the selected
-         component in full, so the operator must still choose which one;
-         "All Components" (Full only) settles all three in one action. -->
-    <div class="pm-field pm-field-full">
+    <!-- Payment For (Partial only) — full-width row of radio cards -->
+    <div class="pm-field pm-field-full" *ngIf="paymentForm.paymentType === PaymentType.Partial">
       <label class="pm-label">Payment For <span class="req">*</span></label>
       <div class="pm-radio-group">
         <label
-          *ngFor="let opt of visiblePaymentForOptions"
+          *ngFor="let opt of paymentForOptions"
           class="pm-radio-card"
           [class.pm-radio-active]="paymentForm.paymentFor === opt.value"
         >
@@ -810,7 +749,6 @@
             [class.fa-money-bill-wave]="opt.value === 1"
             [class.fa-car]="opt.value === 2"
             [class.fa-plus-circle]="opt.value === 3"
-            [class.fa-layer-group]="opt.value === 99"
           ></i>
           <span class="pm-radio-label">{{ opt.label }}</span>
         </label>
@@ -836,7 +774,6 @@
             [(ngModel)]="paymentForm.paymentAmount"
             (input)="onAmountInput()"
             min="1"
-            step="1"
             [max]="pendingForSelectedType"
             placeholder="Enter amount"
             [attr.disabled]="isFullPaymentAmountLocked ? true : null"
@@ -852,18 +789,13 @@
         <!-- Locked hint: explains where the number came from -->
         <div class="pm-hint pm-hint-calc" *ngIf="isFullPaymentAmountLocked">
           <i class="fa fa-info-circle"></i>
-          <ng-container *ngIf="isPayingAllComponents; else singleComponentHint">
-            Everything still outstanding this month. A separate payment is recorded
-            for each component, so history stays itemised.
-          </ng-container>
-          <ng-template #singleComponentHint>
-            Full {{ paymentForLabel(paymentForm.paymentFor) }} for this month (after leave
-            deductions) minus what has already been paid against it.
-          </ng-template>
+          Net payable (after leave deductions) minus payments already recorded.
         </div>
         <div class="pm-hint" *ngIf="!paymentAmountError && !isFullPaymentAmountLocked">
           Max:
-          {{ paymentForLabel(paymentForm.paymentFor) }} pending —
+          <ng-container *ngIf="paymentForm.paymentType === PaymentType.Partial">
+            {{ paymentForLabel(paymentForm.paymentFor) }} pending —
+          </ng-container>
           {{ formatINR(pendingForSelectedType) }}
         </div>
         <div class="pm-error" *ngIf="paymentAmountError">{{ paymentAmountError }}</div>
@@ -953,12 +885,9 @@
           <span class="calc-val allow-other-color">+ {{ formatINR(calcRecord.otherAllowance) }}</span>
         </div>
 
-        <!-- Contract figure, on the full base. The amount actually withheld this
-             month appears in the Net Payable section below. -->
         <div class="calc-row calc-row-deduction">
           <span class="calc-key">
             <span class="calc-key-label"><i class="fa fa-shield-alt calc-row-icon"></i> PF Deduction</span>
-            <span class="calc-formula">Contract, on full base salary</span>
           </span>
           <span class="calc-val">− {{ formatINR(calcRecord.pfAmount) }}</span>
         </div>
@@ -1068,17 +997,9 @@
           <span class="calc-val allow-other-color">{{ formatINR(calcRecord.otherAllowance) }}</span>
         </div>
 
-        <!--
-          PF here is calcResult.pfAmount — charged on the payable base above, not
-          calcRecord.pfAmount which is contract PF on the full base. Using the latter
-          overstated the deduction by (leave deduction x PF%) and broke the total.
-        -->
         <div class="calc-row calc-row-deduction">
-          <span class="calc-key">
-            <span class="calc-key-label">PF Deduction</span>
-            <span class="calc-formula">On payable base salary</span>
-          </span>
-          <span class="calc-val">− {{ formatINR(calcResult.pfAmount) }}</span>
+          <span class="calc-key"><span class="calc-key-label">PF Deduction</span></span>
+          <span class="calc-val">− {{ formatINR(calcRecord.pfAmount) }}</span>
         </div>
 
         <div class="calc-total-row">

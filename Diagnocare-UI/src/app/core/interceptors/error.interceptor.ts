@@ -83,11 +83,43 @@ export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((err: unknown) => {
+      if (err instanceof HttpErrorResponse) {
+        // Log EVERY failure here, before anything else can go wrong.
+        //
+        // Components pipe takeUntil(destroy$) onto their requests, so if a
+        // navigation destroys the component while a request is in flight, the
+        // stream completes and NEITHER the next nor the error callback runs —
+        // the failure disappears with no trace, and the request shows as
+        // "(canceled)" in the network panel. That is not hypothetical: this
+        // interceptor navigates on 403, and AuthInterceptor navigates to /login
+        // on refresh failure, no-PIN and session-terminated. Any of those kills
+        // in-flight requests on the page being left.
+        //
+        // This log is the one thing guaranteed to survive that, because it runs
+        // before the navigation is queued.
+        console.error(
+          `[HTTP ${err.status}] ${req.method} ${req.urlWithParams}`,
+          { status: err.status, statusText: err.statusText, body: err.error, error: err },
+        );
+      }
+
       if (err instanceof HttpErrorResponse && !skipToast && !isAuthFlow) {
         if (err.status === 403) {
           // Role refused by the API. Send the user somewhere that explains why,
           // unless we're already there (a 403 while ON /access-denied would loop).
-          if (!router.url.startsWith('/access-denied')) {
+          //
+          // isBackgroundCall was computed but never checked, so a 403 on the
+          // health poll navigated away from whatever page the user had open —
+          // cancelling any request in flight there. It is now honoured.
+          if (isBackgroundCall) {
+            console.warn(
+              `[HTTP 403] background call ${req.urlWithParams} refused — staying on ${router.url}`,
+            );
+          } else if (!router.url.startsWith('/access-denied')) {
+            console.warn(
+              `[HTTP 403] leaving ${router.url} for /access-denied — ` +
+              `any request still in flight on this page will be cancelled`,
+            );
             router.navigate(['/access-denied'], {
               queryParams: { attempted: router.url, reason: 'api' },
             });
