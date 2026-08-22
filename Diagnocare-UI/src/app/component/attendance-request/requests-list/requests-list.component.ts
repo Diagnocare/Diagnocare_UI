@@ -178,4 +178,32 @@ export class RequestsListComponent implements OnInit {
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.total / this.filter.pageSize));
   }
+
+  /**
+   * True once the admin has narrowed the list beyond the default "awaiting
+   * decision" queue. Drives the empty-state copy — "nothing matches your
+   * filters" reads very differently from "there is nothing here at all".
+   */
+  get hasActiveFilters(): boolean {
+    if (this.isReviewer) {
+      return this.filter.status !== this.AWAITING_DECISION
+        || !!this.filter.search?.trim()
+        || !!this.filter.fromDate
+        || !!this.filter.toDate;
+    }
+    return this.filter.status !== 0;
+  }
+
+  /** Highlights rows the reviewer still needs to act on, so the queue scans at a glance. */
+  isAwaitingRow(r: AttendanceRequestDTO): boolean {
+    return this.isReviewer
+      && (r.requestStatus === RequestStatus.Pending || r.requestStatus === RequestStatus.WithdrawalRequested);
+  }
+
+  /** Toggles newest/oldest first. Reviewer-only — a personal list is short enough to read whole. */
+  toggleDateSort(): void {
+    if (!this.isReviewer) return;
+    this.filter.sortDir = this.filter.sortDir === 'asc' ? 'desc' : 'asc';
+    this.applyFilters();
+  }
 }

@@ -10,7 +10,9 @@
 export interface DayAttendanceDTO {
   attendanceId: number;
   /**
-   * Numeric string: "1"=Present, "2"=Absent, "3"=HalfDay, "4"=SecondHalf.
+   * Numeric string: "1"=Present, "2"=Absent, "3"=HalfDay, "4"=Leave, "5"=Holiday
+   * (verified against Diagnocare_API/Enums/AttendanceStatus.cs — "4" is Leave,
+   * not a second half-day; the backend has only one HalfDay bucket).
    * Use mapBackendStatus(dayRec.status) to get the frontend AttendanceStatus.
    */
   status:      string;

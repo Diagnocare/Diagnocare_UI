@@ -659,8 +659,10 @@
                             [class.fa-coins]="pay.paymentType !== 'Full'"></i>
               {{ pay.paymentType === 'Full' ? 'Full' : 'Partial' }}
             </span>
-            <span class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
-              {{ paymentForLabel(pay.paymentSource) }}
+            <!-- A Pay Full row is filed under Base Salary but covers every
+                 component, so it is labelled for what it actually settled. -->
+            <span class="pay-for-badge" [ngClass]="paymentRowClass(pay)">
+              {{ paymentRowLabel(pay) }}
             </span>
           </div>
         </div>
@@ -694,6 +696,11 @@
       <div>
         <div class="pm-header-title">
           {{ paymentForm.paymentType === PaymentType.Full ? 'Full Payment' : 'Partial Payment' }}
+          <!-- Full settles every component, so say so rather than leaving the
+               user to assume it is base salary only. -->
+          <span class="pm-header-scope" *ngIf="paymentForm.paymentType === PaymentType.Full">
+            · All Components
+          </span>
         </div>
         <div class="pm-header-sub">{{ panelRecord.fullName }} · {{ monthLabel }}</div>
       </div>

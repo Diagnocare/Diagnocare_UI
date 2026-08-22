@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
 import { isActiveByDate } from 'src/app/shared/member-utils';
@@ -194,13 +195,22 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
     private datePipe:      DatePipe,
-    private unsavedModalSvc: UnsavedChangesModalService
+    private unsavedModalSvc: UnsavedChangesModalService,
+    private router:        Router
   ) {}
 
   ngOnInit(): void {
     this.today.setHours(0, 0, 0, 0);
     this.editCutoff = this.calcEditCutoff();
     this.jumpToWeek(0);
+  }
+
+  /** Opens the shared attendance-correction review queue in this same tab,
+   *  going through the same unsaved-changes guard as switching views. */
+  openAttendanceRequests(): void {
+    this.withUnsavedGuard('before leaving Attendance', () => {
+      this.router.navigate(['/attendance-requests']);
+    });
   }
 
   // ── Edit cutoff ────────────────────────────────────────────────────────────

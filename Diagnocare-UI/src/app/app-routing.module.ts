@@ -208,7 +208,8 @@ export const routes: Routes = [
         loadComponent: () => import('./component/visit-schedule/visit-schedule.component').then(m => m.VisitScheduleComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'my-visits', title: 'My Visits Today',
-        loadComponent: () => import('./component/my-visits/my-visits.component').then(m => m.MyVisitsComponent) },
+        loadComponent: () => import('./component/my-visits/my-visits.component').then(m => m.MyVisitsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // ── User Panel — self-service views for non-admin staff ──────────────────
       // (User, Assistant, Collection Boy, Doctor). Read-only versions of the

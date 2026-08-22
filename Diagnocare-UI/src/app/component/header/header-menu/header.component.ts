@@ -149,6 +149,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.roleLabel = role !== null
       ? (Object.values(Role).find(r => r.id === role)?.label ?? '')
       : '';
+
+    // Filter the full User Panel item list down to what this role's ModuleAccess
+    // flags allow. Was never computed, so the User Panel dropdown always rendered
+    // empty (no My Attendance / My Salary / My Holidays / My Visits) for every role.
+    this.visibleUserOptions = this.userOptions.filter(item => this.access[item.access]);
   }
 
   fetchProfileImage() {
