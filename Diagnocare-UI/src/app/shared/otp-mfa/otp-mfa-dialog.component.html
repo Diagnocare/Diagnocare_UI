@@ -227,6 +227,7 @@
                 maxlength="1"
                 autocomplete="one-time-code"
                 [formControlName]="i"
+                [attr.disabled]="sessionExpiredFlag ? true : null"
                 (input)="onInput(i, $event)"
                 (keydown)="onKeydown(i, $event)"
                 (paste)="onPaste($event)"
@@ -280,7 +281,7 @@
           </div>
 
           <button type="submit" class="otp-btn otp-btn-primary otp-btn-full"
-                  [disabled]="isSubmitting || isLocked">
+                  [disabled]="isSubmitting || isLocked || sessionExpiredFlag">
             <ng-container *ngIf="!isSubmitting">
               <i class="fa fa-check-circle"></i> Verify Code
             </ng-container>
@@ -288,6 +289,11 @@
               <span class="otp-spinner"></span> Verifying&hellip;
             </ng-container>
           </button>
+
+          <!-- Explains the disabled state above rather than leaving a dead button unexplained. -->
+          <p *ngIf="sessionExpiredFlag" class="otp-expired-note">
+            <i class="fa fa-ban"></i> This code has expired. Please request a new one.
+          </p>
 
           <button type="button" class="otp-btn otp-btn-ghost otp-btn-full otp-btn-mt"
                   (click)="switchMethod()">
