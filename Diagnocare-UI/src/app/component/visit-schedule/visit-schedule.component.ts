@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
-import { ToastrService } from 'ngx-toastr';
 
 import { VisitScheduleService }   from 'src/app/services/visitScheduleServices/visit-schedule.service';
 import { ContactAddressService }   from 'src/app/services/contactAddressServices/contact-address.service';
@@ -129,7 +128,6 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       visitTime:        data.visitTime,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.toastr.success('Visit updated.', 'Saved');
         this.savingEdit   = false;
         this.editingVisit = null;
         this.loadCalendar();
@@ -181,8 +179,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     private _contactSvc: ContactAddressService,
     private _memberSvc:  MemberService,
     private fb:          FormBuilder,
-    private toastr:      ToastrService,
-    private cdr:         ChangeDetectorRef,
+    private cdr:         ChangeDetectorRef
   ) {
     this.assignForm = this.fb.group({
       assignedMemberId: [null,  Validators.required],
@@ -425,7 +422,6 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
 
     this._visitSvc.create(dto).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.toastr.success('Visit assigned successfully.', 'Saved');
         this.savingForm = false;
         this.showForm   = false;
         this.selectedContactId = null;
@@ -461,7 +457,6 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.completingVisit!.status = 'Completed';
-        this.toastr.success('Visit marked as completed.', 'Done');
         this.savingComplete  = false;
         this.completingVisit = null;
         this.loadCalendar();
@@ -485,7 +480,6 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     if (!confirm('Delete this visit assignment?')) return;
     this._visitSvc.delete(id).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.toastr.success('Visit deleted.', 'Deleted');
         this.loadCalendar();
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
       },

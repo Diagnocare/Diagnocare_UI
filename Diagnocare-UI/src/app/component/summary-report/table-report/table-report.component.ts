@@ -469,7 +469,6 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     a.download = `${this.reportId}_${yearPart}_${this.selectedPeriod}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    this.toastr.success('CSV downloaded.', 'Done');
   }
 
   private csvEscape(value: string): string {

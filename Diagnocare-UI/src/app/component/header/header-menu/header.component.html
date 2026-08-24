@@ -148,7 +148,7 @@
       </button>
       <div class="dc-dropdown" *ngIf="!isLicenceExpired">
         <div class="dc-dropdown-header"><i class="fa fa-user-circle"></i> User Panel</div>
-        <a *ngFor="let item of userOptions"
+        <a *ngFor="let item of visibleUserOptions"
            class="dc-dropdown-item dc-dropdown-item--iconic"
            [id]="item.id"
            (click)="redirectionToModule(item)">
@@ -171,7 +171,7 @@
       <div class="dc-dropdown" *ngIf="!isLicenceExpired">
         <div class="dc-dropdown-header"><i class="fa fa-shield-alt"></i> Admin Panel</div>
         <ng-container *ngFor="let item of adminOptions">
-          <a *ngIf="!item.adminOnly || isAdmin"
+          <a *ngIf="!item.superAdminOnly || isSuperAdmin"
              class="dc-dropdown-item dc-dropdown-item--iconic"
              [id]="item.id"
              (click)="redirectionToModule(item)">
@@ -293,7 +293,7 @@
       <i class="fa fa-lock dc-expired-icon-sm" *ngIf="isLicenceExpired"></i>
     </div>
     <ng-container *ngIf="!isLicenceExpired">
-      <a *ngFor="let item of userOptions" class="dc-mobile-item dc-mobile-sub"
+      <a *ngFor="let item of visibleUserOptions" class="dc-mobile-item dc-mobile-sub"
          (click)="redirectionToModule(item); mobileNavOpen=false">
         <i class="fa {{ item.icon }}"></i> {{ item.label }}
       </a>
@@ -352,7 +352,7 @@
     </div>
     <ng-container *ngIf="!isLicenceExpired">
       <ng-container *ngFor="let item of adminOptions">
-        <a *ngIf="!item.adminOnly || isAdmin"
+        <a *ngIf="!item.superAdminOnly || isSuperAdmin"
            class="dc-mobile-item dc-mobile-sub"
            (click)="redirectionToModule(item); mobileNavOpen=false">
           <i class="fa {{ item.icon }}"></i> {{ item.label }}

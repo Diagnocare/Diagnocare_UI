@@ -14,10 +14,10 @@
     <div class="card detail-card">
       <div class="card-top">
         <div>
-          <h2 *ngIf="isAdmin">{{ request.employeeName }}</h2>
-          <h2 *ngIf="!isAdmin">{{ request.attendanceDate | date:'dd MMM yyyy' }}</h2>
+          <h2 *ngIf="isReviewer">{{ request.employeeName }}</h2>
+          <h2 *ngIf="!isReviewer">{{ request.attendanceDate | date:'dd MMM yyyy' }}</h2>
           <span class="sub">
-            <ng-container *ngIf="isAdmin">{{ request.attendanceDate | date:'dd MMM yyyy' }} · </ng-container>{{ request.dayName }}
+            <ng-container *ngIf="isReviewer">{{ request.attendanceDate | date:'dd MMM yyyy' }} · </ng-container>{{ request.dayName }}
           </span>
         </div>
         <app-request-status-badge [status]="request.requestStatus"></app-request-status-badge>
@@ -29,7 +29,7 @@
           <dd>{{ request.currentStatusLabel || 'Unmarked' }}</dd>
         </div>
         <div>
-          <dt>{{ isAdmin ? 'Employee requested' : 'You requested' }}</dt>
+          <dt>{{ isReviewer ? 'Employee requested' : 'You requested' }}</dt>
           <dd class="strong">{{ request.requestedStatusLabel }}</dd>
         </div>
         <div *ngIf="request.approvedStatusLabel">
@@ -47,6 +47,14 @@
           <dt>Admin remarks</dt>
           <dd class="remarks">{{ request.adminRemarks }}</dd>
         </div>
+        <div class="full" *ngIf="request.withdrawalReason">
+          <dt>{{ isReviewer ? 'Withdrawal requested because' : 'You asked to undo this because' }}</dt>
+          <dd class="remarks">{{ request.withdrawalReason }}</dd>
+        </div>
+        <div class="full" *ngIf="request.requestStatus === RequestStatus.Withdrawn">
+          <dt>Attendance reverted to</dt>
+          <dd class="strong">{{ request.revertedToStatusLabel || 'Unmarked (record removed)' }}</dd>
+        </div>
       </dl>
 
       <div class="timeline">
@@ -56,17 +64,62 @@
           · Reviewed {{ request.reviewedAt | date:'dd MMM yyyy, h:mm a' }}
           <ng-container *ngIf="request.reviewedByName">by {{ request.reviewedByName }}</ng-container>
         </span>
+        <span *ngIf="request.withdrawalRequestedAt">
+          · Withdrawal asked {{ request.withdrawalRequestedAt | date:'dd MMM yyyy, h:mm a' }}
+        </span>
       </div>
 
-      <!-- Owner (User) actions -->
-      <div *ngIf="request.canEdit || request.canCancel" class="owner-actions">
-        <button *ngIf="request.canEdit" class="btn btn-primary" (click)="editRequest()"><i class="fa fa-pen"></i> Edit</button>
-        <button *ngIf="request.canCancel" class="btn btn-danger" (click)="confirmMode = 'cancel'"><i class="fa fa-xmark"></i> Cancel Request</button>
+      <!-- Owner (User) actions — one "take it back" button whose label tells the user
+           whether it happens now or goes for review. -->
+      <div *ngIf="request.canEdit || (!isReviewer && request.canWithdraw)" class="owner-actions">
+        <button *ngIf="request.canEdit" class="btn btn-primary" (click)="editRequest()">
+          <i class="fa fa-pen"></i> Edit
+        </button>
+        <button *ngIf="!isReviewer && request.canWithdraw" class="btn btn-danger" (click)="confirmMode = 'withdraw'">
+          <i class="fa fa-rotate-left"></i>
+          {{ request.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw' }}
+        </button>
+      </div>
+
+      <!-- Explain a missing button rather than leaving the employee to guess -->
+      <div *ngIf="!isReviewer && request.withdrawalBlockedReason" class="closed-note">
+        <i class="fa fa-lock"></i>
+        <p>{{ request.withdrawalBlockedReason }}</p>
+      </div>
+
+      <div *ngIf="!isReviewer && request.isWithdrawalPending" class="closed-note">
+        <i class="fa fa-hourglass-half"></i>
+        <p>
+          Your withdrawal is with your administrator.
+          Your attendance stays as approved until they decide.
+        </p>
       </div>
     </div>
 
     <!-- Right: admin decision panel -->
-    <div *ngIf="isAdmin" class="card action-card">
+    <div *ngIf="isReviewer" class="card action-card">
+      <!-- Withdrawal takes precedence: it's the newer ask on this request -->
+      <ng-container *ngIf="isWithdrawalPending; else pendingOrClosed">
+        <h3><i class="fa fa-rotate-left"></i> Withdrawal requested</h3>
+        <p class="withdraw-summary">
+          <strong>{{ request.employeeName }}</strong> is asking to undo the approved
+          attendance for <strong>{{ request.attendanceDate | date:'dd MMM yyyy' }}</strong>.
+        </p>
+        <p class="withdraw-summary">
+          Granting this reverts it to
+          <strong>{{ request.currentStatusLabel || 'unmarked (the record will be removed)' }}</strong>.
+        </p>
+        <div class="btn-row">
+          <button class="btn btn-success" (click)="confirmMode = 'withdrawApprove'">
+            <i class="fa fa-check"></i> Grant
+          </button>
+          <button class="btn btn-danger" (click)="confirmMode = 'withdrawReject'">
+            <i class="fa fa-xmark"></i> Refuse
+          </button>
+        </div>
+      </ng-container>
+
+      <ng-template #pendingOrClosed>
       <ng-container *ngIf="isPending; else closedNote">
         <h3><i class="fa fa-gavel"></i> Decision</h3>
         <div class="form-group">
@@ -89,6 +142,7 @@
           <i class="fa fa-lock"></i>
           <p>This request has been <strong>{{ request.requestStatusLabel }}</strong> and is now read-only.</p>
         </div>
+      </ng-template>
       </ng-template>
     </div>
   </div>
@@ -129,14 +183,94 @@
     </div>
   </div>
 
-  <!-- Owner cancel confirm -->
-  <div *ngIf="confirmMode === 'cancel' && request" class="modal-backdrop" (click)="closeConfirm()">
+  <!-- Owner: withdraw. Same action, two very different consequences — the copy has to
+       say which one the user is about to get. -->
+  <div *ngIf="confirmMode === 'withdraw' && request" class="modal-backdrop" (click)="closeConfirm()">
     <div class="modal-card card" (click)="$event.stopPropagation()">
-      <h3>Cancel request?</h3>
-      <p>This withdraws your request. It cannot be undone.</p>
+
+      <!-- Approved: goes for review, reason required -->
+      <ng-container *ngIf="withdrawalNeedsApproval; else withdrawPending">
+        <h3>Request withdrawal</h3>
+        <p>
+          This asks your administrator to undo the approved attendance for
+          <strong>{{ request.attendanceDate | date:'dd MMM yyyy' }}</strong>.
+          <strong>Nothing changes until they approve it.</strong>
+        </p>
+        <div class="form-group">
+          <label class="form-label">Why should this be undone? <span class="req">*</span></label>
+          <textarea class="form-control" [(ngModel)]="withdrawReason" rows="2" maxlength="500"
+                    placeholder="e.g. I picked the wrong date"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" (click)="closeConfirm()">Never mind</button>
+          <button class="btn btn-danger" [disabled]="isSaving || !withdrawReason.trim()" (click)="doWithdraw()">
+            {{ isSaving ? 'Sending…' : 'Send request' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- Pending: happens now, no reason demanded -->
+      <ng-template #withdrawPending>
+        <h3>Withdraw this request?</h3>
+        <p>
+          It hasn't been reviewed yet, so it will be withdrawn straight away — no approval
+          needed. You can file a new request for
+          <strong>{{ request.attendanceDate | date:'dd MMM yyyy' }}</strong> right afterwards.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Note <span class="optional">(optional)</span></label>
+          <textarea class="form-control" [(ngModel)]="withdrawReason" rows="2" maxlength="500"
+                    placeholder="e.g. wrong date"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" (click)="closeConfirm()">Keep it</button>
+          <button class="btn btn-danger" [disabled]="isSaving" (click)="doWithdraw()">
+            {{ isSaving ? 'Withdrawing…' : 'Withdraw' }}
+          </button>
+        </div>
+      </ng-template>
+
+    </div>
+  </div>
+
+  <!-- Admin: grant withdrawal -->
+  <div *ngIf="confirmMode === 'withdrawApprove' && request" class="modal-backdrop" (click)="closeConfirm()">
+    <div class="modal-card card" (click)="$event.stopPropagation()">
+      <h3>Grant withdrawal</h3>
+      <p>
+        Reverts <strong>{{ request.employeeName }}</strong>'s attendance for
+        <strong>{{ request.attendanceDate | date:'dd MMM yyyy' }}</strong> to
+        <strong>{{ request.currentStatusLabel || 'unmarked — the record will be removed' }}</strong>.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Remarks <span class="optional">(optional)</span></label>
+        <textarea class="form-control" [(ngModel)]="withdrawDecisionRemarks" rows="2" maxlength="500"
+                  placeholder="Note for the employee…"></textarea>
+      </div>
       <div class="modal-actions">
-        <button class="btn btn-cancel" (click)="closeConfirm()">Keep it</button>
-        <button class="btn btn-danger" (click)="doCancel()">Cancel request</button>
+        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="btn btn-success" [disabled]="isSaving" (click)="doApproveWithdrawal()">
+          {{ isSaving ? 'Reverting…' : 'Confirm' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: refuse withdrawal -->
+  <div *ngIf="confirmMode === 'withdrawReject' && request" class="modal-backdrop" (click)="closeConfirm()">
+    <div class="modal-card card" (click)="$event.stopPropagation()">
+      <h3>Refuse withdrawal</h3>
+      <p>The approved attendance stands and the request returns to Approved. Please explain why.</p>
+      <div class="form-group">
+        <label class="form-label">Remarks <span class="req">*</span></label>
+        <textarea class="form-control" [(ngModel)]="withdrawDecisionRemarks" rows="2" maxlength="500"
+                  placeholder="Reason for refusing…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="btn btn-danger" [disabled]="isSaving || !withdrawDecisionRemarks.trim()" (click)="doRejectWithdrawal()">
+          {{ isSaving ? 'Saving…' : 'Confirm refuse' }}
+        </button>
       </div>
     </div>
   </div>

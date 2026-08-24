@@ -244,7 +244,6 @@ export class BaseReportComponent implements OnInit, OnDestroy, OnChanges {
     a.download = `${this.reportConfig.id}_${yearPart}_${this.selectedPeriodType}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    this.toastr.success('CSV downloaded.', 'Done');
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────────

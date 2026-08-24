@@ -213,7 +213,6 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
 
       this._pathTest.AddGroupWithSubgroupsAndTests(payload).subscribe({
         next: () => {
-          this.toastr.success(`${data.selected} added successfully`, 'Success');
           this.reloadAndSelect(addedSelected, addedStep, addedGroupId, addedSubGroupId, addedTestCode);
           if (typeof data.done === 'function') data.done();
         },
@@ -229,7 +228,6 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         const groupDTO = this.mapGroupToDTO(data.updatedFormData.group, '0');
         this._pathTest.updateGroupDetails(groupDTO).subscribe({
           next: () => {
-            this.toastr.success('Group updated successfully', 'Success');
             this.getAllGroupList();
             if (typeof data.done === 'function') data.done();
           },
@@ -244,7 +242,6 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         const subDTO    = this.mapGroupToDTO(data.updatedFormData.subGroup, parentId);
         this._pathTest.updateGroupDetails(subDTO).subscribe({
           next: () => {
-            this.toastr.success('Subgroup updated successfully', 'Success');
             this.getAllGroupList();
             if (typeof data.done === 'function') data.done();
           },
@@ -260,7 +257,6 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         const testDTO = this.mapTestToDTO(data.updatedFormData.test);
         this._pathTest.updatePathTest(testDTO).subscribe({
           next: () => {
-            this.toastr.success('Test updated successfully', 'Success');
             this.getAllGroupList(true);
             if (typeof data.done === 'function') data.done();
           },
@@ -508,7 +504,6 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
 
       this._pathTest.dropTest(request).subscribe({
         next: () => {
-          this.toastr.success(`${label} deleted successfully.`, 'Deleted');
           this.selectedTest = null;
           this.selectedTestId = null;
           if (request.type === 'group') {

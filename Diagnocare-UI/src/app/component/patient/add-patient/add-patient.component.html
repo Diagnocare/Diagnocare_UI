@@ -678,23 +678,31 @@
                   <div *ngFor="let t of filteredTests" (click)="toggleTestSelection(t)"
                        [class.active]="focusedTestId === t.testCode"
                        [class.test-selected]="selectedTestIds.has(t.testCode)"
+                       [class.test-unavailable]="!isTestBookable(t)"
+                       [title]="isTestBookable(t) ? '' : 'No parameters configured — this test cannot be booked'"
                        class="list-item test-item">
                     <div class="icon-wrap">
                       <div class="icon" [class.selected]="selectedTestIds.has(t.testCode)">
                         <!-- Checkmark — test is selected -->
-                        <svg *ngIf="selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <svg *ngIf="isTestBookable(t) && selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <circle cx="12" cy="12" r="11" stroke="#16a34a" stroke-width="2" fill="#dcfce7"/>
                           <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         <!-- Empty circle — test is not selected -->
-                        <svg *ngIf="!selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <svg *ngIf="isTestBookable(t) && !selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <circle cx="12" cy="12" r="11" stroke="#cbd5e1" stroke-width="2" fill="#f8fafc"/>
+                        </svg>
+                        <!-- Barred — no parameters configured, cannot be booked -->
+                        <svg *ngIf="!isTestBookable(t)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="11" stroke="#c2410c" stroke-width="2" fill="#fff7ed"/>
+                          <path d="M8 16L16 8" stroke="#c2410c" stroke-width="2.2" stroke-linecap="round"/>
                         </svg>
                       </div>
                     </div>
                     <div class="left">
                       <div class="code">{{t.testCode}}</div>
                       <div class="name">{{t.testName}}</div>
+                      <div class="test-unavailable-note" *ngIf="!isTestBookable(t)">No parameters configured</div>
                     </div>
                     <div class="right price">₹{{t.price}}</div>
                   </div>

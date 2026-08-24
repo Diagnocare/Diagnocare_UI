@@ -17,14 +17,22 @@ export enum AttendanceStatus {
  * GET returns  "status": "2"  (string, not integer).
  * POST expects "status": "2"  (same string numeric format).
  *
- * Mapping:  "1" = Present  |  "2" = Absent  |  "3" = HalfDay  |  "4" = SecondHalf |  "5" = Holiday
+ * VERIFIED against Diagnocare_API/Enums/AttendanceStatus.cs — the backend enum is:
+ *   Present = 1 | Absent = 2 | HalfDay = 3 | Leave = 4 | Holiday = 5 | WeekOff = 6
+ *
+ * Backend has ONE half-day bucket (HalfDay = 3) — there is no separate
+ * first-half/second-half concept server-side, and "4" is Leave, not a second
+ * half-day variant. The values below used to claim "SecondHalf = 4", which
+ * silently saved every "Second Half Present" grid entry as a Leave record
+ * (status 4) instead of a half-day one. Fixed: both FirstHalf and SecondHalf
+ * now resolve to backend value 3 — see mapStatusToBackend below.
  */
 export enum BackendAttendanceStatus {
-  Present    = 1,
-  Absent     = 2,
-  FirstHalf    = 3,   // maps to frontend FirstHalf
-  SecondHalf = 4,
-  Holiday    = 5,
+  Present  = 1,
+  Absent   = 2,
+  HalfDay  = 3,   // the only half-day value the backend understands
+  Leave    = 4,   // NOT a half-day variant — do not map FirstHalf/SecondHalf here
+  Holiday  = 5,
 }
 
 /**
@@ -34,26 +42,38 @@ export enum BackendAttendanceStatus {
 export function mapBackendStatus(backendStatus: string | number | null | undefined): AttendanceStatus {
   const num = typeof backendStatus === 'string' ? parseInt(backendStatus, 10) : backendStatus;
   switch (num) {
-    case BackendAttendanceStatus.Present:    return AttendanceStatus.Present;
-    case BackendAttendanceStatus.Absent:     return AttendanceStatus.Absent;
-    case BackendAttendanceStatus.FirstHalf:    return AttendanceStatus.FirstHalf;
-    case BackendAttendanceStatus.SecondHalf: return AttendanceStatus.SecondHalf;
-    case BackendAttendanceStatus.Holiday:    return AttendanceStatus.Holiday;
-    default:                                 return AttendanceStatus.None;
+    case BackendAttendanceStatus.Present:  return AttendanceStatus.Present;
+    case BackendAttendanceStatus.Absent:   return AttendanceStatus.Absent;
+    // Backend can't tell first-half from second-half — every HalfDay record
+    // reads back as FirstHalf. A cell saved as "Second Half Present" will
+    // therefore display as "First Half Present" after a reload; there is no
+    // way to preserve that distinction without a backend schema change.
+    case BackendAttendanceStatus.HalfDay:  return AttendanceStatus.FirstHalf;
+    case BackendAttendanceStatus.Holiday:  return AttendanceStatus.Holiday;
+    // Leave (4) has no equivalent cell state in this grid today (the grid only
+    // ever writes Present/Absent/HalfDay/Holiday — Leave only reaches this table
+    // via an approved attendance-request). Falling through to None rather than
+    // mislabeling it as a half-day avoids re-introducing the bug above; a real
+    // "Leave" chip would need its own AttendanceStatus value and CSS class.
+    default:                               return AttendanceStatus.None;
   }
 }
 
 /**
  * Converts a frontend AttendanceStatus to the backend numeric string for POST payloads.
  * Returns '' for None — callers must filter out None cells before posting.
+ *
+ * FirstHalf and SecondHalf BOTH send backend value 3 (HalfDay) — see the
+ * BackendAttendanceStatus comment above for why sending 4 for SecondHalf was
+ * silently corrupting saved records into Leave.
  */
 export function mapStatusToBackend(status: AttendanceStatus): string {
   switch (status) {
-    case AttendanceStatus.Present:    return String(BackendAttendanceStatus.Present);    // '1'
-    case AttendanceStatus.Absent:     return String(BackendAttendanceStatus.Absent);     // '2'
-    case AttendanceStatus.FirstHalf:  return String(BackendAttendanceStatus.FirstHalf);   // '3'
-    case AttendanceStatus.SecondHalf: return String(BackendAttendanceStatus.SecondHalf);// '4'
-    case AttendanceStatus.Holiday:    return String(BackendAttendanceStatus.Holiday);    // '5'
+    case AttendanceStatus.Present:    return String(BackendAttendanceStatus.Present);   // '1'
+    case AttendanceStatus.Absent:     return String(BackendAttendanceStatus.Absent);    // '2'
+    case AttendanceStatus.FirstHalf:  return String(BackendAttendanceStatus.HalfDay);   // '3'
+    case AttendanceStatus.SecondHalf: return String(BackendAttendanceStatus.HalfDay);   // '3' — NOT '4' (Leave)
+    case AttendanceStatus.Holiday:    return String(BackendAttendanceStatus.Holiday);   // '5'
     default:                          return '';
   }
 }
@@ -109,16 +129,19 @@ export const STATUS_CYCLE: AttendanceStatus[] = [
 /**
  * One record sent in the POST api/attendance/Add array payload.
  *
- * The backend AttendanceRecordDto.Status is a plain C# string.
- * Use mapStatusToBackend(cell.status) to get the correct value before posting.
- * Expected values: "Present" | "Absent" | "FirstHalf" | "SecondHalf" | "Holiday"
+ * The backend AttendanceRecordDto.Status is a plain C# string, parsed server-side
+ * by AttendanceService.ParseStatus(), which accepts the numeric string form —
+ * "1".."5" (also accepts "P"/"A"/"H"/"HO" word-ish aliases, but NOT "FirstHalf"/
+ * "SecondHalf"; the comment that used to be here claiming those words were
+ * expected was wrong). Use mapStatusToBackend(cell.status) to get the correct
+ * numeric string before posting.
  */
 export interface AttendanceRecordDTO {
   /** 0 for INSERT; the actual ID for UPDATE. */
   attendanceId:   number;
   userId:         number;
   attendanceDate: string;   // ISO date 'YYYY-MM-DD'
-  /** String — must be one of: "Present", "Absent", "FirstHalf", "SecondHalf", "Holiday" */
+  /** Numeric string expected by the backend, e.g. "1" for Present — see mapStatusToBackend. */
   status:         string;
   remarks?:       string;
 }

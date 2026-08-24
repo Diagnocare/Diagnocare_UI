@@ -263,16 +263,35 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     });
   }
 
+  /**
+   * A test with no parameters configured cannot be booked — there is nothing to
+   * enter results into and its report would render an empty table. The server
+   * rejects such a booking outright (PatientService.ValidateTestsAreBookableAsync);
+   * this keeps the operator from selecting one and only finding out on Save.
+   */
+  isTestBookable(t: TestItem): boolean {
+    return (t?.parameterCount ?? 0) > 0;
+  }
+
   toggleTestSelection(t: TestItem): void {
     this.focusedTestId = t.testCode;
+
+    // Selecting is blocked, but de-selecting must always work — otherwise a test
+    // whose last parameter was deleted after it was picked would be stuck in the
+    // basket with no way to remove it.
+    if (!this.isTestBookable(t) && !this.selectedTestIds.has(t.testCode)) {
+      this.toastr.warning(
+        `${t.testName} has no parameters configured, so it cannot be booked.`,
+        'Test not available');
+      return;
+    }
+
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
-      this.toastr.info(`${t.testName} removed`);
     } else {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
-      this.toastr.info(`${t.testName} added`);
     }
   }
 
@@ -281,12 +300,20 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     if (!t) return;
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
-    this.toastr.info(`${t.testName} removed`);
   }
 
   confirmTestSelection(): void {
     if (this.selectedTests.length === 0) {
       this.toastr.warning('Please select at least one test', 'No test selected');
+      return;
+    }
+
+    // Catches anything that got in before its parameters were removed.
+    const unbookable = this.selectedTests.filter(t => !this.isTestBookable(t));
+    if (unbookable.length) {
+      this.toastr.error(
+        `Remove ${unbookable.map(t => t.testName).join(', ')} — no parameters configured.`,
+        'Test not available');
       return;
     }
     this.form.patchValue({
@@ -634,7 +661,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this._patientService.addPatientTest(payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.isSaving = false;
-        this.toastr.success('Test added successfully', 'Success');
         this.saved.emit();
       },
       error: (err: Error) => {

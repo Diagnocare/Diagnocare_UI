@@ -31,9 +31,16 @@
         </small>
       </div>
 
-      <div *ngIf="loadedRequest?.currentStatusLabel" class="current-note">
+      <div *ngIf="currentStatusLoading" class="current-note current-note--loading">
+        <i class="fa fa-spinner fa-spin"></i> Checking what's currently recorded…
+      </div>
+      <div *ngIf="!currentStatusLoading && currentStatusLabel" class="current-note">
         <i class="fa fa-circle-info"></i>
-        Currently recorded as <strong>{{ loadedRequest?.currentStatusLabel }}</strong> for this date.
+        Currently recorded as <strong>{{ currentStatusLabel }}</strong> for this date.
+      </div>
+      <div *ngIf="!currentStatusLoading && !currentStatusLabel && f['attendanceDate'].value" class="current-note current-note--muted">
+        <i class="fa fa-circle-info"></i>
+        Nothing recorded for this date yet.
       </div>
 
       <div class="field">
@@ -49,6 +56,14 @@
         <small *ngIf="f['requestedStatus'].touched && f['requestedStatus'].invalid" class="field-error">
           Please select the status you're requesting.
         </small>
+
+        <!-- Only appears once there's a real change from what's on record — a
+             brand-new, never-marked day has nothing to be "subject to approval" yet. -->
+        <div *ngIf="isChangingRecordedStatus" class="approval-note">
+          <i class="fa fa-triangle-exclamation"></i>
+          This changes attendance already recorded as <strong>{{ currentStatusLabel }}</strong>.
+          Subject to approval from admin/super admin.
+        </div>
       </div>
 
       <div class="field">

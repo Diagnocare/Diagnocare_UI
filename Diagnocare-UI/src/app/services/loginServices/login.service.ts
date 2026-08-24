@@ -169,6 +169,27 @@ export class LoginService {
   }
 
   /**
+   * Issues a JWT for an already credential-validated user, skipping the second
+   * factor. Backed by the existing GET login/GenerateJWTToken endpoint.
+   *
+   * Used ONLY by the local-development second-factor skip in LoginComponent —
+   * see `isLocalSecondFactorSkip` there for the guards. Nothing else may call
+   * this: every normal login must go through verifyAuth / verifyTotpLogin.
+   */
+  generateJwtToken(userId: string): Observable<response> {
+    return this.httpClient
+      .get<response>(`${this.url}${apiEndpoints.generateJWTToken}?userId=${encodeURIComponent(userId)}`)
+      .pipe(
+        tap((res: any) => {
+          if (res?.token) {
+            this.tokenService.setToken(res.token);
+          }
+        }),
+        catchError(this.errorHandler),
+      );
+  }
+
+  /**
    * Verifies a TOTP code from the user's authenticator app during login.
    * Called only when loginType === 3 (AuthenticationApp).
    * Backend runs VerifyTotpAndIssueTokenAsync — checks IsMfaEnabled + TOTP,

@@ -252,7 +252,6 @@ export class EditPatientComponent implements OnInit, OnDestroy {
           // API returns an OperationResult (HTTP 200 even on business failure),
           // so honour the success flag rather than assuming success.
           if (res?.success ?? res) {
-            this.toastr.success(res?.message || 'Patient updated successfully', 'Success');
             this._route.navigate(['/patients']);
           } else {
             this.toastr.error(res?.message || 'Failed to update patient. Please try again.', 'Error');

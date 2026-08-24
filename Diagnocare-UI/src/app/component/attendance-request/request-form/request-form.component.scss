@@ -185,6 +185,30 @@ select.form-control.has-icon { cursor: pointer; }
   color: #4c3a72;
   margin-bottom: 1.4rem;
   i { color: #7c3aed; }
+
+  &--loading, &--muted {
+    background: rgba(100, 116, 139, 0.07);
+    border-color: rgba(100, 116, 139, 0.18);
+    color: var(--text-secondary, #64748b);
+    i { color: var(--text-secondary, #64748b); }
+  }
+}
+
+// Sits under the Requested Status field — flags that this pick differs from
+// what's already on record and won't take effect until reviewed.
+.approval-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #92400e;
+  i { color: #b45309; margin-top: 0.15rem; }
 }
 
 // ── Actions ───────────────────────────────────────────────────────
