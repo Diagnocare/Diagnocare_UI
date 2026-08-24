@@ -142,30 +142,29 @@ export class RequestFormComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maps the attendance grid's status (Present/Absent/FirstHalf/SecondHalf/Holiday/None)
-   * onto the AttendanceStatusCode numbering the request's `requestedStatus` uses, so the
-   * two can be compared directly. FirstHalf and SecondHalf both collapse to HalfDay —
-   * the request form only offers one half-day option. Null = nothing recorded yet.
+   * Maps the attendance grid's status (Present/Absent/HalfDay/WeekOff/Holiday/None)
+   * onto the AttendanceStatusCode numbering the request's `requestedStatus` uses, so
+   * the two can be compared directly. Holiday is calendar-driven and never a stored
+   * status, so it has no code. Null = nothing recorded yet.
    */
   private toRequestStatusCode(status: AttendanceStatus): number | null {
     switch (status) {
-      case AttendanceStatus.Present:    return AttendanceStatusCode.Present;
-      case AttendanceStatus.Absent:     return AttendanceStatusCode.Absent;
-      case AttendanceStatus.FirstHalf:
-      case AttendanceStatus.SecondHalf: return AttendanceStatusCode.HalfDay;
-      case AttendanceStatus.Holiday:    return AttendanceStatusCode.Holiday;
-      default:                          return null;
+      case AttendanceStatus.Present: return AttendanceStatusCode.Present;
+      case AttendanceStatus.Absent:  return AttendanceStatusCode.Absent;
+      case AttendanceStatus.HalfDay: return AttendanceStatusCode.HalfDay;
+      case AttendanceStatus.WeekOff: return AttendanceStatusCode.WeekOff;
+      default:                       return null;
     }
   }
 
   private gridStatusLabel(status: AttendanceStatus): string {
     switch (status) {
-      case AttendanceStatus.Present:    return 'Present';
-      case AttendanceStatus.Absent:     return 'Absent';
-      case AttendanceStatus.FirstHalf:  return 'First Half Present';
-      case AttendanceStatus.SecondHalf: return 'Second Half Present';
-      case AttendanceStatus.Holiday:    return 'Holiday';
-      default:                          return 'Not marked';
+      case AttendanceStatus.Present: return 'Present';
+      case AttendanceStatus.Absent:  return 'Absent';
+      case AttendanceStatus.HalfDay: return 'Half Day';
+      case AttendanceStatus.WeekOff: return 'Week Off';
+      case AttendanceStatus.Holiday: return 'Holiday';
+      default:                       return 'Not marked';
     }
   }
 

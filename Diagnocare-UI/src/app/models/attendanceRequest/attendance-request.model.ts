@@ -24,28 +24,29 @@ export enum RequestStatus {
   Withdrawn = 6,
 }
 
-/** Attendance status the request targets (matches C# AttendanceStatus). */
+/**
+ * Attendance status the request targets (matches C# AttendanceStatus).
+ * 4 (Leave) and 5 (Holiday) were retired — the backend rejects them, and public
+ * holidays come from the holiday calendar instead. The gap in the numbering is
+ * deliberate so WeekOff keeps matching the integer already stored in the database.
+ */
 export enum AttendanceStatusCode {
   Present = 1,
   Absent = 2,
   HalfDay = 3,
-  Leave = 4,
-  Holiday = 5,
   WeekOff = 6,
 }
 
-/** Statuses an employee may request. Holiday/WeekOff are admin-managed. */
+/** The only statuses an employee may request. WeekOff is admin-managed. */
 export const REQUESTABLE_STATUSES: { value: number; label: string }[] = [
   { value: AttendanceStatusCode.Present, label: 'Present' },
   { value: AttendanceStatusCode.Absent, label: 'Absent' },
   { value: AttendanceStatusCode.HalfDay, label: 'Half Day' },
-  { value: AttendanceStatusCode.Leave, label: 'Leave' },
 ];
 
-/** Admin may additionally apply these when overriding before approval. */
+/** Admin may additionally apply this when overriding before approval. */
 export const ALL_ATTENDANCE_STATUSES: { value: number; label: string }[] = [
   ...REQUESTABLE_STATUSES,
-  { value: AttendanceStatusCode.Holiday, label: 'Holiday' },
   { value: AttendanceStatusCode.WeekOff, label: 'Week Off' },
 ];
 

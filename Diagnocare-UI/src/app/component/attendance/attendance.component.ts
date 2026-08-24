@@ -517,6 +517,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     // live holidayDates Set (same source the column header uses), so holidays
     // are always blocked even if the cell flag somehow didn't get stamped.
     if (cell.isFuture || cell.isLocked || cell.isHoliday || this.isHolidayDate(this.columnDates[cellIdx])) return;
+    // Only Present / Absent / Half Day / unmarked are in the cycle. A cell holding a
+    // status outside it (an admin-assigned Week Off, or a legacy value) yields idx -1,
+    // so the first click moves it to Present rather than getting stuck.
     const idx   = STATUS_CYCLE.indexOf(cell.status);
     cell.status  = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
     cell.isDirty = cell.status !== cell.originalStatus;
