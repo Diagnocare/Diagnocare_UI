@@ -67,6 +67,8 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+  /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
+  staffCapacity: 'Capacity',
   getById: 'GetById',
   getProfile: 'GetProfile',
   getProfileVersion: 'GetProfileVersion',

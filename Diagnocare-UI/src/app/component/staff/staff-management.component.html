@@ -5,7 +5,16 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="header-left">
-      <h1>Staff Management</h1>
+      <h1>
+        Staff Management
+        <!-- Head-count against the ceiling configured on the API (Staff:MaxStaffCount). -->
+        <span class="capacity-badge"
+              *ngIf="capacity"
+              [class.capacity-full]="!capacity.canAddMore"
+              title="Every role counts towards this limit, Super Admin included. Deactivated members do not.">
+          {{ capacity.used }} / {{ capacity.max }} staff
+        </span>
+      </h1>
       <p class="subtitle">Manage users, collection boys and doctors</p>
     </div>
     <div class="header-actions">
@@ -17,7 +26,10 @@
         <i class="fa" [ngClass]="showInactive ? 'fa-eye-slash' : 'fa-eye'"></i>
         {{ showInactive ? 'Hide Inactive' : 'Show Inactive' }}
       </button>
-      <button class="btn btn-primary" (click)="add(activeSection.type)">
+      <button class="btn btn-primary"
+              [disabled]="!canAddStaff"
+              [title]="addDisabledReason"
+              (click)="add(activeSection.type)">
         <i class="fa fa-plus"></i> Add {{ activeSection.title | slice:0:-1 }}
       </button>
     </div>
