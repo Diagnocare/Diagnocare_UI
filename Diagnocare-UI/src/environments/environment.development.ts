@@ -5,7 +5,7 @@ export const environment: AppEnvironment = {
   // Dev SERVER API — must be reachable from client browsers on the dev network.
   // (Was 'https://localhost:44346/', which only works on a machine running the
   // API locally, so the deployed dev-server build hung on every other browser.)
-  // diagnocareApiURL: 'https://localhost:44346/',
+  // diagnocareApiURL: 'http://localhost:5000/',
   // For local development against a locally-running API, temporarily switch to:
   diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   loginUIUrl: 'http://diagnocaredev/',
