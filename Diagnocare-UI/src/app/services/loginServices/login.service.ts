@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpBackend, HttpClient, HttpErrorResponse, HttpParams, HttpRequest, HttpResponse } from '@angular/common/http';
+import { HttpBackend, HttpClient, HttpErrorResponse, HttpRequest, HttpResponse } from '@angular/common/http';
 import { catchError, filter, map, mapTo, switchMap, tap } from 'rxjs/operators';
 import { Observable, from, of, throwError } from 'rxjs';
 
@@ -7,7 +7,7 @@ import { LoginModel } from '../../models/auth/loginModel';
 import { requestOTP } from '../../models/auth/requestOTP';
 import { SendOtpRequest, VerifyOtpRequest, VerifyAuthRequest, OtpChannel } from '../../models/auth/otp-request.dto';
 import { response } from '../../models/common/response';
-import { MemberDto } from '../../models/member/member.dto';
+import { LoginUserResponse } from '../../models/auth/login-user.dto';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -37,16 +37,23 @@ export class LoginService {
 
   /**
    * Validates user credentials.
-   * Password is hashed with SHA-256 before transmission — the backend stores
-   * and compares against the same SHA-256 digest.
+   *
+   * The password is POSTed in the request BODY, in plain text over TLS. It is not put
+   * in the query string, where it would be recorded in server access logs, proxy logs
+   * and browser history. The backend verifies it against a PBKDF2 hash and never stores
+   * or is able to recover the plain text.
+   *
+   * Do not hash the password here: a client-side digest simply becomes the password —
+   * anyone who captures it can replay it — while hiding nothing from a TLS-terminating
+   * attacker. Hashing belongs on the server, where it protects the stored copy.
    */
-  getUserDetails(login: LoginModel): Observable<MemberDto> {
+  getUserDetails(login: LoginModel): Observable<LoginUserResponse> {
     const endpoint = `${this.url}${apiEndpoints.getUserDetails}`;
-        const params = new HttpParams()
-          .set('userId', login.userId)
-          .set('password', login.password);
-        return this.httpClient.get<MemberDto>(endpoint, { params });
-      }
+    return this.httpClient.post<LoginUserResponse>(endpoint, {
+      userId:   login.userId,
+      password: login.password,
+    });
+  }
 
   // ── TOTP — stateless, no DB storage ────────────────────────────────────────
 
@@ -142,12 +149,9 @@ export class LoginService {
    * No hashing is applied — an empty password string is sent so the backend
    * performs a user-existence check only.
    */
-  checkUserExists(userId: string): Observable<MemberDto> {
+  checkUserExists(userId: string): Observable<LoginUserResponse> {
     const endpoint = `${this.url}${apiEndpoints.getUserDetails}`;
-    const params   = new HttpParams()
-      .set('userId', userId)
-      .set('password', '');
-    return this.httpClient.get<MemberDto>(endpoint, { params })
+    return this.httpClient.post<LoginUserResponse>(endpoint, { userId, password: '' })
       .pipe(catchError(this.errorHandler));
   }
 

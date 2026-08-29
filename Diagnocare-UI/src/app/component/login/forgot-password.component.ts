@@ -6,7 +6,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { response } from '../../models/common/response';
-import { MemberDto } from '../../models/member/member.dto';
+import { LoginUserResponse } from '../../models/auth/login-user.dto';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
 import { CommonService } from '../../shared/common.service';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
@@ -268,7 +268,7 @@ export class ForgotPasswordComponent implements OnDestroy {
     // Use checkUserExists (no password hashing) — forgot password only needs to
     // confirm the userId is valid before sending an OTP.
     this.loginService.checkUserExists(userId).subscribe({
-      next: (resp: MemberDto & { success?: boolean; message?: string; token?: string; accountLocked?: boolean; lockedUntil?: string }) => {
+      next: (resp: LoginUserResponse) => {
         // Account locked — block the OTP flow entirely.
         if ((resp as any)?.accountLocked === true) {
           this.isAccountLocked = true;
