@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
-import { MemberService }         from 'src/app/services/memberService/member.service';
+import { MemberService, StaffCapacity } from 'src/app/services/memberService/member.service';
 import { ConfirmModalService }   from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -59,6 +59,28 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
 
   toggleInactive(): void { this.showInactive = !this.showInactive; }
 
+  /**
+   * Staff head-count, fetched from the API — the limit is server configuration
+   * (`Staff:MaxStaffCount`), never a constant here. Null until the first response,
+   * so a slow or failed call cannot wrongly block a legitimate add.
+   */
+  capacity: StaffCapacity | null = null;
+
+  get canAddStaff(): boolean { return this.capacity ? this.capacity.canAddMore : true; }
+
+  get addDisabledReason(): string {
+    return this.canAddStaff ? ''
+      : `Staff limit reached — all ${this.capacity?.max} slots are in use. ` +
+        'Deactivate or delete a member to free one.';
+  }
+
+  /** Refreshed on load and after anything that frees or takes a slot. */
+  private loadCapacity(): void {
+    this.subs.add(this.memberService.getCapacity().subscribe({
+      next: c => this.capacity = c, error: () => {}
+    }));
+  }
+
   showSignatureModal   = false;
   signaturePreviewUrl: string | null = null;
 
@@ -76,6 +98,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     const initial = this.sections.find(s => s.type === tab) ?? this.sections[0];
     this.activeSection = initial;
     this.loadSection(initial.type);
+    this.loadCapacity();
   }
 
   // ── Tab selection ─────────────────────────────────────────────────────────
@@ -110,6 +133,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   add(type: SectionType): void {
+    if (!this.canAddStaff) return;   // button is disabled; this covers keyboard activation
     this.router.navigate(['/users/add'], { queryParams: { type } });
   }
 
@@ -132,7 +156,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
       }).subscribe(confirmed => {
         if (!confirmed) return;
         this.memberService.delete(userId).subscribe({
-          next:  () => { this.sections.find(s => s.type === 'user')!.loaded = false; this.loadSection('user'); },
+          next:  () => { this.sections.find(s => s.type === 'user')!.loaded = false; this.loadSection('user'); this.loadCapacity(); },
           error: () => {}
         });
       })
@@ -149,7 +173,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
       }).subscribe(confirmed => {
         if (!confirmed) return;
         this.memberService.delete(id).subscribe({
-          next:  () => { this.sections.find(s => s.type === type)!.loaded = false; this.loadSection(type); },
+          next:  () => { this.sections.find(s => s.type === type)!.loaded = false; this.loadSection(type); this.loadCapacity(); },
           error: () => {}
         });
       })
