@@ -622,12 +622,6 @@
   transition: transform .32s, box-shadow .32s;
 }
 .ph-sc-item:hover { transform: scale(1.03); box-shadow: 0 18px 50px rgba(10,31,60,.18); z-index: 2; }
-.ph-sc-item:focus-visible {
-  outline: 3px solid #1e88e5;
-  outline-offset: 3px;
-  transform: scale(1.03);
-  z-index: 2;
-}
 .ph-sc-tall { grid-row: span 2; }
 
 .ph-sc-bg {
