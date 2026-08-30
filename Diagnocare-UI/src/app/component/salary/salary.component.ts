@@ -22,6 +22,7 @@ import {
   AddPaymentDTO,
   SaveSalaryConfigDTO,
   CalculatePayableSalaryDTO,
+  PartialPaymentDTO,
 } from 'src/app/models/salary/salary.dto';
 
 @Component({
@@ -34,6 +35,7 @@ import {
 })
 export class SalaryComponent implements OnInit, OnDestroy {
 
+  readonly revenuePercentEnabled = false;
   // ── Tab state ──────────────────────────────────────────────────────────────
   activeTab: 'monthly' | 'config' = 'monthly';
 
@@ -221,8 +223,90 @@ export class SalaryComponent implements OnInit, OnDestroy {
       case PaymentFor.BaseSalary:      return 'pay-for-basesalary';
       case PaymentFor.TravelAllowance: return 'pay-for-travelallowance';
       case PaymentFor.OtherAllowance:  return 'pay-for-otherallowance';
+      case PaymentFor.AllComponents:   return 'pay-for-allcomponents';
       default:                          return '';
     }
+  }
+
+  // ── "All Components" labelling of a Pay Full row ───────────────────────────
+  //
+  // A Pay Full settles base + travel + other in a single transaction, but the
+  // API records it as ONE row filed under Base Salary. Showing that row as
+  // "Base Salary" is misleading — the money covers every component.
+  //
+  // The row is recognised by the only thing that can distinguish it: its amount
+  // exceeds the cap of the component it is filed under, which is impossible for
+  // a payment that really is for that component alone.
+  //
+  // Deliberately NOT keyed off paymentType. The API marks a row "Full" whenever
+  // it *completes* its component, so an ordinary partial that finishes off
+  // Travel Allowance comes back as "Full" too and must keep its own label.
+
+  /** Server-authoritative cap for one component in the month on screen. */
+  private capForSource(source: PaymentFor | number): number {
+    const rec = this.panelRecord;
+    if (!rec) return 0;
+    switch (Number(source)) {
+      case PaymentFor.BaseSalary:      return rec.baseSalaryCap ?? 0;
+      case PaymentFor.TravelAllowance: return rec.travelAllowance ?? 0;
+      case PaymentFor.OtherAllowance:  return rec.otherAllowance ?? 0;
+      default:                          return 0;
+    }
+  }
+
+  /**
+   * Payment ids that overshoot their component, recomputed only when the
+   * payments array itself changes (the getters below run on every change
+   * detection pass, so this must not walk the list each time).
+   */
+  private allCompCacheKey: PartialPaymentDTO[] | null = null;
+  private allCompIds = new Set<number>();
+
+  private allComponentsIds(): Set<number> {
+    const rows = this.panelRecord?.payments ?? [];
+    if (this.allCompCacheKey === rows) return this.allCompIds;
+
+    const ids = new Set<number>();
+    const cumulative = new Map<number, number>();
+
+    // Same ordering the API uses to decide Full vs Partial, so the two agree.
+    const ordered = [...rows].sort((a, b) =>
+      (a.paymentDate ?? '').localeCompare(b.paymentDate ?? '') || a.paymentId - b.paymentId);
+
+    for (const p of ordered) {
+      const src   = Number(p.paymentSource);
+      const cap   = this.capForSource(src);
+      const total = (cumulative.get(src) ?? 0) + (p.paymentAmount ?? 0);
+      cumulative.set(src, total);
+
+      // Paying more into a component than that component is worth is only
+      // possible when the row is really covering the other components too.
+      // Amounts are whole rupees; the half-rupee margin absorbs rounding.
+      if (cap > 0 && total > cap + 0.5) ids.add(p.paymentId);
+    }
+
+    this.allCompCacheKey = rows;
+    this.allCompIds      = ids;
+    return ids;
+  }
+
+  /** True when a recorded payment spans more than the component it is filed under. */
+  isAllComponentsPayment(pay: PartialPaymentDTO): boolean {
+    return this.allComponentsIds().has(pay.paymentId);
+  }
+
+  /** Display label for a payment row in the history list. */
+  paymentRowLabel(pay: PartialPaymentDTO): string {
+    return this.isAllComponentsPayment(pay)
+      ? PaymentForLabels[PaymentFor.AllComponents]
+      : this.paymentForLabel(pay.paymentSource);
+  }
+
+  /** Matching CSS modifier for a payment row in the history list. */
+  paymentRowClass(pay: PartialPaymentDTO): string {
+    return this.isAllComponentsPayment(pay)
+      ? this.paymentForClass(PaymentFor.AllComponents)
+      : this.paymentForClass(pay.paymentSource);
   }
 
   /** Strips the time portion from an ISO datetime string for clean display. */

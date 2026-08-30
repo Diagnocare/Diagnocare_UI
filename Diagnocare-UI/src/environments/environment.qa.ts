@@ -1,4 +1,6 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: false,
   diagnocareApiURL: 'http://diagnocare-qaapi:83/',
   loginUIUrl: 'http://diagnocare-qa:82/',
@@ -7,6 +9,9 @@ export const environment = {
   // ?product=&env= on the help URL, so reports can be routed/filtered).
   appName: 'Diagnocare',
   envName: 'qa',
+  // Never enabled outside local development.
+  devSkipSecondFactor: false,
+
   basicAuth: {
     username: 'Admin',
     password: 'ggDgc+q0Y4xNWOadnfALUOEEi/ijWn4I0fd06Keor5Y=',

@@ -67,6 +67,8 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+  /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
+  staffCapacity: 'Capacity',
   getById: 'GetById',
   getProfile: 'GetProfile',
   getProfileVersion: 'GetProfileVersion',
@@ -101,12 +103,20 @@ export const apiEndpoints = {
   cancelRequest:         'cancel',
   approveRequest:        'approve',
   rejectRequest:         'reject',
+  /** Owner asks for an approved request to be undone — does NOT revert attendance. */
+  withdrawRequest:       'withdraw',
+  /** Admin grants the withdrawal — reverts attendance atomically. */
+  approveWithdrawal:     'withdraw/approve',
+  /** Admin refuses the withdrawal — request returns to Approved. */
+  rejectWithdrawal:      'withdraw/reject',
   generateSalary:      'Generate',
   generateReceiptPdf: 'GenerateReceiptPdf',
   getHolidaysByYear: 'GetHolidayCalendar',
   getPathologyDefault:   'GetPathologyDefault',
   setDefaultTemplate:   'SetDefaultTemplate',
   addPayment:    'AddPayment',
+  /** Settles every salary component for a month, one payment row per component. */
+  payAllComponents: 'PayAllComponents',
   addTestWithReceipt: 'AddTestWithReceipt',
   getSalaryConfig:          'GetConfig',
   saveSalaryConfig:         'SaveConfig',
@@ -260,31 +270,45 @@ export const labSetupMenu = {
 }
 /**
  * Admin Panel navigation items.
- * Items with `superAdminOnly: true` are visible only to Super Admins.
- * All other items are visible to both Admin and Super Admin.
+ *
+ * The dropdown itself is gated by ModuleAccess.adminPanel (Admin + Super Admin).
+ * Items marked `superAdminOnly: true` are hidden from Admin within that dropdown.
+ *
+ * The previous flag was named `adminOnly`, which was a no-op: the template tested
+ * `!item.adminOnly || isAdmin`, and isAdmin is true for BOTH Admin and Super Admin,
+ * so every item marked "admin only" was shown to everyone who could see the panel.
+ * The flag is now `superAdminOnly` and is tested against isSuperAdmin.
  */
-export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; adminOnly?: boolean }> = {
+export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; superAdminOnly?: boolean }> = {
   userDetails:   { id: 'userDetails',   label: 'User details',      route: 'users',           icon: 'fa-user-cog' },
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
-  salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave' },
+  // Payroll is owner-only — an Admin must not be able to edit their own pay.
+  salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
-  // Super Admin only — template management
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt', adminOnly: true },
+  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
 };
 
 /**
- * User Panel navigation items.
- * Self-service views for non-admin staff (User, Assistant, Collection Boy, Doctor).
- * Mirrors the Admin Panel dropdown but scoped to the logged-in user's own data.
+ * User Panel navigation items — self-service views scoped to the logged-in user.
+ *
+ * `access` names the ModuleAccess flag that decides whether the item appears.
+ * The header filters on it, so the panel is no longer all-or-nothing: a role can
+ * be given the User Panel for a single item without also being shown links its
+ * route guard would deny. Admin is exactly that case — salary administration is
+ * Super Admin only, so an Admin gets My Salary here and nothing else, while
+ * still seeing everyone's holidays via the Admin Panel.
  */
-export const userOptions: Record<string, { id: string; label: string; route: string; icon?: string }> = {
-  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check' },
-  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route'          },
-  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave' },
-  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt'   },
+export const userOptions: Record<string, {
+  id: string; label: string; route: string; icon?: string;
+  access: 'myAttendance' | 'myVisits' | 'mySalary' | 'myHolidays';
+}> = {
+  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check', access: 'myAttendance' },
+  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route',          access: 'myVisits'     },
+  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave', access: 'mySalary'    },
+  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt',   access: 'myHolidays'   },
 };
 
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {

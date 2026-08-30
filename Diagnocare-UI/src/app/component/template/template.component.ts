@@ -125,10 +125,6 @@ export class TemplateComponent implements OnInit, OnDestroy {
         next: () => {
           this.defaultTemplateId = newDefault;
           this.isSettingDefault  = false;
-          const msg = newDefault
-            ? `"${template.templateName}" is now the pathology default template`
-            : 'Pathology default template cleared';
-          this.toastr.success(msg, 'Updated');
         },
         error: () => {
           // Message shown centrally by ErrorInterceptor.
@@ -204,7 +200,6 @@ export class TemplateComponent implements OnInit, OnDestroy {
       } else {
         await this.downloadAsDocx(detail);
       }
-      this.toastr.success('Download complete!', 'Done');
     } catch (err: any) {
       console.error('[TemplateComponent] download error', err);
       this.toastr.error('Download failed. Please try again.', 'Error');

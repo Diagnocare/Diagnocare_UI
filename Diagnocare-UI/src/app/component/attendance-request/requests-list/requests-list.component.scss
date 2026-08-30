@@ -41,18 +41,59 @@
 }
 
 // ── Filter panel (admin) ──────────────────────────────────────────
+// Grid rather than flex-wrap: with flex-wrap, the "grow" search field's wide
+// flex-basis meant it was the one item forced onto its own line at common
+// tablet widths, landing it out of step with the row above it and with the
+// Apply/Reset buttons. A grid gives every field a fixed column so wrapping
+// always breaks on whole rows instead of stranding one field.
 .filter-panel {
-  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.75rem 1rem;
   padding: 1rem; margin-bottom: 1rem;
-  .filter-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 140px; }
-  .filter-field.grow { flex: 1 1 220px; }
+
+  .filter-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+  // Search spans two columns on its own row's worth of width, but stays
+  // grid-aligned with the fields above it rather than free-floating.
+  .filter-field.grow { grid-column: span 2; }
+
   label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary, #94a3b8); }
-  .filter-actions { display: flex; gap: 0.5rem; }
+
+  // Every field's control (input, select, or the date-picker trigger) shares
+  // one height so the row's bottom edge — where align-items: end lines things
+  // up — is the same for all of them.
+  .form-control, .form-select, app-date-picker { box-sizing: border-box; }
+  app-date-picker ::ng-deep .dp-trigger { height: 38px; box-sizing: border-box; }
+
+  .filter-actions {
+    grid-column: -3 / -1;
+    display: flex; justify-content: flex-end; gap: 0.5rem;
+  }
   .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
 }
 
+@media (max-width: 900px) {
+  .filter-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    .filter-field.grow { grid-column: 1 / -1; }
+    .filter-actions { grid-column: 1 / -1; }
+  }
+}
+
+@media (max-width: 520px) {
+  .filter-panel {
+    grid-template-columns: 1fr;
+    .filter-field.grow { grid-column: 1; }
+    .filter-actions { grid-column: 1; flex-direction: column; }
+    .filter-actions .btn { width: 100%; justify-content: center; }
+  }
+}
+
 // ── Table ─────────────────────────────────────────────────────────
-.table-card { padding: 0; overflow: hidden; }
+// overflow-x lets the table scroll horizontally on tablet widths, below which
+// the mobile card layout (further down) takes over entirely.
+.table-card { padding: 0; overflow: hidden; overflow-x: auto; }
 
 .ar-table {
   width: 100%; border-collapse: collapse; font-size: 0.875rem;
@@ -63,9 +104,19 @@
     font-weight: 600; color: var(--text-secondary, #64748b);
     font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.02em;
   }
+  th.sortable {
+    cursor: pointer; user-select: none; display: table-cell;
+    &:hover { color: var(--primary-color, #2563eb); }
+  }
+  .dc-sort-icon { margin-left: 0.35rem; font-size: 0.68rem; }
   tbody tr:last-child td { border-bottom: none; }
   tr.clickable { cursor: pointer; transition: background 0.12s ease; }
   tr.clickable:hover { background: rgba(37, 99, 235, 0.05); }
+
+  // Reviewer queue: a thin amber rail marks rows still waiting on a decision,
+  // so the working set is visible without reading every status badge.
+  tr.row-awaiting { box-shadow: inset 3px 0 0 #f59e0b; }
+  tr.row-awaiting:hover { background: rgba(245, 158, 11, 0.06); }
 
   .emp-cell { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
   .avatar {
@@ -86,6 +137,44 @@
 
   .actions-col { white-space: nowrap; text-align: right; }
   .chevron { color: var(--border-color, #cbd5e1); font-size: 0.8rem; margin-left: 0.5rem; }
+}
+
+// ── Mobile: stacked cards instead of a table ────────────────────────
+// Below 700px the table markup stays (for a11y and simplicity) but is
+// re-laid-out as a list of labeled rows — a horizontally-scrolling table
+// with 6+ columns is unusable on a phone.
+@media (max-width: 700px) {
+  .ar-table {
+    thead { display: none; }
+    tbody, tr, td { display: block; width: 100%; }
+    tr {
+      border-bottom: 1px solid var(--border-color, #eef0f2);
+      padding: 0.75rem 0.9rem;
+    }
+    tr.row-awaiting { box-shadow: inset 3px 0 0 #f59e0b; }
+    td {
+      border-bottom: none;
+      padding: 0.3rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: right;
+    }
+    // Label each value using the data-label attribute set in the template,
+    // so the meaning of a bare status badge or date isn't lost once the
+    // column headers are gone.
+    td[data-label]::before {
+      content: attr(data-label);
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.02em;
+      color: var(--text-secondary, #94a3b8); font-weight: 600; text-align: left;
+      flex-shrink: 0;
+    }
+    .emp-cell { justify-content: flex-start; }
+    .reason-cell { white-space: normal; text-align: right; max-width: 60%; }
+    .actions-col { justify-content: flex-end; padding-top: 0.5rem; }
+    .chevron { display: none; }
+  }
 }
 
 .icon-btn {

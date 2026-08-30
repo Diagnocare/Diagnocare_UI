@@ -9,6 +9,17 @@ import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { MemberDto }                     from 'src/app/models/member/member.dto';
 import { RoleId }                        from 'src/app/constant/enums';
 
+/**
+ * Staff head-count vs the ceiling configured on the API (`Staff:MaxStaffCount`).
+ * Every role counts, Super Admin included; deactivated members do not.
+ */
+export interface StaffCapacity {
+  used: number;
+  max: number;
+  remaining: number;
+  canAddMore: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MemberService {
 
@@ -44,6 +55,15 @@ export class MemberService {
     return this.http
       .get<any[]>(this.baseUrl + apiEndpoints.getAllList, { params })
       .pipe(map(list => this.normalizeList(list)));
+  }
+
+  /**
+   * How many staff slots are used, and how many the lab is allowed.
+   * Never hard-code the limit here — it is API configuration. Use this to disable
+   * Add controls early; the API rejects an over-limit create with 409 regardless.
+   */
+  getCapacity(): Observable<StaffCapacity> {
+    return this.http.get<StaffCapacity>(this.baseUrl + apiEndpoints.staffCapacity);
   }
 
   // ── Single record ─────────────────────────────────────────────────────────

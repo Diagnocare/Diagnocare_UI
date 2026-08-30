@@ -804,196 +804,140 @@ input[type="radio"] {
 
 // ══════════════════════════════════════════════════════════════════
 //  THEME OVERRIDES
-//
-//  NOTE: this component uses `encapsulation: ViewEncapsulation.None`,
-//  so these styles are injected as PLAIN GLOBAL CSS — Angular does not
-//  rewrite selectors. `:host-context(...)` is therefore NOT valid here:
-//  the browser drops the whole rule as an unknown selector, which is why
-//  the previous theme block silently did nothing and dark-theme rows kept
-//  their light tints with near-white text on top.
-//
-//  Instead we match `html[data-theme="..."]` directly and scope every rule
-//  under `.page-container.pathology-theme` (this component's root element)
-//  so the global injection cannot leak onto other pages.
-//
-//  ── Row status treatment ─────────────────────────────────────────
-//  Rows all sit on the SAME neutral surface as the rest of the page.
-//  Status is carried by (a) the saturated 4px left accent bar already
-//  defined in the base styles and (b) the status chip. On top of that
-//  sits a single low-alpha wash of the accent colour — enough to group
-//  rows when scanning, never enough to read as a coloured block.
-//
-//  The wash is applied as a `background-image` gradient layered over the
-//  shared `background-color`, rather than as a pre-blended hex. That way
-//  one accent value drives the bar, the chip and the wash, so they can
-//  never drift apart, and `:hover` can repaint the surface underneath
-//  without discarding the tint.
 // ══════════════════════════════════════════════════════════════════
 
-@mixin patients-list-theme(
-  $surface,        // cards / table / pagination background
-  $border,         // hairlines
-  $text,           // primary text
-  $muted,          // secondary text
-  $field-bg,       // inputs & selects
-  $row-hover,      // row + button hover surface
-
-  // One accent per status — drives the row wash AND the chip.
-  $accent-urgent,
-  $accent-completed,
-  $accent-partial,
-  $accent-pending,
-  $accent-neutral,
-
-  // Chip label colours (accents themselves are too dark/bright to read).
-  $fg-urgent,
-  $fg-completed,
-  $fg-partial,
-  $fg-pending,
-  $fg-neutral,
-
-  $row-tint,       // alpha of the row wash
-  $chip-fill,      // alpha of the chip fill
-  $chip-edge       // alpha of the chip border
-) {
-  .search-section,
-  .table-container,
-  .pagination        { background: $surface !important; border-color: $border !important; }
-
-  .filter-label      { color: $muted !important; }
-  .no-data           { color: $muted !important; }
-  .no-data p         { color: $muted !important; }
-
+:host-context(html[data-theme="dark"]) {
+  .patient-list-container { background-color: #0f172a !important; }
+  .header                 { background: #1e293b !important; border-bottom-color: #334155 !important; }
+  .header h2              { color: #e2e8f0 !important; }
+  .search-section         { background: #1e293b !important; border-left-color: #334155 !important; }
+  .table-container        { background: #1e293b !important; border-left-color: #334155 !important; }
   .search-section .form-control,
-  .search-section .form-select,
-  .pagination .form-select {
-    background-color: $field-bg !important;
-    color: $text !important;
-    border-color: $border !important;
+  .search-section .form-select {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+    &:focus { background-color: #0f172a !important; border-color: #5b9cf6 !important; }
   }
-
-  // ── Table ───────────────────────────────────────────────────────
-  // `td` inherits its colour from `body`, which the global dark theme
-  // forces to a near-white. Set it explicitly so it always pairs with
-  // the row surface below rather than with the page background.
-  .patients-table tbody tr {
-    background-color: $surface !important;
-    background-image: none !important;
-  }
-  .patients-table td {
-    border-bottom-color: $border !important;
-    color: $text !important;
-  }
-
-  // Status wash — one flat layer over the shared surface.
-  .patients-table tbody tr.urgent-row {
-    background-image: linear-gradient(rgba($accent-urgent, $row-tint), rgba($accent-urgent, $row-tint)) !important;
-  }
-  .patients-table tbody tr.completed-row {
-    background-image: linear-gradient(rgba($accent-completed, $row-tint), rgba($accent-completed, $row-tint)) !important;
-  }
-  .patients-table tbody tr.partial-row {
-    background-image: linear-gradient(rgba($accent-partial, $row-tint), rgba($accent-partial, $row-tint)) !important;
-  }
-  .patients-table tbody tr.pending-row {
-    background-image: linear-gradient(rgba($accent-pending, $row-tint), rgba($accent-pending, $row-tint)) !important;
-  }
-
-  // Must come after the wash rules: equal specificity, so source order
-  // decides. Only the surface changes — the wash layer is left intact.
-  .patients-table tbody tr:hover { background-color: $row-hover !important; }
-
-  .patient-info strong { color: $text !important; }
-  .patient-info small  { color: $muted !important; }
-  .ref-info div        { color: $text !important; }
-  .ref-info small      { color: $muted !important; }
-  .amount              { color: $text !important; }
-
-  // ── Badges ──────────────────────────────────────────────────────
-  .status-completed { background: rgba($accent-completed, $chip-fill) !important; color: $fg-completed !important; border-color: rgba($accent-completed, $chip-edge) !important; }
-  .status-partial   { background: rgba($accent-partial,   $chip-fill) !important; color: $fg-partial   !important; border-color: rgba($accent-partial,   $chip-edge) !important; }
-  .status-pending   { background: rgba($accent-pending,   $chip-fill) !important; color: $fg-pending   !important; border-color: rgba($accent-pending,   $chip-edge) !important; }
-  .status-unknown   { background: rgba($accent-neutral,   $chip-fill) !important; color: $fg-neutral   !important; border-color: rgba($accent-neutral,   $chip-edge) !important; }
-  .urgent-yes       { background: rgba($accent-urgent,    $chip-fill) !important; color: $fg-urgent    !important; border-color: rgba($accent-urgent,    $chip-edge) !important; }
-  .urgent-no        { background: rgba($accent-neutral,   $chip-fill) !important; color: $fg-neutral   !important; border-color: rgba($accent-neutral,   $chip-edge) !important; }
-
-  // Badge text is wrapped in <span>, which the global theme repaints —
-  // force it back to the badge's own colour.
-  .status-badge span,
-  .urgent-badge span { color: inherit !important; }
-
-  // ── Pagination ──────────────────────────────────────────────────
-  .pagination-info  { color: $muted !important; }
-  .pagination-btn {
-    background: $field-bg !important;
-    color: $text !important;
-    border-color: $border !important;
-  }
-  .pagination-btn:hover:not(:disabled) { background: $row-hover !important; }
-  .pagination-btn:disabled             { color: $muted !important; opacity: .55; }
+  .filter-label           { color: #94a3b8 !important; }
+  // Default table rows (no status class) — must be explicit to beat white inheritance
+  .patients-table tbody tr { background-color: #1e293b !important; }
+  .patients-table td      { border-bottom-color: #334155 !important; color: #cbd5e1 !important; }
+  .patients-table tr:hover { background-color: #273548 !important; }
+  .patient-info strong    { color: #e2e8f0 !important; }
+  .patient-info small     { color: #94a3b8 !important; }
+  .ref-info small         { color: #94a3b8 !important; }
+  .amount                 { color: #e2e8f0 !important; }
+  .pagination-container   { background: #1e293b !important; border-color: #334155 !important; }
+  .pagination-info        { color: #94a3b8 !important; }
+  .btn-page               { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+  .urgent-row             { background-color: #450a0a !important; }
+  .completed-row          { background-color: #052e16 !important; }
+  .partial-row            { background-color: #1e3a5f !important; }
+  .pending-row            { background-color: #431407 !important; }
+  .status-completed       { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
+  .status-partial         { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+  .status-pending         { background: #431407 !important; color: #fde68a !important; border-color: #92400e !important; }
+  .status-unknown         { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
+  .urgent-yes             { background: #450a0a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
+  .urgent-no              { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
 }
 
-// Shared accent ramp — identical hues across themes so the left bar, the
-// chip and the wash always agree; only the surfaces around them change.
-$dc-urgent:    #ef4444;
-$dc-completed: #22c55e;
-$dc-partial:   #3b82f6;
-$dc-pending:   #f59e0b;
-
-// ── Dark ──────────────────────────────────────────────────────────
-html[data-theme="dark"] .page-container.pathology-theme {
-  @include patients-list-theme(
-    $surface: #1e293b, $border: #334155, $text: #e2e8f0, $muted: #94a3b8,
-    $field-bg: #0f172a, $row-hover: #273548,
-    $accent-urgent: $dc-urgent, $accent-completed: $dc-completed,
-    $accent-partial: $dc-partial, $accent-pending: $dc-pending,
-    $accent-neutral: #64748b,
-    $fg-urgent: #fca5a5, $fg-completed: #86efac, $fg-partial: #93c5fd,
-    $fg-pending: #fcd34d, $fg-neutral: #cbd5e1,
-    $row-tint: .07, $chip-fill: .14, $chip-edge: .38
-  );
+:host-context(html[data-theme="midnight"]) {
+  .patient-list-container { background-color: #020408 !important; }
+  .header                 { background: #0d1117 !important; border-bottom-color: #21262d !important; }
+  .header h2              { color: #cdd6f4 !important; }
+  .search-section         { background: #0d1117 !important; border-left-color: #21262d !important; }
+  .table-container        { background: #0d1117 !important; }
+  .search-section .form-control,
+  .search-section .form-select {
+    background-color: #020408 !important;
+    color: #cdd6f4 !important;
+    border-color: #21262d !important;
+  }
+  .filter-label           { color: #8b949e !important; }
+  .patients-table tbody tr { background-color: #0d1117 !important; }
+  .patients-table td      { border-bottom-color: #21262d !important; color: #a6adc8 !important; }
+  .patients-table tr:hover { background-color: #161b22 !important; }
+  .patient-info strong    { color: #cdd6f4 !important; }
+  .patient-info small     { color: #8b949e !important; }
+  .ref-info small         { color: #8b949e !important; }
+  .amount                 { color: #cdd6f4 !important; }
+  .pagination-container   { background: #0d1117 !important; }
+  .btn-page               { background: #020408 !important; color: #cdd6f4 !important; border-color: #21262d !important; }
+  .urgent-row             { background-color: #2d0a0a !important; }
+  .completed-row          { background-color: #031a0e !important; }
+  .partial-row            { background-color: #11162a !important; }
+  .pending-row            { background-color: #2d0f04 !important; }
+  .status-completed       { background: #031a0e !important; color: #56d364 !important; border-color: #238636 !important; }
+  .status-partial         { background: #11162a !important; color: #79b8ff !important; border-color: #1158c7 !important; }
+  .status-pending         { background: #2d0f04 !important; color: #fbbf24 !important; border-color: #78350f !important; }
+  .status-unknown         { background: #161b22 !important; color: #8b949e !important; border-color: #21262d !important; }
+  .urgent-yes             { background: #2d0a0a !important; color: #f97583 !important; border-color: #531c07 !important; }
+  .urgent-no              { background: #161b22 !important; color: #8b949e !important; border-color: #21262d !important; }
 }
 
-// ── Midnight ──────────────────────────────────────────────────────
-html[data-theme="midnight"] .page-container.pathology-theme {
-  @include patients-list-theme(
-    $surface: #0d1117, $border: #21262d, $text: #cdd6f4, $muted: #8b949e,
-    $field-bg: #020408, $row-hover: #161b22,
-    $accent-urgent: $dc-urgent, $accent-completed: $dc-completed,
-    $accent-partial: $dc-partial, $accent-pending: $dc-pending,
-    $accent-neutral: #6e7681,
-    $fg-urgent: #f97583, $fg-completed: #56d364, $fg-partial: #79b8ff,
-    $fg-pending: #fbbf24, $fg-neutral: #a6adc8,
-    $row-tint: .08, $chip-fill: .15, $chip-edge: .40
-  );
+:host-context(html[data-theme="warm"]) {
+  .patient-list-container { background-color: #fef9f0 !important; }
+  .header                 { background: #fffdf7 !important; border-bottom-color: #ddc9a8 !important; }
+  .header h2              { color: #3d2b1f !important; }
+  .search-section         { background: #fffdf7 !important; border-left-color: #c4985a !important; }
+  .table-container        { background: #fffdf7 !important; border-left-color: #ddc9a8 !important; }
+  .search-section .form-control,
+  .search-section .form-select {
+    background-color: #fef9f0 !important;
+    color: #3d2b1f !important;
+    border-color: #ddc9a8 !important;
+    &:focus { background-color: #fffdf7 !important; border-color: #c4985a !important; }
+  }
+  .filter-label           { color: #9e8272 !important; }
+  .patients-table tbody tr { background-color: #fffdf7 !important; }
+  .patients-table td      { border-bottom-color: #e8d9c0 !important; color: #3d2b1f !important; }
+  .patients-table tr:hover { background-color: #fef3e3 !important; }
+  .patient-info strong    { color: #3d2b1f !important; }
+  .patient-info small     { color: #9e8272 !important; }
+  .amount                 { color: #3d2b1f !important; }
+  .pagination-container   { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+  .btn-page               { background: #fef9f0 !important; color: #3d2b1f !important; border-color: #ddc9a8 !important; }
+  .urgent-row             { background-color: #fef2f2 !important; }
+  .completed-row          { background-color: #f0fdf4 !important; }
+  .partial-row            { background-color: #eff6ff !important; }
+  .pending-row            { background-color: #fef9e7 !important; }
+  .status-completed       { background: #dcfce7 !important; color: #15803d !important; border-color: #86efac !important; }
+  .status-partial         { background: #dbeafe !important; color: #1d4ed8 !important; border-color: #93c5fd !important; }
+  .status-pending         { background: #fef9c3 !important; color: #854d0e !important; border-color: #fde047 !important; }
+  .status-unknown         { background: #f0e6d6 !important; color: #5c4636 !important; border-color: #d8c4a0 !important; }
+  .urgent-yes             { background: #fef2f2 !important; color: #b91c1c !important; border-color: #f5a29a !important; }
+  .urgent-no              { background: #f0e6d6 !important; color: #4a3728 !important; border-color: #d8c4a0 !important; }
 }
 
-// ── Warm (a LIGHT theme — dark text on cream) ─────────────────────
-html[data-theme="warm"] .page-container.pathology-theme {
-  @include patients-list-theme(
-    $surface: #fffdf7, $border: #e8d9c0, $text: #3d2b1f, $muted: #8a6f5c,
-    $field-bg: #fef9f0, $row-hover: #fdf3e4,
-    $accent-urgent: $dc-urgent, $accent-completed: $dc-completed,
-    $accent-partial: $dc-partial, $accent-pending: $dc-pending,
-    $accent-neutral: #a1887f,
-    $fg-urgent: #b91c1c, $fg-completed: #15803d, $fg-partial: #1d4ed8,
-    $fg-pending: #92400e, $fg-neutral: #4a3728,
-    $row-tint: .08, $chip-fill: .16, $chip-edge: .42
-  );
-}
-
-// ── System (follows the OS preference) ────────────────────────────
 @media (prefers-color-scheme: dark) {
-  html[data-theme="system"] .page-container.pathology-theme {
-    @include patients-list-theme(
-      $surface: #1e293b, $border: #334155, $text: #e2e8f0, $muted: #94a3b8,
-      $field-bg: #0f172a, $row-hover: #273548,
-      $accent-urgent: $dc-urgent, $accent-completed: $dc-completed,
-      $accent-partial: $dc-partial, $accent-pending: $dc-pending,
-      $accent-neutral: #64748b,
-      $fg-urgent: #fca5a5, $fg-completed: #86efac, $fg-partial: #93c5fd,
-      $fg-pending: #fcd34d, $fg-neutral: #cbd5e1,
-      $row-tint: .07, $chip-fill: .14, $chip-edge: .38
-    );
+  :host-context(html[data-theme="system"]) {
+    .patient-list-container { background-color: #0f172a !important; }
+    .header                 { background: #1e293b !important; }
+    .header h2              { color: #e2e8f0 !important; }
+    .search-section         { background: #1e293b !important; }
+    .table-container        { background: #1e293b !important; }
+    .search-section .form-control,
+    .search-section .form-select {
+      background-color: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important;
+    }
+    .patients-table tbody tr { background-color: #1e293b !important; }
+    .patients-table td      { border-bottom-color: #334155 !important; color: #cbd5e1 !important; }
+    .patients-table tr:hover { background-color: #273548 !important; }
+    .patient-info strong    { color: #e2e8f0 !important; }
+    .patient-info small     { color: #94a3b8 !important; }
+    .amount                 { color: #e2e8f0 !important; }
+    .pagination-container   { background: #1e293b !important; }
+    .btn-page               { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    .urgent-row   { background-color: #450a0a !important; }
+    .completed-row{ background-color: #052e16 !important; }
+    .partial-row  { background-color: #1e3a5f !important; }
+    .pending-row  { background-color: #431407 !important; }
+    .status-completed { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
+    .status-partial   { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+    .status-pending   { background: #431407 !important; color: #fde68a !important; border-color: #92400e !important; }
+    .urgent-yes       { background: #450a0a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
+    .urgent-no        { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
   }
 }

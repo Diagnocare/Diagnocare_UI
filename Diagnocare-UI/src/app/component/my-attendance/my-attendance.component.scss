@@ -13,15 +13,15 @@ $clr-absent-bdr   : #991b1b;
 $clr-absent-light : #fee2e2;
 $clr-absent-dark  : #7f1d1d;
 
-$clr-fh-bg        : #ea580c;
-$clr-fh-bdr       : #9a3412;
-$clr-fh-light     : #ffedd5;
-$clr-fh-dark      : #7c2d12;
+$clr-hd-bg        : #ea580c;   // half day
+$clr-hd-bdr       : #9a3412;
+$clr-hd-light     : #ffedd5;
+$clr-hd-dark      : #7c2d12;
 
-$clr-sh-bg        : #2563eb;
-$clr-sh-bdr       : #1e40af;
-$clr-sh-light     : #dbeafe;
-$clr-sh-dark      : #1e3a8a;
+$clr-wo-bg        : #2563eb;   // week off (read-only, admin-assigned)
+$clr-wo-bdr       : #1e40af;
+$clr-wo-light     : #dbeafe;
+$clr-wo-dark      : #1e3a8a;
 
 $clr-holiday-bg   : #d97706;
 $clr-holiday-bdr  : #92400e;
@@ -114,8 +114,8 @@ $clr-holiday-light: #fef3c7;
 
   &.chip-p  { background: $clr-present-bg; }
   &.chip-a  { background: $clr-absent-bg; }
-  &.chip-fh { background: $clr-fh-bg; }
-  &.chip-sh { background: $clr-sh-bg; }
+  &.chip-hd { background: $clr-hd-bg; }
+  &.chip-wo { background: $clr-wo-bg; }
   &.chip-h  { background: $clr-holiday-bg; }
 }
 
@@ -414,8 +414,8 @@ $clr-holiday-light: #fef3c7;
 
   &.cell-present    { background: $clr-present-bg; color: #fff; border-color: $clr-present-bdr; }
   &.cell-absent     { background: $clr-absent-bg;  color: #fff; border-color: $clr-absent-bdr;  }
-  &.cell-firsthalf  { background: $clr-fh-bg;      color: #fff; border-color: $clr-fh-bdr;      }
-  &.cell-secondhalf { background: $clr-sh-bg;      color: #fff; border-color: $clr-sh-bdr;      }
+  &.cell-halfday    { background: $clr-hd-bg;      color: #fff; border-color: $clr-hd-bdr;      }
+  &.cell-weekoff    { background: $clr-wo-light;   color: $clr-wo-dark; border-color: #93c5fd; font-weight: 800; }
 
   &.cell-unmarked {
     background: #f1f5f9;
@@ -466,8 +466,7 @@ $clr-holiday-light: #fef3c7;
 
   &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
   &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
-  &.rs-fh { background: $clr-fh-light;      color: $clr-fh-dark;       border: 1px solid #fdba74; }
-  &.rs-sh { background: $clr-sh-light;      color: $clr-sh-dark;       border: 1px solid #93c5fd; }
+  &.rs-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid #fdba74; }
 }
 
 // ── Empty state ───────────────────────────────────────────────────

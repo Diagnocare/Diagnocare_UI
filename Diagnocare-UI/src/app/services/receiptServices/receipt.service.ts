@@ -1,7 +1,7 @@
 
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { Receipt, ReceiptCount } from 'src/app/models/receipt/receiptModel';
@@ -22,31 +22,27 @@ export class ReceiptService {
     return this.http
       .get<ReceiptCount>(
         `${this.apiUrl}${apiEndpoints.getReceiptCount}?searchValue=${encodeURIComponent(searchValue)}`
-      )
-      .pipe(catchError(this.handleError));
+      );
   }
 
   getReceiptList(searchValue: string): Observable<Receipt[]> {
     return this.http
       .get<Receipt[]>(
         `${this.apiUrl}${apiEndpoints.getAllList}?searchValue=${encodeURIComponent(searchValue)}`
-      )
-      .pipe(catchError(this.handleError));
+      );
   }
 
   getReceiptById(receiptId: number): Observable<any> {
     return this.http
       .get<any>(
         `${this.apiUrl}${apiEndpoints.getById}?receiptId=${receiptId}`
-      )
-      .pipe(catchError(this.handleError));
+      );
   }
 
   /** POST api/receipt/Add — creates a new payment receipt. */
   addReceipt(data: ReceiptCreateDto): Observable<any> {
     return this.http
-      .post(`${this.apiUrl}${apiEndpoints.add}`, data)
-      .pipe(catchError(this.handleError));
+      .post(`${this.apiUrl}${apiEndpoints.add}`, data);
   }
 
   /**
@@ -67,8 +63,7 @@ export class ReceiptService {
             return blob; // caller will handle via FileReader if needed
           }
           return blob;
-        }),
-        catchError(this.handleError)
+        })
       );
   }
 
@@ -91,8 +86,7 @@ export class ReceiptService {
           tpaPaymentStatus:   tpa.tpaPaymentStatus   || 'Pending',
           tpaSettledDate:     tpa.tpaSettledDate     || null,
         }
-      )
-      .pipe(catchError(this.handleError));
+      );
   }
 
   /**
@@ -104,12 +98,7 @@ export class ReceiptService {
       .put<any>(
         `${this.apiUrl}${apiEndpoints.refundReceipt}`,
         { receiptId, refundAmount, reason: reason ?? null }
-      )
-      .pipe(catchError(this.handleError));
+      );
   }
 
-  private handleError(error: HttpErrorResponse) {
-    const message = error.error?.message || error.statusText || 'Unknown server error';
-    return throwError(() => new Error(`API error: ${message} (status ${error.status})`));
-  }
 }

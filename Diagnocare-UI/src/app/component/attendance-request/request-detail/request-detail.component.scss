@@ -78,6 +78,20 @@
   p { margin: 0; }
 }
 
+// Reused by the owner's "waiting on your admin" note and the blocked-withdrawal
+// hint, both of which sit outside .action-card in the left column.
+.owner-actions + .closed-note,
+.timeline + .closed-note { margin-top: 0.9rem; }
+
+// Admin's withdrawal panel: spells out exactly what granting will do to the
+// attendance record, since it is the one action here that destroys data.
+.withdraw-summary {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #475569);
+}
+
 .req { color: #dc2626; } .optional { color: var(--text-secondary, #94a3b8); font-weight: 400; }
 
 // ── Modals ────────────────────────────────────────────────────────

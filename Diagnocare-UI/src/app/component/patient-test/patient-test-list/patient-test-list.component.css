@@ -1736,3 +1736,22 @@
   padding: 0.25em 1em;
   font-size: 0.95em;
 }
+
+/* ── Report blocked note ──────────────────────────────────────────────────
+   Sits beside the disabled View / PDF buttons in the parameter overlay header
+   and says why they cannot be used yet. */
+.report-blocked-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff7ed;
+  white-space: nowrap;
+}
+.report-blocked-note i { color: #fdba74; }

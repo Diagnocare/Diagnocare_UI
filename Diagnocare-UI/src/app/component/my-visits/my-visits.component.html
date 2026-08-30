@@ -5,8 +5,8 @@
   <!-- ── Header ─────────────────────────────────────────────────────────────── -->
   <div class="page-header">
     <div class="header-left">
-      <h1><i class="fa fa-route"></i> {{ isAdmin ? 'Staff Visits' : 'My Visits' }}</h1>
-      <p class="subtitle">{{ isAdmin ? 'All staff field visits' : 'Track your assigned field visits' }}</p>
+      <h1><i class="fa fa-route"></i> My Visits</h1>
+      <p class="subtitle">Track your assigned field visits</p>
     </div>
   </div>
 
@@ -73,7 +73,7 @@
           <app-visit-card
             *ngFor="let v of filteredVisits"
             [visit]="v"
-            [showMember]="isAdmin"
+            [showMember]="false"
             [canManage]="false"
             (complete)="openCompleteModal($event)"
             (viewDetails)="openViewDetails($event)">

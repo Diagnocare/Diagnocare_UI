@@ -1,10 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
 import { isActiveByDate } from 'src/app/shared/member-utils';
-import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { UnsavedChangesModalComponent } from 'src/app/shared/unsaved-changes-modal/unsaved-changes-modal.component';
@@ -194,15 +194,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   constructor(
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
-    private toastr:        ToastrService,
     private datePipe:      DatePipe,
     private unsavedModalSvc: UnsavedChangesModalService,
+    private router:        Router
   ) {}
 
   ngOnInit(): void {
     this.today.setHours(0, 0, 0, 0);
     this.editCutoff = this.calcEditCutoff();
     this.jumpToWeek(0);
+  }
+
+  /** Opens the shared attendance-correction review queue in this same tab,
+   *  going through the same unsaved-changes guard as switching views. */
+  openAttendanceRequests(): void {
+    this.withUnsavedGuard('before leaving Attendance', () => {
+      this.router.navigate(['/attendance-requests']);
+    });
   }
 
   // ── Edit cutoff ────────────────────────────────────────────────────────────
@@ -509,6 +517,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     // live holidayDates Set (same source the column header uses), so holidays
     // are always blocked even if the cell flag somehow didn't get stamped.
     if (cell.isFuture || cell.isLocked || cell.isHoliday || this.isHolidayDate(this.columnDates[cellIdx])) return;
+    // Only Present / Absent / Half Day / unmarked are in the cycle. A cell holding a
+    // status outside it (an admin-assigned Week Off, or a legacy value) yields idx -1,
+    // so the first click moves it to Present rather than getting stuck.
     const idx   = STATUS_CYCLE.indexOf(cell.status);
     cell.status  = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
     cell.isDirty = cell.status !== cell.originalStatus;
@@ -620,7 +631,6 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     );
 
     if (!records.length) {
-      this.toastr.info('No changes to save.', 'Info');
       onSuccess?.();
       return;
     }
@@ -637,7 +647,6 @@ export class AttendanceComponent implements OnInit, OnDestroy {
               if (c.isDirty) { c.originalStatus = c.status; c.isDirty = false; }
             })
           );
-          this.toastr.success(`${records.length} record(s) saved.`, 'Saved');
           this.isSaving = false;
           onSuccess?.();
         },

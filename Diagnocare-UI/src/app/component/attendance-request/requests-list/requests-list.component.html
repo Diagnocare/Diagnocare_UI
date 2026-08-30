@@ -4,25 +4,25 @@
     <div class="ar-hero-text">
       <h1><i class="fa fa-clipboard-check"></i> Attendance Requests</h1>
       <p class="subtitle">
-        {{ isAdmin ? 'Review and process employee attendance correction requests.'
+        {{ isReviewer ? 'Review and process employee attendance correction requests.'
                    : 'Request a correction to your attendance — an admin will review it.' }}
       </p>
     </div>
-    <button *ngIf="!isAdmin" class="btn btn-light-primary" (click)="newRequest()">
+    <button *ngIf="!isReviewer" class="btn btn-light-primary" (click)="newRequest()">
       <i class="fa fa-plus"></i> New Request
     </button>
   </div>
 
   <!-- User: status chips -->
-  <div *ngIf="!isAdmin" class="chip-bar">
-    <button *ngFor="let f of statusOptions" class="chip"
+  <div *ngIf="!isReviewer" class="chip-bar">
+    <button *ngFor="let f of userStatusOptions" class="chip"
             [class.active]="filter.status === f.value" (click)="setStatus(f.value)">
       {{ f.label }}
     </button>
   </div>
 
   <!-- Admin: filter panel -->
-  <div *ngIf="isAdmin" class="card filter-panel">
+  <div *ngIf="isReviewer" class="card filter-panel">
     <div class="filter-field">
       <label>Status</label>
       <select class="form-select" [(ngModel)]="filter.status">
@@ -50,54 +50,75 @@
 
   <ng-container *ngIf="!isLoading">
     <div *ngIf="rows.length === 0" class="empty-state card">
-      <div class="empty-icon">🗓️</div>
-      <h3>No requests to show</h3>
-      <p *ngIf="!isAdmin">Raise a correction request and it will appear here.</p>
-      <button *ngIf="!isAdmin" class="btn btn-primary" (click)="newRequest()">
-        <i class="fa fa-plus"></i> Create your first request
-      </button>
+      <div class="empty-icon">{{ hasActiveFilters ? '🔍' : '🗓️' }}</div>
+      <ng-container *ngIf="hasActiveFilters; else noneAtAll">
+        <h3>Nothing matches these filters</h3>
+        <p>{{ isReviewer ? 'Try widening the date range or clearing the search.' : 'Try a different status.' }}</p>
+        <button class="btn btn-primary" (click)="resetFilters()">
+          <i class="fa fa-rotate-left"></i> Clear filters
+        </button>
+      </ng-container>
+      <ng-template #noneAtAll>
+        <h3>{{ isReviewer ? 'Nothing awaiting a decision' : 'No requests to show' }}</h3>
+        <p *ngIf="!isReviewer">Raise a correction request and it will appear here.</p>
+        <p *ngIf="isReviewer">The queue is clear — new requests will show up here.</p>
+        <button *ngIf="!isReviewer" class="btn btn-primary" (click)="newRequest()">
+          <i class="fa fa-plus"></i> Create your first request
+        </button>
+      </ng-template>
     </div>
 
     <div *ngIf="rows.length > 0" class="card table-card">
       <table class="ar-table">
         <thead>
           <tr>
-            <th *ngIf="isAdmin">Employee</th>
-            <th>Date</th>
+            <th *ngIf="isReviewer">Employee</th>
+            <th [class.sortable]="isReviewer" (click)="toggleDateSort()">
+              Date
+              <i *ngIf="isReviewer" class="fa dc-sort-icon"
+                 [ngClass]="filter.sortDir === 'asc' ? 'fa-arrow-up-long' : 'fa-arrow-down-long'"></i>
+            </th>
             <th>Current → Requested</th>
             <th>Applied</th>
             <th>Status</th>
-            <th *ngIf="!isAdmin">Reason</th>
+            <th *ngIf="!isReviewer">Reason</th>
             <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let r of rows" class="clickable" (click)="open(r)">
-            <td *ngIf="isAdmin" class="emp-cell">
+          <tr *ngFor="let r of rows" class="clickable" [class.row-awaiting]="isAwaitingRow(r)" (click)="open(r)">
+            <td *ngIf="isReviewer" class="emp-cell" data-label="Employee">
               <span class="avatar">{{ (r.employeeName || '?').charAt(0).toUpperCase() }}</span>
               {{ r.employeeName }}
             </td>
-            <td>
+            <td data-label="Date">
               <div class="date-cell">
                 <span class="date">{{ r.attendanceDate | date:'dd MMM yyyy' }}</span>
                 <span class="day">{{ r.dayName }}</span>
               </div>
             </td>
-            <td class="transition">
+            <td class="transition" data-label="Current → Requested">
               <span class="from">{{ r.currentStatusLabel || 'Unmarked' }}</span>
               <i class="fa fa-arrow-right-long arrow"></i>
               <span class="to">{{ r.requestedStatusLabel }}</span>
             </td>
-            <td>
+            <td data-label="Applied">
               <span *ngIf="r.approvedStatusLabel; else dash"
                     [class.changed]="r.approvedStatus !== r.requestedStatus">{{ r.approvedStatusLabel }}</span>
               <ng-template #dash><span class="muted">—</span></ng-template>
             </td>
-            <td><app-request-status-badge [status]="r.requestStatus"></app-request-status-badge></td>
-            <td *ngIf="!isAdmin" class="reason-cell">{{ r.reason || '—' }}</td>
+            <td data-label="Status"><app-request-status-badge [status]="r.requestStatus"></app-request-status-badge></td>
+            <td *ngIf="!isReviewer" class="reason-cell" data-label="Reason">{{ r.reason || '—' }}</td>
             <td class="actions-col">
               <button *ngIf="r.canEdit" class="icon-btn" title="Edit" (click)="edit(r, $event)"><i class="fa fa-pen"></i></button>
-              <button *ngIf="r.canCancel" class="icon-btn danger" title="Cancel" (click)="cancel(r, $event)"><i class="fa fa-xmark"></i></button>
+              <!-- One withdraw affordance. An unreviewed request goes in a click; an
+                   approved one needs a reason, so that case opens the detail view where
+                   the reason can be typed rather than faking a one-click version of it. -->
+              <button *ngIf="!isReviewer && r.canWithdraw" class="icon-btn danger"
+                      [title]="r.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw'"
+                      (click)="withdraw(r, $event)">
+                <i class="fa fa-rotate-left"></i>
+              </button>
               <i class="fa fa-chevron-right chevron"></i>
             </td>
           </tr>
@@ -106,7 +127,7 @@
     </div>
 
     <!-- Admin paging -->
-    <div *ngIf="isAdmin && rows.length > 0" class="pager">
+    <div *ngIf="isReviewer && rows.length > 0" class="pager">
       <button class="btn btn-cancel btn-sm" [disabled]="filter.page <= 1" (click)="changePage(-1)">
         <i class="fa fa-chevron-left"></i> Prev
       </button>
