@@ -21,7 +21,11 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './app/core/interceptors/error.interceptor';
+import { installAutofillGuard } from './app/shared/autofill-guard';
 
+// Stop Chrome pushing the saved login user id into every text box.
+// Must run before the first render so fields are stamped as they appear.
+installAutofillGuard();
 
 bootstrapApplication(AppComponent, {
   providers: [
