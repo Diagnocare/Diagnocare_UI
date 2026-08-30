@@ -679,6 +679,19 @@
   .dc-hamburger { display: flex; }
   .dc-mobile-nav { display: block; }
   .dc-user-section { border-left: none; padding-left: 0; }
+
+  /* Below this width the nav collapses and the hamburger appears. Both the
+     hamburger and the user section carry margin-left:auto, so the free space
+     was being SPLIT between them — which parked the avatar in the middle-right
+     of the header instead of at its edge. Reordering puts the hamburger first
+     and lets its auto margin do all the pushing, so the avatar ends up flush
+     against the header padding where it belongs.
+
+     This is the zoom case: a 1440px monitor at 150% is a 960px viewport, so a
+     desktop user sees the mobile header without ever touching a phone. */
+  .dc-hamburger    { order: 1; margin-left: auto; }
+  .dc-user-section { order: 2; margin-left: 0; gap: 0.4rem; }
+  .dc-header       { padding: 0 1rem; }
 }
 
 @media (max-width: 480px) {

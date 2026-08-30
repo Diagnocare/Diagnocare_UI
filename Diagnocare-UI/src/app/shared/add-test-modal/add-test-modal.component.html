@@ -141,7 +141,25 @@
             </div>
           </div>
 
-          <div class="step-body">
+          <!-- ═══════════ PAYMENT — Simple UI (USE_NEW_UI) ═══════════════ -->
+          <div class="step-body" *ngIf="useNewUi">
+            <dc-payment-panel
+              [netAmount]="+(form.get('net_Amount')?.value || 0)"
+              [modes]="paymentModeOptions"
+              [busy]="isSaving"
+              confirmLabel="Add test"
+              (decisionChange)="onPaymentDecision($event)"
+              (confirmed)="submit()">
+            </dc-payment-panel>
+
+            <div class="atm-save-error" *ngIf="saveError">
+              <i class="fa fa-exclamation-triangle"></i> {{ saveError }}
+            </div>
+          </div>
+
+          <!-- The original payment step. Kept while USE_NEW_UI is being
+               evaluated; delete this block once the panel is signed off. -->
+          <div class="step-body" *ngIf="!useNewUi">
             <!-- Amount Summary Cards -->
             <div class="amount-summary">
               <div class="amount-card amount-card--test">
@@ -300,7 +318,7 @@
               Next <i class="fa fa-arrow-right"></i>
             </button>
             <!-- Step 2: Submit -->
-            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 2"
+            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 2 && !useNewUi"
                     [disabled]="!isStep2Valid || isSaving">
               <i class="fa fa-spinner fa-spin" *ngIf="isSaving"></i>
               <i class="fa fa-check" *ngIf="!isSaving"></i>
@@ -312,8 +330,22 @@
       </form>
     </div><!-- /registration-card -->
 
+    <!-- ═══════════════ TEST PICKER — Simple UI (USE_NEW_UI) ═════════════ -->
+    <div class="registration-card atm-catalog-card" *ngIf="showTestCatalog && useNewUi">
+      <dc-test-picker
+        [groups]="testGroups"
+        [selectedCodes]="selectedTestCodes"
+        [loading]="isLoadingAllTests"
+        (toggled)="onPickerToggled($event)"
+        (confirmed)="confirmTestSelection()"
+        (cancelled)="cancelTestCatalog()">
+      </dc-test-picker>
+    </div>
+
     <!-- ══════════════════════════════ TEST CATALOG ══════════════════════ -->
-    <div class="registration-card atm-catalog-card" *ngIf="showTestCatalog">
+    <!-- The original four-column browser. Kept while USE_NEW_UI is being
+         evaluated; delete this block once the picker has been signed off. -->
+    <div class="registration-card atm-catalog-card" *ngIf="showTestCatalog && !useNewUi">
 
       <!-- Catalog Header -->
       <div class="step-header step-header--3">

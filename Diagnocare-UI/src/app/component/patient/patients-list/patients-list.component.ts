@@ -16,17 +16,29 @@ import { PatientListDto } from 'src/app/models/patient/patient-list.dto';
 import { SortDirection, SortPatientField } from 'src/app/models/common/sort';
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
 
+// ── Simple UI kit ────────────────────────────────────────────────────────────
+// Labelled action buttons, one shared status vocabulary, and an empty state
+// that says what to do next. The originals stay behind *ngIf="!useNewUi".
+import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
+import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
+import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
+import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+
 
 @Component({
   selector: 'app-patients-list',
   templateUrl: './patients-list.component.html',
   styleUrls: ['./patients-list.component.scss'],
-  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent],
+  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent, DcActionComponent, DcStatusComponent, DcEmptyComponent],
   encapsulation: ViewEncapsulation.None,
   standalone: true
 })
 
 export class PatientsListComponent implements OnInit, OnDestroy {
+
+  /** Simple-UI rollout flag — see shared/simple/simple-ui.flags.ts. */
+  readonly useNewUi = USE_NEW_UI;
+
   private destroy$ = new Subject<void>();
 
   /** Today in YYYY-MM-DD (local time) — used to block future date selection in search filters. */

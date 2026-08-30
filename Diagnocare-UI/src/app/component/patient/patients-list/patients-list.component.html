@@ -79,7 +79,27 @@
         <!-- Loading Spinner -->
         <app-loading-spinner [isLoading]="isLoading" message="Loading patients..."></app-loading-spinner>
         <!-- No Data Message -->
-        <div *ngIf="filteredPatients.length === 0 && !isLoading">
+        <!-- Simple UI: says what happened, why, and gives the next step. -->
+        <div *ngIf="filteredPatients.length === 0 && !isLoading && useNewUi">
+            <dc-empty *ngIf="isTodayDateRange()"
+                      icon="fa-user-plus"
+                      title="No patients registered today"
+                      message="Anyone you register today will appear here. Widen the date range above to see earlier patients."
+                      actionLabel="Register a patient"
+                      actionIcon="fa-plus"
+                      (action)="navigateToAddPatient()">
+            </dc-empty>
+            <dc-empty *ngIf="!isTodayDateRange()"
+                      icon="fa-search"
+                      title="No patients match what you searched for"
+                      message="Check the spelling, or try just the first few letters of the name."
+                      actionLabel="Clear the search"
+                      actionIcon="fa-times"
+                      (action)="searchTerm = ''; searchPatients()">
+            </dc-empty>
+        </div>
+
+        <div *ngIf="filteredPatients.length === 0 && !isLoading && !useNewUi">
             <div *ngIf="isTodayDateRange(); else otherNoData" class="no-data">
                 <i class="fa fa-info-circle"></i>
                 <p>No patient registered for today</p>
@@ -179,13 +199,30 @@
             <td class="amount">₹{{patient.discount}}</td> 
             -->
             <td>
-              <span class="status-badge" [ngClass]="getStatusClass(patient.status)">
+              <!-- Simple UI: colour, icon and word from one shared table. -->
+              <dc-status *ngIf="useNewUi" [status]="patient.status"></dc-status>
+              <span *ngIf="!useNewUi" class="status-badge" [ngClass]="getStatusClass(patient.status)">
                 <span class="status-dot"></span>
                 {{ patient.status || '—' }}
               </span>
             </td>
             <td>
-            <div class="action-buttons">
+            <!-- Simple UI: every action carries its word, so nobody has to
+                 hover three grey squares to find out which is which. -->
+            <div class="action-buttons dc-actions-row" *ngIf="useNewUi">
+                <ng-container *ngIf="!isDeactivatedView(); else dcDeactivatedActions">
+                    <dc-action *ngIf="isCompletedView()" type="download" label="Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></dc-action>
+                    <dc-action type="results" label="Tests"      (clicked)="viewPatientTest(patient.patient_Id)"></dc-action>
+                    <dc-action type="edit"                        (clicked)="editPatient(patient.patient_Id)"></dc-action>
+                    <dc-action type="delete"  label="Deactivate"  (clicked)="confirmDelete(patient.patient_Id)"></dc-action>
+                </ng-container>
+                <ng-template #dcDeactivatedActions>
+                    <dc-action type="restore" label="Reactivate"        (clicked)="confirmReactivate(patient.patient_Id)"></dc-action>
+                    <dc-action type="delete"  label="Delete for good"   (clicked)="confirmHardDelete(patient.patient_Id)"></dc-action>
+                </ng-template>
+            </div>
+
+            <div class="action-buttons" *ngIf="!useNewUi">
                 <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
                     <app-action-btn *ngIf="isCompletedView()" type="download" title="Download Completed Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>

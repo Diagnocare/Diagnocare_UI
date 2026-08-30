@@ -16,8 +16,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, switchMap, catchError, map } from 'rxjs/operators';
 import { ToastrService } from 'ngx-toastr';
 
 import {
@@ -44,10 +44,18 @@ import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
 
+// ── Simple UI kit ────────────────────────────────────────────────────────────
+// The new test picker and payment panel render instead of the catalogue and the
+// payment step when USE_NEW_UI is on. The old markup stays in the template
+// behind *ngIf="!useNewUi" so the two can be compared with the same patient.
+import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
+import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
+import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, DcTestPickerComponent, DcPaymentPanelComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -88,6 +96,25 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   selectedTestIds = new Set<string>();
   selectedTests:  TestItem[] = [];
   focusedTestId:  string | null = null;
+
+  // ── Simple UI kit ───────────────────────────────────────────────────────────
+  /** Flip in shared/simple/simple-ui.flags.ts to compare old and new. */
+  readonly useNewUi = USE_NEW_UI;
+
+  /**
+   * The whole catalogue, flat. The old picker loads tests one sub-group at a
+   * time because that is all it can show; the new one searches everything, so
+   * it needs the lot. Loaded once per modal open and cached for the session.
+   */
+  allTests: TestItem[] = [];
+  isLoadingAllTests = false;
+
+  /**
+   * The same catalogue as a tree — group → sub-group → tests — which is what
+   * the picker browses. `allTests` above is the flat view of exactly this, kept
+   * so a code from the picker can be resolved back to its TestItem.
+   */
+  testGroups: DcTestGroup[] = [];
 
   // ── Referred By autocomplete ──────────────────────────────────────────────
   referredByOptions:         string[] = [];
@@ -164,6 +191,24 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0);
   }
 
+  // ── Simple UI kit adapters ──────────────────────────────────────────────────
+  // The picker knows nothing about TestItem or the API — these two getters are
+  // the entire coupling, which is what lets it be previewed without a backend.
+
+  private toPickable(t: TestItem, groupName: string): DcPickableTest {
+    return {
+      code:     t.testCode,
+      name:     t.testName,
+      price:    Number(t.price || 0),
+      bookable: this.isTestBookable(t),
+      group:    groupName,
+    };
+  }
+
+  get selectedTestCodes(): string[] {
+    return this.selectedTests.map(t => t.testCode);
+  }
+
   get isStep1Valid(): boolean {
     return (
       !!this.form.get('test_Name')?.valid &&
@@ -225,6 +270,15 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   openTestCatalog(event: Event): void {
     event.preventDefault();
+
+    // The new picker searches the whole catalogue, so it opens immediately and
+    // fills in as the list arrives — no group has to be chosen first.
+    if (this.useNewUi) {
+      this.showTestCatalog = true;
+      this.loadAllTests();
+      return;
+    }
+
     this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: GroupSubGroupModel[]) => {
         this.groupedTests = res ?? [];
@@ -326,6 +380,113 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   cancelTestCatalog(): void {
     this.showTestCatalog = false;
+  }
+
+  // ── Simple UI kit: whole-catalogue load ─────────────────────────────────────
+
+  /**
+   * Loads the whole catalogue once, as a tree: group → sub-group → tests.
+   *
+   * The original screen fetched one sub-group's tests at a time because that is
+   * all it could show. The picker browses the same three levels AND searches
+   * across every test, so it needs the lot up front.
+   *
+   * Built from the three endpoints that already exist — no API change is needed
+   * to try the new screen. Every request fails soft: one bad sub-group costs its
+   * own tests, not the whole catalogue. The result is cached for the life of the
+   * component.
+   */
+  private loadAllTests(): void {
+    if (this.testGroups.length > 0 || this.isLoadingAllTests) return;
+    this.isLoadingAllTests = true;
+
+    this._testService.getTestGroupList().pipe(
+      switchMap((groups: GroupSubGroupModel[]) => {
+        if (!groups || groups.length === 0) return of([] as DcTestGroup[]);
+
+        return forkJoin(groups.map(group =>
+          this._testService.getTestSubGroupList(group.testGroupId).pipe(
+            catchError(() => of([] as GroupSubGroupModel[])),
+            switchMap((subs: GroupSubGroupModel[]) => {
+              if (!subs || subs.length === 0) {
+                return of({ id: group.testGroupId, name: group.name, subGroups: [] } as DcTestGroup);
+              }
+              return forkJoin(subs.map(sub =>
+                this._testService.getMedicalTestList(sub.testGroupId).pipe(
+                  catchError(() => of([] as any[])),
+                  map((tests: any[]) => ({
+                    id:    sub.testGroupId,
+                    name:  sub.name,
+                    tests: (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
+                    rawTests: (tests ?? []) as TestItem[],
+                  })),
+                )
+              )).pipe(map(subGroups => ({
+                id:        group.testGroupId,
+                name:      group.name,
+                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
+                rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
+              })));
+            }),
+          )
+        ));
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe({
+      next: (groups: any[]) => {
+        this.testGroups = (groups ?? []).map(g => ({
+          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
+        }));
+
+        // Flat view, de-duplicated: a test can appear under more than one
+        // sub-group, and the picker hands back a code we must resolve.
+        const seen = new Set<string>();
+        this.allTests = ([] as TestItem[])
+          .concat(...(groups ?? []).map((g: any) => g.rawTests ?? []))
+          .filter((t: TestItem) => {
+            const code = String(t?.testCode ?? '');
+            if (!code || seen.has(code)) return false;
+            seen.add(code);
+            return true;
+          });
+
+        this.isLoadingAllTests = false;
+      },
+      // Message shown centrally by ErrorInterceptor.
+      error: () => { this.isLoadingAllTests = false; },
+    });
+  }
+
+  /** Bridges the picker's plain shape back to the existing selection logic,
+   *  so every rule already in toggleTestSelection still applies. */
+  onPickerToggled(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) this.toggleTestSelection(test);
+  }
+
+  /**
+   * Applies a decision from the new payment panel to the existing form, so
+   * submit(), isStep2Valid and the DTO builders are untouched.
+   *
+   * `paymentConfirmed` exists because the old flow confirms a partial payment
+   * in its own dialog; the new panel has no dialog, so a complete decision IS
+   * the confirmation.
+   */
+  onPaymentDecision(decision: DcPaymentDecision): void {
+    this.form.patchValue({
+      payment_Type:   decision.type || this.form.get('payment_Type')?.value,
+      payment_Mode:   decision.mode || this.form.get('payment_Mode')?.value,
+      amount_Paid:    decision.amountPaid,
+      amount_Pending: decision.amountPending,
+    });
+
+    this.paymentConfirmed =
+      decision.complete && decision.type === paymentType.Partial;
+
+    // TPA still needs its own details; open the existing modal on demand.
+    if (decision.mode === paymentMode.TPA && !this.tpaDetails) {
+      this.showTpaModal = true;
+    }
   }
 
   isTestSelected(t: TestItem): boolean {

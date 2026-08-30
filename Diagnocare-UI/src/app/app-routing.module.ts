@@ -285,7 +285,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/receipt/bill-receipt').then(m => m.BillReceipt) },
     ]
   },
-
+  {
+    path: 'ui-kit', title: 'UI Kit',
+    loadComponent: () => import('./shared/simple/showcase/simple-ui-showcase.component')
+      .then(m => m.SimpleUiShowcaseComponent)
+  },
   // Fallback
   { path: '**', redirectTo: 'login' }
 ];
