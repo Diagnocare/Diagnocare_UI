@@ -72,7 +72,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   };
 
   isLoading: boolean = false;
-  currentStep = 3;
+  currentStep = 2;
 
   /** Exposed for [tabFields] binding on the form element. */
   readonly tabFields = tabOrderAdd;
@@ -156,16 +156,34 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Id:           new FormControl({ value: '',  disabled: true }),
       patient_Salutation:   ['Mr.', Validators.required],
       patient_Name:         ['', [Validators.required, AppValidators.stringOnly()]],
-      patient_DOB:          ['', [Validators.required, AppValidators.noFutureDate()]],
+      // Date of birth is no longer required on its own: a patient who does not
+      // know it can be recorded by typing their age instead, and the DOB is
+      // back-calculated. `patient_Age` stays required, so one of the two routes
+      // must still be used — it is filled by whichever the operator chooses.
+      patient_DOB:          ['', [AppValidators.noFutureDate()]],
       patient_Age:          ['', Validators.required],
       patient_Age_Group:    ['', Validators.required],
+
+      // Age as three parts. These are the inputs; `patient_Age` above is the
+      // composed "41Y 3M 12D" string that goes to the API.
+      patient_Age_Years:    [null],
+      patient_Age_Months:   [null],
+      patient_Age_Days:     [null],
       patient_Gender:       ['', Validators.required],
-      patient_Marital_Status: ['', Validators.required],
-      patient_Address:      ['', Validators.required],
-      relation:             ['S/O', Validators.required],
-      relative_Name:        ['', [Validators.required, AppValidators.stringOnly()]],
-      patient_Contact:      ['', [Validators.required, AppValidators.contactNumber()]],
-      patient_Email:        ['', [Validators.required, Validators.email]],
+      // Optional: plenty of walk-in patients decline to state it, and nothing
+      // downstream depends on it.
+      patient_Marital_Status: [''],
+      // Optional: walk-in patients often register without giving an address.
+      patient_Address:      [''],
+      relation:             ['S/O'],
+      // Optional, but still letters-only when something IS typed — stringOnly()
+      // returns null for an empty value, so a blank field is valid.
+      relative_Name:        ['', [AppValidators.stringOnly()]],
+      // Not required, but still validated when something IS typed —
+      // contactNumber() and email() both return null for an empty value, so a
+      // blank field is valid while a half-typed number is not.
+      patient_Contact:      ['', [AppValidators.contactNumber()]],
+      patient_Email:        ['', [Validators.email]],
       test_id:              [''],
       test_Name:            ['', Validators.required],
       urgent_Report:        [false],
@@ -574,23 +592,77 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       input.setSelectionRange(cursorPos, cursorPos);
       this.patientForm.get('patient_DOB')?.setValue(newValue, { emitEvent: true });
 
-      const age = this._common.calculateAge(newValue);
-      this.patientForm.patchValue({
-        patient_Age:       age,
-        patient_Age_Group: this._common.calculateAgeRange(parseInt(age.split(' ')[0]) || 0)
-      });
+      // One place computes age from DOB — see calculateAge().
+      this.calculateAge();
     }
   }
 
+  /**
+   * Date of birth → age. Fills the three Y/M/D boxes, the composed string that
+   * is sent to the API, and the age group.
+   *
+   * `emitEvent: false` on the parts: they are being written BY this method, and
+   * letting them emit would call onAgePartChange(), which writes the DOB back —
+   * a loop that would fight the operator mid-keystroke.
+   */
   calculateAge() {
     if (this.patientForm.controls['patient_DOB'].errors?.['noFutureDate']) return;
     const dob = this.patientForm.get('patient_DOB')?.value;
     if (!dob) return;
 
-    const isoDate  = this._common.setYearofDate(dob); // used internally only — not written back to form
-    const age      = this._common.calculateAge(isoDate);
-    const ageRange = this._common.calculateAgeRange(parseInt(age.split(' ')[0]));
-    this.patientForm.patchValue({ patient_Age: age, patient_Age_Group: ageRange });
+    const isoDate = this._common.setYearofDate(dob); // used internally only — not written back to form
+    const { years, months, days } = this._common.calculateAgeParts(isoDate);
+
+    this.patientForm.patchValue({
+      patient_Age_Years:  years,
+      patient_Age_Months: months,
+      patient_Age_Days:   days,
+    }, { emitEvent: false });
+
+    this.patientForm.patchValue({
+      patient_Age:       this._common.formatAgeParts(years, months, days),
+      patient_Age_Group: this._common.calculateAgeRange(years),
+    });
+  }
+
+  /**
+   * Age → date of birth. The other direction, for the patient who knows they
+   * are "about 45" but not the date.
+   *
+   * The DOB it produces is an approximation, which is what an age-only record
+   * is regardless — writing it keeps every downstream consumer (reports, the
+   * report header, the age group) working off one field.
+   */
+  onAgePartChange(): void {
+    const f = this.patientForm.value;
+    const years  = Number(f.patient_Age_Years)  || 0;
+    const months = Number(f.patient_Age_Months) || 0;
+    const days   = Number(f.patient_Age_Days)   || 0;
+
+    // Keep each part inside its own range rather than rejecting it: 18 months
+    // is a thing people type, and it means a year and a half.
+    const clamped = {
+      years:  Math.max(0, Math.min(150, years)),
+      months: Math.max(0, Math.min(11,  months)),
+      days:   Math.max(0, Math.min(31,  days)),
+    };
+    if (clamped.months !== months || clamped.days !== days || clamped.years !== years) {
+      this.patientForm.patchValue({
+        patient_Age_Years:  clamped.years  || null,
+        patient_Age_Months: clamped.months || null,
+        patient_Age_Days:   clamped.days   || null,
+      }, { emitEvent: false });
+    }
+
+    const hasAge = clamped.years > 0 || clamped.months > 0 || clamped.days > 0;
+
+    this.patientForm.patchValue({
+      patient_Age:       hasAge ? this._common.formatAgeParts(clamped.years, clamped.months, clamped.days) : '',
+      patient_Age_Group: hasAge ? this._common.calculateAgeRange(clamped.years) : '',
+      patient_DOB:       hasAge ? this._common.dobFromAgeParts(clamped.years, clamped.months, clamped.days) : '',
+    }, { emitEvent: false });
+
+    this.patientForm.get('patient_Age')?.markAsDirty();
   }
 
   /**
@@ -1044,12 +1116,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Age:            f.patient_Age,
       patient_Age_Group:      f.patient_Age_Group,
       patient_Gender:         f.patient_Gender,
-      patient_Marital_Status: f.patient_Marital_Status,
+      // ?? '' on the now-optional fields: the API maps these to NOT NULL
+      // columns that default to an empty string, so a blank must arrive as ''
+      // rather than null — otherwise a skipped field is a 500, not a blank.
+      patient_Marital_Status: f.patient_Marital_Status ?? '',
       patient_Address:        f.patient_Address,
-      relation:               f.relation,
+      relation:               f.relation ?? '',
       relative_Name:          f.relative_Name,
       patient_Contact:        `${f.patient_Contact ?? ''}`,
-      patient_Email:          f.patient_Email,
+      patient_Email:          f.patient_Email ?? '',
       patient_Reg_Date:       f.patient_Reg_Date,
       test,
       receipt,

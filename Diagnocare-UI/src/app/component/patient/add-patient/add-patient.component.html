@@ -83,7 +83,7 @@
             <!-- DOB / Age -->
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Date of Birth</label>
+                <label class="form-label">Date of Birth</label>
                 <div class="dob-input-wrap" [class.is-invalid]="isFieldInvalid('patient_DOB')">
                   <!-- Masked text entry (dd/mm/yyyy) -->
                   <input
@@ -113,14 +113,36 @@
 
               <div class="form-group">
                 <label class="form-label required">Age</label>
-                  <input type="text" class="form-control" formControlName="patient_Age"
-                    placeholder="Auto-calculated" readonly [attr.tabindex]="getTabIndex('patient_Age')" />
+                <!-- Type the age directly when the patient does not know their
+                     date of birth, or leave it to fill itself from the DOB
+                     above. Either way round works. -->
+                <div class="age-parts">
+                  <div class="age-part">
+                    <input type="number" class="form-control" formControlName="patient_Age_Years"
+                           min="0" max="150" placeholder="0" aria-label="Age in years"
+                           (input)="onAgePartChange()" [attr.tabindex]="getTabIndex('patient_Age')" />
+                    <span class="age-part__unit">Years</span>
+                  </div>
+                  <div class="age-part">
+                    <input type="number" class="form-control" formControlName="patient_Age_Months"
+                           min="0" max="11" placeholder="0" aria-label="Age in months"
+                           (input)="onAgePartChange()" />
+                    <span class="age-part__unit">Months</span>
+                  </div>
+                  <div class="age-part">
+                    <input type="number" class="form-control" formControlName="patient_Age_Days"
+                           min="0" max="31" placeholder="0" aria-label="Age in days"
+                           (input)="onAgePartChange()" />
+                    <span class="age-part__unit">Days</span>
+                  </div>
+                </div>
+                <app-field-error [control]="patientForm.get('patient_Age')" label="Age" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
                 <label class="form-label required">Age Group</label>
                 <input type="text" class="form-control" formControlName="patient_Age_Group"
-                  placeholder="Auto-calculated from Date of Birth" readonly
+                  placeholder="From age" readonly
                   [class.is-invalid]="isFieldInvalid('patient_Age_Group')" [attr.tabindex]="getTabIndex('patient_Age_Group')" />
                 <app-field-error [control]="patientForm.get('patient_Age_Group')" label="Age Group" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
@@ -144,7 +166,7 @@
 
               <div class="form-group">
 
-                <label class="form-label required">Marital Status</label>
+                <label class="form-label">Marital Status</label>
                 <div class="radio-pill-group" [class.is-invalid]="isFieldInvalid('patient_Marital_Status')">
                   <label class="radio-pill" *ngFor="let entry of maritalStatus; let i = index">
                     <input type="radio" formControlName="patient_Marital_Status" [value]="entry" [attr.tabindex]="getTabIndex('patient_Marital_Status') + i"
@@ -160,7 +182,7 @@
             <div class="form-section-label">Guardian / Relative</div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Relation</label>
+                <label class="form-label">Relation</label>
                 <select formControlName="relation" class="form-select"
                   [class.is-invalid]="isFieldInvalid('relation')" [attr.tabindex]="getTabIndex('relation')">
                   <option value="">-- Select --</option>
@@ -170,7 +192,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Relative Name</label>
+                <label class="form-label">Relative Name</label>
                   <input type="text" class="form-control" formControlName="relative_Name"
                     placeholder="Relative's full name"
                     [class.is-invalid]="isFieldInvalid('relative_Name')" [attr.tabindex]="getTabIndex('relative_Name')" />
@@ -183,7 +205,7 @@
             <div class="form-row">
 
               <div class="form-group">
-                <label class="form-label required">Mobile Number</label>
+                <label class="form-label">Mobile Number</label>
                 <div style="display: flex; gap: 6px; align-items: center;">
                   <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                     <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
@@ -196,7 +218,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Email</label>
+                <label class="form-label">Email</label>
                   <input type="text" class="form-control" formControlName="patient_Email"
                     placeholder="patient@example.com"
                     [class.is-invalid]="isFieldInvalid('patient_Email')" [attr.tabindex]="getTabIndex('patient_Email')" />
@@ -206,7 +228,7 @@
 
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label required">Address</label>
+                <label class="form-label">Address</label>
                   <input type="text" class="form-control" formControlName="patient_Address"
                     placeholder="Full address"
                     [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
