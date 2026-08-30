@@ -30,6 +30,18 @@
       <p>No records found for the selected period.</p>
     </div>
 
+    <!-- ── Grand totals ───────────────────────────────────────────────────────
+         One strip across the full width, above both panels. It used to sit
+         under the table in the left column, which put the report's headline
+         numbers below the fold on any list longer than a screen — and left
+         them competing with the table for a half-width column. -->
+    <div class="tr-summary" *ngIf="hasTotals && rows.length > 0">
+      <div class="tr-summary__item" *ngFor="let k of (totals | keyvalue)">
+        <span class="tr-summary__label">{{ formatTotalKey(k.key) }}</span>
+        <span class="tr-summary__value">{{ formatTotalValue(k.key, +k.value) }}</span>
+      </div>
+    </div>
+
     <!-- ── Split row: table left, chart right ─────────────────────────────────── -->
     <div class="tr-split" [class.tr-split--with-chart]="showChart" *ngIf="rows.length > 0">
 
@@ -82,14 +94,6 @@
             </table>
           </div>
         </div><!-- /.table-container -->
-
-        <!-- Grand totals — global stats-row / stat-card (matches base-report) -->
-        <div class="stats-row" *ngIf="hasTotals">
-          <div class="stat-card" *ngFor="let k of (totals | keyvalue)">
-            <div class="stat-label">{{ formatTotalKey(k.key) }}</div>
-            <div class="stat-number">{{ formatTotalValue(k.key, +k.value) }}</div>
-          </div>
-        </div>
 
       </div>
 

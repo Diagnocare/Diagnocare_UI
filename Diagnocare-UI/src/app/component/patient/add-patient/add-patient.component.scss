@@ -797,8 +797,13 @@ textarea.form-control {
 .dob-cal-picker {
   position: absolute;
   right: 0.45em;
-  top: 50%;
-  transform: translateY(-50%);
+  // Vertically centred with top/bottom + auto margins rather than a transform:
+  // a transformed ancestor becomes the containing block for `position: fixed`
+  // descendants, which would trap the picker's viewport-centred panel inside
+  // this 2em box and push it off the right edge of the screen.
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
   width: 2em;
   height: 2em;
   display: block;
