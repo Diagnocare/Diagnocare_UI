@@ -7,6 +7,14 @@ import { CommonService } from 'src/app/shared/common.service';
 import { map } from 'rxjs/operators';
 import { DropRequestDTO } from 'src/app/models/path-test/drop-request.dto';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
+import {
+  SaveTestProtocolAssignmentsDto,
+  TestBookingProtocolsDto,
+  TestProtocolDto,
+  TestProtocolSaveDto,
+  TestProtocolSuggestionDto,
+  TestProtocolSummaryDto,
+} from 'src/app/models/path-test/protocol/test-protocol.model';
 
 @Injectable({
   providedIn: 'root',
@@ -67,7 +75,70 @@ export class PathTestService {
   dropTest(request: DropRequestDTO): Observable<any> {
     return this.httpClient.delete(this.pathTestApiUrl + apiEndpoints.dropTest, { body: request });
   }
-  
+
+  // ── Sample-collection protocols ─────────────────────────────────────────────
+
+  /**
+   * The whole protocol library, for the picker. Summary rows with usage counts.
+   */
+  getProtocolLibrary(): Observable<TestProtocolSummaryDto[]> {
+    return this.httpClient
+      .get<TestProtocolSummaryDto[]>(this.pathTestApiUrl + apiEndpoints.getProtocolLibrary)
+      .pipe(map(list => list ?? []));
+  }
+
+  /** One protocol's full content. */
+  getProtocol(protocolId: number): Observable<TestProtocolDto> {
+    const url = `${this.pathTestApiUrl}${apiEndpoints.getProtocol}?protocolId=${protocolId}`;
+    return this.httpClient.get<TestProtocolDto>(url);
+  }
+
+  /**
+   * The protocols one test is collected under, in order.
+   *
+   * An empty array is a real answer — nobody has linked a protocol to this test — and the
+   * panel says so in words. Callers only handle a genuine transport failure, and even then
+   * get an empty list, which the panel reports the same way: we do not know the requirements.
+   */
+  getTestProtocols(testRegId: number): Observable<TestProtocolDto[]> {
+    const url = `${this.pathTestApiUrl}${apiEndpoints.getTestProtocols}?testRegId=${testRegId}`;
+    return this.httpClient.get<TestProtocolDto[]>(url).pipe(map(list => list ?? []));
+  }
+
+  /**
+   * Protocols for every test in a booking, by test code, in the order given.
+   *
+   * One request for the whole basket rather than one per test — the booking screens call
+   * this every time the selection changes.
+   */
+  getTestProtocolsByCodes(testCodes: string[]): Observable<TestBookingProtocolsDto[]> {
+    const codes = (testCodes ?? []).filter(c => !!c);
+    return this.httpClient
+      .post<TestBookingProtocolsDto[]>(this.pathTestApiUrl + apiEndpoints.getTestProtocolsByCodes, codes)
+      .pipe(map(list => list ?? []));
+  }
+
+  /** Which library protocol a test's name suggests. Admin / Super Admin only. */
+  suggestTestProtocol(testRegId: number): Observable<TestProtocolSuggestionDto> {
+    const url = `${this.pathTestApiUrl}${apiEndpoints.suggestTestProtocol}?testRegId=${testRegId}`;
+    return this.httpClient.get<TestProtocolSuggestionDto>(url);
+  }
+
+  /** Creates or updates a lab-authored protocol in the library. */
+  saveProtocol(protocol: TestProtocolSaveDto): Observable<any> {
+    return this.httpClient.post(this.pathTestApiUrl + apiEndpoints.saveProtocol, protocol);
+  }
+
+  /** Replaces the whole set of protocols linked to a test. An empty list clears them. */
+  saveTestProtocolAssignments(payload: SaveTestProtocolAssignmentsDto): Observable<any> {
+    return this.httpClient.post(this.pathTestApiUrl + apiEndpoints.saveTestProtocolAssignments, payload);
+  }
+
+  /** Deletes a lab-authored protocol. Refused by the API if seeded or still in use. */
+  deleteProtocol(protocolId: number): Observable<any> {
+    const url = `${this.pathTestApiUrl}${apiEndpoints.deleteProtocol}?protocolId=${protocolId}`;
+    return this.httpClient.delete(url);
+  }
 
   // Normalize backend group/subgroup payload to GroupSubGroupModel
   private normalizeGroup(item: any): GroupSubGroupModel {

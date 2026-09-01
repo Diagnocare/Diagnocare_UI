@@ -1,0 +1,143 @@
+<div class="tpp">
+
+  <!-- ── Loading ──────────────────────────────────────────────────────────── -->
+  <div class="tpp-state tpp-state--loading" *ngIf="loading">
+    <i class="fa fa-spinner fa-spin"></i>
+    <span>Loading sample collection protocol…</span>
+  </div>
+
+  <!-- ── Nothing asked for yet ────────────────────────────────────────────── -->
+  <div class="tpp-state tpp-state--idle" *ngIf="!loading && !hasAnswer">
+    <i class="fa fa-flask"></i>
+    <span>{{ emptySelectionMessage }}</span>
+  </div>
+
+  <ng-container *ngIf="!loading && hasAnswer">
+
+    <!-- ── Heading ────────────────────────────────────────────────────────── -->
+    <div class="tpp-heading" *ngIf="showHeading">
+      <div class="tpp-heading-main">
+        <span class="tpp-heading-icon">🧪</span>
+        <div>
+          <div class="tpp-heading-title">Sample Collection Protocol</div>
+          <div class="tpp-heading-test">
+            {{ testName }}
+            <span class="tpp-heading-code" *ngIf="testCode">({{ testCode }})</span>
+          </div>
+        </div>
+      </div>
+      <span class="tpp-count" *ngIf="showSequence">
+        {{ protocols?.length }} protocols
+      </span>
+    </div>
+
+    <!-- ── No protocol linked ─────────────────────────────────────────────── -->
+    <!--
+      Stated in words rather than left blank. An empty section reads as "nothing special
+      required", which is the opposite of what an unlinked test means.
+    -->
+    <div class="tpp-fallback" *ngIf="!hasProtocols">
+      <div class="tpp-fallback-icon"><i class="fa fa-exclamation-triangle"></i></div>
+      <div class="tpp-fallback-body">
+        <strong>No sample collection protocol linked to this test.</strong>
+        <p>
+          Nobody has recorded how this test's sample must be collected. Confirm the sample
+          type, patient preparation and container with the laboratory before collecting, and
+          ask an administrator to link a protocol under Manage Tests so the next person does
+          not have to.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── The protocols, in collection order ─────────────────────────────── -->
+    <div class="tpp-list" *ngIf="hasProtocols">
+      <article class="tpp-item"
+               *ngFor="let p of protocols; let i = index; trackBy: trackByProtocol">
+
+        <!-- Per-protocol header. Numbered only when there is more than one, because a
+             sequence is the whole reason a test carries several. -->
+        <header class="tpp-item-head">
+          <span class="tpp-step" *ngIf="showSequence">{{ i + 1 }}</span>
+          <div class="tpp-item-title">
+            {{ p.protocolName }}
+            <span class="tpp-item-code">{{ p.protocolCode }}</span>
+          </div>
+          <span class="tpp-tag tpp-tag--standard" *ngIf="p.isSystem"
+                title="Standard protocol supplied with the application">
+            <i class="fa fa-book"></i> Standard
+          </span>
+        </header>
+
+        <!-- Why this protocol applies to this test, where the lab said so. -->
+        <div class="tpp-note" *ngIf="p.note">
+          <i class="fa fa-thumb-tack"></i> {{ p.note }}
+        </div>
+
+        <!-- Headline facts: what to draw, into what, how much. These stay visible in
+             compact mode because they are what has to be known before the patient
+             leaves the counter. -->
+        <div class="tpp-facts">
+          <div class="tpp-fact tpp-fact--sample">
+            <span class="tpp-fact-label">Sample type</span>
+            <span class="tpp-fact-value">{{ p.sampleType }}</span>
+          </div>
+          <div class="tpp-fact" *ngIf="p.containerType">
+            <span class="tpp-fact-label">Container</span>
+            <span class="tpp-fact-value">{{ p.containerType }}</span>
+          </div>
+          <div class="tpp-fact" *ngIf="p.sampleQuantity">
+            <span class="tpp-fact-label">Quantity</span>
+            <span class="tpp-fact-value">{{ p.sampleQuantity }}</span>
+          </div>
+        </div>
+
+        <div class="tpp-fasting"
+             [class.tpp-fasting--required]="p.fastingRequired"
+             [class.tpp-fasting--none]="!p.fastingRequired">
+          <i class="fa" [class.fa-hourglass-half]="p.fastingRequired"
+                        [class.fa-check]="!p.fastingRequired"></i>
+          {{ fastingLabel(p) }}
+        </div>
+
+        <!-- Detail sections — hidden in compact mode -->
+        <div class="tpp-sections" *ngIf="!compact && hasDetailSections(p)">
+
+          <section class="tpp-section" *ngIf="p.patientPreparation">
+            <h4><i class="fa fa-user-md"></i> Patient preparation</h4>
+            <p>{{ p.patientPreparation }}</p>
+          </section>
+
+          <section class="tpp-section" *ngIf="p.collectionProcedure">
+            <h4><i class="fa fa-list-ol"></i> Collection procedure</h4>
+            <p>{{ p.collectionProcedure }}</p>
+          </section>
+
+          <section class="tpp-section" *ngIf="p.storageTransport">
+            <h4><i class="fa fa-thermometer-half"></i> Storage &amp; transport</h4>
+            <p>{{ p.storageTransport }}</p>
+          </section>
+
+          <section class="tpp-section tpp-section--caution" *ngIf="p.precautions">
+            <h4><i class="fa fa-info-circle"></i> Precautions</h4>
+            <p>{{ p.precautions }}</p>
+          </section>
+
+          <section class="tpp-section tpp-section--reject" *ngIf="p.rejectionCriteria">
+            <h4><i class="fa fa-ban"></i> Rejection criteria</h4>
+            <p>{{ p.rejectionCriteria }}</p>
+          </section>
+
+        </div>
+
+      </article>
+    </div>
+
+    <!-- In compact mode the detail is not gone, just not shown here. Say so, rather than
+         letting a summary row read as the whole protocol. -->
+    <div class="tpp-compact-note" *ngIf="compact && hasProtocols">
+      <i class="fa fa-info-circle"></i>
+      Full preparation, procedure and rejection criteria are shown in the test catalogue.
+    </div>
+
+  </ng-container>
+</div>
