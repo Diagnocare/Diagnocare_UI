@@ -37,21 +37,28 @@
             </div>
             <div class="form-group">
               <label class="form-label required">Date Of Birth</label>
-              <input
-                type="text"
-                class="form-control"
-                [class.is-invalid]="isFieldInvalid('patient_DOB')"
-                formControlName="patient_DOB"
-                placeholder="dd/mm/yyyy"
-                maxlength="10"
-                (input)="onDateInput($event)"
-                (keydown)="onDateKeyDown($event)"
-                autocomplete="off"
-                [attr.tabindex]="getTabIndex('patient_DOB')"
-              />
-              <app-field-error [control]="editPatientForm.get('patient_DOB')" label="Date of Birth" [forceShow]="formSubmitted"></app-field-error>
+              <div class="dob-input-wrap" [class.is-invalid]="isFieldInvalid('patient_DOB')">
+                <input type="text"
+                       class="form-control"
+                       [class.is-invalid]="isFieldInvalid('patient_DOB')"
+                       formControlName="patient_DOB"
+                       placeholder="dd/mm/yyyy"
+                       maxlength="10"
+                       (input)="onDateInput($event)"
+                       (keydown)="onDateKeyDown($event)"
+                       autocomplete="off"
+                       [attr.tabindex]="getTabIndex('patient_DOB')" />
+                    <!-- Calendar picker (no formControlName — bridges via dateChange event) -->
+                    <app-date-picker [max]="todayIso"
+                                     (dateChange)="onDobPickerChange($event)"
+                                     placeholder="Pick from calendar"
+                                     class="dob-cal-picker"
+                                     tabindex="-1">
+                    </app-date-picker>
+                </div>
+                <app-field-error [control]="editPatientForm.get('patient_DOB')" label="Date of Birth" [forceShow]="formSubmitted"></app-field-error>
+              </div>
             </div>
-          </div>
 
           <div class="form-row">
             <div class="form-group">
@@ -78,7 +85,7 @@
               <app-field-error [control]="editPatientForm.get('patient_Gender')" label="Gender" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label required">Marital Status</label>
+              <label class="form-label">Marital Status</label>
               <div class="radio-group" [class.is-invalid]="isFieldInvalid('patient_Marital_Status')">
                 <label class="radio-label" *ngFor="let status of maritalStatus; let i = index">
                   <input type="radio" formControlName="patient_Marital_Status" [value]="status" [attr.tabindex]="i === 0 ? getTabIndex('patient_Marital_Status') : -1" /> {{status}}
@@ -90,7 +97,7 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Relation</label>
+              <label class="form-label">Relation</label>
               <select formControlName="relation" class="form-select" [class.is-invalid]="isFieldInvalid('relation')"
                       [attr.tabindex]="getTabIndex('relation')">
                 <option *ngFor="let relation of relations" [value]="relation">{{ relation }}</option>
@@ -98,7 +105,7 @@
               <app-field-error [control]="editPatientForm.get('relation')" label="Relation" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label required">Relative Name</label>
+              <label class="form-label">Relative Name</label>
               <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('relative_Name')"
                      formControlName="relative_Name" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('relative_Name')">
               <app-field-error [control]="editPatientForm.get('relative_Name')" label="Relative Name" [forceShow]="formSubmitted"></app-field-error>
@@ -107,7 +114,7 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Contact</label>
+              <label class="form-label">Contact</label>
               <div style="display: flex; gap: 6px; align-items: center;">
                 <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                   <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
@@ -126,7 +133,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label required">Address</label>
+            <label class="form-label">Address</label>
             <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Address')"
                    formControlName="patient_Address" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('patient_Address')">
             <app-field-error [control]="editPatientForm.get('patient_Address')" label="Address" [forceShow]="formSubmitted"></app-field-error>

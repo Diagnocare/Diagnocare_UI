@@ -16,6 +16,14 @@ import { PatientListDto } from 'src/app/models/patient/patient-list.dto';
 import { SortDirection, SortPatientField } from 'src/app/models/common/sort';
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
 
+// ── Simple UI kit ────────────────────────────────────────────────────────────
+// Labelled action buttons, one shared status vocabulary, and an empty state
+// that says what to do next. The originals stay behind *ngIf="!useNewUi".
+// import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
+// import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
+// import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
+// import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+
 
 @Component({
   selector: 'app-patients-list',
@@ -27,6 +35,10 @@ import { ActionButtonComponent } from 'src/app/shared/action-button/action-butto
 })
 
 export class PatientsListComponent implements OnInit, OnDestroy {
+
+  /** Simple-UI rollout flag — see shared/simple/simple-ui.flags.ts. */
+  // readonly useNewUi = USE_NEW_UI;
+
   private destroy$ = new Subject<void>();
 
   /** Today in YYYY-MM-DD (local time) — used to block future date selection in search filters. */
@@ -132,10 +144,32 @@ export class PatientsListComponent implements OnInit, OnDestroy {
    * "36 years 7 months 2 days" → "36 yrs"
    * Falls back to the raw string if it cannot be parsed.
    */
+  /**
+   * Ages are stored as "41Y 5M 16D" (and, on older records, "41 Years").
+   * The list has one narrow column, so it shows the two largest parts that are
+   * present — "41y", "6m 30d", "12d" — which is enough to tell an adult from an
+   * infant at a glance without wrapping the cell.
+   */
   getDisplayAge(age: string): string {
     if (!age) return '—';
-    const match = age.match(/^(\d+)\s*year/i);
-    return match ? `${match[1]} yrs` : age;
+
+    const grab = (unit: string) => {
+      const m = age.match(new RegExp(`(\\d+)\\s*${unit}`, 'i'));
+      return m ? Number(m[1]) : 0;
+    };
+
+    // Legacy "41 Years" / a bare number.
+    if (!/\d+\s*[YMD]\b/i.test(age)) {
+      const legacy = age.match(/^(\d+)/);
+      return legacy ? `${legacy[1]}y` : age;
+    }
+
+    const parts: string[] = [];
+    const years = grab('Y'), months = grab('M'), days = grab('D');
+    if (years)  parts.push(`${years}y`);
+    if (months) parts.push(`${months}m`);
+    if (!years && days) parts.push(`${days}d`);
+    return parts.slice(0, 2).join(' ') || '0d';
   }
 
   /** CSS class for the urgent badge. */
@@ -417,7 +451,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient deactivated successfully', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Patient deactivation failed', 'Error');
@@ -453,7 +486,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient reactivated successfully', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Patient reactivation failed', 'Error');
@@ -486,7 +518,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient permanently deleted', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Permanent deletion failed', 'Error');

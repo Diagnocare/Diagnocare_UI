@@ -209,472 +209,544 @@
   opacity: 0.7;
 }
 
-/* .patients-table td {
-  padding: 12px 10px;
-  border-bottom: 1px solid #e1e8ed;
-  vertical-align: top;
-}
 
-.patients-table tr:hover {
-  background-color: #f8f9fa;
-}
-
-.urgent-row {
-  background-color: #fff3cd !important;
-  border-left: 4px solid #ff9800;
-}
-
-.completed-row {
-  background-color: #d4edda !important;
-} */
-img{
-  height: 4em;
-  width: 10em;
-}
-
-@media (max-width: 768px) {
-  label,
-  span {
-    font-size: 0.9em;
-    margin-top: 0.4em;
-  }
-
-  .form-group > label,
-  .row > label {
-    padding-left: 0.25em;
-    padding-right: 0.25em;
-  }
-}
-
-/* Patient Info Styles */
-.patient-info strong {
+// Anchors the calendar button to the DOB text input. Without this the button
+// is positioned against some far-away ancestor and drifts to the right edge of
+// the page, taking its popup panel with it.
+.dob-input-wrap {
+  position: relative;
   display: block;
-  color: #2c3e50;
-  font-weight: 600;
+
+  // Leave room on the right for the overlaid calendar button
+  .form-control { padding-right: 3em; }
 }
 
-.patient-info small {
-  color: #6c757d;
-  font-size: 11px;
-}
-
-.ref-info div {
-  margin-bottom: 2px;
-}
-
-.ref-info small {
-  color: #6c757d;
-  font-size: 11px;
-}
-
-.amount {
-  text-align: right;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-/* Badge Styles */
-.badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.badge-urgent {
-  background: #ff5722;
-  color: white;
-}
-
-.badge-normal {
-  background: #e1e8ed;
-  color: #6c757d;
-}
-
-.badge-success {
-  background: #4CAF50;
-  color: white;
-}
-
-.badge-pending {
-  background: #ffc107;
-  color: #856404;
-}
-
-/* Status Badge */
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 15px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-completed {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-progress {
-  background: #cce5ff;
-  color: #0056b3;
-}
-
-.status-pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  gap: 5px;
-}
-
-.btn-action {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.btn-view {
-  background: #2196F3;
-  color: white;
-}
-
-.btn-view:hover {
-  background: #1976D2;
-  transform: scale(1.1);
-}
-
-.btn-edit {
-  background: #ff9800;
-  color: white;
-}
-
-.btn-edit:hover {
-  background: #f57c00;
-  transform: scale(1.1);
-}
-
-.btn-print {
-  background: #9c27b0;
-  color: white;
-}
-
-.btn-print:hover {
-  background: #7b1fa2;
-  transform: scale(1.1);
-}
-
-.btn-delete {
-  background: #f44336;
-  color: white;
-}
-
-.btn-delete:hover {
-  background: #d32f2f;
-  transform: scale(1.1);
-}
-
-/* No Data Message */
-.no-data {
-  text-align: center;
-  padding: 50px;
-  color: #6c757d;
-}
-
-.no-data i {
-  font-size: 48px;
-  margin-bottom: 15px;
+// app-date-picker used as icon-only calendar button overlaid on the right edge
+.dob-cal-picker {
+  position: absolute;
+  right: 0.45em;
+  // Vertically centred with top/bottom + auto margins rather than a transform:
+  // a transformed ancestor becomes the containing block for `position: fixed`
+  // descendants, which would trap the picker's viewport-centred panel inside
+  // this 2em box and push it off the right edge of the screen.
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  width: 2em;
+  height: 2em;
   display: block;
-}
 
-/* Pagination */
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+  ::ng-deep {
+    // dp-root must fill the host box so dp-trigger can use height: 100%
+    .dp-root {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
 
-.pagination-info {
-  color: #6c757d;
-  font-size: 14px;
-}
+    // Hide the text display — show only the icon
+    .dp-display {
+      display: none !important;
+    }
 
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+    // Make the trigger a square, centred icon button
+    .dp-trigger {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 0;
+      gap: 0;
+      background: #f1f5f9;
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
 
-.page-size-select {
-  padding: 8px 12px;
-  border: 2px solid #e1e8ed;
-  border-radius: 6px;
-  margin-right: 15px;
-}
+      &:hover {
+        background: var(--primary-color, #2196f3);
+        border-color: var(--primary-color, #2196f3);
+        box-shadow: none;
 
-.btn-page {
-  padding: 8px 12px;
-  border: 2px solid #e1e8ed;
-  background: white;
-  color: #2c3e50;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 40px;
-}
-
-.btn-page:hover:not(:disabled) {
-  background: #4CAF50;
-  color: white;
-  border-color: #4CAF50;
-}
-
-.btn-page:disabled {
-  background: #f8f9fa;
-  color: #6c757d;
-  cursor: not-allowed;
-}
-
-.btn-page.active {
-  background: #4CAF50;
-  color: white;
-  border-color: #4CAF50;
-}
-
-.page-numbers {
-  display: flex;
-  gap: 5px;
-}
-
-/* Icons (using simple text representations) */
-.icon-plus::before { content: '+'; }
-.icon-refresh::before { content: '↻'; }
-.icon-eye::before { content: '👁'; }
-.icon-edit::before { content: '✏'; }
-.icon-print::before { content: '🖨'; }
-.icon-trash::before { content: '🗑'; }
-.icon-sort::before { content: '↕'; }
-.icon-sort-up::before { content: '↑'; }
-.icon-sort-down::before { content: '↓'; }
-.icon-info::before { content: 'ℹ'; }
-.icon-back::before { content: '🡰'; }
-
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .search-row {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .patients-table {
-    font-size: 12px;
-  }
-  
-  .patients-table th,
-  .patients-table td {
-    padding: 8px 6px;
+        .dp-trigger-icon { color: #fff; }
+      }
+    }
   }
 }
 
-@media (max-width: 768px) {
-  .patient-list-container {
-    padding: 15px;
+  img {
+    height: 4em;
+    width: 10em;
   }
-  
-  .header {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
-  }
-  
-  .header-actions {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .pagination-container {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .pagination-controls {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  /* Hide some columns on mobile */
-  .patients-table th:nth-child(5),
-  .patients-table td:nth-child(5),
-  .patients-table th:nth-child(6),
-  .patients-table td:nth-child(6),
-  .patients-table th:nth-child(8),
-  .patients-table td:nth-child(8),
-  .patients-table th:nth-child(9),
-  .patients-table td:nth-child(9) {
-    display: none;
-  }
-}
 
-@media (max-width: 480px) {
-  .patients-table th:nth-child(11),
-  .patients-table td:nth-child(11),
-  .patients-table th:nth-child(12),
-  .patients-table td:nth-child(12) {
-    display: none;
+  @media (max-width: 768px) {
+    label,
+    span {
+      font-size: 0.9em;
+      margin-top: 0.4em;
+    }
+
+    .form-group > label,
+    .row > label {
+      padding-left: 0.25em;
+      padding-right: 0.25em;
+    }
   }
-  
+  /* Patient Info Styles */
+  .patient-info strong {
+    display: block;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+
+  .patient-info small {
+    color: #6c757d;
+    font-size: 11px;
+  }
+
+  .ref-info div {
+    margin-bottom: 2px;
+  }
+
+  .ref-info small {
+    color: #6c757d;
+    font-size: 11px;
+  }
+
+  .amount {
+    text-align: right;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  /* Badge Styles */
+  .badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge-urgent {
+    background: #ff5722;
+    color: white;
+  }
+
+  .badge-normal {
+    background: #e1e8ed;
+    color: #6c757d;
+  }
+
+  .badge-success {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .badge-pending {
+    background: #ffc107;
+    color: #856404;
+  }
+  /* Status Badge */
+  .status-badge {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .status-completed {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-progress {
+    background: #cce5ff;
+    color: #0056b3;
+  }
+
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+  /* Action Buttons */
   .action-buttons {
-    flex-direction: column;
-    gap: 2px;
+    display: flex;
+    gap: 5px;
   }
-  
+
   .btn-action {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
   }
-}
 
-/* Print Styles */
-@media print {
-  .header-actions,
-  .search-section,
-  .action-buttons,
+  .btn-view {
+    background: #2196F3;
+    color: white;
+  }
+
+    .btn-view:hover {
+      background: #1976D2;
+      transform: scale(1.1);
+    }
+
+  .btn-edit {
+    background: #ff9800;
+    color: white;
+  }
+
+    .btn-edit:hover {
+      background: #f57c00;
+      transform: scale(1.1);
+    }
+
+  .btn-print {
+    background: #9c27b0;
+    color: white;
+  }
+
+    .btn-print:hover {
+      background: #7b1fa2;
+      transform: scale(1.1);
+    }
+
+  .btn-delete {
+    background: #f44336;
+    color: white;
+  }
+
+    .btn-delete:hover {
+      background: #d32f2f;
+      transform: scale(1.1);
+    }
+  /* No Data Message */
+  .no-data {
+    text-align: center;
+    padding: 50px;
+    color: #6c757d;
+  }
+
+    .no-data i {
+      font-size: 48px;
+      margin-bottom: 15px;
+      display: block;
+    }
+  /* Pagination */
   .pagination-container {
-    display: none !important;
-  }
-  
-  .patient-list-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background: white;
-    padding: 0;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   }
-  
-  .patients-table {
-    font-size: 10px;
+
+  .pagination-info {
+    color: #6c757d;
+    font-size: 14px;
   }
-  
-  .patients-table th,
-  .patients-table td {
-    padding: 4px;
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-}
 
-/* Loading Animation */
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-}
+  .page-size-select {
+    padding: 8px 12px;
+    border: 2px solid #e1e8ed;
+    border-radius: 6px;
+    margin-right: 15px;
+  }
 
-.loading::after {
-  content: '';
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #4CAF50;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+  .btn-page {
+    padding: 8px 12px;
+    border: 2px solid #e1e8ed;
+    background: white;
+    color: #2c3e50;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 40px;
+  }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+    .btn-page:hover:not(:disabled) {
+      background: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
 
-/* Smooth transitions */
-* {
-  transition: all 0.3s ease;
-}
+    .btn-page:disabled {
+      background: #f8f9fa;
+      color: #6c757d;
+      cursor: not-allowed;
+    }
 
-/* Focus styles for accessibility */
-.btn:focus,
-.search-input:focus,
-.date-input:focus,
-.select-input:focus,
-.btn-action:focus,
-.btn-page:focus {
-  outline: 2px solid #4CAF50;
-  outline-offset: 2px;
-}
+    .btn-page.active {
+      background: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
 
-/* Hover effects */
-.patients-table tbody tr:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+  .page-numbers {
+    display: flex;
+    gap: 5px;
+  }
+  /* Icons (using simple text representations) */
+  .icon-plus::before {
+    content: '+';
+  }
 
-/* Enhanced visual hierarchy */
-.search-section {
-  border-left: 4px solid #4CAF50;
-}
+  .icon-refresh::before {
+    content: '↻';
+  }
 
-.table-container {
+  .icon-eye::before {
+    content: '👁';
+  }
+
+  .icon-edit::before {
+    content: '✏';
+  }
+
+  .icon-print::before {
+    content: '🖨';
+  }
+
+  .icon-trash::before {
+    content: '🗑';
+  }
+
+  .icon-sort::before {
+    content: '↕';
+  }
+
+  .icon-sort-up::before {
+    content: '↑';
+  }
+
+  .icon-sort-down::before {
+    content: '↓';
+  }
+
+  .icon-info::before {
+    content: 'ℹ';
+  }
+
+  .icon-back::before {
+    content: '🡰';
+  }
+  /* Responsive Design */
+  @media (max-width: 1200px) {
+    .search-row {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+
+    .stats-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .patients-table {
+      font-size: 12px;
+    }
+
+      .patients-table th,
+      .patients-table td {
+        padding: 8px 6px;
+      }
+  }
+
+  @media (max-width: 768px) {
+    .patient-list-container {
+      padding: 15px;
+    }
+
+    .header {
+      flex-direction: column;
+      gap: 15px;
+      text-align: center;
+    }
+
+    .header-actions {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .stats-row {
+      grid-template-columns: 1fr;
+    }
+
+    .pagination-container {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .pagination-controls {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    /* Hide some columns on mobile */
+    .patients-table th:nth-child(5),
+    .patients-table td:nth-child(5),
+    .patients-table th:nth-child(6),
+    .patients-table td:nth-child(6),
+    .patients-table th:nth-child(8),
+    .patients-table td:nth-child(8),
+    .patients-table th:nth-child(9),
+    .patients-table td:nth-child(9) {
+      display: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .patients-table th:nth-child(11),
+    .patients-table td:nth-child(11),
+    .patients-table th:nth-child(12),
+    .patients-table td:nth-child(12) {
+      display: none;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .btn-action {
+      width: 28px;
+      height: 28px;
+    }
+  }
+  /* Print Styles */
+  @media print {
+    .header-actions,
+    .search-section,
+    .action-buttons,
+    .pagination-container {
+      display: none !important;
+    }
+
+    .patient-list-container {
+      background: white;
+      padding: 0;
+    }
+
+    .patients-table {
+      font-size: 10px;
+    }
+
+      .patients-table th,
+      .patients-table td {
+        padding: 4px;
+      }
+  }
+  /* Loading Animation */
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+  }
+
+    .loading::after {
+      content: '';
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  /* Smooth transitions */
+  * {
+    transition: all 0.3s ease;
+  }
+  /* Focus styles for accessibility */
+  .btn:focus,
+  .search-input:focus,
+  .date-input:focus,
+  .select-input:focus,
+  .btn-action:focus,
+  .btn-page:focus {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+  }
+  /* Hover effects */
+  .patients-table tbody tr:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  /* Enhanced visual hierarchy */
+  .search-section {
+    border-left: 4px solid #4CAF50;
+  }
+
+  .table-container {
     width: 95%;
     border-left: 4px solid #2c3e50;
     border-right: 4px solid #2c3e50;
-}
+  }
+  /* Custom scrollbar for table */
+  .table-container {
+    overflow-x: auto;
+  }
 
-/* Custom scrollbar for table */
-.table-container {
-  overflow-x: auto;
-}
+    .table-container::-webkit-scrollbar {
+      height: 8px;
+    }
 
-.table-container::-webkit-scrollbar {
-  height: 8px;
-}
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
 
-.table-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
+    .table-container::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
 
-.table-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
+      .table-container::-webkit-scrollbar-thumb:hover {
+        background: #a1a1a1;
+      }
+  // Custom styles for Angular Material Datepicker
+  ::ng-deep .mat-datepicker-content {
+    background: #f0f4fa;
+    border-radius: 12px;
+  }
 
-.table-container::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
+  ::ng-deep .mat-calendar {
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
 
-// Custom styles for Angular Material Datepicker
-::ng-deep .mat-datepicker-content {
-  background: #f0f4fa;
-  border-radius: 12px;
-}
-::ng-deep .mat-calendar {
-  font-family: 'Segoe UI', Arial, sans-serif;
-}
-::ng-deep .mat-calendar-table-header {
-  color: #1976d2;
-  font-weight: bold;
-}
-::ng-deep .mat-calendar-body-selected {
-  background-color: #1976d2 !important;
-  color: #fff !important;
-}
-::ng-deep .mat-calendar-body-today {
-  border-color: #1976d2;
-}
+  ::ng-deep .mat-calendar-table-header {
+    color: #1976d2;
+    font-weight: bold;
+  }
+
+  ::ng-deep .mat-calendar-body-selected {
+    background-color: #1976d2 !important;
+    color: #fff !important;
+  }
+
+  ::ng-deep .mat-calendar-body-today {
+    border-color: #1976d2;
+  }

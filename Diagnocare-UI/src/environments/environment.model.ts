@@ -30,6 +30,20 @@ export interface AppEnvironment {
   /** Environment slug sent to the feedback portal as ?env= (local | dev | qa | uat | prod). */
   envName: string;
 
+  /**
+   * LOCAL DEVELOPMENT ONLY — skip the second factor (OTP / TOTP / fingerprint)
+   * after credentials are validated, so `ng serve` does not demand a code on
+   * every reload.
+   *
+   * Setting this true is NOT sufficient to enable the skip. The runtime check in
+   * LoginComponent also requires `production === false` AND the page to be served
+   * from localhost / 127.0.0.1, so a deployed dev, qa or uat build cannot honour
+   * it even if the flag were switched on by mistake.
+   *
+   * Must stay false in every environment that is deployed anywhere.
+   */
+  devSkipSecondFactor: boolean;
+
   /** Basic-auth credentials used for the login / OTP endpoints. */
   basicAuth: {
     username: string;

@@ -31,22 +31,53 @@ import {
 export class RequestsListComponent implements OnInit {
 
   readonly RequestStatus = RequestStatus;
+
+  /**
+   * Sentinel for the admin's default view. Not a real RequestStatus — it maps to the
+   * `awaitingDecision` flag, which the server expands to Pending + WithdrawalRequested.
+   * Negative so it can never collide with a status value.
+   */
+  static readonly AWAITING_DECISION = -1;
+  readonly AWAITING_DECISION = RequestsListComponent.AWAITING_DECISION;
+
   readonly statusOptions = [
     { value: 0, label: 'All' },
+    // Admin's working queue: both things that need a decision, in one list.
+    { value: RequestsListComponent.AWAITING_DECISION, label: 'Awaiting decision' },
     { value: RequestStatus.Pending, label: 'Pending' },
     { value: RequestStatus.Approved, label: 'Approved' },
+    { value: RequestStatus.WithdrawalRequested, label: 'Withdrawal requested' },
     { value: RequestStatus.Rejected, label: 'Rejected' },
-    { value: RequestStatus.Cancelled, label: 'Cancelled' },
+    // Labels match REQUEST_STATUS_CONFIG — Cancelled is what withdrawing an unreviewed
+    // request produces; Withdrawn is an approved one whose attendance was rolled back.
+    { value: RequestStatus.Cancelled, label: 'Withdrawn' },
+    { value: RequestStatus.Withdrawn, label: 'Reverted' },
   ];
 
-  isAdmin = false;
+  /**
+   * Chips shown to employees. "Awaiting decision" is an admin queue view and would be
+   * meaningless in a personal list, so it is filtered out rather than duplicated as a
+   * second array that could drift from statusOptions.
+   */
+  get userStatusOptions() {
+    return this.statusOptions.filter(o => o.value !== this.AWAITING_DECISION);
+  }
+
+  /**
+   * True when the signed-in user REVIEWS other people's requests, i.e. Super
+   * Admin. Deliberately not the isAdmin() helper: a plain Admin now raises
+   * attendance corrections for themselves like any other staff member, and the
+   * Super Admin approves them — so an Admin must get the self-service view here,
+   * not the review queue. Approving your own correction is what this prevents.
+   */
+  isReviewer = false;
   rows: AttendanceRequestDTO[] = [];
   total = 0;
   isLoading = false;
 
-  // Admin default: Pending first (actionable). User default: All.
+  // Admin default: everything awaiting a decision (actionable). User default: All.
   filter: AttendanceRequestFilter = {
-    status: RequestStatus.Pending,
+    status: RequestsListComponent.AWAITING_DECISION,
     search: '', fromDate: '', toDate: '',
     page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc',
   };
@@ -59,17 +90,22 @@ export class RequestsListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.isAdmin = this.token.isAdmin();
-    if (!this.isAdmin) this.filter.status = 0;   // users default to All of their own
+    this.isReviewer = this.token.isSuperAdmin();
+    if (!this.isReviewer) this.filter.status = 0;   // users default to All of their own
     this.load();
   }
 
   load(): void {
     this.isLoading = true;
-    if (this.isAdmin) {
+    if (this.isReviewer) {
+      // The AWAITING_DECISION sentinel is not a status — translate it into the flag the
+      // server understands, and drop `status` so it can't be sent as a negative number.
+      const awaiting = this.filter.status === this.AWAITING_DECISION;
+
       const payload: AttendanceRequestFilter = {
         ...this.filter,
-        status: this.filter.status || undefined,
+        status: awaiting ? undefined : (this.filter.status || undefined),
+        awaitingDecision: awaiting ? true : undefined,
         search: this.filter.search?.trim() || undefined,
         fromDate: this.filter.fromDate || undefined,
         toDate: this.filter.toDate || undefined,
@@ -79,7 +115,10 @@ export class RequestsListComponent implements OnInit {
         error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
       });
     } else {
-      this.service.getMyRequests(this.filter.status || undefined).subscribe({
+      // Users have no "awaiting decision" view — their own list is short enough to read
+      // whole. Guard against the sentinel leaking through if the option is ever shown.
+      const status = this.filter.status === this.AWAITING_DECISION ? undefined : (this.filter.status || undefined);
+      this.service.getMyRequests(status).subscribe({
         next: (rows) => { this.rows = rows; this.total = rows.length; this.isLoading = false; },
         error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
       });
@@ -89,7 +128,7 @@ export class RequestsListComponent implements OnInit {
   applyFilters(): void { this.filter.page = 1; this.load(); }
 
   resetFilters(): void {
-    this.filter = { status: this.isAdmin ? RequestStatus.Pending : 0, search: '', fromDate: '', toDate: '',
+    this.filter = { status: this.isReviewer ? this.AWAITING_DECISION : 0, search: '', fromDate: '', toDate: '',
                     page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc' };
     this.load();
   }
@@ -114,15 +153,57 @@ export class RequestsListComponent implements OnInit {
     this.router.navigate(['/attendance-requests', r.requestId, 'edit']);
   }
 
-  cancel(r: AttendanceRequestDTO, ev: Event): void {
+  /**
+   * Take a request back.
+   *
+   * An unreviewed (Pending) request needs no reason, so it goes straight through from
+   * the list. An Approved one requires an explanation, and a cramped table row is the
+   * wrong place to ask for it — that case hands off to the detail view, which owns the
+   * confirmation and the textarea.
+   */
+  withdraw(r: AttendanceRequestDTO, ev: Event): void {
     ev.stopPropagation();
-    this.service.cancelRequest(r.requestId).subscribe({
-      next: () => { this.toastr.success('Request cancelled.'); this.load(); },
+
+    if (r.withdrawalNeedsApproval) {
+      this.router.navigate(['/attendance-requests', r.requestId]);
+      return;
+    }
+
+    this.service.requestWithdrawal(r.requestId, {}).subscribe({
+      next: () => { this.load(); },
       error: (msg) => this.toastr.error(msg),
     });
   }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.total / this.filter.pageSize));
+  }
+
+  /**
+   * True once the admin has narrowed the list beyond the default "awaiting
+   * decision" queue. Drives the empty-state copy — "nothing matches your
+   * filters" reads very differently from "there is nothing here at all".
+   */
+  get hasActiveFilters(): boolean {
+    if (this.isReviewer) {
+      return this.filter.status !== this.AWAITING_DECISION
+        || !!this.filter.search?.trim()
+        || !!this.filter.fromDate
+        || !!this.filter.toDate;
+    }
+    return this.filter.status !== 0;
+  }
+
+  /** Highlights rows the reviewer still needs to act on, so the queue scans at a glance. */
+  isAwaitingRow(r: AttendanceRequestDTO): boolean {
+    return this.isReviewer
+      && (r.requestStatus === RequestStatus.Pending || r.requestStatus === RequestStatus.WithdrawalRequested);
+  }
+
+  /** Toggles newest/oldest first. Reviewer-only — a personal list is short enough to read whole. */
+  toggleDateSort(): void {
+    if (!this.isReviewer) return;
+    this.filter.sortDir = this.filter.sortDir === 'asc' ? 'desc' : 'asc';
+    this.applyFilters();
   }
 }

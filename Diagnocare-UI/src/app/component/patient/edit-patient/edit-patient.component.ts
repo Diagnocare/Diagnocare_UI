@@ -15,13 +15,14 @@ import { tabOrderEdit, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
+import { DatePickerComponent } from '../../../shared/date-picker/date-picker.component';
 
 @Component({
   selector: 'app-edit-patient',
   templateUrl: './edit-patient.component.html',
   styleUrls: ['./edit-patient.component.scss'],
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective]
+  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective, DatePickerComponent]
 })
 export class EditPatientComponent implements OnInit, OnDestroy {
   
@@ -42,7 +43,8 @@ export class EditPatientComponent implements OnInit, OnDestroy {
   gender=Object.values(gender);
   maritalStatus=Object.values(maritalStatus);
   relations=Object.values(relations);
-
+  /** Upper bound for the DOB picker — today in YYYY-MM-DD format. */
+  readonly todayIso = new Date().toISOString().split('T')[0];
   constructor(private _route:Router,private formBuilder:FormBuilder,private route: ActivatedRoute, 
     private _patientService: PatientService,private toastr:ToastrService,private _common:CommonService)
   {
@@ -50,15 +52,22 @@ export class EditPatientComponent implements OnInit, OnDestroy {
       country_Code:      ['+91', Validators.required],
       patient_Salutation: [""],
       patient_Name: ["", [Validators.required]],
-      patient_Address: ["", [Validators.required]],
-      patient_DOB: ["", [Validators.required]],
+      // Optional: walk-in patients often register without giving an address.
+      patient_Address: [""],
+      // Age can be typed instead of a date of birth — see onAgePartChange().
+      patient_DOB: [""],
       patient_Age: ["", [Validators.required]],
       patient_Age_Group: [""],
+      patient_Age_Years:  [null],
+      patient_Age_Months: [null],
+      patient_Age_Days:   [null],
       patient_Gender: ["", [Validators.required]],
-      patient_Marital_Status: ["", [Validators.required]],
-      relation: ["", Validators.required],
-      relative_Name: ["", Validators.required],
-      patient_Contact: ["", [Validators.required, AppValidators.contactNumber()]],
+      patient_Marital_Status: [""],
+      relation: [""],
+      relative_Name: [""],
+      // Optional, but still format-checked when filled — contactNumber()
+      // returns null for an empty value.
+      patient_Contact: ["", [AppValidators.contactNumber()]],
       patient_Email: ["", Validators.email]
     });
   }
@@ -122,6 +131,16 @@ export class EditPatientComponent implements OnInit, OnDestroy {
           patient_DOB,
           patient_Age:           data.patientAge ?? '',
           patient_Age_Group:     data.patientAgeGroup ?? '',
+          // parseAgeParts also understands the legacy "41 Years" string, so a
+          // patient saved before this change opens with their age intact.
+          ...(() => {
+            const p = this._common.parseAgeParts(data.patientAge);
+            return {
+              patient_Age_Years:  p.years  || null,
+              patient_Age_Months: p.months || null,
+              patient_Age_Days:   p.days   || null,
+            };
+          })(),
           patient_Gender:        data.patientGender ?? '',
           patient_Marital_Status: data.patientMaritalStatus ?? '',
           patient_Address:       data.patientAddress ?? '',
@@ -173,7 +192,10 @@ export class EditPatientComponent implements OnInit, OnDestroy {
     if (value.length === 10) {
       this.calculateAge();
     } else {
-      this.editPatientForm.patchValue({ patient_Age: '', patient_Age_Group: '' });
+      this.editPatientForm.patchValue({
+        patient_Age: '', patient_Age_Group: '',
+        patient_Age_Years: null, patient_Age_Months: null, patient_Age_Days: null,
+      }, { emitEvent: false });
     }
   }
 
@@ -193,23 +215,91 @@ export class EditPatientComponent implements OnInit, OnDestroy {
     if (newValue.length === 10) {
       this.calculateAge();
     } else {
-      this.editPatientForm.patchValue({ patient_Age: '', patient_Age_Group: '' });
+      this.editPatientForm.patchValue({
+        patient_Age: '', patient_Age_Group: '',
+        patient_Age_Years: null, patient_Age_Months: null, patient_Age_Days: null,
+      }, { emitEvent: false });
     }
   }
+
+  /**
+   * Called when the user picks a date in the hidden native picker.
+   * Converts ISO yyyy-MM-dd → dd/mm/yyyy (the text-mask format),
+   * writes it to the form control, then recalculates age.
+   */
+  onDobPickerChange(isoDate: string): void {
+    if (!isoDate) return;
+    const [y, m, d] = isoDate.split('-');
+    const dmy = `${d}/${m}/${y}`;
+    this.editPatientForm.get('patient_DOB')?.setValue(dmy, { emitEvent: true });
+    this.calculateAge();
+  }
+    /**
+     * Date of birth → age. Fills the three Y/M/D boxes, the composed string sent
+     * to the API, and the age group.
+     *
+     * `emitEvent: false` on the parts: they are written BY this method, and
+     * letting them emit would call onAgePartChange(), which writes the DOB back.
+     */
     calculateAge(): void {
       const formDOB = this.editPatientForm.get('patient_DOB')?.value;
+      if (!formDOB) return;
       const isoDate = this._common.setYearofDate(formDOB); // used internally only — not written back to form
 
-      const age      = this._common.calculateAge(isoDate);
-      const ageRange = parseInt(age.split(' ')[0]);
+      const { years, months, days } = this._common.calculateAgeParts(isoDate);
 
       let ageGroupValue = '';
-      if      (ageRange < 1)                    ageGroupValue = this.ageRange[0];
-      else if (ageRange >= 1  && ageRange < 18) ageGroupValue = this.ageRange[1];
-      else if (ageRange >= 18 && ageRange < 60) ageGroupValue = this.ageRange[2];
-      else                                      ageGroupValue = this.ageRange[3];
+      if      (years < 1)                ageGroupValue = this.ageRange[0];
+      else if (years >= 1  && years < 18) ageGroupValue = this.ageRange[1];
+      else if (years >= 18 && years < 60) ageGroupValue = this.ageRange[2];
+      else                                ageGroupValue = this.ageRange[3];
 
-      this.editPatientForm.patchValue({ patient_Age: age, patient_Age_Group: ageGroupValue });
+      this.editPatientForm.patchValue({
+        patient_Age_Years:  years,
+        patient_Age_Months: months,
+        patient_Age_Days:   days,
+      }, { emitEvent: false });
+
+      this.editPatientForm.patchValue({
+        patient_Age:       this._common.formatAgeParts(years, months, days),
+        patient_Age_Group: ageGroupValue,
+      });
+    }
+
+    /**
+     * Age → date of birth, for a patient who does not know the date. The DOB it
+     * produces is an approximation, which is what an age-only record is anyway,
+     * and it keeps every downstream consumer working off one field.
+     */
+    onAgePartChange(): void {
+      const f = this.editPatientForm.value;
+      const years  = Math.max(0, Math.min(150, Number(f.patient_Age_Years)  || 0));
+      const months = Math.max(0, Math.min(11,  Number(f.patient_Age_Months) || 0));
+      const days   = Math.max(0, Math.min(31,  Number(f.patient_Age_Days)   || 0));
+
+      this.editPatientForm.patchValue({
+        patient_Age_Years:  years  || null,
+        patient_Age_Months: months || null,
+        patient_Age_Days:   days   || null,
+      }, { emitEvent: false });
+
+      const hasAge = years > 0 || months > 0 || days > 0;
+
+      let ageGroupValue = '';
+      if (hasAge) {
+        if      (years < 1)                 ageGroupValue = this.ageRange[0];
+        else if (years >= 1  && years < 18) ageGroupValue = this.ageRange[1];
+        else if (years >= 18 && years < 60) ageGroupValue = this.ageRange[2];
+        else                                ageGroupValue = this.ageRange[3];
+      }
+
+      this.editPatientForm.patchValue({
+        patient_Age:       hasAge ? this._common.formatAgeParts(years, months, days) : '',
+        patient_Age_Group: ageGroupValue,
+        patient_DOB:       hasAge ? this._common.dobFromAgeParts(years, months, days) : '',
+      }, { emitEvent: false });
+
+      this.editPatientForm.get('patient_Age')?.markAsDirty();
     }
     SubmitForm(form: FormGroup) {
       this.formSubmitted = true;
@@ -252,7 +342,6 @@ export class EditPatientComponent implements OnInit, OnDestroy {
           // API returns an OperationResult (HTTP 200 even on business failure),
           // so honour the success flag rather than assuming success.
           if (res?.success ?? res) {
-            this.toastr.success(res?.message || 'Patient updated successfully', 'Success');
             this._route.navigate(['/patients']);
           } else {
             this.toastr.error(res?.message || 'Failed to update patient. Please try again.', 'Error');

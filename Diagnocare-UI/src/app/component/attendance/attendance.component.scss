@@ -13,15 +13,15 @@ $clr-absent-bdr   : #991b1b;
 $clr-absent-light : #fee2e2;
 $clr-absent-dark  : #7f1d1d;
 
-$clr-fh-bg        : #ea580c;   // vivid orange
-$clr-fh-bdr       : #9a3412;
-$clr-fh-light     : #ffedd5;
-$clr-fh-dark      : #7c2d12;
+$clr-hd-bg        : #ea580c;   // vivid orange — half day
+$clr-hd-bdr       : #9a3412;
+$clr-hd-light     : #ffedd5;
+$clr-hd-dark      : #7c2d12;
 
-$clr-sh-bg        : #2563eb;   // solid blue
-$clr-sh-bdr       : #1e40af;
-$clr-sh-light     : #dbeafe;
-$clr-sh-dark      : #1e3a8a;
+$clr-wo-bg        : #2563eb;   // solid blue — week off (read-only, admin-assigned)
+$clr-wo-bdr       : #1e40af;
+$clr-wo-light     : #dbeafe;
+$clr-wo-dark      : #1e3a8a;
 
 $clr-holiday-bg   : #d97706;   // amber
 $clr-holiday-bdr  : #92400e;
@@ -90,8 +90,8 @@ $clr-holiday-light: #fef3c7;
 
   &.chip-p  { background: $clr-present-bg; }
   &.chip-a  { background: $clr-absent-bg; }
-  &.chip-fh { background: $clr-fh-bg; }
-  &.chip-sh { background: $clr-sh-bg; }
+  &.chip-hd { background: $clr-hd-bg; }
+  &.chip-wo { background: $clr-wo-bg; }
   &.chip-h  { background: $clr-holiday-bg; }
 }
 
@@ -312,7 +312,6 @@ $clr-holiday-light: #fef3c7;
 // ── Column state tints (header cells — override gradient) ─────────
 .col-future {
   background: rgba(30, 91, 168, 0.55) !important;
-  .day-name, .day-date { color: rgba(255,255,255,0.45) !important; }
 }
 
 .col-today {
@@ -403,18 +402,11 @@ $clr-holiday-light: #fef3c7;
     border-color: #fca5a5;
   }
 
-  // Orange — dark text on light orange  (was amber-on-amber — now readable)
-  &.col-btn-fh {
-    background: $clr-fh-light;
-    color: $clr-fh-dark;
+  // Orange — dark text on light orange
+  &.col-btn-hd {
+    background: $clr-hd-light;
+    color: $clr-hd-dark;
     border-color: #fdba74;
-  }
-
-  // Blue — dark text on light blue  (was dark-on-medium-blue — now readable)
-  &.col-btn-sh {
-    background: $clr-sh-light;
-    color: $clr-sh-dark;
-    border-color: #93c5fd;
   }
 
   // Clear
@@ -531,16 +523,18 @@ $clr-holiday-light: #fef3c7;
     border-color: $clr-absent-bdr;
   }
 
-  &.cell-firsthalf {
-    background: $clr-fh-bg;
+  &.cell-halfday {
+    background: $clr-hd-bg;
     color: #fff;
-    border-color: $clr-fh-bdr;
+    border-color: $clr-hd-bdr;
   }
 
-  &.cell-secondhalf {
-    background: $clr-sh-bg;
-    color: #fff;
-    border-color: $clr-sh-bdr;
+  // Week off — admin-assigned, shown but never edited from this grid
+  &.cell-weekoff {
+    background: $clr-wo-light;
+    color: $clr-wo-dark;
+    border-color: #93c5fd;
+    font-weight: 800;
   }
 
   // Unmarked — clearly visible dash, better contrast than before
@@ -616,8 +610,7 @@ $clr-holiday-light: #fef3c7;
 
   &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
   &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
-  &.rs-fh { background: $clr-fh-light;      color: $clr-fh-dark;       border: 1px solid #fdba74; }
-  &.rs-sh { background: $clr-sh-light;      color: $clr-sh-dark;       border: 1px solid #93c5fd; }
+  &.rs-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid #fdba74; }
 }
 
 // ── Totals footer ─────────────────────────────────────────────────
@@ -658,8 +651,7 @@ $clr-holiday-light: #fef3c7;
 
   &.tot-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
   &.tot-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
-  &.tot-fh { background: $clr-fh-light;      color: $clr-fh-dark;       border: 1px solid #fdba74; }
-  &.tot-sh { background: $clr-sh-light;      color: $clr-sh-dark;       border: 1px solid #93c5fd; }
+  &.tot-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid #fdba74; }
   &.tot-u  { background: #f1f5f9;            color: #475569;             border: 1px solid #cbd5e1; }
 }
 

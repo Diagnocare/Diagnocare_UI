@@ -83,7 +83,7 @@
             <!-- DOB / Age -->
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Date of Birth</label>
+                <label class="form-label">Date of Birth</label>
                 <div class="dob-input-wrap" [class.is-invalid]="isFieldInvalid('patient_DOB')">
                   <!-- Masked text entry (dd/mm/yyyy) -->
                   <input
@@ -113,14 +113,36 @@
 
               <div class="form-group">
                 <label class="form-label required">Age</label>
-                  <input type="text" class="form-control" formControlName="patient_Age"
-                    placeholder="Auto-calculated" readonly [attr.tabindex]="getTabIndex('patient_Age')" />
+                <!-- Type the age directly when the patient does not know their
+                     date of birth, or leave it to fill itself from the DOB
+                     above. Either way round works. -->
+                <div class="age-parts">
+                  <div class="age-part">
+                    <input type="number" class="form-control" formControlName="patient_Age_Years"
+                           min="0" max="150" placeholder="0" aria-label="Age in years"
+                           (input)="onAgePartChange()" [attr.tabindex]="getTabIndex('patient_Age')" />
+                    <span class="age-part__unit">Years</span>
+                  </div>
+                  <div class="age-part">
+                    <input type="number" class="form-control" formControlName="patient_Age_Months"
+                           min="0" max="11" placeholder="0" aria-label="Age in months"
+                           (input)="onAgePartChange()" />
+                    <span class="age-part__unit">Months</span>
+                  </div>
+                  <div class="age-part">
+                    <input type="number" class="form-control" formControlName="patient_Age_Days"
+                           min="0" max="31" placeholder="0" aria-label="Age in days"
+                           (input)="onAgePartChange()" />
+                    <span class="age-part__unit">Days</span>
+                  </div>
+                </div>
+                <app-field-error [control]="patientForm.get('patient_Age')" label="Age" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
                 <label class="form-label required">Age Group</label>
                 <input type="text" class="form-control" formControlName="patient_Age_Group"
-                  placeholder="Auto-calculated from Date of Birth" readonly
+                  placeholder="From age" readonly
                   [class.is-invalid]="isFieldInvalid('patient_Age_Group')" [attr.tabindex]="getTabIndex('patient_Age_Group')" />
                 <app-field-error [control]="patientForm.get('patient_Age_Group')" label="Age Group" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
@@ -144,7 +166,7 @@
 
               <div class="form-group">
 
-                <label class="form-label required">Marital Status</label>
+                <label class="form-label">Marital Status</label>
                 <div class="radio-pill-group" [class.is-invalid]="isFieldInvalid('patient_Marital_Status')">
                   <label class="radio-pill" *ngFor="let entry of maritalStatus; let i = index">
                     <input type="radio" formControlName="patient_Marital_Status" [value]="entry" [attr.tabindex]="getTabIndex('patient_Marital_Status') + i"
@@ -160,7 +182,7 @@
             <div class="form-section-label">Guardian / Relative</div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Relation</label>
+                <label class="form-label">Relation</label>
                 <select formControlName="relation" class="form-select"
                   [class.is-invalid]="isFieldInvalid('relation')" [attr.tabindex]="getTabIndex('relation')">
                   <option value="">-- Select --</option>
@@ -170,7 +192,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Relative Name</label>
+                <label class="form-label">Relative Name</label>
                   <input type="text" class="form-control" formControlName="relative_Name"
                     placeholder="Relative's full name"
                     [class.is-invalid]="isFieldInvalid('relative_Name')" [attr.tabindex]="getTabIndex('relative_Name')" />
@@ -183,7 +205,7 @@
             <div class="form-row">
 
               <div class="form-group">
-                <label class="form-label required">Mobile Number</label>
+                <label class="form-label">Mobile Number</label>
                 <div style="display: flex; gap: 6px; align-items: center;">
                   <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                     <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
@@ -196,7 +218,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Email</label>
+                <label class="form-label">Email</label>
                   <input type="text" class="form-control" formControlName="patient_Email"
                     placeholder="patient@example.com"
                     [class.is-invalid]="isFieldInvalid('patient_Email')" [attr.tabindex]="getTabIndex('patient_Email')" />
@@ -206,7 +228,7 @@
 
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label required">Address</label>
+                <label class="form-label">Address</label>
                   <input type="text" class="form-control" formControlName="patient_Address"
                     placeholder="Full address"
                     [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
@@ -286,6 +308,69 @@
                 </div>
                 <app-field-error [control]="patientForm.get('referred_By')" label="Referred By" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
+            </div>
+
+            <!-- ── Sample collection protocol for the selected tests ──────────
+                 Directly above the sampling fields: this is the moment the operator decides
+                 how the sample gets taken, and the last moment they can tell the patient to
+                 come back fasting. Mirrors AddTestModalComponent. -->
+            <div class="form-section-label" *ngIf="selectedTests.length > 0">
+              Sample Collection Protocol
+              <button type="button" class="ap-protocol-toggle"
+                      (click)="showSelectedProtocols = !showSelectedProtocols">
+                <i class="fa" [class.fa-chevron-up]="showSelectedProtocols"
+                              [class.fa-chevron-down]="!showSelectedProtocols"></i>
+                {{ showSelectedProtocols ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+
+            <div class="ap-protocol-block" *ngIf="selectedTests.length > 0 && showSelectedProtocols">
+
+              <div class="ap-protocol-loading" *ngIf="selectedProtocolsLoading">
+                <i class="fa fa-spinner fa-spin"></i> Loading sample collection requirements…
+              </div>
+
+              <ng-container *ngIf="!selectedProtocolsLoading">
+
+                <!-- Fasting is the only requirement that has to reach the patient before
+                     they leave, so it is called out above the per-test detail. Each test
+                     shows the longest fast its protocols demand, not the first. -->
+                <div class="ap-protocol-alert ap-protocol-alert--fasting" *ngIf="fastingTests.length > 0">
+                  <i class="fa fa-hourglass-half"></i>
+                  <div>
+                    <strong>Tell the patient to fast.</strong>
+                    <span *ngFor="let f of fastingTests; let last = last">
+                      {{ f.testName }}<ng-container *ngIf="f.hours"> ({{ f.hours }} h)</ng-container><ng-container *ngIf="!last">, </ng-container>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="ap-protocol-alert ap-protocol-alert--missing" *ngIf="testsMissingProtocol.length > 0">
+                  <i class="fa fa-exclamation-triangle"></i>
+                  <div>
+                    <strong>No protocol linked for
+                      {{ testsMissingProtocol.length }}
+                      {{ testsMissingProtocol.length === 1 ? 'test' : 'tests' }}.</strong>
+                    Confirm the sample requirements with the laboratory before collecting:
+                    <span *ngFor="let t of testsMissingProtocol; let last = last">
+                      {{ t.testName }}<ng-container *ngIf="!last">, </ng-container>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="ap-protocol-grid">
+                  <div class="ap-protocol-card" *ngFor="let t of selectedTestProtocols">
+                    <app-test-protocol-panel
+                      [protocols]="t.protocols"
+                      [testName]="t.testName"
+                      [testCode]="t.testCode"
+                      [compact]="true"
+                      [showHeading]="true">
+                    </app-test-protocol-panel>
+                  </div>
+                </div>
+
+              </ng-container>
             </div>
 
             <div class="form-section-label">Sample Collection</div>
@@ -678,23 +763,31 @@
                   <div *ngFor="let t of filteredTests" (click)="toggleTestSelection(t)"
                        [class.active]="focusedTestId === t.testCode"
                        [class.test-selected]="selectedTestIds.has(t.testCode)"
+                       [class.test-unavailable]="!isTestBookable(t)"
+                       [title]="isTestBookable(t) ? '' : 'No parameters configured — this test cannot be booked'"
                        class="list-item test-item">
                     <div class="icon-wrap">
                       <div class="icon" [class.selected]="selectedTestIds.has(t.testCode)">
                         <!-- Checkmark — test is selected -->
-                        <svg *ngIf="selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <svg *ngIf="isTestBookable(t) && selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <circle cx="12" cy="12" r="11" stroke="#16a34a" stroke-width="2" fill="#dcfce7"/>
                           <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         <!-- Empty circle — test is not selected -->
-                        <svg *ngIf="!selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <svg *ngIf="isTestBookable(t) && !selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <circle cx="12" cy="12" r="11" stroke="#cbd5e1" stroke-width="2" fill="#f8fafc"/>
+                        </svg>
+                        <!-- Barred — no parameters configured, cannot be booked -->
+                        <svg *ngIf="!isTestBookable(t)" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="11" stroke="#c2410c" stroke-width="2" fill="#fff7ed"/>
+                          <path d="M8 16L16 8" stroke="#c2410c" stroke-width="2.2" stroke-linecap="round"/>
                         </svg>
                       </div>
                     </div>
                     <div class="left">
                       <div class="code">{{t.testCode}}</div>
                       <div class="name">{{t.testName}}</div>
+                      <div class="test-unavailable-note" *ngIf="!isTestBookable(t)">No parameters configured</div>
                     </div>
                     <div class="right price">₹{{t.price}}</div>
                   </div>
@@ -737,6 +830,20 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- ── Protocol for the test last clicked ────────────────────────────
+             Full width under the four columns rather than as a fifth column: the
+             procedure and rejection criteria are paragraphs, and a column that narrow
+             would make them unreadable at exactly the moment they matter. -->
+        <div class="ap-catalog-protocol">
+          <app-test-protocol-panel
+            [protocols]="focusedProtocols"
+            [testName]="focusedProtocolTestName"
+            [testCode]="focusedProtocolTestCode"
+            [loading]="focusedProtocolLoading"
+            emptySelectionMessage="Click a test to see how its sample must be collected.">
+          </app-test-protocol-panel>
         </div>
       </div>
       <div class="modal-footer">

@@ -45,6 +45,16 @@ export class PatientTestListComponent implements OnInit {
   testDetails: testDetail[] = [];
   testParameters: testParameter[] = [];
 
+  /**
+   * The obtained value as currently PERSISTED, keyed by parameterId.
+   *
+   * Rebuilt only from the server in loadTestParameters() — never from the edit
+   * inputs. The report is rendered by the backend from the database, so typing a
+   * value without saving must not unlock View / PDF: the report would come out
+   * without it.
+   */
+  private savedResults = new Map<number, string>();
+
   // ── State ──────────────────────────────────────────────────────────────
   isLoading: boolean = false;
   isLoadingDetails: boolean = false;
@@ -231,7 +241,6 @@ export class PatientTestListComponent implements OnInit {
 
   onAddTestSaved(): void {
     this.showAddTestModal = false;
-    this.toastr.success('Test added successfully.', 'Test Added');
     this.loadPatientTests();
   }
 
@@ -417,7 +426,6 @@ export class PatientTestListComponent implements OnInit {
   onPaymentSaved(): void {
     this.showPaymentModal  = false;
     this.activePaymentTest = null;
-    this.toastr.success('Payment recorded successfully.', 'Payment Saved');
     this.loadPatientTests();
   }
 
@@ -490,17 +498,32 @@ export class PatientTestListComponent implements OnInit {
     this.selectedTestDetail = detail;
     this.showParameterView = true;
     this.activeParameterIndex = 0;
-    this.isLoadingParameters = true;
     this.parameterErrorMessage = '';
     this.testParameters = [];
+    this.savedResults.clear();
 
-    // GetSavedTestReport returns all parameters for this test with any
-    // previously saved obtainedValue (empty string when not yet filled).
-    // If the response has records → they exist in DB → UPDATE on save.
-    // If null / empty response → no records exist yet → INSERT on save.
+    this.loadTestParameters();
+  }
+
+  /**
+   * (Re)loads this test's parameters and their saved results from the server.
+   *
+   * GetSavedTestReport returns all parameters for the test with any previously
+   * saved obtainedValue (empty when not yet filled). Records present → they
+   * exist in the DB → UPDATE on save; absent → INSERT on save.
+   *
+   * Called on open AND after a successful save. Re-loading after save is what
+   * keeps `reportId` accurate — without it a second save of a freshly entered
+   * result would INSERT a duplicate row instead of updating the first one.
+   */
+  private loadTestParameters(): void {
+    if (!this.selectedPatientTest || !this.selectedTestDetail) return;
+
+    this.isLoadingParameters = true;
+
     this.testReportService.getSavedTestReport(
-      Number(this.selectedPatientTest!.patient_Test_Id),
-      detail.testCode
+      Number(this.selectedPatientTest.patient_Test_Id),
+      this.selectedTestDetail.testCode
     ).subscribe({
       next: (saved: any[]) => {
         this.testParameters = (saved ?? []).map((s: any) => ({
@@ -514,6 +537,14 @@ export class PatientTestListComponent implements OnInit {
           // If obtainedValue was null/empty → this is a new entry → INSERT.
           reportId:       s.obtainedValue ? s.parameterId : undefined,
         } as testParameter));
+
+        // Snapshot what the database actually holds — this, not the inputs,
+        // is what decides whether the report can be issued.
+        this.savedResults.clear();
+        for (const row of (saved ?? [])) {
+          this.savedResults.set(row.parameterId, (row.obtainedValue ?? '').toString());
+        }
+
         this.isLoadingParameters = false;
       },
       error: (error: Error) => {
@@ -522,6 +553,34 @@ export class PatientTestListComponent implements OnInit {
         console.error('Error loading test parameters:', error);
       }
     });
+  }
+
+  // ── Report readiness ───────────────────────────────────────────────────────
+
+  /** Parameters with no saved result yet. */
+  get missingResultCount(): number {
+    return this.testParameters
+      .filter(p => !(this.savedResults.get(p.parameterId) ?? '').trim())
+      .length;
+  }
+
+  /**
+   * A report may only be viewed or downloaded once every parameter has a saved
+   * result. Issuing one earlier produces a document with blank rows that still
+   * looks like a finished lab report — the thing this guards against.
+   */
+  get canIssueReport(): boolean {
+    return this.testParameters.length > 0 && this.missingResultCount === 0;
+  }
+
+  /** Why the report buttons are unavailable — shown as their tooltip. */
+  get reportBlockedReason(): string {
+    if (this.testParameters.length === 0) return 'This test has no parameters configured.';
+    const n = this.missingResultCount;
+    if (n === 0) return '';
+    return n === 1
+      ? 'One result has not been entered and saved yet.'
+      : `${n} results have not been entered and saved yet.`;
   }
   closeParameterView(): void {
     this.showParameterView = false;
@@ -596,8 +655,10 @@ export class PatientTestListComponent implements OnInit {
 
     forkJoin([insert$, update$]).subscribe({
       next: () => {
-        this.isLoadingParameters = false;
         this.loadPatientTests();
+        // Re-read from the server so savedResults (and reportId) reflect what was
+        // actually persisted — this is what unlocks the View / PDF buttons.
+        this.loadTestParameters();
       },
       error: (err) => {
         this.isLoadingParameters = false;
@@ -786,7 +847,7 @@ export class PatientTestListComponent implements OnInit {
   }
 
   onCancelConfirmed(payload: CancelConfirmPayload): void {
-    const { bookingCancels, reason, totalEligibleRefund } = payload;
+    const { bookingCancels, reason } = payload;
 
     // ── Step 1: Cancel or partially remove test codes per booking ─────────
     // Full cancel  → all test codes in the booking are selected → use CancelTest
@@ -812,8 +873,6 @@ export class PatientTestListComponent implements OnInit {
         );
 
         if (refundItems.length === 0) {
-          const n = bookingCancels.length;
-          this.toastr.success(`${n} booking${n > 1 ? 's' : ''} cancelled.`, 'Cancelled');
           this.updatePatientStatusAfterCancellation();
           return;
         }
@@ -828,11 +887,6 @@ export class PatientTestListComponent implements OnInit {
 
         forkJoinRxjs(refundCalls).subscribe({
           next: () => {
-            const n = bookingCancels.length;
-            this.toastr.success(
-              `${n} booking${n > 1 ? 's' : ''} cancelled. ₹${totalEligibleRefund.toFixed(2)} refunded.`,
-              'Cancelled & Refunded'
-            );
             this.updatePatientStatusAfterCancellation();
           },
           error: () => {
@@ -870,7 +924,6 @@ export class PatientTestListComponent implements OnInit {
             next: () => {
               // Status updated successfully
               this.filterTests();
-              this.toastr.info('Patient status updated to Completed', 'Status Update');
             },
             error: (err) => {
               // Log error but continue (status update is non-critical)
