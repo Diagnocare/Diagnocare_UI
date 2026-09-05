@@ -8,6 +8,7 @@ import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { TokenService }       from './token.service';
 import { PinService }         from '../../services/pinServices/pin.service';
 import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
+import { TenantService }      from '../tenant/tenant.service';
 
 /**
  * Auth interceptor:
@@ -37,11 +38,24 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   const router         = inject(Router);
   const pinService     = inject(PinService);
   const pinModalService= inject(PinModalService);
+  const tenantSvc      = inject(TenantService);
 
   // ── Always attach X-Browser-Id ────────────────────────────────────────────
   // The backend uses this stable UUID to distinguish "same browser, new tab"
   // (no conflict) from "different browser / incognito" (conflict dialog).
   req = req.clone({ setHeaders: { 'X-Browser-Id': tokenSvc.getBrowserId() } });
+
+  // ── Always attach X-Tenant-Key ────────────────────────────────────────────
+  // The API's hostname is always api.diagnocare.com and carries no tenant — the tenant
+  // subdomain exists only here, in the browser. This header is how it reaches the API (§5).
+  //
+  // It is a HINT, not a credential. The API validates it against the tenant registry and,
+  // once a token exists, requires it to agree with the signed tenant_id claim; a mismatch is
+  // 403. Editing it in devtools changes which login screen you see and nothing else.
+  const tenantKey = tenantSvc.getTenantKey();
+  if (tenantKey) {
+    req = req.clone({ setHeaders: { 'X-Tenant-Key': tenantKey } });
+  }
 
   // ── Basic Auth — login / OTP / token-generation endpoints ────────────────
   // Logout and ClearSession are [AllowAnonymous]; Logout is called via rawHttp

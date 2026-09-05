@@ -4,30 +4,38 @@ import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 /** Default country dialling code used across patient forms. Update here to change globally. */
 export const DEFAULT_DIALING_CODE = '+91';
 
+/**
+ * Controller paths. Versioned under /api/v1 from day one (§24).
+ *
+ * The API mounts every existing controller under this prefix centrally
+ * (ApiVersionRoutePrefixConvention), so this is a prefix change and nothing else. The REST
+ * redesign is a separate, later migration under /api/v2, endpoint by endpoint — this file is
+ * deliberately the single place API paths are assembled, which is what makes that possible.
+ */
 export const controllerEndpoints = {
-  header: 'api/header/',
-  login: 'api/login/',
-  otp: 'api/Otp/',
-  mfa: 'api/Mfa/',
-  fingerprint: 'api/Fingerprint/',
-  address: 'api/addressManager/',
-  collectionBoy: 'api/collectionBoys/',
-  doctor: 'api/doctors/',
-  patient: 'api/patient/',
-  patientReport: 'api/PatientReport/',
-  patientTestReportGeneration: 'api/TestReportGeneration/',
-  pathology: 'api/pathology/',
-  test: 'api/test/',
-  user: 'api/user/',
-  receipt: 'api/receipt/',
-  summaryReport:'api/summaryReport/',
-  pathologyTest:'api/pathologyTest/',
-  template:   'api/template/',
-  attendance: 'api/attendance/',
-  salary:     'api/salary/',
-  holiday:       'api/holiday/',
-  visitSchedule: 'api/visitSchedule/',
-  feedback:      'api/feedback/',
+  header: 'api/v1/header/',
+  login: 'api/v1/login/',
+  otp: 'api/v1/Otp/',
+  mfa: 'api/v1/Mfa/',
+  fingerprint: 'api/v1/Fingerprint/',
+  address: 'api/v1/addressManager/',
+  collectionBoy: 'api/v1/collectionBoys/',
+  doctor: 'api/v1/doctors/',
+  patient: 'api/v1/patient/',
+  patientReport: 'api/v1/PatientReport/',
+  patientTestReportGeneration: 'api/v1/TestReportGeneration/',
+  pathology: 'api/v1/pathology/',
+  test: 'api/v1/test/',
+  user: 'api/v1/user/',
+  receipt: 'api/v1/receipt/',
+  summaryReport:'api/v1/summaryReport/',
+  pathologyTest:'api/v1/pathologyTest/',
+  template:   'api/v1/template/',
+  attendance: 'api/v1/attendance/',
+  salary:     'api/v1/salary/',
+  holiday:       'api/v1/holiday/',
+  visitSchedule: 'api/v1/visitSchedule/',
+  feedback:      'api/v1/feedback/',
 };
 
 export const apiEndpoints = {

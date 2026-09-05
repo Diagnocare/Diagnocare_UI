@@ -22,6 +22,9 @@ import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './app/core/interceptors/error.interceptor';
 import { installAutofillGuard } from './app/shared/autofill-guard';
+import { provideAppInitializer, inject as injectFn } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { TenantConfigService } from './app/core/tenant/tenant-config.service';
 
 // Stop Chrome pushing the saved login user id into every text box.
 // Must run before the first render so fields are stamped as they appear.
@@ -33,6 +36,13 @@ bootstrapApplication(AppComponent, {
     // AuthInterceptor (inner) handles 401 refresh/retry first, and only unresolved
     // errors bubble out to ErrorInterceptor for a centralised toast.
     provideHttpClient(withInterceptors([ErrorInterceptor, AuthInterceptor])),
+
+    // Load the laboratory's branding before the first render (§9), so the login screen does
+    // not flash generic Diagnocare branding and then repaint with the lab's name and logo.
+    //
+    // Deliberately non-fatal: TenantConfigService swallows the error and the app boots with
+    // neutral branding. A branding endpoint being down is not a reason nobody can work.
+    provideAppInitializer(() => firstValueFrom(injectFn(TenantConfigService).load())),
     provideRouter(
       routes,
       withRouterConfig({ onSameUrlNavigation: 'reload' })

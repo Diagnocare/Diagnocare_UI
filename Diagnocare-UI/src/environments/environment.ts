@@ -8,6 +8,10 @@ export const environment: AppEnvironment = {
   // diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   // For local development against a locally-running API, temporarily switch to:
   diagnocareApiURL: 'https://localhost:44346/',
+  // Tenant subdomains hang off this domain; TenantService parses against it (§19).
+  baseDomain: 'diagnocare.local',
+  // Local/preview hosts carry no tenant subdomain — assume this laboratory there.
+  devTenantKey: 'pankaj',
   loginUIUrl: 'http://diagnocaredev/',
   // Help / feedback system (issue + suggestion submission portal).
   helpUrl: 'https://feedback-system-rosy.vercel.app/',
