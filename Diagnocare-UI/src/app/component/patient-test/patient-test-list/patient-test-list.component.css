@@ -225,18 +225,19 @@
 .filter-mode-toggle {
   display: inline-flex;
   align-items: center;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 3px;
-  gap: 2px;
+  gap: 3px;
 }
 
 .filter-mode-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 7px 15px;
   border: none;
   border-radius: 8px;
   font-size: 0.82em;
@@ -248,15 +249,36 @@
   white-space: nowrap;
 }
 
-.filter-mode-btn:hover:not(.filter-mode-btn--active) {
-  background: #e2e8f0;
-  color: #374151;
+/* The check mark only shows on the selected option */
+.filter-mode-btn .filter-mode-check {
+  display: none;
+  font-size: 0.9em;
 }
 
+.filter-mode-btn:hover:not(.filter-mode-btn--active) {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.filter-mode-btn:focus-visible {
+  outline: 2px solid #1E5BA8;
+  outline-offset: 2px;
+}
+
+/* Selected: solid brand fill + white text — unmistakable next to the grey track */
 .filter-mode-btn--active {
-  background: #fff;
-  color: #1E5BA8;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background: #1E5BA8;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(30, 91, 168, 0.35);
+}
+
+.filter-mode-btn--active .filter-mode-check {
+  display: inline-flex;
+}
+
+.filter-mode-btn--active .filter-mode-icon {
+  display: none;
 }
 
 .filter-mode-count {
@@ -271,6 +293,22 @@
   font-weight: 700;
   min-width: 20px;
   line-height: 1.5;
+}
+
+/* Label above the toggle so the control reads as a choice, not two actions */
+.filter-mode-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-mode-label {
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding-left: 2px;
 }
 
 /* ── Full-history mode banner ─────────────────────────────────────── */
@@ -552,6 +590,7 @@
   .no-data-actions { flex-direction: column; align-items: stretch; }
   .no-data-actions .btn { width: 100%; justify-content: center; }
 
+  .filter-mode-wrap { width: 100%; }
   .filter-mode-toggle { width: 100%; }
   .filter-mode-btn { flex: 1; justify-content: center; }
 
@@ -1037,18 +1076,8 @@
               transform 0.12s ease, box-shadow 0.18s ease;
 }
 
-/* Primary action — solid white, brand-tinted label (matches page-header CTAs) */
-.header-actions .btn.btn-primary {
-  background: #ffffff;
-  color: #15803d;
-  border: 1.5px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
-}
-.header-actions .btn.btn-primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.92);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24);
-}
+/* Primary action uses the app-wide button style — solid blue, inverts to white
+   on hover — defined in styles.css → "UNIFIED PRIMARY BUTTON". */
 
 /* Secondary actions (View / PDF / CSV) — translucent glass on the header */
 .header-actions .btn.btn-info {
@@ -1130,8 +1159,8 @@
 
 .parameter-header .header-actions { gap: 0.5em; }
 
-/* Primary button label picks up the brand blue now the header is blue */
-.header-actions .btn.btn-primary { color: #1E5BA8; }
+/* Primary button colours come from the app-wide "UNIFIED PRIMARY BUTTON"
+   section in styles.css. */
 
 /* ── Data table — presented on a clean white card ──────────────────────── */
 .parameter-list-table {

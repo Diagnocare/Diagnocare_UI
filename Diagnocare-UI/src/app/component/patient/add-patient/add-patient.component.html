@@ -348,10 +348,6 @@
                 <div class="ap-protocol-alert ap-protocol-alert--missing" *ngIf="testsMissingProtocol.length > 0">
                   <i class="fa fa-exclamation-triangle"></i>
                   <div>
-                    <strong>No protocol linked for
-                      {{ testsMissingProtocol.length }}
-                      {{ testsMissingProtocol.length === 1 ? 'test' : 'tests' }}.</strong>
-                    Confirm the sample requirements with the laboratory before collecting:
                     <span *ngFor="let t of testsMissingProtocol; let last = last">
                       {{ t.testName }}<ng-container *ngIf="!last">, </ng-container>
                     </span>
@@ -581,7 +577,7 @@
         <!-- ═══════════════════════════════════════════════════════ NAV ACTIONS -->
         <div class="form-actions">
           <div class="actions-left">
-            <button type="button" class="btn btn-back" (click)="handlePrevious()"
+            <button type="button" class="btn btn-nav" (click)="handlePrevious()"
                     [disabled]="currentStep === 1">
               <i class="fa fa-arrow-left"></i> Previous
             </button>
@@ -594,7 +590,7 @@
           </div>
 
           <div class="actions-right">
-            <button type="button" class="btn btn-primary" (click)="handleNext()"
+            <button type="button" class="btn btn-nav" (click)="handleNext()"
                     *ngIf="currentStep < 4">
               Next <i class="fa fa-arrow-right"></i>
             </button>

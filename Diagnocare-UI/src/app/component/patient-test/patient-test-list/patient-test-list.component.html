@@ -19,22 +19,31 @@
       </button>
 
       <!-- Filter mode segmented toggle -->
-      <div class="filter-mode-toggle" *ngIf="!showPatientIdInput">
-        <button class="filter-mode-btn"
-                [class.filter-mode-btn--active]="!showAllTests"
-                (click)="showRecentOnly()"
-                title="Show only recent and pending tests">
-          <i class="fa fa-clock-o"></i>
-          <span>Recent &amp; Pending</span>
-        </button>
-        <button class="filter-mode-btn"
-                [class.filter-mode-btn--active]="showAllTests"
-                (click)="showOldReports()"
-                title="Show full test history">
-          <i class="fa fa-history"></i>
-          <span>All Reports</span>
-          <span class="filter-mode-count" *ngIf="!showAllTests && hasOldTests">+{{ oldTestCount }}</span>
-        </button>
+      <div class="filter-mode-wrap" *ngIf="!showPatientIdInput">
+        <span class="filter-mode-label">Showing</span>
+        <div class="filter-mode-toggle" role="group" aria-label="Choose which tests to show">
+          <button class="filter-mode-btn"
+                  type="button"
+                  [class.filter-mode-btn--active]="!showAllTests"
+                  [attr.aria-pressed]="!showAllTests"
+                  (click)="showRecentOnly()"
+                  title="Show only recent and pending tests">
+            <i class="fa fa-check filter-mode-check" aria-hidden="true"></i>
+            <i class="fa fa-clock-o filter-mode-icon" aria-hidden="true"></i>
+            <span>Recent &amp; Pending</span>
+          </button>
+          <button class="filter-mode-btn"
+                  type="button"
+                  [class.filter-mode-btn--active]="showAllTests"
+                  [attr.aria-pressed]="showAllTests"
+                  (click)="showOldReports()"
+                  title="Show full test history">
+            <i class="fa fa-check filter-mode-check" aria-hidden="true"></i>
+            <i class="fa fa-history filter-mode-icon" aria-hidden="true"></i>
+            <span>All Reports</span>
+            <span class="filter-mode-count" *ngIf="!showAllTests && hasOldTests">+{{ oldTestCount }}</span>
+          </button>
+        </div>
       </div>
 
       <button class="btn btn-outline" (click)="refreshList()" [disabled]="showPatientIdInput">
