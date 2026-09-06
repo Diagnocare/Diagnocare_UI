@@ -78,7 +78,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   };
 
   isLoading: boolean = false;
-  currentStep = 2;
+  currentStep = 1;
 
   /** Exposed for [tabFields] binding on the form element. */
   readonly tabFields = tabOrderAdd;
