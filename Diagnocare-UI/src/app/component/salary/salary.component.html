@@ -216,6 +216,38 @@
 
       <!-- Employee picker -->
       <div class="config-card picker-card">
+        <!-- User type — switches which role's members the picker lists -->
+        <div class="staff-type-row">
+          <div class="picker-label"><i class="fa fa-id-badge"></i> User Type</div>
+
+          <!-- Staff-type tabs — these drive the picker only. The monthly tab has
+               its own independent roleFilter; do NOT bind to that one here. -->
+          <div class="staff-type-tabs" role="tablist" aria-label="User type">
+            <button type="button" class="staff-type-tab" role="tab"
+                    [class.active]="configStaffType === 'user'"
+                    [attr.aria-selected]="configStaffType === 'user'"
+                    (click)="setConfigStaffType('user')">
+              <i class="fa fa-user"></i> Users
+            </button>
+            <button type="button" class="staff-type-tab" role="tab"
+                    [class.active]="configStaffType === 'doctor'"
+                    [attr.aria-selected]="configStaffType === 'doctor'"
+                    (click)="setConfigStaffType('doctor')">
+              <i class="fa fa-user-md"></i> Doctor
+            </button>
+            <button type="button" class="staff-type-tab" role="tab"
+                    [class.active]="configStaffType === 'collection-boy'"
+                    [attr.aria-selected]="configStaffType === 'collection-boy'"
+                    (click)="setConfigStaffType('collection-boy')">
+              <i class="fa fa-motorcycle"></i> Collection Boy
+            </button>
+          </div>
+
+          <span class="staff-type-count">
+            {{ staffTypeCount }} {{ staffTypeCount === 1 ? staffTypeSingular : staffTypeLabel }}
+          </span>
+        </div>
+
         <div class="picker-label"><i class="fa fa-user-circle"></i> Select Employee</div>
 
         <div class="chosen-user" *ngIf="selectedConfigUserId; else showPicker">
@@ -234,25 +266,26 @@
                 *ngIf="isDropdownOpen"
                 class="dropdown-search"
                 type="text"
-                placeholder="Type to search employees…"
+                [placeholder]="'Type to search ' + staffTypeLabel.toLowerCase() + '…'"
                 [(ngModel)]="userSearchTerm"
                 (click)="$event.stopPropagation()"
                 autofocus
               />
               <span *ngIf="!isDropdownOpen" class="dropdown-placeholder">
-                Search and select an employee…
+                Search and select a {{ staffTypeSingular.toLowerCase() }}…
               </span>
               <i class="fa fa-chevron-down dropdown-arrow" [class.rotated]="isDropdownOpen"></i>
             </div>
             <div class="dropdown-list" *ngIf="isDropdownOpen" (mouseleave)="closeDropdown()">
               <div class="dropdown-empty" *ngIf="filteredUserList.length === 0">
-                <i class="fa fa-inbox"></i> No employees found
+                <i class="fa fa-inbox"></i> No {{ staffTypeLabel }} found
               </div>
               <div class="dropdown-option" *ngFor="let u of filteredUserList" (click)="selectUser(u)">
                 <div class="opt-avatar">{{ userInitial(fullName(u)) }}</div>
                 <div class="opt-details">
                   <div class="opt-name">{{ fullName(u) }}</div>
-                  <div class="opt-username">@{{ u.user_Name }}</div>
+                  <div class="opt-username" *ngIf="u.user_Name">@{{ u.user_Name }}</div>
+                  <div class="opt-username" *ngIf="!u.user_Name">{{ staffTypeLabel }}</div>
                 </div>
                 <span class="opt-config-badge" *ngIf="hasConfig(u.id)">Configured</span>
               </div>
