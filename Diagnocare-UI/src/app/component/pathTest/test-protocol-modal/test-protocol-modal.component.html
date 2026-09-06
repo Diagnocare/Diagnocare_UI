@@ -1,0 +1,374 @@
+<div class="tpm-backdrop" (click)="close()"></div>
+
+<div class="tpm-modal" role="dialog" aria-modal="true" aria-labelledby="tpmTitle">
+  <div class="tpm-content" (click)="$event.stopPropagation()">
+
+    <!-- ── Header ───────────────────────────────────────────────────────────── -->
+    <div class="tpm-header">
+      <div class="tpm-header-text">
+        <h3 id="tpmTitle">
+          {{ view === 'assign' ? 'Sample Collection Protocols' : (editorForm.protocolId ? 'Edit Protocol' : 'New Protocol') }}
+        </h3>
+        <p *ngIf="view === 'assign'">
+          {{ test?.testName }}
+          <span class="tpm-code" *ngIf="test?.testCode">({{ test?.testCode }})</span>
+        </p>
+        <p *ngIf="view === 'edit'">
+          {{ editorIsDuplicate ? 'Duplicated from a standard protocol — review every field before saving.'
+                               : 'Written once, linked to as many tests as collect this way.' }}
+        </p>
+      </div>
+      <button type="button" class="tpm-close" (click)="close()" title="Close" [disabled]="saving">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <div class="tpm-body">
+
+      <div class="tpm-loading" *ngIf="loading">
+        <i class="fa fa-spinner fa-spin"></i> Loading…
+      </div>
+
+      <!-- ══════════════════════════════════ ASSOCIATION PANE ═══════════════ -->
+      <ng-container *ngIf="!loading && view === 'assign'">
+
+        <!-- A name match from the suggestion table. Offered as an action, never applied on
+             its own — a guess from a string is fine for filling in a catalogue and not good
+             enough to put words in front of someone holding a needle. -->
+        <div class="tpm-banner tpm-banner--suggestion" *ngIf="showSuggestion">
+          <i class="fa fa-lightbulb-o"></i>
+          <div class="tpm-banner-body">
+            <strong>This test's name suggests “{{ suggestion?.suggestedProtocol?.protocolName }}”.</strong>
+            <p>
+              A guess from the test name, not a lab decision. Add it if it is right, then check
+              every field against your own SOP.
+            </p>
+            <button type="button" class="tpm-btn tpm-btn--ghost" (click)="applySuggestion()">
+              <i class="fa fa-plus"></i> Add suggested protocol
+            </button>
+          </div>
+        </div>
+
+        <div class="tpm-banner tpm-banner--none" *ngIf="linked.length === 0">
+          <i class="fa fa-exclamation-triangle"></i>
+          <div class="tpm-banner-body">
+            <strong>No protocol linked to this test.</strong>
+            <p>
+              Booking screens currently tell staff to confirm the sample requirements with the
+              laboratory before collecting. Linking a protocol replaces that with the real
+              instructions.
+            </p>
+          </div>
+        </div>
+
+        <div class="tpm-columns">
+
+          <!-- ── Library picker ───────────────────────────────────────────── -->
+          <section class="tpm-col tpm-col--library">
+            <header class="tpm-col-head">
+              <h4>Protocol library</h4>
+              <button type="button" class="tpm-btn tpm-btn--ghost tpm-btn--sm" (click)="newProtocol()">
+                <i class="fa fa-plus"></i> New
+              </button>
+            </header>
+
+            <div class="tpm-search">
+              <i class="fa fa-search"></i>
+              <input type="text" [(ngModel)]="query" name="librarySearch"
+                     placeholder="Search by name, code or sample type…" autocomplete="off" />
+            </div>
+
+            <div class="tpm-col-body">
+              <div class="tpm-empty" *ngIf="filteredLibrary.length === 0">
+                No protocols match that search.
+              </div>
+
+              <div class="tpm-lib-item"
+                   *ngFor="let p of filteredLibrary; trackBy: trackByProtocolId"
+                   [class.tpm-lib-item--linked]="isLinked(p.protocolId)">
+
+                <label class="tpm-lib-main">
+                  <input type="checkbox"
+                         [checked]="isLinked(p.protocolId)"
+                         (change)="toggleLink(p)" />
+                  <span class="tpm-lib-text">
+                    <span class="tpm-lib-name">
+                      {{ p.protocolName }}
+                      <span class="tpm-tag tpm-tag--standard" *ngIf="p.isSystem">Standard</span>
+                    </span>
+                    <span class="tpm-lib-meta">
+                      {{ p.protocolCode }} · {{ p.sampleType }}
+                      <span class="tpm-lib-fasting" *ngIf="p.fastingRequired">
+                        · Fasting<ng-container *ngIf="p.fastingHours"> {{ p.fastingHours }} h</ng-container>
+                      </span>
+                      <span class="tpm-lib-usage" *ngIf="p.linkedTestCount > 0">
+                        · used by {{ p.linkedTestCount }} test{{ p.linkedTestCount === 1 ? '' : 's' }}
+                      </span>
+                    </span>
+                  </span>
+                </label>
+
+                <div class="tpm-lib-actions">
+                  <button type="button" class="tpm-icon-btn" (click)="preview(p.protocolId)"
+                          [title]="previewProtocolId === p.protocolId ? 'Hide details' : 'Show details'">
+                    <i class="fa" [class.fa-eye]="previewProtocolId !== p.protocolId"
+                                  [class.fa-eye-slash]="previewProtocolId === p.protocolId"></i>
+                  </button>
+                  <!-- Standard protocols are read-only: the way to a variant is a copy, so
+                       the original keeps meaning the same thing everywhere. -->
+                  <button type="button" class="tpm-icon-btn" *ngIf="p.isSystem"
+                          (click)="openInEditor(p, true)" title="Duplicate and edit the copy">
+                    <i class="fa fa-clone"></i>
+                  </button>
+                  <button type="button" class="tpm-icon-btn" *ngIf="!p.isSystem"
+                          (click)="openInEditor(p, false)" title="Edit">
+                    <i class="fa fa-pencil"></i>
+                  </button>
+                  <button type="button" class="tpm-icon-btn tpm-icon-btn--danger" *ngIf="!p.isSystem"
+                          (click)="deleteProtocol(p)" title="Delete">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
+
+                <div class="tpm-preview" *ngIf="previewProtocolId === p.protocolId">
+                  <app-test-protocol-panel
+                    [protocols]="previewList"
+                    [loading]="previewLoading"
+                    [showHeading]="false">
+                  </app-test-protocol-panel>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Linked, in collection order ──────────────────────────────── -->
+          <section class="tpm-col tpm-col--linked">
+            <header class="tpm-col-head">
+              <h4>Linked to this test <span class="tpm-col-count">({{ linked.length }})</span></h4>
+            </header>
+
+            <div class="tpm-col-body">
+              <div class="tpm-empty" *ngIf="linked.length === 0">
+                Tick a protocol on the left to link it. Several can be linked when a test needs
+                more than one sample — they show in the order set here.
+              </div>
+
+              <div class="tpm-link-item" *ngFor="let l of linked; let i = index; trackBy: trackByLink">
+                <div class="tpm-link-head">
+                  <span class="tpm-step">{{ i + 1 }}</span>
+                  <div class="tpm-link-title">
+                    {{ l.protocol.protocolName }}
+                    <span class="tpm-link-code">{{ l.protocol.protocolCode }}</span>
+                  </div>
+                  <div class="tpm-link-actions">
+                    <button type="button" class="tpm-icon-btn" (click)="moveUp(i)"
+                            [disabled]="i === 0" title="Move up">
+                      <i class="fa fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="tpm-icon-btn" (click)="moveDown(i)"
+                            [disabled]="i === linked.length - 1" title="Move down">
+                      <i class="fa fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="tpm-icon-btn tpm-icon-btn--danger"
+                            (click)="removeLink(i)" title="Remove from this test">
+                      <i class="fa fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="tpm-link-sample">{{ l.protocol.sampleType }}</div>
+
+                <!-- The note belongs to this pairing, not to the protocol, which a dozen
+                     other tests may share. -->
+                <input type="text" class="tpm-input tpm-input--sm"
+                       [(ngModel)]="l.note"
+                       [name]="'note-' + l.protocol.protocolId"
+                       maxlength="500"
+                       placeholder="Note for this test — e.g. second draw, 2 hours after the first" />
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </ng-container>
+
+      <!-- ══════════════════════════════════ EDITOR PANE ════════════════════ -->
+      <ng-container *ngIf="!loading && view === 'edit'">
+        <form class="tpm-form" (ngSubmit)="saveProtocol()" novalidate>
+
+          <div class="tpm-section-label">Identity</div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--narrow">
+              <label class="tpm-label tpm-label--required">Code</label>
+              <input type="text" class="tpm-input"
+                     name="protocolCode"
+                     [(ngModel)]="editorForm.protocolCode"
+                     [class.tpm-input--invalid]="editorSubmitAttempted && editorCodeMissing"
+                     maxlength="50" placeholder="e.g. LAB-URINE-24H" />
+              <span class="tpm-error" *ngIf="editorSubmitAttempted && editorCodeMissing">
+                A code is required.
+              </span>
+            </div>
+            <div class="tpm-field">
+              <label class="tpm-label tpm-label--required">Protocol name</label>
+              <input type="text" class="tpm-input"
+                     name="protocolName"
+                     [(ngModel)]="editorForm.protocolName"
+                     [class.tpm-input--invalid]="editorSubmitAttempted && editorNameMissing"
+                     maxlength="200" placeholder="e.g. Urine — 24-hour collection" />
+              <span class="tpm-error" *ngIf="editorSubmitAttempted && editorNameMissing">
+                A name is required.
+              </span>
+            </div>
+          </div>
+
+          <div class="tpm-section-label">What is collected</div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--wide">
+              <label class="tpm-label tpm-label--required">Sample type</label>
+              <input type="text" class="tpm-input"
+                     name="sampleType"
+                     [(ngModel)]="editorForm.sampleType"
+                     [class.tpm-input--invalid]="editorSubmitAttempted && editorSampleTypeMissing"
+                     maxlength="150"
+                     placeholder="e.g. Whole blood (EDTA), Midstream urine, Throat swab" />
+              <span class="tpm-error" *ngIf="editorSubmitAttempted && editorSampleTypeMissing">
+                Sample type is required — it is the first instruction the collector acts on.
+              </span>
+            </div>
+          </div>
+
+          <div class="tpm-row">
+            <div class="tpm-field">
+              <label class="tpm-label">Container</label>
+              <input type="text" class="tpm-input"
+                     name="containerType"
+                     [(ngModel)]="editorForm.containerType"
+                     maxlength="150" placeholder="e.g. K2 EDTA tube — lavender top" />
+              <small class="tpm-hint">Include the cap colour if that is how your staff identify it.</small>
+            </div>
+            <div class="tpm-field">
+              <label class="tpm-label">Quantity</label>
+              <input type="text" class="tpm-input"
+                     name="sampleQuantity"
+                     [(ngModel)]="editorForm.sampleQuantity"
+                     maxlength="100" placeholder="e.g. 2 mL, or 8–10 mL adult / 1–3 mL paediatric" />
+            </div>
+          </div>
+
+          <div class="tpm-section-label">Patient preparation</div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--narrow">
+              <label class="tpm-label">Fasting</label>
+              <div class="tpm-toggle">
+                <input type="checkbox" id="tpmFasting"
+                       name="fastingRequired"
+                       [(ngModel)]="editorForm.fastingRequired"
+                       (ngModelChange)="onEditorFastingChange()" />
+                <label for="tpmFasting">Fasting required</label>
+              </div>
+            </div>
+            <div class="tpm-field tpm-field--narrow" *ngIf="editorForm.fastingRequired">
+              <label class="tpm-label">Fasting hours</label>
+              <input type="number" class="tpm-input"
+                     name="fastingHours"
+                     [(ngModel)]="editorForm.fastingHours"
+                     min="0" max="72" placeholder="e.g. 12" />
+              <small class="tpm-hint">Leave blank for "per lab SOP".</small>
+            </div>
+          </div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--wide">
+              <label class="tpm-label">Preparation instructions</label>
+              <textarea class="tpm-input tpm-textarea" rows="3"
+                        name="patientPreparation"
+                        [(ngModel)]="editorForm.patientPreparation"
+                        maxlength="1500"
+                        placeholder="Diet, medication restrictions, timing, activity — everything the patient must do beforehand."></textarea>
+            </div>
+          </div>
+
+          <div class="tpm-section-label">How it is collected</div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--wide">
+              <label class="tpm-label">Collection procedure</label>
+              <textarea class="tpm-input tpm-textarea" rows="4"
+                        name="collectionProcedure"
+                        [(ngModel)]="editorForm.collectionProcedure"
+                        maxlength="2500"
+                        placeholder="Step-by-step instructions for the person drawing the sample."></textarea>
+            </div>
+          </div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--wide">
+              <label class="tpm-label">Storage &amp; transport</label>
+              <textarea class="tpm-input tpm-textarea" rows="2"
+                        name="storageTransport"
+                        [(ngModel)]="editorForm.storageTransport"
+                        maxlength="1500"
+                        placeholder="Temperature, stability window, transport conditions."></textarea>
+            </div>
+          </div>
+
+          <div class="tpm-section-label">What can go wrong</div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--wide">
+              <label class="tpm-label">Precautions</label>
+              <textarea class="tpm-input tpm-textarea" rows="2"
+                        name="precautions"
+                        [(ngModel)]="editorForm.precautions"
+                        maxlength="1500"
+                        placeholder="Interfering substances, draw order, safety notes."></textarea>
+            </div>
+          </div>
+
+          <div class="tpm-row">
+            <div class="tpm-field tpm-field--wide">
+              <label class="tpm-label">Rejection criteria</label>
+              <textarea class="tpm-input tpm-textarea" rows="3"
+                        name="rejectionCriteria"
+                        [(ngModel)]="editorForm.rejectionCriteria"
+                        maxlength="1500"
+                        placeholder="When the sample must be rejected and a fresh one requested."></textarea>
+              <small class="tpm-hint">
+                Worth being specific — a rejected sample means a second needle for the patient.
+              </small>
+            </div>
+          </div>
+
+        </form>
+      </ng-container>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+    <div class="tpm-footer">
+      <div class="tpm-footer-left">
+        <span class="tpm-footer-hint" *ngIf="view === 'assign' && linked.length > 1">
+          Protocols are shown to staff in the order above.
+        </span>
+      </div>
+      <div class="tpm-footer-right">
+        <button type="button" class="tpm-btn tpm-btn--cancel"
+                (click)="view === 'edit' ? cancelEditor() : close()"
+                [disabled]="saving">
+          {{ view === 'edit' ? 'Back' : 'Cancel' }}
+        </button>
+        <button type="button" class="tpm-btn tpm-btn--primary"
+                (click)="view === 'edit' ? saveProtocol() : saveAssignments()"
+                [disabled]="saving">
+          <i class="fa fa-spinner fa-spin" *ngIf="saving"></i>
+          <i class="fa fa-check" *ngIf="!saving"></i>
+          {{ saving ? 'Saving…' : (view === 'edit' ? 'Save protocol' : 'Save protocols for this test') }}
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

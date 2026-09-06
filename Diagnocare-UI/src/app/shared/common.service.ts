@@ -89,6 +89,104 @@ throw new Error('Method not implemented.');
     return 'Senior';
   }
 
+  // ── Age in years / months / days ────────────────────────────────────────────
+  // A single "41 Years" string cannot describe an infant, and a paediatric
+  // sample is reported against age in months or days. These four helpers are the
+  // whole conversion: DOB → parts, parts → DOB, parts → stored string, and back.
+
+  /** Splits the gap between a date of birth and today into whole Y / M / D. */
+  calculateAgeParts(dob: string): { years: number; months: number; days: number } {
+    const empty = { years: 0, months: 0, days: 0 };
+    if (!dob) return empty;
+
+    let date: Date;
+    if (dob.includes('/')) {
+      const [day, month, year] = dob.split('/').map(Number);
+      date = new Date(year, month - 1, day);
+    } else {
+      date = new Date(dob);
+    }
+    if (isNaN(date.getTime())) return empty;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    if (date > today) return empty;
+
+    let years  = today.getFullYear() - date.getFullYear();
+    let months = today.getMonth()    - date.getMonth();
+    let days   = today.getDate()     - date.getDate();
+
+    // Borrow days from the month that actually precedes today, not a nominal 30,
+    // so "born on the 31st" does not read a day out in a short month.
+    if (days < 0) {
+      months--;
+      days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    return { years, months, days };
+  }
+
+  /**
+   * The stored form: "41Y 3M 12D". Zero parts are dropped, so a plain adult is
+   * "41Y" — shorter to read and well inside the API's field length. A patient
+   * born today is "0D" rather than an empty string, which would look like a
+   * missing value.
+   */
+  formatAgeParts(years: number, months: number, days: number): string {
+    const parts: string[] = [];
+    if (years)  parts.push(`${years}Y`);
+    if (months) parts.push(`${months}M`);
+    if (days)   parts.push(`${days}D`);
+    return parts.length ? parts.join(' ') : '0D';
+  }
+
+  /**
+   * Reads an age back into parts. Accepts the new "41Y 3M 12D" form, the legacy
+   * "41 Years" written by earlier builds, and a bare number — so existing
+   * patients open in the edit form with their age intact.
+   */
+  parseAgeParts(stored: string | null | undefined): { years: number; months: number; days: number } {
+    const text = (stored ?? '').trim();
+    if (!text) return { years: 0, months: 0, days: 0 };
+
+    const compact = /(\d+)\s*Y|(\d+)\s*M|(\d+)\s*D/gi;
+    if (compact.test(text)) {
+      const grab = (unit: string) => {
+        const m = text.match(new RegExp(`(\\d+)\\s*${unit}`, 'i'));
+        return m ? Number(m[1]) : 0;
+      };
+      return { years: grab('Y'), months: grab('M'), days: grab('D') };
+    }
+
+    // Legacy "41 Years" / "41"
+    const legacy = text.match(/^(\d+)/);
+    return { years: legacy ? Number(legacy[1]) : 0, months: 0, days: 0 };
+  }
+
+  /**
+   * Today minus the given age, as dd/mm/yyyy for the DOB text field.
+   *
+   * This is what lets an operator record a patient who does not know their date
+   * of birth — extremely common — by typing the age they do know. The result is
+   * an approximation by construction, which is exactly what an age-only record
+   * is anyway.
+   */
+  dobFromAgeParts(years: number, months: number, days: number): string {
+    if (!years && !months && !days) return '';
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setFullYear(d.getFullYear() - (years || 0));
+    d.setMonth(d.getMonth() - (months || 0));
+    d.setDate(d.getDate() - (days || 0));
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+
   /**
    * Normalises a date entered as DD/MM/YYYY to YYYY-MM-DD (ISO).
    * Passes through any value already in acceptable format.

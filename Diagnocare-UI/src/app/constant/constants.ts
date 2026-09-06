@@ -88,6 +88,22 @@ export const apiEndpoints = {
   getTestList:"GetTestList",
   getPathTest:"GetPathologyTest",
   getTestParameter:"GetTestParameter",
+  /** The whole sample-collection protocol library, with usage counts. */
+  getProtocolLibrary:"GetProtocolLibrary",
+  /** One protocol's full content. */
+  getProtocol:"GetProtocol",
+  /** The protocols one test is collected under, in order. */
+  getTestProtocols:"GetTestProtocols",
+  /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
+  getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /** Which library protocol a test's name suggests. Admin / Super Admin only. */
+  suggestTestProtocol:"SuggestTestProtocol",
+  /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */
+  saveProtocol:"SaveProtocol",
+  /** Replaces the whole set of protocols linked to a test. Admin / Super Admin only. */
+  saveTestProtocolAssignments:"SaveTestProtocolAssignments",
+  /** Deletes a lab-authored protocol from the library. Admin / Super Admin only. */
+  deleteProtocol:"DeleteProtocol",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",

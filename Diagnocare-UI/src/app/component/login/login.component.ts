@@ -4,7 +4,10 @@ import { ToastrService } from 'ngx-toastr';
 import { LoginModel } from '../../models/auth/loginModel';
 import { CommonModule } from '@angular/common';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
-import { ActivatedRoute, NavigationEnd, NavigationExtras, Router, RouterModule } from '@angular/router';
+import {
+  ActivatedRoute, NavigationCancel, NavigationEnd, NavigationError,
+  NavigationExtras, Router, RouterModule,
+} from '@angular/router';
 import { CommonService } from '../../shared/common.service';
 import { Role } from '../../constant/enums';
 import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
@@ -585,11 +588,49 @@ export class LoginComponent implements OnInit, OnDestroy {
    */
   private navigateAfterLogin(commands: any[], extras?: NavigationExtras): void {
     this.isVerifyingOtp = true;   // spinner stays until the route actually changes
+
+    // Router.navigate() resolving false only tells us the navigation did not
+    // stick — not why. These events carry the reason, and they are the fastest
+    // way to tell the two real causes apart on a deployed environment:
+    //   • NavigationCancel  → a guard returned a UrlTree, or a second
+    //                         navigation (interceptor redirect to /login,
+    //                         session-terminated kick) superseded this one.
+    //   • NavigationError   → a guard threw, or a lazy chunk failed to load.
+    const events: any[] = [];
+    const diag = this._router.events
+      .pipe(filter(e => e instanceof NavigationCancel ||
+                        e instanceof NavigationError ||
+                        e instanceof NavigationEnd))
+      .subscribe(e => events.push(e));
+
     this._router.navigate(commands, extras)
-      .catch(() => false)
+      .catch((err) => { events.push(err); return false; })
       .then((ok) => {
         this.isVerifyingOtp = false;
-        if (!ok) this.closeOtpDialog();
+        if (ok) { diag.unsubscribe(); return; }
+
+        console.warn('[post-login nav] blocked →', commands, events);
+
+        // One retry on the next macrotask. The usual blocker is transient: a
+        // guard's first-call HTTP (licenceGuard) still settling, or a redirect
+        // that has since finished. Retrying costs nothing when it was a real
+        // guard rejection — the second attempt is rejected the same way, and
+        // the user is left on /login exactly as before, but now with a logged
+        // reason instead of silence.
+        setTimeout(() => {
+          this._router.navigate(commands, extras)
+            .catch(() => false)
+            .then((retryOk) => {
+              diag.unsubscribe();
+              if (!retryOk) {
+                console.error('[post-login nav] retry also blocked →', commands, events);
+                this.closeOtpDialog();
+                this.toastr.error(
+                  'Signed in, but the page could not be opened. Please try again.',
+                  'Navigation failed');
+              }
+            });
+        }, 0);
       });
   }
 

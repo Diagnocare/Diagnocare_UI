@@ -91,6 +91,69 @@
               </div>
             </div>
 
+            <!-- ── Sample collection protocol for the selected tests ──────────
+                 Placed directly above the sampling fields, because this is the moment the
+                 operator decides where and how the sample gets taken — and the last moment
+                 they can tell the patient to come back fasting. -->
+            <div class="form-section-label" *ngIf="selectedTests.length > 0">
+              Sample Collection Protocol
+              <button type="button" class="atm-protocol-toggle"
+                      (click)="showSelectedProtocols = !showSelectedProtocols">
+                <i class="fa" [class.fa-chevron-up]="showSelectedProtocols"
+                              [class.fa-chevron-down]="!showSelectedProtocols"></i>
+                {{ showSelectedProtocols ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+
+            <div class="atm-protocol-block" *ngIf="selectedTests.length > 0 && showSelectedProtocols">
+
+              <div class="atm-protocol-loading" *ngIf="selectedProtocolsLoading">
+                <i class="fa fa-spinner fa-spin"></i> Loading sample collection requirements…
+              </div>
+
+              <ng-container *ngIf="!selectedProtocolsLoading">
+
+                <!-- Fasting is the only requirement that has to reach the patient before
+                     they leave, so it is called out above the per-test detail. Each test
+                     shows the longest fast its protocols demand, not the first. -->
+                <div class="atm-protocol-alert atm-protocol-alert--fasting" *ngIf="fastingTests.length > 0">
+                  <i class="fa fa-hourglass-half"></i>
+                  <div>
+                    <strong>Tell the patient to fast.</strong>
+                    <span *ngFor="let f of fastingTests; let last = last">
+                      {{ f.testName }}<ng-container *ngIf="f.hours"> ({{ f.hours }} h)</ng-container><ng-container *ngIf="!last">, </ng-container>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="atm-protocol-alert atm-protocol-alert--missing" *ngIf="testsMissingProtocol.length > 0">
+                  <i class="fa fa-exclamation-triangle"></i>
+                  <div>
+                    <strong>No protocol linked for
+                      {{ testsMissingProtocol.length }}
+                      {{ testsMissingProtocol.length === 1 ? 'test' : 'tests' }}.</strong>
+                    Confirm the sample requirements with the laboratory before collecting:
+                    <span *ngFor="let t of testsMissingProtocol; let last = last">
+                      {{ t.testName }}<ng-container *ngIf="!last">, </ng-container>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="atm-protocol-grid">
+                  <div class="atm-protocol-card" *ngFor="let t of selectedTestProtocols">
+                    <app-test-protocol-panel
+                      [protocols]="t.protocols"
+                      [testName]="t.testName"
+                      [testCode]="t.testCode"
+                      [compact]="true"
+                      [showHeading]="true">
+                    </app-test-protocol-panel>
+                  </div>
+                </div>
+
+              </ng-container>
+            </div>
+
             <div class="form-section-label">Sample Collection</div>
             <div class="form-row">
               <div class="form-group">
@@ -425,6 +488,20 @@
             <div class="total-amount">₹{{ totalAmount }}</div>
           </div>
         </div>
+      </div>
+
+      <!-- ── Protocol for the test last clicked ──────────────────────────────
+           Full width under the four columns rather than squeezed in as a fifth: the
+           procedure and rejection criteria are paragraphs, and a column that narrow would
+           make them unreadable at exactly the moment they matter. -->
+      <div class="atm-catalog-protocol">
+        <app-test-protocol-panel
+          [protocols]="focusedProtocols"
+          [testName]="focusedProtocolTestName"
+          [testCode]="focusedProtocolTestCode"
+          [loading]="focusedProtocolLoading"
+          emptySelectionMessage="Click a test to see how its sample must be collected.">
+        </app-test-protocol-panel>
       </div>
 
       <!-- Catalog Actions -->

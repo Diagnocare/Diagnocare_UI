@@ -43,11 +43,16 @@ import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-d
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
+import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
+import {
+  TestBookingProtocolsDto,
+  TestProtocolDto,
+} from 'src/app/models/path-test/protocol/test-protocol.model';
 
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -88,6 +93,25 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   selectedTestIds = new Set<string>();
   selectedTests:  TestItem[] = [];
   focusedTestId:  string | null = null;
+
+  // ── Sample collection protocols ───────────────────────────────────────────
+  /**
+   * Protocols for the test the operator last clicked in the catalogue. A list, because a
+   * test can be collected under several. Null until something has been clicked; an empty
+   * array means the test has none linked, which the panel states in words.
+   */
+  focusedProtocols: TestProtocolDto[] | null = null;
+  focusedProtocolTestName = '';
+  focusedProtocolTestCode = '';
+  focusedProtocolLoading = false;
+  /** Guards against an earlier, slower protocol response overwriting a later one. */
+  private protocolRequestSeq = 0;
+
+  /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
+  selectedTestProtocols: TestBookingProtocolsDto[] = [];
+  selectedProtocolsLoading = false;
+  /** Expanded by default — the requirements are the point; the operator can collapse them. */
+  showSelectedProtocols = true;
 
   // ── Referred By autocomplete ──────────────────────────────────────────────
   referredByOptions:         string[] = [];
@@ -273,8 +297,100 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return (t?.parameterCount ?? 0) > 0;
   }
 
+  /**
+   * Loads the protocol for the test the operator just clicked.
+   *
+   * Clicking a row in the catalogue both selects the test and focuses it, so this rides
+   * along with the existing click rather than adding a second gesture — the operator sees
+   * the requirements for whatever they last touched, without hunting for an info button.
+   *
+   * Responses are sequence-checked: a fast click through several tests can return out of
+   * order, and showing the wrong test's sample requirements is worse than showing none.
+   */
+  private loadFocusedProtocol(t: TestItem): void {
+    const testRegId = t?.testRegId ?? 0;
+    this.focusedProtocolTestName = t?.testName ?? '';
+    this.focusedProtocolTestCode = t?.testCode ?? '';
+
+    if (!testRegId) {
+      this.focusedProtocols = null;
+      this.focusedProtocolLoading = false;
+      return;
+    }
+
+    const seq = ++this.protocolRequestSeq;
+    this.focusedProtocolLoading = true;
+
+    this._testService.getTestProtocols(testRegId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (protocols) => {
+        if (seq !== this.protocolRequestSeq) return;
+        this.focusedProtocols = protocols ?? [];
+        this.focusedProtocolLoading = false;
+      },
+      // Message shown centrally by ErrorInterceptor. Leaving the protocol null makes the
+      // panel say the requirements are unknown, which is the truthful outcome here.
+      error: () => {
+        if (seq !== this.protocolRequestSeq) return;
+        this.focusedProtocols = null;
+        this.focusedProtocolLoading = false;
+      },
+    });
+  }
+
+  /**
+   * Loads protocols for everything currently in the basket, for the summary on step 1.
+   * One request for the whole selection rather than one per test.
+   */
+  private loadSelectedProtocols(): void {
+    const codes = this.selectedTests.map(t => t.testCode).filter(c => !!c);
+    if (!codes.length) {
+      this.selectedTestProtocols = [];
+      this.selectedProtocolsLoading = false;
+      return;
+    }
+
+    this.selectedProtocolsLoading = true;
+    this._testService.getTestProtocolsByCodes(codes).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (grouped) => {
+        this.selectedTestProtocols = grouped ?? [];
+        this.selectedProtocolsLoading = false;
+      },
+      error: () => {
+        this.selectedTestProtocols = [];
+        this.selectedProtocolsLoading = false;
+      },
+    });
+  }
+
+  /** Tests in the basket with no protocol linked at all. */
+  get testsMissingProtocol(): TestBookingProtocolsDto[] {
+    return this.selectedTestProtocols.filter(t => !t.protocols?.length);
+  }
+
+  /**
+   * Tests in the basket that need the patient to fast, with the longest fast each one
+   * demands — the one requirement that has to reach the patient before they leave.
+   *
+   * The longest, not the first: a test collected under two protocols with 8 and 12 hours
+   * needs 12, and telling the patient the shorter number wastes their second trip.
+   */
+  get fastingTests(): { testName: string; hours: number | null }[] {
+    return this.selectedTestProtocols
+      .map(t => {
+        const fasting = (t.protocols ?? []).filter(p => p.fastingRequired);
+        if (!fasting.length) return null;
+        const hours = fasting.reduce<number | null>(
+          (max, p) => (p.fastingHours != null && (max == null || p.fastingHours > max) ? p.fastingHours : max),
+          null,
+        );
+        return { testName: t.testName, hours };
+      })
+      .filter((x): x is { testName: string; hours: number | null } => x !== null);
+  }
+
   toggleTestSelection(t: TestItem): void {
     this.focusedTestId = t.testCode;
+    this.loadFocusedProtocol(t);
 
     // Selecting is blocked, but de-selecting must always work — otherwise a test
     // whose last parameter was deleted after it was picked would be stuck in the
@@ -300,6 +416,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     if (!t) return;
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
+    this.selectedTestProtocols = this.selectedTestProtocols.filter(t => t.testCode !== testId);
   }
 
   confirmTestSelection(): void {
@@ -322,10 +439,17 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     });
     this.showTestCatalog = false;
     this.calculateNetAmount();
+    // Bring the requirements back to the form step, where the operator is still with the
+    // patient and can tell them about fasting before they leave.
+    this.loadSelectedProtocols();
   }
 
   cancelTestCatalog(): void {
     this.showTestCatalog = false;
+    // The basket survives "Back to Form", so the summary on step 1 has to be refreshed
+    // here too. Without this, backing out after changing the selection leaves the fasting
+    // and missing-protocol alerts describing a basket that no longer exists.
+    this.loadSelectedProtocols();
   }
 
   isTestSelected(t: TestItem): boolean {
@@ -689,6 +813,18 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.query                = '';
     this.selectedTestIds      = new Set<string>();
     this.selectedTests        = [];
+    this.focusedTestId             = null;
+    this.focusedProtocols          = null;
+    this.focusedProtocolTestName   = '';
+    this.focusedProtocolTestCode   = '';
+    this.focusedProtocolLoading    = false;
+    // protocolRequestSeq is deliberately NOT reset. The modal is reused across opens, and
+    // rewinding the counter would let a response still in flight from the previous session
+    // match a sequence number issued after the reset — writing one test's sample
+    // requirements onto another, which is the exact failure the counter exists to prevent.
+    this.selectedTestProtocols     = [];
+    this.selectedProtocolsLoading  = false;
+    this.showSelectedProtocols     = true;
     this.referredByContacts        = [];
     this.referredByOptions         = [];
     this.filteredReferredByOptions = [];

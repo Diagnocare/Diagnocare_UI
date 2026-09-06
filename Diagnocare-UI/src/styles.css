@@ -2155,3 +2155,387 @@ ng-select { width: 100%; font-size: 14px; }
   top: 12px !important;
   right: 12px !important;
 }
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+   ║  RESPONSIVE LAYER — appended                                             ║
+   ║                                                                          ║
+   ║  Appended rather than @import-ed on purpose: an @import has to sit at the ║
+   ║  top of the file, which would load these rules BEFORE everything they are ║
+   ║  meant to override. Last in the file means last in the cascade, so no     ║
+   ║  !important is needed.                                                    ║
+   ║                                                                          ║
+   ║  Everything from here to the end of the file is this layer. To remove it, ║
+   ║  delete from this banner down.                                            ║
+   ╚══════════════════════════════════════════════════════════════════════════╝ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — RESPONSIVE LAYER
+   ──────────────────────────────────────────────────────────────────────────────
+   Loaded last, from styles.css, so these rules win over the layout defaults
+   without needing !important.
+
+   Two things this is fixing, and they are the same thing:
+
+     • Small screens. Phones and tablets.
+     • Browser zoom. A user on a 1440px monitor at 150% zoom has a 960px
+       viewport as far as CSS is concerned — the same situation as a small
+       laptop. Ctrl+= is by far the most common accessibility setting in a lab,
+       and the layout has to survive it.
+
+   Every breakpoint here is in `em`, not `px`. An em breakpoint is measured
+   against the root font size, so it moves when the user changes their browser's
+   text size as well as when they zoom — a px breakpoint only handles zoom.
+   The existing blocks in styles.css already use em; these match them.
+
+     30em  = 480px   phones
+     48em  = 768px   large phones, tablets portrait   (already in styles.css)
+     64em  = 1024px  tablets landscape, small laptops, 150% zoom on 1440
+     90em  = 1440px  large monitors                   (already in styles.css)
+
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   1 · EVERY SIZE — things that should never have been size-dependent
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Stop iOS inflating text when the phone is rotated to landscape. Without it,
+   a table that fitted in portrait comes back with different type sizes. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 100vh on a phone is the viewport *including* the browser's address bar, so a
+   full-height page always overflows by the height of that bar. dvh is the
+   dynamic height that accounts for it; the vh line stays first as the fallback
+   for older browsers. */
+.page-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Media should never be the reason a page scrolls sideways. */
+img, svg, video, canvas, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* A long unbroken string — an email address, a policy number, a test code —
+   otherwise sets the minimum width of its column and pushes the whole table
+   wider than the screen. */
+td, th, .patient-info, .ref-info, .dc-record__title, .alert, .no-data p {
+  overflow-wrap: anywhere;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────────
+   The single biggest source of sideways scrolling. styles.css turns this on
+   only below 48em, which leaves every width between 768px and the table's
+   natural size broken — laptops, tablets in landscape, and any zoomed desktop.
+   A table that fits simply does not scroll, so there is no cost to having this
+   on always. */
+.table-container,
+.table-responsive,
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Contain the scroll: without this the browser may scroll the page instead
+     of the table when a swipe starts on a cell. */
+  overscroll-behavior-x: contain;
+}
+
+/* The table itself must be allowed to exceed its container — that is what the
+   scroll is for. Without this, `width: 100%` squeezes columns into unreadable
+   slivers rather than scrolling. */
+.table-container > table,
+.table-responsive > table,
+.scroll-x > table {
+  min-width: max-content;
+}
+
+/* ── Pagination ────────────────────────────────────────────────────────────
+   A row of First / Previous / 1 2 3 4 5 / Next / Last plus a page-size select
+   is wider than any phone. Wrap it instead of overflowing. */
+.pagination {
+  flex-wrap: wrap;
+  /* row-gap only. Adding a column gap would widen the row and make it wrap at
+     widths where it previously fitted — the opposite of the intent. */
+  row-gap: 0.5em;
+}
+.pagination-controls {
+  flex-wrap: wrap;
+  row-gap: 0.35em;
+}
+
+/* ── Anything that lays buttons in a row ─────────────────────────────────────
+   Not row actions inside a table: that cell lives in a horizontally scrolling
+   container, so it has all the room it needs. Letting it wrap stacks four
+   buttons into a column and triples the height of every row in the table. */
+.action-buttons,
+.header-actions,
+.header-actions-group,
+.form-actions,
+.modal-footer-actions,
+.dc-actions-row {
+  flex-wrap: wrap;
+}
+
+/* Row actions inside a table stay on one line — see the note above. */
+td .action-buttons,
+.patients-table .action-buttons {
+  flex-wrap: nowrap;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   2 · ≤ 64em (1024px) — tablets landscape, small laptops, 150% zoom on 1440
+   The gap in the current stylesheet: everything here used to wait until 48em.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 64em) {
+
+  .content-container {
+    padding: 1em 1.25em;
+  }
+
+  .page-header {
+    padding: 1em 1.25em;
+  }
+
+  /* Filter rows: as many columns as genuinely fit, then wrap. A fixed column
+     count is what makes date pickers overlap their labels at this width. */
+  .search-row,
+  .filters-row,
+  .report-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75em;
+  }
+
+  /* Two-column forms become one column well before they get cramped. Reading a
+     label that has wrapped to three words per line is slower than scrolling. */
+  .form-row {
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+
+  /* The full-screen Add Test overlay: no wasted gutters at this width. */
+  .atm-page {
+    padding: 0;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   3 · ≤ 48em (768px) — tablets portrait and large phones
+   styles.css already covers the basics here; these are the gaps.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 48em) {
+
+  /* Header actions were centred, which reads as a mistake when the title above
+     them is left-aligned. */
+  .page-header {
+    align-items: stretch;
+  }
+  .header-actions,
+  .header-actions-group {
+    justify-content: flex-start;
+  }
+
+  /* Every custom overlay in the app: full-bleed rather than a floating card
+     with 8px of backdrop showing on each side. */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  .pm-modal,
+  .pcm-modal {
+    width: calc(100vw - 1.5rem);
+    max-width: none;
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+  }
+
+  /* Segmented toggles (Recent & Pending / All Reports) overflow their row. */
+  .filter-mode-toggle {
+    width: 100%;
+  }
+  .filter-mode-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Row actions: give each button room rather than letting four of them squash
+     into unreadable slivers. */
+  .action-buttons {
+    gap: 0.4em;
+  }
+
+  /* Amount summary cards and stat rows: two up, not four. */
+  .amount-summary,
+  .amount-cards,
+  .stats-row {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   4 · ≤ 30em (480px) — phones
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 30em) {
+
+  .content-container {
+    padding: 0.75em;
+  }
+
+  /* One action per row beats four buttons at 60px each. */
+  .form-actions .btn,
+  .modal-footer-actions .btn,
+  .header-actions .btn,
+  .header-actions .dc-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Pagination: keep First/Prev/Next/Last usable and let the numbers wrap
+     underneath rather than pushing the row off-screen. */
+  .page-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em;
+    justify-content: center;
+    width: 100%;
+    order: 3;
+  }
+  .pagination-info {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Stat and summary cards stack rather than shrinking below readable. */
+  .amount-summary,
+  .amount-cards,
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* The date range: From and To stack, with the arrow between them hidden —
+     it means nothing once they are one above the other. */
+  .date-inputs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5em;
+  }
+  /* Two selectors deep, to beat the per-screen rule that sets it to flex. */
+  .date-inputs .date-sep,
+  .date-range .date-sep {
+    display: none;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   5 · Very high zoom (≥ 200%) and narrow desktop windows
+   At this point the viewport is under ~400 CSS px on a normal monitor. Anything
+   still trying to be a row has to become a column, or the user is dragging a
+   horizontal scrollbar to read a sentence.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 24em) {
+
+  .page-header h1,
+  .page-header h2 {
+    font-size: 1.05em;
+  }
+
+  /* Icon-only is acceptable here and nowhere else: at this width a labelled
+     button would push everything else off the screen. The accessible name
+     stays on the button either way. */
+  .btn-action {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   6 · Print — reports and receipts are printed constantly in a lab
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  .page-header,
+  .header-actions,
+  .header-actions-group,
+  .action-buttons,
+  .pagination,
+  .search-section,
+  .form-actions,
+  app-header {
+    display: none !important;
+  }
+
+  .page-container {
+    background: #fff !important;
+    min-height: 0;
+  }
+  .content-container {
+    padding: 0;
+  }
+
+  /* A scroll container prints as a clipped box; on paper it just needs to be
+     the full table. */
+  .table-container,
+  .table-responsive,
+  .scroll-x {
+    overflow: visible !important;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   7 · Motion
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Age in years / months / days ──────────────────────────────────────────────
+   Three boxes that read as one field. Used by add-patient and edit-patient.
+   The unit sits under its box rather than inside it as a placeholder, so it is
+   still readable once a number has been typed over it. */
+.age-parts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5em;
+}
+.age-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+}
+.age-part .form-control {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* The spinner arrows are ~10px tall and add nothing here — the values are
+   typed, and there is a hard min/max on each box anyway. */
+.age-part input[type="number"]::-webkit-outer-spin-button,
+.age-part input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.age-part input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+.age-part__unit {
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #666);
+  text-align: center;
+}
