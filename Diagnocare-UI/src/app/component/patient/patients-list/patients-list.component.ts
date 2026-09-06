@@ -75,7 +75,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   // Pagination properties
   currentPage: number = 1;
-  pageSize: number = 5;
+  pageSize: number = 10;
   totalPages: number = 1;
   totalItems = 0;
   startIndex: number = 0;

@@ -11,6 +11,7 @@ import { SalaryService } from 'src/app/services/salaryServices/salary.service';
 import { MemberService } from 'src/app/services/memberService/member.service';
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { filterActiveMembers, isActiveByDate } from 'src/app/shared/member-utils';
+import { Role } from 'src/app/constant/enums';
 import {
   SalaryStatus,
   PaymentFor,
@@ -363,11 +364,63 @@ export class SalaryComponent implements OnInit, OnDestroy {
   }
 
   // ── Salary config state ────────────────────────────────────────────────────
+  /**
+   * Every member eligible for a salary config — users, collection boys and doctors.
+   * The user endpoint omits Collection Boys (5) and Doctors (6) unless a role is
+   * passed, so the three lists are fetched separately and merged here.
+   */
   userList: MemberDto[] = [];
 
+  // ── Staff-type selector (config tab) ──────────────────────────────────────
+  configStaffType: 'user' | 'collection-boy' | 'doctor' = 'user';
+
+  /** Which typeUserId values belong to each staff type in the picker. */
+  private readonly STAFF_TYPE_ROLES: Record<'user' | 'collection-boy' | 'doctor', number[]> = {
+    'user':           [Role.User.id, Role.Assistant.id, Role.Admin.id],
+    'collection-boy': [Role.Collection_Boy.id],
+    'doctor':         [Role.Doctor.id],
+  };
+
+  /** Plural label for the selected staff type — used in placeholders and empty states. */
+  get staffTypeLabel(): string {
+    switch (this.configStaffType) {
+      case 'doctor':         return 'Doctors';
+      case 'collection-boy': return 'Collection Boys';
+      default:               return 'Users';
+    }
+  }
+
+  /** How many active members the selected user type has (search term ignored). */
+  get staffTypeCount(): number {
+    const allowedRoles = this.STAFF_TYPE_ROLES[this.configStaffType];
+    return this.userList.filter(u =>
+      allowedRoles.includes(u.typeUserId) &&
+      u.last_Name?.toLowerCase() !== 'admin'
+    ).length;
+  }
+
+  /** Singular label for the selected staff type. */
+  get staffTypeSingular(): string {
+    switch (this.configStaffType) {
+      case 'doctor':         return 'Doctor';
+      case 'collection-boy': return 'Collection Boy';
+      default:               return 'User';
+    }
+  }
+
+  setConfigStaffType(type: 'user' | 'collection-boy' | 'doctor'): void {
+    if (this.configStaffType === type) return;
+    this.configStaffType = type;
+    // The selected employee belongs to the previous type — drop it so the
+    // config card below never shows someone who is not in the visible list.
+    this.clearUserSelection();
+    this.isDropdownOpen = false;
+  }
+
   get filteredUserList(): MemberDto[] {
+    const allowedRoles = this.STAFF_TYPE_ROLES[this.configStaffType];
     const eligible = this.userList.filter(u =>
-      u.typeUserId !== 4 &&
+      allowedRoles.includes(u.typeUserId) &&
       u.last_Name?.toLowerCase() !== 'admin'
     );
     if (!this.userSearchTerm.trim()) return eligible;
@@ -719,14 +772,22 @@ export class SalaryComponent implements OnInit, OnDestroy {
   private loadConfigTab(): void {
     this.isLoadingConfigTab = true;
     forkJoin({
-      users:   this.memberSvc.getAll().pipe(catchError(() => of([] as MemberDto[]))),
+      // The role-less call returns everyone EXCEPT collection boys and doctors,
+      // so those two roles are requested explicitly and merged below.
+      users:          this.memberSvc.getAll().pipe(catchError(() => of([] as MemberDto[]))),
+      collectionBoys: this.memberSvc.getAll(Role.Collection_Boy.id).pipe(catchError(() => of([] as MemberDto[]))),
+      doctors:        this.memberSvc.getAll(Role.Doctor.id).pipe(catchError(() => of([] as MemberDto[]))),
       configs: this.salarySvc.getSalaryConfig().pipe(catchError(() => of([] as UserSalaryConfigDTO[]))),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ users, configs }) => {
+        next: ({ users, collectionBoys, doctors, configs }) => {
+          // De-duplicate by id in case a role appears in more than one response.
+          const merged = Array.from(
+            new Map([...users, ...collectionBoys, ...doctors].map(u => [u.id, u] as [number, MemberDto])).values()
+          );
           // Only active staff are relevant for salary configuration
-          this.userList           = filterActiveMembers(users);
+          this.userList           = filterActiveMembers(merged);
           this.configList         = configs;
           this.isLoadingConfigTab = false;
           if (!this.userList.length) this.toastr.warning('Could not load employee list.', 'Warning');
