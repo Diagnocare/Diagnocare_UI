@@ -20,8 +20,6 @@ import { PatientService } from 'src/app/services/patientServices/patient.service
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
 import {
-  calculatePatientStatus,
-  hasPendingTests,
   resolvePaymentStatus,
   getPaymentBadgeLabel as paymentBadgeLabel,
   getPaymentStatusClass as paymentStatusClass
@@ -852,15 +850,28 @@ export class PatientTestListComponent implements OnInit {
     // ── Step 1: Cancel or partially remove test codes per booking ─────────
     // Full cancel  → all test codes in the booking are selected → use CancelTest
     // Partial remove → only some codes selected → use RemoveTests (keeps booking active)
-    const cancelCalls = bookingCancels.map(item => {
+    //
+    // Decided up front rather than inside the request map, so the success toast
+    // can say which of the two actually happened.
+    const decisions = bookingCancels.map(item => {
       const totalCodesInBooking = (item.booking.test_Id || '')
         .split(',').map(c => c.trim()).filter(Boolean).length;
-      const isFullCancel = item.selectedCodes.length >= totalCodesInBooking;
-
-      return isFullCancel
-        ? this.patientService.cancelPatientTest(Number(item.booking.patient_Test_Id), reason ?? undefined)
-        : this.patientService.removeTestCodes(Number(item.booking.patient_Test_Id), item.selectedCodes, reason ?? undefined);
+      return {
+        item,
+        isFullCancel: item.selectedCodes.length >= totalCodesInBooking
+      };
     });
+
+    const fullCancelCount = decisions.filter(d => d.isFullCancel).length;
+    const removedTestCount = decisions
+      .filter(d => !d.isFullCancel)
+      .reduce((sum, d) => sum + d.item.selectedCodes.length, 0);
+
+    const cancelCalls = decisions.map(({ item, isFullCancel }) =>
+      isFullCancel
+        ? this.patientService.cancelPatientTest(Number(item.booking.patient_Test_Id), reason ?? undefined)
+        : this.patientService.removeTestCodes(Number(item.booking.patient_Test_Id), item.selectedCodes, reason ?? undefined)
+    );
 
     forkJoinRxjs(cancelCalls).subscribe({
       next: () => {
@@ -873,9 +884,15 @@ export class PatientTestListComponent implements OnInit {
         );
 
         if (refundItems.length === 0) {
-          this.updatePatientStatusAfterCancellation();
+          this.toastr.success(
+            this.buildCancelSuccessMessage(fullCancelCount, removedTestCount),
+            'Success'
+          );
+          this.refreshAfterCancellation();
           return;
         }
+
+        const totalRefund = refundItems.reduce((sum, item) => sum + item.refundAmount, 0);
 
         const refundCalls = refundItems.map(item =>
           this.receiptService.refundReceipt(
@@ -887,14 +904,19 @@ export class PatientTestListComponent implements OnInit {
 
         forkJoinRxjs(refundCalls).subscribe({
           next: () => {
-            this.updatePatientStatusAfterCancellation();
+            this.toastr.success(
+              `${this.buildCancelSuccessMessage(fullCancelCount, removedTestCount)} ` +
+              `Refund of ₹${totalRefund.toFixed(2)} issued.`,
+              'Success'
+            );
+            this.refreshAfterCancellation();
           },
           error: () => {
             this.toastr.warning(
               'Booking(s) cancelled but refund failed. Please retry from the Receipts page.',
               'Partial Success'
             );
-            this.updatePatientStatusAfterCancellation();
+            this.refreshAfterCancellation();
           }
         });
       },
@@ -905,36 +927,44 @@ export class PatientTestListComponent implements OnInit {
   }
 
   /**
-   * Updates the patient status after booking cancellation.
-   * If there are no pending tests remaining, automatically updates patient status to "Completed".
-   * Refreshes the UI without requiring a manual page reload.
+   * Wording for the post-cancellation success toast.
+   *
+   * A confirm can do both things at once: cancel some bookings outright and
+   * strip individual test codes from others, so both halves are reported.
    */
-  private updatePatientStatusAfterCancellation(): void {
+  private buildCancelSuccessMessage(fullCancelCount: number, removedTestCount: number): string {
+    const parts: string[] = [];
+
+    if (fullCancelCount > 0) {
+      parts.push(`${fullCancelCount} booking${fullCancelCount === 1 ? '' : 's'} cancelled`);
+    }
+    if (removedTestCount > 0) {
+      parts.push(`${removedTestCount} test${removedTestCount === 1 ? '' : 's'} removed`);
+    }
+
+    return parts.length ? `${parts.join(' and ')} successfully.` : 'Cancellation completed successfully.';
+  }
+
+  /**
+   * Refreshes the list after a booking cancellation.
+   *
+   * The patient's status is NOT pushed to the server here. It is derived
+   * server-side on every read (PatientService.ComputeTestStatus), which already
+   * excludes cancelled bookings — there is no stored status column to update and
+   * no api/Patient/UpdatePatientStatus endpoint. The call that used to live here
+   * 404'd on every successful cancellation, and the global ErrorInterceptor
+   * surfaced it as "The requested resource was not found." on top of a
+   * cancellation that had in fact succeeded.
+   *
+   * Reloading the tests is enough: the next read of the patient returns the
+   * recomputed status.
+   */
+  private refreshAfterCancellation(): void {
     // Reload patient tests to get updated data
     this.testReportService.getAllPatientTests(this.patientId).subscribe({
       next: (updatedTests: patientTest[]) => {
         this.allPatientTests = updatedTests;
-
-        // Calculate new patient status based on updated tests
-        const newStatus = calculatePatientStatus(updatedTests);
-
-        // Only update if there are no pending tests (status should be Completed)
-        if (newStatus === 'Completed' && hasPendingTests(updatedTests) === false) {
-          this.patientService.updatePatientStatus(this.patientId, newStatus).subscribe({
-            next: () => {
-              // Status updated successfully
-              this.filterTests();
-            },
-            error: (err) => {
-              // Log error but continue (status update is non-critical)
-              console.warn('Failed to update patient status:', err);
-              this.filterTests();
-            }
-          });
-        } else {
-          // Just refresh the view without updating status
-          this.filterTests();
-        }
+        this.filterTests();
       },
       error: (error) => {
         console.error('Failed to reload patient tests:', error);

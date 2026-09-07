@@ -142,18 +142,10 @@ export class PatientService {
     return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null });
   }
 
-  /**
-   * Updates the status of a patient based on their test completion status.
-   * Called after booking cancellation or test completion to auto-update patient status.
-   * PUT api/patient/UpdatePatientStatus
-   *
-   * @param patientId The patient ID to update
-   * @param newStatus The new patient status ('Pending' | 'Partial' | 'Completed')
-   * @returns Observable indicating success
-   */
-  updatePatientStatus(patientId: string, newStatus: string): Observable<any> {
-    const url = `${this.patienturl}/UpdatePatientStatus`;
-    return this.httpClient.put<any>(url, { patientId, status: newStatus });
-  }
+  // NOTE: there is deliberately no updatePatientStatus() here.
+  // A patient's test status is derived server-side on every read
+  // (PatientService.ComputeTestStatus, which excludes cancelled bookings);
+  // it is not stored, and api/Patient has no UpdatePatientStatus action.
+  // The method that used to live here 404'd on every booking cancellation.
 
 }
