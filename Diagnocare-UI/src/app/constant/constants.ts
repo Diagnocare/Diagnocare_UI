@@ -355,6 +355,9 @@ export const summaryReportApiEndpoints: { [key: string]: string } = {
   worksheetReport:      'worksheet-report',
   receiptRegister:      'receipt-register',
   refundRegister:       'refund-register',
+  // Dashboard revenue figures only — not a Reports page entry, so it is
+  // deliberately absent from reportConfigs below.
+  dailyCollection:      'daily-collection',
   billRegister:         'bill-register',
   patientDiagnosisReport: 'patient-diagnosis-report',
   pndtTestReport:       'pndt-test-report',
