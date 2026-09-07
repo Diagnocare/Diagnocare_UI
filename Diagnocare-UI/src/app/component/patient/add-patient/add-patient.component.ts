@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { StepperComponent } from '../stepper/stepper.component';
@@ -12,6 +12,8 @@ import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.d
 import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
 import { CommonService } from 'src/app/shared/common.service';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -174,6 +176,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     private _memberService:   MemberService,
     private _contactService:  ContactAddressService,
     private _token:           TokenService,
+    private _sampleLabelService: SampleLabelService,
   ) {
     this.patientForm = this.fb.group({
       country_Code:      ['+91', Validators.required],
@@ -1247,16 +1250,19 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     };
 
     this._patientService.AddPatient(payload).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: any) => {
+      next: (res: BookingResultDto) => {
         this.isLoading = false;
-        if (res) {
-          this._route.navigate(['/patients']);
-        } else {
+
+        if (!res?.success) {
           // API returned HTTP 200 but the operation failed (e.g. transaction
           // rolled back). This is not an HTTP error, so the global interceptor
           // won't fire — surface it explicitly.
-          this.toastr.error('Failed to register patient. Please try again.', 'Error');
+          this.toastr.error(res?.message || 'Failed to register patient. Please try again.', 'Error');
+          return;
         }
+
+        this.printSampleLabels(res);
+        this._route.navigate(['/patients']);
       },
       error: () => {
         // HTTP/network errors are surfaced centrally by ErrorInterceptor;
@@ -1264,6 +1270,51 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     });
+  }
+
+  /**
+   * Opens the sample collection labels for a just-created booking — one sticker
+   * per booked test, with the print dialog opening by itself.
+   *
+   * Called only after a confirmed successful registration, so a label can never
+   * be printed for a booking that was rolled back and does not exist.
+   *
+   * Failures here are deliberately non-fatal: the patient IS registered by this
+   * point, and blocking or alarming the operator over a label would misrepresent
+   * what happened. They are told how to reprint instead — the booking's labels
+   * remain available from the patient's test list.
+   */
+  private printSampleLabels(booking: BookingResultDto): void {
+    if (!booking.testRegId || !booking.labels?.length) {
+      return;
+    }
+
+    // Deliberately NOT piped through takeUntil(this.destroy$).
+    //
+    // The caller navigates to the patient list immediately after this returns,
+    // which destroys this component and completes destroy$. A label request bound
+    // to it would be cancelled mid-flight and the labels would silently never
+    // appear. This request has to outlive the screen that started it; ToastrService
+    // is app-scoped, so the messages below still reach the operator afterwards.
+    this._sampleLabelService.printLabels(booking.testRegId)
+      .subscribe({
+        next: (opened: boolean) => {
+          if (!opened) {
+            // A blocked pop-up is silent in most browsers; without this the
+            // operator would simply never see the labels and not know why.
+            this.toastr.warning(
+              'Patient registered, but the label window was blocked. ' +
+              'Allow pop-ups for this site, then reprint from the patient\'s tests.',
+              'Labels not shown');
+          }
+        },
+        error: () => {
+          this.toastr.warning(
+            'Patient registered, but the sample labels could not be fetched. ' +
+            'You can reprint them from the patient\'s tests.',
+            'Labels not printed');
+        }
+      });
   }
 
   getInvalidControls(form: FormGroup): string[] {

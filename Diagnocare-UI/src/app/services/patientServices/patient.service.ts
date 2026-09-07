@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { map, Observable, of } from 'rxjs';
 import { PatientCreateDto } from '../../models/patient/patient-create.dto';
@@ -7,6 +7,7 @@ import { PatientEditDto } from '../../models/patient/patient-edit.dto';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { KeyValuePair } from 'src/app/models/common/keyValuePair';
+import { BookingResultDto } from '../../models/patient/booking-result.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -33,19 +34,29 @@ export class PatientService {
     return this.httpClient.get<KeyValuePair>(geturl);
   }
 
-  AddPatient(data: PatientCreateDto): Observable<PatientCreateDto> {
+  /**
+   * Registers a new patient and books their first test.
+   *
+   * Returns a BookingResultDto, NOT the payload that was sent — the response
+   * carries the server-generated patient id, the new booking's testRegId and one
+   * barcode per booked test, which is what lets the caller print sample labels.
+   * (It was previously typed as PatientCreateDto, which never matched what the
+   * API actually returned.)
+   */
+  AddPatient(data: PatientCreateDto): Observable<BookingResultDto> {
     const addurl = this.patienturl + apiEndpoints.add;
-    console.log(addurl);
-    return this.httpClient.post<PatientCreateDto>(addurl, data);
+    return this.httpClient.post<BookingResultDto>(addurl, data);
   }
 
   /**
    * Adds a new test (and initial payment) for an already-registered patient.
-   * POST api/patient/AddTest
+   * Answers in the same shape as AddPatient, so a returning patient's booking can
+   * print labels through exactly the same code path.
+   * POST api/patient/AddTestWithReceipt
    */
-  addPatientTest(data: AddPatientTestDto): Observable<any> {
+  addPatientTest(data: AddPatientTestDto): Observable<BookingResultDto> {
     const url = this.patienturl + apiEndpoints.addTestWithReceipt;
-    return this.httpClient.post<any>(url, data);
+    return this.httpClient.post<BookingResultDto>(url, data);
   }
 
   updatePatientDetails(patient: PatientEditDto): Observable<boolean> {
