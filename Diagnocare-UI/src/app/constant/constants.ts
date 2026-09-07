@@ -1,4 +1,4 @@
-import { get } from "@okta/okta-auth-js";
+﻿import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -16,6 +16,7 @@ export const controllerEndpoints = {
   patient: 'api/patient/',
   patientReport: 'api/PatientReport/',
   patientTestReportGeneration: 'api/TestReportGeneration/',
+  sampleLabel: 'api/SampleLabel/',
   pathology: 'api/pathology/',
   test: 'api/test/',
   user: 'api/user/',
