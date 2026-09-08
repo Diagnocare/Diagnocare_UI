@@ -249,6 +249,15 @@
                     (click)="viewDetails(test, $event)">
               <i class="fa fa-eye"></i> View Test Details
             </button>
+            <!-- Sample collection protocol for everything on this booking. Read-only —
+                 the same instructions shown while booking, available afterwards. -->
+            <button class="btn btn-sm btn-protocol"
+                    (click)="openBookingProtocols(test, $event)"
+                    [disabled]="loadingProtocolFor === test.patient_Test_Id"
+                    title="View the sample collection protocol for the tests on this booking">
+              <i class="fa" [ngClass]="loadingProtocolFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-info-circle'"></i>
+              {{ loadingProtocolFor === test.patient_Test_Id ? 'Loading…' : 'Sample Protocol' }}
+            </button>
             <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
                     title="View payment receipts for this test">
               <i class="fa fa-file-text"></i> View Receipts
@@ -327,6 +336,38 @@
           <div class="card-header">
             <div class="header-title">
               <h3>Test {{ i + 1 }}: {{ detail.testName }}</h3>
+              <!-- Per-test protocol. Sits beside the name because that is where someone
+                   looks when they are about to collect this particular sample. -->
+              <button type="button"
+                      class="protocol-info-btn"
+                      (click)="openDetailProtocol(detail, $event)"
+                      [title]="'Sample collection protocol for ' + detail.testName"
+                      aria-label="View sample collection protocol">
+                <i class="fa fa-info-circle"></i>
+              </button>
+
+              <!-- How many times this test was run on the sample. Shown only once it has
+                   actually been repeated: a "×1" on every test would be noise, and the
+                   whole signal here is that this one was questioned. -->
+              <button type="button"
+                      class="run-count-chip"
+                      *ngIf="runCount(detail) > 1"
+                      (click)="openRunHistory(detail, $event)"
+                      [title]="runCountTooltip(detail)">
+                <i class="fa fa-repeat"></i> Run &times;{{ runCount(detail) }}
+              </button>
+
+              <!-- A rejected sample is why no result appeared. It belongs on the test
+                   itself, not only inside a modal somebody has to think to open. -->
+              <button type="button"
+                      class="rejection-chip"
+                      *ngIf="wasEverRejected(detail)"
+                      [class.rejection-chip--open]="hasOpenRejection(detail)"
+                      (click)="openRejectionView(detail, $event)"
+                      [title]="rejectionCategory(detail) + ' — ' + rejectionReason(detail)">
+                <i class="fa fa-ban"></i>
+                {{ hasOpenRejection(detail) ? 'Sample rejected' : 'Was rejected' }}
+              </button>
             </div>
             <span class="badge" [ngClass]="detail.isAbnormal ? 'badge-danger' : 'badge-success'">
               {{ detail.isAbnormal ? 'Abnormal' : 'Normal' }}
@@ -334,6 +375,21 @@
           </div>
 
           <div class="card-body">
+
+            <!-- The reason, in full, where the result would be. A test whose sample was
+                 refused has no result to show and the blank space is what confuses people —
+                 so the space says what happened and what is being waited on. -->
+            <div class="rejection-banner" *ngIf="hasOpenRejection(detail)"
+                 (click)="openRejectionView(detail, $event)">
+              <i class="fa fa-exclamation-triangle"></i>
+              <div class="rejection-banner-body">
+                <strong>Sample rejected — awaiting re-collection</strong>
+                <span class="rejection-banner-reason">{{ rejectionReason(detail) }}</span>
+                <span class="rejection-banner-cat">{{ rejectionCategory(detail) }}</span>
+              </div>
+              <span class="rejection-banner-link">Details</span>
+            </div>
+
             <div class="test-details">
               <div class="detail-row">
                 <span class="detail-label">Test Code:</span>
@@ -363,9 +419,20 @@
                 <span class="detail-label">Unit:</span>
                 <span class="detail-value">{{ detail.unit }}</span>
               </div>
-              <div class="detail-row" *ngIf="detail.method">
+              <!-- Always rendered, never hidden when empty. A missing row reads as "no
+                   particular method"; a row that says "Not recorded" is the truth, and it is
+                   what tells an admin the test still needs its technique entered. -->
+              <div class="detail-row">
                 <span class="detail-label">Method:</span>
-                <span class="detail-value">{{ detail.method }}</span>
+                <!-- effectiveMethod first: it resolves a linked catalogue technique, which a
+                     test can carry with no free-text method at all. -->
+                <span class="detail-value" *ngIf="detail.effectiveMethod || detail.method">
+                  {{ detail.effectiveMethod || detail.method }}
+                </span>
+                <span class="detail-value detail-value--absent"
+                      *ngIf="!detail.effectiveMethod && !detail.method">
+                  Not recorded
+                </span>
               </div>
               <div class="detail-row" *ngIf="detail.status">
                 <span class="detail-label">Status:</span>
@@ -383,6 +450,26 @@
                       *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
                       (click)="openParameterView(detail, $event)">
                 <i class="fa fa-file-text"></i> Test Result
+              </button>
+
+              <!-- Opening the runs and ordering a repeat are the same action in practice:
+                   whoever doubts a result wants to see whether it has already been
+                   questioned before adding another run. -->
+              <button class="btn btn-runs"
+                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
+                      (click)="openRunHistory(detail, $event)"
+                      title="How many times this test was run on the sample, and why">
+                <i class="fa fa-repeat"></i> Test Runs
+              </button>
+
+              <!-- Recording a rejection and reading one are the same screen: whoever is
+                   about to refuse a sample wants to see whether it has already been
+                   refused once. -->
+              <button class="btn btn-rejection"
+                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
+                      (click)="openRejectionView(detail, $event)"
+                      title="Record or review a rejected sample for this test">
+                <i class="fa fa-ban"></i> Sample Rejection
               </button>
             </div>
           </div>
@@ -436,6 +523,13 @@
         <h2>Create Test Report</h2>
         <p class="subtitle" *ngIf="selectedTestDetail">
           {{ selectedTestDetail.testCode }} — {{ selectedTestDetail.testName }}
+        </p>
+        <!-- "Glucose 96" means different things by GOD-POD and by hexokinase, so the
+             technique sits with the values rather than one screen away. -->
+        <p class="method-subtitle"
+           *ngIf="selectedTestDetail?.effectiveMethod || selectedTestDetail?.method">
+          <i class="fa fa-cogs"></i>
+          Method: {{ selectedTestDetail!.effectiveMethod || selectedTestDetail!.method }}
         </p>
       </div>
       <div class="header-actions">
@@ -534,3 +628,37 @@
 </div>
 
 
+
+<!-- ══ Sample Collection Protocol (read-only) ══════════════════════════════
+     Opened from a booking card, or from a single test in the detail overlay.
+     Reads only: nothing here links, edits or clears a protocol. -->
+<app-protocol-view-modal
+  [visible]="showProtocolModal"
+  [testCodes]="protocolTestCodes"
+  [subtitle]="protocolModalSubtitle"
+  (closed)="closeProtocolModal()">
+</app-protocol-view-modal>
+
+<!-- ══ Test Runs ═══════════════════════════════════════════════════════════
+     How many times this test was run on the collected sample, why each repeat
+     was ordered, and which run the lab stands behind. -->
+<app-test-run-modal
+  [visible]="showRunModal"
+  [testRegId]="runModalTestRegId"
+  [testCode]="runModalTestCode"
+  [testName]="runModalTestName"
+  (closed)="closeRunHistory()"
+  (changed)="onRunsChanged()">
+</app-test-run-modal>
+
+<!-- ══ Sample Rejection ════════════════════════════════════════════════════
+     Why a collected sample could not be used, whether a fresh one is still
+     awaited, and the place a rejection is recorded or closed. -->
+<app-sample-rejection-modal
+  [visible]="showRejectionModal"
+  [testRegId]="rejectionModalTestRegId"
+  [testCode]="rejectionModalTestCode"
+  [testName]="rejectionModalTestName"
+  (closed)="closeRejectionView()"
+  (changed)="onRejectionsChanged()">
+</app-sample-rejection-modal>

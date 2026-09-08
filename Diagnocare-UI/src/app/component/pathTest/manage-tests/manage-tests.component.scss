@@ -365,3 +365,17 @@
     }
   }
 }
+/* The test's method, under its name in the Tests column. Quiet: it is context, not identity. */
+.method-line {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.7em;
+  color: #64748b;
+  margin-top: 0.15em;
+}
+
+.list-item.active .method-line,
+.list-item.selected .method-line {
+  color: rgba(255, 255, 255, 0.85);
+}
