@@ -28,6 +28,16 @@ export const controllerEndpoints = {
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
   feedback:      'api/feedback/',
+  /**
+   * Repeat testing — how many times a test was run on the collected sample, and why.
+   * Its own controller: this is about the conduct of the test, not its values.
+   */
+  testRun:       'api/TestRun/',
+  /**
+   * Sample rejection — a collected sample that could not be used, and why. Its own
+   * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
+   */
+  sampleRejection: 'api/SampleRejection/',
 };
 
 export const apiEndpoints = {
@@ -88,6 +98,8 @@ export const apiEndpoints = {
   getTestList:"GetTestList",
   getPathTest:"GetPathologyTest",
   getTestParameter:"GetTestParameter",
+  /** The seeded catalogue of laboratory techniques, for the picker on the test form. */
+  getTechniques:"GetTechniques",
   /** The whole sample-collection protocol library, with usage counts. */
   getProtocolLibrary:"GetProtocolLibrary",
   /** One protocol's full content. */
@@ -104,6 +116,24 @@ export const apiEndpoints = {
   saveTestProtocolAssignments:"SaveTestProtocolAssignments",
   /** Deletes a lab-authored protocol from the library. Admin / Super Admin only. */
   deleteProtocol:"DeleteProtocol",
+  /** Every recorded run of one test on one booking, with the reason for each repeat. */
+  getTestRunHistory:"GetHistory",
+  /** Run counts for every test on a booking — one call, so a list can be badged cheaply. */
+  getTestRunBookingCounts:"GetBookingCounts",
+  /** Records that a test was run again on the sample already collected. A reason is required. */
+  repeatTestRun:"Repeat",
+  /** Marks which run the lab stands behind. */
+  acceptTestRun:"Accept",
+  /** The standard sample-rejection reasons, grouped by cause. Served so the UI cannot drift. */
+  getSampleRejectionReasons:"GetReasons",
+  /** Every rejection recorded against one test on one booking. */
+  getSampleRejectionHistory:"GetHistory",
+  /** Rejection flags for every test on a booking — one call for the whole list. */
+  getSampleRejectionBookingSummary:"GetBookingSummary",
+  /** Records that a collected sample could not be used. */
+  rejectSample:"Reject",
+  /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
+  resolveSampleRejection:"Resolve",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",

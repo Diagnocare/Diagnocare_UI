@@ -1,0 +1,91 @@
+<div class="ssp">
+
+  <!-- ── Loading ────────────────────────────────────────────────────────── -->
+  <div class="ssp-state" *ngIf="loading">
+    <i class="fa fa-spinner fa-spin"></i>
+    <span>Working out the samples…</span>
+  </div>
+
+  <!-- ── Failed ─────────────────────────────────────────────────────────── -->
+  <!-- Said in words. A blank panel would read as "nothing to draw". -->
+  <div class="ssp-state ssp-state--error" *ngIf="!loading && errorMessage">
+    <i class="fa fa-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <ng-container *ngIf="!loading && !errorMessage && breakdown">
+
+    <!-- ── Heading: the whole answer in one line ────────────────────────── -->
+    <div class="ssp-head" *ngIf="showHeading">
+      <div class="ssp-head-main">
+        <span class="ssp-head-icon">🧫</span>
+        <div>
+          <div class="ssp-head-title">Samples to collect</div>
+          <div class="ssp-head-sub">{{ headlineText }}</div>
+        </div>
+      </div>
+      <span class="ssp-tube-count" [class.ssp-tube-count--multi]="sampleCount > 1">
+        {{ sampleCount }}
+      </span>
+    </div>
+
+    <!-- ── Nothing resolved ─────────────────────────────────────────────── -->
+    <div class="ssp-empty" *ngIf="!hasSamples && testsWithoutProtocol.length === 0">
+      <i class="fa fa-flask"></i>
+      <span>No tests selected yet.</span>
+    </div>
+
+    <!-- ── One row per sample ───────────────────────────────────────────── -->
+    <div class="ssp-list" *ngIf="hasSamples">
+      <div class="ssp-item" *ngFor="let g of samples; trackBy: trackBySample">
+
+        <div class="ssp-item-head">
+          <div class="ssp-item-name">
+            {{ g.sampleType }}
+            <span class="ssp-item-container" *ngIf="g.containerType">· {{ g.containerType }}</span>
+            <span class="ssp-item-qty" *ngIf="g.sampleQuantity">· {{ g.sampleQuantity }}</span>
+          </div>
+
+          <!-- The count this whole panel exists for. -->
+          <span class="ssp-count">{{ countText(g) }}</span>
+        </div>
+
+        <div class="ssp-item-tags">
+          <span class="ssp-tag ssp-tag--fasting" *ngIf="g.fastingRequired">
+            <i class="fa fa-hourglass-half"></i> {{ fastingText(g) }}
+          </span>
+          <!-- Only shown when it differs from the test count, because "1 test · 1 draw"
+               is noise and "1 test · 3 draws" is the whole instruction. -->
+          <span class="ssp-tag ssp-tag--draws" *ngIf="g.drawCount > g.testCount">
+            <i class="fa fa-repeat"></i> Repeat collection
+          </span>
+        </div>
+
+        <div class="ssp-item-tests" *ngIf="!compact">{{ testNames(g) }}</div>
+      </div>
+    </div>
+
+    <!-- ── Tests whose tube nobody recorded ─────────────────────────────── -->
+    <!--
+      Listed, never absorbed into a count. While these exist the tube count is incomplete,
+      and a collector who is not told that will draw the wrong number of tubes.
+    -->
+    <div class="ssp-missing" *ngIf="testsWithoutProtocol.length > 0">
+      <i class="fa fa-exclamation-triangle"></i>
+      <div>
+        <strong>Sample not recorded for
+          {{ testsWithoutProtocol.length }}
+          {{ testsWithoutProtocol.length === 1 ? 'test' : 'tests' }}</strong>
+        <span class="ssp-missing-list">
+          <span *ngFor="let t of testsWithoutProtocol; let last = last">
+            {{ t.testName }}<span *ngIf="!last">, </span>
+          </span>
+        </span>
+        <span class="ssp-missing-hint">
+          These are not counted above. Confirm their container with the laboratory.
+        </span>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

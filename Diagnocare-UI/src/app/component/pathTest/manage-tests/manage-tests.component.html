@@ -93,6 +93,11 @@
             <div class="left">
               <div class="code">{{t.testCode}}</div>
               <div class="name">{{t.testName}}</div>
+              <!-- Shown only when recorded. An admin scanning the list to find which tests
+                   still need a technique entered can spot the gaps without opening each. -->
+              <div class="method-line" *ngIf="t.effectiveMethod || t.method">
+                <i class="fa fa-cogs"></i> {{ t.effectiveMethod || t.method }}
+              </div>
               <span class="template-badge" *ngIf="t.templateId">
                 <i class="fa fa-file-text-o"></i> Template
               </span>

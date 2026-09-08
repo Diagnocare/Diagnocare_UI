@@ -1,0 +1,217 @@
+<div class="srm-overlay" *ngIf="visible">
+  <div class="srm-backdrop" (click)="close()"></div>
+
+  <div class="srm-container" role="dialog" aria-modal="true" aria-label="Sample rejection">
+
+    <!-- ── Header ───────────────────────────────────────────────────────── -->
+    <div class="srm-header">
+      <div class="srm-header-left">
+        <h2><i class="fa fa-ban"></i> Sample Rejection</h2>
+        <p class="srm-subtitle">
+          {{ testName }}<span *ngIf="testCode"> ({{ testCode }})</span>
+        </p>
+      </div>
+      <button type="button" class="srm-close" (click)="close()" title="Close" aria-label="Close">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────── -->
+    <div class="srm-body">
+
+      <div class="srm-loading" *ngIf="loading">
+        <div class="srm-spinner"></div>
+        <p>Loading rejection history…</p>
+      </div>
+
+      <div class="srm-error" *ngIf="!loading && errorMessage">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <ng-container *ngIf="!loading && !errorMessage">
+
+        <!-- ── The open rejection, first and loudest ──────────────────────
+             This is the reason someone opened this screen, and the test is
+             blocked until it is closed. -->
+        <div class="srm-open" *ngIf="hasOpenRejection">
+          <div class="srm-open-head">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div>
+              <div class="srm-open-title">Sample rejected — awaiting re-collection</div>
+              <div class="srm-open-reason">{{ openRejection!.reasonLabel }}</div>
+            </div>
+          </div>
+
+          <div class="srm-open-meta">
+            <span class="srm-cat">{{ openRejection!.categoryLabel }}</span>
+            <span><i class="fa fa-clock-o"></i> {{ openRejection!.rejectedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+            <span *ngIf="openRejection!.rejectedBy"><i class="fa fa-user"></i> {{ openRejection!.rejectedBy }}</span>
+          </div>
+
+          <div class="srm-open-notes" *ngIf="openRejection!.notes">{{ openRejection!.notes }}</div>
+
+          <!-- Closing it is the action this screen exists to offer. -->
+          <div class="srm-open-actions" *ngIf="!readOnly">
+            <button type="button" class="srm-btn srm-btn--primary" *ngIf="!showResolveForm"
+                    (click)="openResolveForm()">
+              <i class="fa fa-check"></i> Fresh sample collected
+            </button>
+
+            <div class="srm-resolve" *ngIf="showResolveForm">
+              <label class="srm-label" for="srm-resolve-note">Note (optional)</label>
+              <input id="srm-resolve-note" type="text" class="srm-input" [(ngModel)]="resolveNote"
+                     placeholder="e.g. Re-drawn at 11:20, fresh EDTA tube">
+
+              <div class="srm-resolve-actions">
+                <button type="button" class="srm-btn" (click)="cancelResolveForm()"
+                        [disabled]="resolving">Cancel</button>
+                <!-- Withdrawn rather than deleted: a rejection recorded in error is itself
+                     worth seeing, and a row that vanishes explains nothing. -->
+                <button type="button" class="srm-btn srm-btn--ghost" (click)="withdraw()"
+                        [disabled]="resolving"
+                        title="The rejection was recorded in error">
+                  Withdraw rejection
+                </button>
+                <button type="button" class="srm-btn srm-btn--primary" (click)="markRecollected()"
+                        [disabled]="resolving">
+                  <i class="fa fa-spinner fa-spin" *ngIf="resolving"></i>
+                  {{ resolving ? 'Saving…' : 'Confirm re-collection' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Never rejected ────────────────────────────────────────────── -->
+        <div class="srm-clear" *ngIf="!everRejected">
+          <i class="fa fa-check-circle"></i>
+          <span>No sample rejection has been recorded for this test.</span>
+        </div>
+
+        <!-- ── Closed, but it happened ───────────────────────────────────── -->
+        <div class="srm-clear srm-clear--past" *ngIf="everRejected && !hasOpenRejection">
+          <i class="fa fa-info-circle"></i>
+          <span>
+            No sample is currently rejected. This test's sample was rejected
+            {{ rejectionCount }} {{ rejectionCount === 1 ? 'time' : 'times' }} before.
+          </span>
+        </div>
+
+        <!-- ── History ───────────────────────────────────────────────────── -->
+        <div class="srm-history" *ngIf="rejections.length > 0">
+          <h4 class="srm-history-title">Rejection history</h4>
+
+          <div class="srm-item" *ngFor="let r of rejections; trackBy: trackByRejection"
+               [class.srm-item--open]="r.isOpen">
+
+            <div class="srm-item-head">
+              <span class="srm-item-reason">{{ r.reasonLabel }}</span>
+              <span class="srm-chip"
+                    [class.srm-chip--open]="r.isOpen"
+                    [class.srm-chip--done]="!r.isOpen">
+                {{ r.statusLabel }}
+              </span>
+            </div>
+
+            <div class="srm-item-meta">
+              <span class="srm-cat">{{ r.categoryLabel }}</span>
+              <span><i class="fa fa-clock-o"></i> {{ r.rejectedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+              <span *ngIf="r.rejectedBy"><i class="fa fa-user"></i> {{ r.rejectedBy }}</span>
+            </div>
+
+            <div class="srm-item-notes" *ngIf="r.notes">{{ r.notes }}</div>
+
+            <div class="srm-item-resolution" *ngIf="!r.isOpen && r.resolvedAt">
+              <i class="fa fa-check"></i>
+              {{ r.statusLabel }} on {{ r.resolvedAt | date:'dd MMM yyyy, HH:mm' }}<span
+                *ngIf="r.resolvedBy"> by {{ r.resolvedBy }}</span><span
+                *ngIf="r.resolutionNote"> — {{ r.resolutionNote }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Record a rejection ────────────────────────────────────────── -->
+        <div class="srm-reject" *ngIf="!readOnly && !hasOpenRejection">
+
+          <button type="button" class="srm-reject-open" *ngIf="!showRejectForm"
+                  (click)="openRejectForm()">
+            <i class="fa fa-ban"></i> Reject this sample
+          </button>
+
+          <div class="srm-form" *ngIf="showRejectForm">
+            <h4>Reject this sample</h4>
+            <p class="srm-form-note">
+              The test cannot proceed on this sample. Recording it here marks the test as
+              awaiting a fresh sample, and the reason stays with the booking.
+            </p>
+
+            <!-- Grouped by cause, not one flat list. A lab acts on the split: bad draws are
+                 a training problem at the collection point, protocol breaches are a
+                 procedure problem, and a mixed list tells nobody which to fix. -->
+            <label class="srm-label" for="srm-reason">
+              Reason <span class="srm-required">*</span>
+            </label>
+            <select id="srm-reason" class="srm-input" [(ngModel)]="reasonCode"
+                    [class.srm-input--invalid]="reasonMissing">
+              <option value="">Select a reason…</option>
+              <optgroup *ngFor="let g of reasonGroups" [label]="g.categoryLabel">
+                <option *ngFor="let r of g.reasons" [value]="r.code">{{ r.label }}</option>
+              </optgroup>
+            </select>
+            <div class="srm-field-error" *ngIf="reasonMissing">
+              Choose the reason the sample was refused.
+            </div>
+
+            <label class="srm-label" for="srm-notes">
+              Notes
+              <span class="srm-required" *ngIf="notesRequired">*</span>
+              <span class="srm-label-hint" *ngIf="!notesRequired">(optional)</span>
+            </label>
+            <textarea id="srm-notes" class="srm-input srm-textarea" rows="2"
+                      [(ngModel)]="notes"
+                      [class.srm-input--invalid]="notesMissing"
+                      [placeholder]="notesRequired
+                        ? 'Describe what was wrong with the sample'
+                        : 'Anything else worth recording'"></textarea>
+            <div class="srm-field-error" *ngIf="notesMissing">
+              Describe what was wrong — that is the whole content of an "Other" rejection.
+            </div>
+
+            <label class="srm-label" for="srm-by">Rejected by</label>
+            <input id="srm-by" type="text" class="srm-input" [(ngModel)]="rejectedBy"
+                   placeholder="Leave blank to record the signed-in user">
+
+            <div class="srm-form-actions">
+              <button type="button" class="srm-btn" (click)="cancelRejectForm()"
+                      [disabled]="submitting">Cancel</button>
+              <button type="button" class="srm-btn srm-btn--danger" (click)="submitReject()"
+                      [disabled]="submitting">
+                <i class="fa fa-spinner fa-spin" *ngIf="submitting"></i>
+                {{ submitting ? 'Recording…' : 'Record rejection' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- One open rejection at a time: two would make "awaiting re-collection"
+             ambiguous about which sample is being waited on. -->
+        <div class="srm-blocked" *ngIf="!readOnly && hasOpenRejection">
+          <i class="fa fa-info-circle"></i>
+          Close the open rejection above before recording another.
+        </div>
+
+      </ng-container>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────────────────────────── -->
+    <div class="srm-footer">
+      <span class="srm-footer-note">
+        <i class="fa fa-book"></i>
+        When a sample must be refused is set out in each test's collection protocol.
+      </span>
+      <button type="button" class="srm-btn" (click)="close()">Close</button>
+    </div>
+
+  </div>
+</div>

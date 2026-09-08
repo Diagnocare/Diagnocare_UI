@@ -1,0 +1,159 @@
+<div class="trm-overlay" *ngIf="visible">
+  <div class="trm-backdrop" (click)="close()"></div>
+
+  <div class="trm-container" role="dialog" aria-modal="true" aria-label="Test run history">
+
+    <!-- ── Header ───────────────────────────────────────────────────────── -->
+    <div class="trm-header">
+      <div class="trm-header-left">
+        <h2><i class="fa fa-repeat"></i> Test Runs</h2>
+        <p class="trm-subtitle">
+          {{ testName }}<span *ngIf="testCode"> ({{ testCode }})</span>
+        </p>
+      </div>
+      <button type="button" class="trm-close" (click)="close()" title="Close" aria-label="Close">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────── -->
+    <div class="trm-body">
+
+      <div class="trm-loading" *ngIf="loading">
+        <div class="trm-spinner"></div>
+        <p>Loading run history…</p>
+      </div>
+
+      <div class="trm-error" *ngIf="!loading && errorMessage">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <ng-container *ngIf="!loading && !errorMessage">
+
+        <!-- The count, stated first. It is what someone opened this for. -->
+        <div class="trm-headline" [class.trm-headline--repeated]="hasBeenRepeated">
+          <span class="trm-count">{{ runCount }}</span>
+          <div>
+            <div class="trm-headline-title">{{ headline }}</div>
+            <div class="trm-headline-sub" *ngIf="!hasBeenRepeated">
+              This test has not been run again on the sample.
+            </div>
+            <div class="trm-headline-sub" *ngIf="hasBeenRepeated">
+              Run on the same collected sample each time.
+            </div>
+          </div>
+        </div>
+
+        <!-- ── The runs ───────────────────────────────────────────────── -->
+        <div class="trm-runs" *ngIf="runs.length > 0">
+          <div class="trm-run" *ngFor="let r of runs; trackBy: trackByRun"
+               [class.trm-run--accepted]="r.isAccepted">
+
+            <div class="trm-run-head">
+              <span class="trm-run-no">{{ runLabel(r) }}</span>
+
+              <span class="trm-chip trm-chip--accepted" *ngIf="r.isAccepted">
+                <i class="fa fa-check-circle"></i> Accepted result
+              </span>
+
+              <!-- Only the newest run's numbers are actually stored. Said on the row so
+                   nobody has to work out why accepting an older run is not a restore. -->
+              <span class="trm-chip trm-chip--stored" *ngIf="r.holdsStoredValues">
+                <i class="fa fa-database"></i> Values on record
+              </span>
+
+              <button type="button"
+                      class="trm-accept-btn"
+                      *ngIf="!r.isAccepted && !readOnly"
+                      (click)="accept(r)"
+                      title="Mark this run as the result the lab stands behind">
+                Mark as accepted
+              </button>
+            </div>
+
+            <div class="trm-run-meta">
+              <span><i class="fa fa-clock-o"></i> {{ r.performedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+              <span *ngIf="r.performedBy"><i class="fa fa-user"></i> {{ r.performedBy }}</span>
+            </div>
+
+            <div class="trm-run-reason" *ngIf="r.reason">
+              <strong>Why repeated:</strong> {{ r.reason }}
+            </div>
+
+            <div class="trm-run-remark" *ngIf="r.remark">{{ r.remark }}</div>
+          </div>
+        </div>
+
+        <!-- Never repeated: say so in words rather than showing an empty list, which reads
+             as "no data" instead of "run once, no doubt raised". -->
+        <div class="trm-none" *ngIf="runs.length === 0">
+          <i class="fa fa-info-circle"></i>
+          <span>
+            No repeat has been recorded for this test. Runs are logged from the first repeat
+            onwards, so this test has been run once.
+          </span>
+        </div>
+
+        <!-- ── Record a repeat ────────────────────────────────────────── -->
+        <div class="trm-repeat" *ngIf="!readOnly">
+
+          <button type="button" class="trm-repeat-open" *ngIf="!showRepeatForm"
+                  (click)="openRepeatForm()">
+            <i class="fa fa-repeat"></i> Record a repeat run
+          </button>
+
+          <div class="trm-form" *ngIf="showRepeatForm">
+            <h4>Record a repeat run</h4>
+            <p class="trm-form-note">
+              The test is run again on the sample already collected. Enter the new results in
+              the usual way — this records that it was repeated, and why.
+            </p>
+
+            <label class="trm-label" for="trm-reason">
+              Reason for repeating <span class="trm-required">*</span>
+            </label>
+            <textarea id="trm-reason"
+                      class="trm-input trm-textarea"
+                      rows="2"
+                      [(ngModel)]="reason"
+                      [class.trm-input--invalid]="reasonInvalid"
+                      placeholder="e.g. Haemoglobin inconsistent with previous report — confirming"></textarea>
+            <div class="trm-field-error" *ngIf="reasonInvalid">
+              A reason is required — it is the whole point of the record.
+            </div>
+
+            <label class="trm-label" for="trm-by">Performed by</label>
+            <input id="trm-by" type="text" class="trm-input" [(ngModel)]="performedBy"
+                   placeholder="Leave blank to record the signed-in user">
+
+            <label class="trm-label" for="trm-remark">Remark</label>
+            <input id="trm-remark" type="text" class="trm-input" [(ngModel)]="remark"
+                   placeholder="Optional — what the repeat showed">
+
+            <div class="trm-form-actions">
+              <button type="button" class="trm-btn" (click)="cancelRepeatForm()"
+                      [disabled]="submitting">Cancel</button>
+              <button type="button" class="trm-btn trm-btn--primary" (click)="submitRepeat()"
+                      [disabled]="submitting">
+                <i class="fa fa-spinner fa-spin" *ngIf="submitting"></i>
+                {{ submitting ? 'Recording…' : 'Record repeat' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────────────────────────── -->
+    <div class="trm-footer">
+      <span class="trm-footer-note">
+        <i class="fa fa-info-circle"></i>
+        Results are stored once per parameter — only the newest run's values are on record.
+      </span>
+      <button type="button" class="trm-btn" (click)="close()">Close</button>
+    </div>
+
+  </div>
+</div>
