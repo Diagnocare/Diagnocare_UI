@@ -7,6 +7,7 @@ import { CommonService } from 'src/app/shared/common.service';
 import { map } from 'rxjs/operators';
 import { DropRequestDTO } from 'src/app/models/path-test/drop-request.dto';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
+import { TestTechniqueDto } from 'src/app/models/path-test/technique/test-technique.model';
 import {
   SaveTestProtocolAssignmentsDto,
   TestBookingProtocolsDto,
@@ -55,6 +56,18 @@ export class PathTestService {
   getAllTestList(subGroupId: string | null = null):Observable<any[]>{
       const url = this.pathTestApiUrl + apiEndpoints.getTestList + "?subGroupId=" + (subGroupId ?? '');
       return this.httpClient.get<any[]>(url);
+  }
+
+  /**
+   * The technique catalogue offered on the test form.
+   *
+   * Fetched rather than hard-coded, so a technique the lab adds for itself appears without
+   * a frontend release, and so the picker can never offer something the API refuses.
+   */
+  getTechniques(): Observable<TestTechniqueDto[]> {
+    return this.httpClient
+      .get<TestTechniqueDto[]>(this.pathTestApiUrl + apiEndpoints.getTechniques)
+      .pipe(map(list => list ?? []));
   }
 
   AddGroupWithSubgroupsAndTests(bulkData: any){

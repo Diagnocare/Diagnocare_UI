@@ -15,6 +15,13 @@ import { PathologyService } from 'src/app/services/pathologyServices/pathology.s
 import { PaymentModalComponent } from 'src/app/shared/payment-modal/payment-modal.component';
 import { AddTestModalComponent }  from 'src/app/shared/add-test-modal/add-test-modal.component';
 import { CancelBookingModalComponent, CancelConfirmPayload } from 'src/app/shared/cancel-booking-modal/cancel-booking-modal.component';
+import { ProtocolViewModalComponent } from 'src/app/shared/protocol-view-modal/protocol-view-modal.component';
+import { TestRunModalComponent } from 'src/app/shared/test-run-modal/test-run-modal.component';
+import { TestRunService } from 'src/app/services/testRunServices/test-run.service';
+import { TestRunCountDto } from 'src/app/models/test-run/test-run.model';
+import { SampleRejectionModalComponent } from 'src/app/shared/sample-rejection-modal/sample-rejection-modal.component';
+import { SampleRejectionService } from 'src/app/services/sampleRejectionServices/sample-rejection.service';
+import { SampleRejectionSummaryDto } from 'src/app/models/sample-rejection/sample-rejection.model';
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
@@ -28,7 +35,7 @@ import {
 @Component({
   selector: 'app-patient-test-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent],
   templateUrl: './patient-test-list.component.html',
   styleUrls: ['./patient-test-list.component.css']
 })
@@ -89,6 +96,52 @@ export class PatientTestListComponent implements OnInit {
   enteredPatientId: string = '';
   private navigatedViaQueryParam: boolean = false;
 
+  // ── Sample collection protocol (read-only, post-booking) ───────────────
+  /**
+   * The protocol viewer is opened from a booking that already exists, so it never edits
+   * anything — it answers "how is this sample collected?" for a booking that was made
+   * yesterday, or is being collected right now, without sending anyone back through the
+   * booking screen to find out.
+   */
+  showProtocolModal: boolean = false;
+  protocolModalSubtitle: string = '';
+  protocolTestCodes: string[] = [];
+  /**
+   * The booking whose test list is being fetched to open the viewer. Held by id rather
+   * than as a boolean so only the clicked card's button shows a spinner.
+   */
+  loadingProtocolFor: string | null = null;
+
+  // ── Repeat testing ─────────────────────────────────────────────────────
+  /**
+   * How many times each test on the open booking has been run, keyed by test code.
+   *
+   * Fetched once when the detail overlay opens rather than per test row: a booking with a
+   * dozen tests would otherwise fire a dozen requests to draw a badge most of them will not
+   * show. A missing key means no repeat has been recorded, which is one run, not zero.
+   */
+  runCounts = new Map<string, TestRunCountDto>();
+
+  showRunModal: boolean = false;
+  runModalTestRegId: number = 0;
+  runModalTestCode: string = '';
+  runModalTestName: string = '';
+
+  // ── Sample rejection ───────────────────────────────────────────────────
+  /**
+   * Which tests on the open booking have had a sample rejected, keyed by test code.
+   *
+   * Fetched once when the detail overlay opens, alongside the run counts. A test waiting on
+   * a fresh sample is why no result has appeared, so the flag has to be visible on the test
+   * itself rather than only inside a modal somebody has to think to open.
+   */
+  rejectionSummary = new Map<string, SampleRejectionSummaryDto>();
+
+  showRejectionModal: boolean = false;
+  rejectionModalTestRegId: number = 0;
+  rejectionModalTestCode: string = '';
+  rejectionModalTestName: string = '';
+
   // ── Filter state ───────────────────────────────────────────────────────
   /** When true the full history is shown; false = only last 15 days / pending reports. */
   showAllTests: boolean = false;
@@ -103,6 +156,8 @@ export class PatientTestListComponent implements OnInit {
     private pathologyService: PathologyService,
     private patientService: PatientService,
     private receiptService: ReceiptService,
+    private testRunService: TestRunService,
+    private sampleRejectionService: SampleRejectionService,
     private location: Location,
     private toastr: ToastrService
   ) {}
@@ -455,6 +510,8 @@ export class PatientTestListComponent implements OnInit {
     this.showDetailView = true;
     this.activeDetailIndex = 0;
     this.loadTestDetails(test.test_Id);
+    this.loadRunCounts(Number(test.patient_Test_Id));
+    this.loadRejectionSummary(Number(test.patient_Test_Id));
   }
 
   loadTestDetails(patientTestId: string): void {
@@ -480,6 +537,8 @@ export class PatientTestListComponent implements OnInit {
     this.selectedPatientTest = null;
     this.testDetails = [];
     this.activeDetailIndex = 0;
+    this.runCounts.clear();
+    this.rejectionSummary.clear();
   }
 
   selectDetailCard(index: number): void { this.activeDetailIndex = index; }
@@ -487,6 +546,199 @@ export class PatientTestListComponent implements OnInit {
   getDetailCardZIndex(index: number): number {
     if (index === this.activeDetailIndex) return this.testDetails.length + 1;
     return this.testDetails.length - Math.abs(index - this.activeDetailIndex);
+  }
+
+  // ── Sample collection protocol ─────────────────────────────────────────
+
+  /**
+   * Opens the protocol viewer for every test on a booking.
+   *
+   * The card knows how many tests it has but not which ones, so the test list is fetched
+   * first — unless the detail overlay for this same booking is already open, in which case
+   * the codes are already in hand and a second round trip would only add a delay.
+   */
+  openBookingProtocols(test: patientTest, event: Event): void {
+    event.stopPropagation();
+
+    const alreadyLoaded =
+      this.selectedPatientTest?.patient_Test_Id === test.patient_Test_Id
+        ? this.collectTestCodes(this.testDetails)
+        : [];
+
+    if (alreadyLoaded.length > 0) {
+      this.openProtocolModal(alreadyLoaded, `Booking ${test.patient_Test_Id}`);
+      return;
+    }
+
+    this.loadingProtocolFor = test.patient_Test_Id;
+    this.testReportService.getTestDetails(test.test_Id).subscribe({
+      next: (details: testDetail[]) => {
+        this.loadingProtocolFor = null;
+        const codes = this.collectTestCodes(details);
+        if (codes.length === 0) {
+          this.toastr.info('No tests found on this booking.');
+          return;
+        }
+        this.openProtocolModal(codes, `Booking ${test.patient_Test_Id}`);
+      },
+      error: () => {
+        this.loadingProtocolFor = null;
+        this.toastr.error('Could not load the tests on this booking.');
+      }
+    });
+  }
+
+  /** Opens the protocol viewer for a single test inside the detail overlay. */
+  openDetailProtocol(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    if (!detail?.testCode) {
+      this.toastr.info('This test has no code, so its protocol cannot be looked up.');
+      return;
+    }
+    this.openProtocolModal([detail.testCode], detail.testName);
+  }
+
+  closeProtocolModal(): void {
+    this.showProtocolModal = false;
+    this.protocolTestCodes = [];
+    this.protocolModalSubtitle = '';
+  }
+
+  private openProtocolModal(codes: string[], subtitle: string): void {
+    this.protocolTestCodes = codes;
+    this.protocolModalSubtitle = subtitle;
+    this.showProtocolModal = true;
+  }
+
+  private collectTestCodes(details: testDetail[]): string[] {
+    // The detail rows are per parameter as often as per test, so the same code arrives
+    // several times; the viewer would otherwise render the same protocol twice.
+    return Array.from(new Set((details ?? []).map(d => d.testCode).filter(c => !!c)));
+  }
+
+  // ── Repeat testing ─────────────────────────────────────────────────────
+
+  /**
+   * How many times each test on this booking has been run.
+   *
+   * One request for the whole booking. Failure is silent: the badge is extra information
+   * beside the result, and losing it must not put an error banner over a screen the
+   * operator opened to read a value.
+   */
+  private loadRunCounts(patientTestId: number): void {
+    this.runCounts.clear();
+    if (!patientTestId) return;
+
+    this.testRunService.getBookingCounts(patientTestId).subscribe({
+      next: (counts: TestRunCountDto[]) => {
+        this.runCounts = new Map((counts ?? []).map(c => [c.testCode, c]));
+      },
+      error: () => { /* badge simply does not appear */ }
+    });
+  }
+
+  /**
+   * How many times this test has been run.
+   *
+   * A test with no recorded runs has been run once — rows are written from the first repeat
+   * onwards, so an absent entry means "never repeated", not "never done".
+   */
+  runCount(detail: testDetail): number {
+    const entry = this.runCounts.get(detail?.testCode ?? '');
+    return entry && entry.runCount > 0 ? entry.runCount : 1;
+  }
+
+  runCountTooltip(detail: testDetail): string {
+    const entry = this.runCounts.get(detail?.testCode ?? '');
+    const times = `Run ${this.runCount(detail)} times on the collected sample`;
+    return entry?.latestReason ? `${times} — latest reason: ${entry.latestReason}` : times;
+  }
+
+  openRunHistory(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    if (!this.selectedPatientTest) return;
+
+    this.runModalTestRegId = Number(this.selectedPatientTest.patient_Test_Id);
+    this.runModalTestCode = detail?.testCode ?? '';
+    this.runModalTestName = detail?.testName ?? '';
+    this.showRunModal = true;
+  }
+
+  closeRunHistory(): void {
+    this.showRunModal = false;
+  }
+
+  /** A repeat was recorded or the accepted run moved — the badge is now out of date. */
+  onRunsChanged(): void {
+    if (this.selectedPatientTest) {
+      this.loadRunCounts(Number(this.selectedPatientTest.patient_Test_Id));
+    }
+  }
+
+  // ── Sample rejection ───────────────────────────────────────────────────
+
+  /**
+   * Which tests on this booking are waiting on a fresh sample.
+   *
+   * One request for the whole booking, and a silent failure: losing the flag is worse than
+   * an error banner over a screen someone opened to read a value, but not by enough to
+   * justify one.
+   */
+  private loadRejectionSummary(patientTestId: number): void {
+    this.rejectionSummary.clear();
+    if (!patientTestId) return;
+
+    this.sampleRejectionService.getBookingSummary(patientTestId).subscribe({
+      next: (rows: SampleRejectionSummaryDto[]) => {
+        this.rejectionSummary = new Map((rows ?? []).map(r => [r.testCode, r]));
+      },
+      error: () => { /* flag simply does not appear */ }
+    });
+  }
+
+  /** True while this test is waiting on a fresh sample — the state that blocks a result. */
+  hasOpenRejection(detail: testDetail): boolean {
+    return this.rejectionSummary.get(detail?.testCode ?? '')?.hasOpenRejection === true;
+  }
+
+  /** True when a sample was rejected at some point, whether or not it is still open. */
+  wasEverRejected(detail: testDetail): boolean {
+    return (this.rejectionSummary.get(detail?.testCode ?? '')?.rejectionCount ?? 0) > 0;
+  }
+
+  /**
+   * The rejection reason to show on the test.
+   *
+   * The open one where there is one; otherwise the most recent, so a test that was rejected
+   * and re-collected still says what went wrong the first time.
+   */
+  rejectionReason(detail: testDetail): string {
+    return this.rejectionSummary.get(detail?.testCode ?? '')?.latestReasonLabel ?? '';
+  }
+
+  rejectionCategory(detail: testDetail): string {
+    return this.rejectionSummary.get(detail?.testCode ?? '')?.latestCategoryLabel ?? '';
+  }
+
+  openRejectionView(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    if (!this.selectedPatientTest) return;
+
+    this.rejectionModalTestRegId = Number(this.selectedPatientTest.patient_Test_Id);
+    this.rejectionModalTestCode = detail?.testCode ?? '';
+    this.rejectionModalTestName = detail?.testName ?? '';
+    this.showRejectionModal = true;
+  }
+
+  closeRejectionView(): void {
+    this.showRejectionModal = false;
+  }
+
+  /** A rejection was recorded or closed — the flag on the test is now out of date. */
+  onRejectionsChanged(): void {
+    if (this.selectedPatientTest) {
+      this.loadRejectionSummary(Number(this.selectedPatientTest.patient_Test_Id));
+    }
   }
 
   // ── Parameter view ─────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChangeDetectorRef,
   Component,
   EventEmitter,
@@ -31,6 +31,8 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
 import { ReceiptCreateDto }   from 'src/app/models/receipt/receipt-create.dto';
 import { AddPatientTestDto }  from 'src/app/models/patient/add-patient-test.dto';
 import { PatientService }     from 'src/app/services/patientServices/patient.service';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { BookingResultDto }   from 'src/app/models/patient/booking-result.dto';
 import { PathTestService }    from 'src/app/services/pathTestServices/path-test-service';
 import { CommonService }      from 'src/app/shared/common.service';
 import { AutocompleteInputDirective } from 'src/app/shared/directives/autocomplete-input.directive';
@@ -148,6 +150,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private _sampling:       SamplingLocationService,
     private _contactService: ContactAddressService,
     private _token:          TokenService,
+    private _sampleLabelService: SampleLabelService,
   ) {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
@@ -783,14 +786,63 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.saveError = '';
 
     this._patientService.addPatientTest(payload).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
+      next: (res: BookingResultDto) => {
         this.isSaving = false;
+
+        // The API answers 200 with success:false when the booking was rejected
+        // for a business reason (an unbookable test, say). Treating any 200 as a
+        // success would close the modal on a booking that never happened.
+        if (!res?.success) {
+          this.saveError = res?.message || 'Failed to add test. Please try again.';
+          return;
+        }
+
+        this.printSampleLabels(res);
         this.saved.emit();
       },
-      error: (err: Error) => {
+      error: (err: any) => {
         this.isSaving  = false;
-        this.saveError = err.message || 'Failed to add test. Please try again.';
+        // A rejected booking now comes back as 400 carrying a BookingResultDto,
+        // so the useful message is in err.error.message — err.message alone would
+        // only ever say "Http failure response ...".
+        this.saveError = err?.error?.message || err?.message || 'Failed to add test. Please try again.';
       },
+    });
+  }
+
+  /**
+   * Opens the sample collection labels for a just-created booking — one sticker
+   * per booked test, with the print dialog opening by itself.
+   *
+   * Deliberately NOT piped through takeUntil(this.destroy$): saved.emit() closes
+   * this modal, which destroys the component and completes destroy$. A label
+   * request bound to that would be cancelled mid-flight and the labels would
+   * silently never appear.
+   *
+   * Failures are non-fatal and reported through toastr rather than saveError: the
+   * test IS booked by this point, and putting the message in the modal's error
+   * slot would read as though the booking had failed.
+   */
+  private printSampleLabels(booking: BookingResultDto): void {
+    if (!booking.testRegId || !booking.labels?.length) {
+      return;
+    }
+
+    this._sampleLabelService.printLabels(booking.testRegId).subscribe({
+      next: (opened: boolean) => {
+        if (!opened) {
+          this.toastr.warning(
+            'Test booked, but the label window was blocked. ' +
+            'Allow pop-ups for this site, then reprint from the patient\'s tests.',
+            'Labels not shown');
+        }
+      },
+      error: () => {
+        this.toastr.warning(
+          'Test booked, but the sample labels could not be fetched. ' +
+          'You can reprint them from the patient\'s tests.',
+          'Labels not printed');
+      }
     });
   }
 

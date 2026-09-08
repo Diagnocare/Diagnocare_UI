@@ -225,18 +225,19 @@
 .filter-mode-toggle {
   display: inline-flex;
   align-items: center;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 3px;
-  gap: 2px;
+  gap: 3px;
 }
 
 .filter-mode-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 7px 15px;
   border: none;
   border-radius: 8px;
   font-size: 0.82em;
@@ -248,15 +249,36 @@
   white-space: nowrap;
 }
 
-.filter-mode-btn:hover:not(.filter-mode-btn--active) {
-  background: #e2e8f0;
-  color: #374151;
+/* The check mark only shows on the selected option */
+.filter-mode-btn .filter-mode-check {
+  display: none;
+  font-size: 0.9em;
 }
 
+.filter-mode-btn:hover:not(.filter-mode-btn--active) {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.filter-mode-btn:focus-visible {
+  outline: 2px solid #1E5BA8;
+  outline-offset: 2px;
+}
+
+/* Selected: solid brand fill + white text — unmistakable next to the grey track */
 .filter-mode-btn--active {
-  background: #fff;
-  color: #1E5BA8;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background: #1E5BA8;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(30, 91, 168, 0.35);
+}
+
+.filter-mode-btn--active .filter-mode-check {
+  display: inline-flex;
+}
+
+.filter-mode-btn--active .filter-mode-icon {
+  display: none;
 }
 
 .filter-mode-count {
@@ -271,6 +293,22 @@
   font-weight: 700;
   min-width: 20px;
   line-height: 1.5;
+}
+
+/* Label above the toggle so the control reads as a choice, not two actions */
+.filter-mode-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-mode-label {
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding-left: 2px;
 }
 
 /* ── Full-history mode banner ─────────────────────────────────────── */
@@ -552,6 +590,7 @@
   .no-data-actions { flex-direction: column; align-items: stretch; }
   .no-data-actions .btn { width: 100%; justify-content: center; }
 
+  .filter-mode-wrap { width: 100%; }
   .filter-mode-toggle { width: 100%; }
   .filter-mode-btn { flex: 1; justify-content: center; }
 
@@ -1037,18 +1076,8 @@
               transform 0.12s ease, box-shadow 0.18s ease;
 }
 
-/* Primary action — solid white, brand-tinted label (matches page-header CTAs) */
-.header-actions .btn.btn-primary {
-  background: #ffffff;
-  color: #15803d;
-  border: 1.5px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
-}
-.header-actions .btn.btn-primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.92);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24);
-}
+/* Primary action uses the app-wide button style — solid blue, inverts to white
+   on hover — defined in styles.css → "UNIFIED PRIMARY BUTTON". */
 
 /* Secondary actions (View / PDF / CSV) — translucent glass on the header */
 .header-actions .btn.btn-info {
@@ -1130,8 +1159,8 @@
 
 .parameter-header .header-actions { gap: 0.5em; }
 
-/* Primary button label picks up the brand blue now the header is blue */
-.header-actions .btn.btn-primary { color: #1E5BA8; }
+/* Primary button colours come from the app-wide "UNIFIED PRIMARY BUTTON"
+   section in styles.css. */
 
 /* ── Data table — presented on a clean white card ──────────────────────── */
 .parameter-list-table {
@@ -1755,3 +1784,238 @@
   white-space: nowrap;
 }
 .report-blocked-note i { color: #fdba74; }
+
+/* =======================================
+   Sample collection protocol entry points
+   ======================================= */
+
+/*
+ * Booking-level button. Deliberately quieter than the primary actions — this is a
+ * reference lookup, not something the operator has to do — but not a bare icon either:
+ * "Sample Protocol" is what makes it findable by someone who has never clicked it.
+ */
+.btn-protocol {
+  background: #ecfdf5;
+  color: #047857;
+  border: 0.0625em solid #a7f3d0;
+}
+
+.btn-protocol:hover:not(:disabled) {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.btn-protocol:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* Per-test info icon inside the detail overlay, beside the test's name. */
+.protocol-info-btn {
+  border: none;
+  background: transparent;
+  color: #0d9488;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.15em 0.25em;
+  margin-left: 0.4em;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.protocol-info-btn:hover {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0f766e;
+}
+
+.protocol-info-btn:focus-visible {
+  outline: 2px solid #0d9488;
+  outline-offset: 2px;
+}
+
+/* =======================================
+   Repeat-run entry points
+   ======================================= */
+
+/*
+ * The run-count chip, beside a test's name in the detail overlay.
+ *
+ * Deliberately louder than a neutral badge: a test that had to be run twice is a test
+ * somebody doubted, and that is worth catching the eye of whoever reads the result next.
+ */
+.run-count-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  margin-left: 0.5em;
+  border: 0.0625em solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  font-size: 0.75em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.run-count-chip:hover {
+  background: #e0e7ff;
+}
+
+/* Footer action inside the detail overlay. */
+.btn-runs {
+  background: #eef2ff;
+  color: #4338ca;
+  border: 0.0625em solid #c7d2fe;
+}
+
+.btn-runs:hover:not(:disabled) {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+}
+
+/* =======================================
+   Sample rejection
+   ======================================= */
+
+/*
+ * Chip beside a test's name. Red only while the test is actually blocked; a rejection that
+ * has been resolved goes grey, so red keeps meaning "something is waiting on you" rather
+ * than becoming a permanent scar on the record.
+ */
+.rejection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  margin-left: 0.5em;
+  border: 0.0625em solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  font-size: 0.75em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rejection-chip:hover {
+  background: #f1f5f9;
+}
+
+.rejection-chip--open {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.rejection-chip--open:hover {
+  background: #fee2e2;
+}
+
+/*
+ * The banner sits where the result would be. A test whose sample was refused has no result,
+ * and it is the unexplained blank that confuses whoever opens the record next — so the blank
+ * is filled with what happened.
+ */
+.rejection-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7em;
+  padding: 0.75em 0.9em;
+  margin-bottom: 1em;
+  border: 0.0625em solid #fca5a5;
+  border-left: 0.25em solid #dc2626;
+  background: #fef2f2;
+  border-radius: 0.5em;
+  color: #991b1b;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rejection-banner:hover {
+  background: #fee2e2;
+}
+
+.rejection-banner > i {
+  margin-top: 0.15em;
+  font-size: 1.05em;
+}
+
+.rejection-banner-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rejection-banner-body strong {
+  display: block;
+  font-size: 0.9em;
+  font-weight: 700;
+}
+
+.rejection-banner-reason {
+  display: block;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #7f1d1d;
+  margin-top: 0.1em;
+}
+
+.rejection-banner-cat {
+  display: inline-block;
+  margin-top: 0.3em;
+  background: #ffffff;
+  border: 0.0625em solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.05em 0.55em;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: #475569;
+}
+
+.rejection-banner-link {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Footer action inside the detail overlay. */
+.btn-rejection {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 0.0625em solid #fecaca;
+}
+
+.btn-rejection:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* =======================================
+   Method / technique
+   ======================================= */
+
+/*
+ * "Not recorded" in the Method row. Muted and italic so it reads as an absence rather than
+ * as a value called "Not recorded" — the row is always present, and the styling is what
+ * carries the difference.
+ */
+.detail-value--absent {
+  color: #94a3b8;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* The method under the test name in the result-entry header. */
+.method-subtitle {
+  margin: 0.2em 0 0;
+  font-size: 0.78em;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+}
