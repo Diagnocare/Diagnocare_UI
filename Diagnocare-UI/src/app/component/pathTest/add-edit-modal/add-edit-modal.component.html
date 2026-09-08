@@ -188,6 +188,42 @@
               </div>
             </div>
 
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="formData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(formData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="formData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
+
           </div>
         </ng-container>
 
@@ -266,6 +302,42 @@
               </div>
             </div>
 
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="formData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(formData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="formData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
+
           </div>
         </ng-container>
 
@@ -323,6 +395,42 @@
                 <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
               </div>
             </div>
+
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="formData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(formData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="formData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
 
           </div>
         </ng-container>
@@ -552,6 +660,42 @@
                   <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
                 </div>
               </div>
+
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="updatedFormData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(updatedFormData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(updatedFormData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="updatedFormData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
 
             </ng-container>
           </div>
