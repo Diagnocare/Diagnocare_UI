@@ -271,6 +271,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.loginForm.invalid) return;
 
     const raw = this.loginForm.value as LoginModel;
+    raw.userId = raw.userId.trim();
     this.isSubmitting = true;
 
     this._loginService.getUserDetails(raw).subscribe({
