@@ -439,7 +439,7 @@ export class LoginComponent implements OnInit, OnDestroy {
    *   id = 0 for TOTP (backend loads user by userId); numeric user-id for OTP flows.
    */
   onOtpVerify(event: { code: string; authType: number }): void {
-    const userId = this.loginForm.get('userId')?.value as string;
+    const userId = this.loginForm.get('userId')?.value.trim() as string;
     if (!userId || !event.code || event.code.length !== 6) {
       this.toastr.warning('Please enter all 6 digits of the code.');
       return;
