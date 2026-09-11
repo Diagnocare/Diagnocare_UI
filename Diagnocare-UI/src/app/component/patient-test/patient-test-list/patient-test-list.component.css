@@ -1916,6 +1916,42 @@
 }
 
 /*
+ * Read-only "has this report been printed?" flag — set automatically by the
+ * Print button embedded in the generated report, never by clicking here.
+ * Deliberately a distinct color pair from every other chip on this card —
+ * neutral gray while unprinted, solid green once printed — so the state
+ * reads at a glance without reading the label text.
+ */
+.print-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  margin-left: 0.5em;
+  border: 0.0625em solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  font-size: 0.75em;
+  font-weight: 600;
+  cursor: default;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.print-status-chip--printed {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+/* Larger variant used in the report-actions header, next to View Report / PDF. */
+.print-status-chip--lg {
+  margin-left: 0;
+  font-size: 0.85em;
+  padding: 0.35em 0.8em;
+}
+
+/*
  * The banner sits where the result would be. A test whose sample was refused has no result,
  * and it is the unexplained blank that confuses whoever opens the record next — so the blank
  * is filled with what happened.

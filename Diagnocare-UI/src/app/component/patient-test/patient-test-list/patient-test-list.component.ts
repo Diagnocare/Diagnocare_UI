@@ -22,6 +22,8 @@ import { TestRunCountDto } from 'src/app/models/test-run/test-run.model';
 import { SampleRejectionModalComponent } from 'src/app/shared/sample-rejection-modal/sample-rejection-modal.component';
 import { SampleRejectionService } from 'src/app/services/sampleRejectionServices/sample-rejection.service';
 import { SampleRejectionSummaryDto } from 'src/app/models/sample-rejection/sample-rejection.model';
+import { ReportPrintStatusService } from 'src/app/services/patientTestReportServices/report-print-status.service';
+import { ReportPrintStatusDto } from 'src/app/models/report-print-status/report-print-status.model';
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
@@ -144,6 +146,21 @@ export class PatientTestListComponent implements OnInit {
   rejectionModalTestCode: string = '';
   rejectionModalTestName: string = '';
 
+  // ── Report print status ─────────────────────────────────────────────────
+  /**
+   * "Has this report been printed?" flag for each test on the open booking, keyed
+   * by test code. Read-only here — the flag is set automatically by the Print
+   * button on the generated report itself (a different tab/window), never by
+   * clicking anything in this list. See ReportPrintStatusService.
+   *
+   * Fetched when the detail overlay opens, alongside the run counts and rejection
+   * summary, and refreshed when the report screen is closed so a print that just
+   * happened in the other tab shows up without reopening the booking. A test code
+   * never printed has no entry here — treated the same as not printed, matching
+   * how the API omits it too.
+   */
+  printStatus = new Map<string, ReportPrintStatusDto>();
+
   // ── Filter state ───────────────────────────────────────────────────────
   /** When true the full history is shown; false = only last 15 days / pending reports. */
   showAllTests: boolean = false;
@@ -160,6 +177,7 @@ export class PatientTestListComponent implements OnInit {
     private receiptService: ReceiptService,
     private testRunService: TestRunService,
     private sampleRejectionService: SampleRejectionService,
+    private reportPrintStatusService: ReportPrintStatusService,
     private location: Location,
     private toastr: ToastrService
   ) {}
@@ -514,6 +532,7 @@ export class PatientTestListComponent implements OnInit {
     this.loadTestDetails(test.test_Id);
     this.loadRunCounts(Number(test.patient_Test_Id));
     this.loadRejectionSummary(Number(test.patient_Test_Id));
+    this.loadPrintStatus(Number(test.patient_Test_Id));
   }
 
   loadTestDetails(patientTestId: string): void {
@@ -541,6 +560,7 @@ export class PatientTestListComponent implements OnInit {
     this.activeDetailIndex = 0;
     this.runCounts.clear();
     this.rejectionSummary.clear();
+    this.printStatus.clear();
   }
 
   selectDetailCard(index: number): void { this.activeDetailIndex = index; }
@@ -743,6 +763,55 @@ export class PatientTestListComponent implements OnInit {
     }
   }
 
+  // ── Report print status ─────────────────────────────────────────────────
+
+  /**
+   * The printed flag for every test on this booking.
+   *
+   * One request for the whole booking, and a silent failure: losing the badge is
+   * worse than an error banner over a screen someone opened to read a value, but
+   * not by enough to justify one.
+   */
+  private loadPrintStatus(patientTestId: number): void {
+    this.printStatus.clear();
+    if (!patientTestId) return;
+
+    this.reportPrintStatusService.getBookingSummary(patientTestId).subscribe({
+      next: (rows: ReportPrintStatusDto[]) => {
+        this.printStatus = new Map((rows ?? []).map(r => [r.testCode, r]));
+      },
+      error: () => { /* badge simply does not appear */ }
+    });
+  }
+
+  /** True once this test's report has been marked printed. A missing entry means not printed. */
+  isPrinted(detail: testDetail): boolean {
+    return this.printStatus.get(detail?.testCode ?? '')?.isPrinted === true;
+  }
+
+  printedTooltip(detail: testDetail): string {
+    const entry = this.printStatus.get(detail?.testCode ?? '');
+    if (!entry?.isPrinted) return 'Not printed yet — set automatically when the report is printed';
+
+    const when = entry.printedAt ? new Date(entry.printedAt).toLocaleString() : '';
+    const who = entry.printedBy ? ` by ${entry.printedBy}` : '';
+    return when ? `Printed ${when}${who}` : `Printed${who}`;
+  }
+
+  /**
+   * Re-reads the printed flag for the open booking.
+   *
+   * The flag itself is set from the generated report page in its own tab, so this
+   * screen has no way to know when that happened — refreshing when the operator
+   * comes back to it (closing the report view) is the closest this list gets to
+   * "live".
+   */
+  private refreshPrintStatus(): void {
+    if (this.selectedPatientTest) {
+      this.loadPrintStatus(Number(this.selectedPatientTest.patient_Test_Id));
+    }
+  }
+
   // ── Parameter view ─────────────────────────────────────────────────────
 
   openParameterView(detail: testDetail, event: Event): void {
@@ -839,6 +908,10 @@ export class PatientTestListComponent implements OnInit {
     this.selectedTestDetail = null;
     this.testParameters = [];
     this.activeParameterIndex = 0;
+    // Whichever report action the operator just used (View Report / PDF) opened in
+    // its own tab and prints from there — refresh so a print that happened while
+    // this overlay was open is reflected as soon as they come back to it.
+    this.refreshPrintStatus();
   }
 
   /**
