@@ -84,8 +84,27 @@ export class MemberService {
     return this.http.put<MemberDto>(this.baseUrl + apiEndpoints.update, member);
   }
 
+  /**
+   * Soft delete — deactivates the member (the API stamps DeactivatedAt).
+   * The row survives, so attendance records and the "reviewed by" stamp on every
+   * attendance request they approved stay intact. Reversible via `reactivate`.
+   * Deactivated members drop out of the list unless "Show Inactive" is on.
+   */
   delete(id: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}${apiEndpoints.delete}?id=${id}`);
+  }
+
+  /** Restores a deactivated member. Refused by the API when the staff limit is reached. */
+  reactivate(id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}${apiEndpoints.reactivate}?id=${id}`, {});
+  }
+
+  /**
+   * Permanent delete. Super Admin only (enforced by the API) and refused while the
+   * member still has visit schedules assigned — the response message names the count.
+   */
+  hardDelete(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}${apiEndpoints.hardDelete}?id=${id}`);
   }
 
   // ── Validation ────────────────────────────────────────────────────────────

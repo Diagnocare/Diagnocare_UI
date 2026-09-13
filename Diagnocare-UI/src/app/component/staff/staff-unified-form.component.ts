@@ -10,6 +10,7 @@ import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.dir
 import { switchMap } from 'rxjs/operators';
 import { of, Observable } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 
 import { MemberService }      from 'src/app/services/memberService/member.service';
 import { CommonService }      from 'src/app/shared/common.service';
@@ -22,6 +23,7 @@ import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.comp
 
 import { Role } from 'src/app/constant/enums';
 import { MemberDto } from 'src/app/models/member/member.dto';
+import { isMemberActive } from 'src/app/shared/member-utils';
 
 export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
 
@@ -77,6 +79,7 @@ export class StaffUnifiedFormComponent implements OnInit {
   private confirmModal = inject(ConfirmModalService);
   private route        = inject(ActivatedRoute);
   private router       = inject(Router);
+  private toastr       = inject(ToastrService);
 
   // ── Init ───────────────────────────────────────────────────────────────────
 
@@ -196,6 +199,20 @@ export class StaffUnifiedFormComponent implements OnInit {
 
     this.memberService.getById(id).subscribe({
       next: (data) => {
+        // A deactivated member is read-only. The list hides Edit for them, but the
+        // route is still reachable by URL or a stale tab, and the API refuses the
+        // save with a 409 — so turn it back here rather than let someone fill in a
+        // form that cannot be submitted.
+        if (!isMemberActive(data)) {
+          this.isLoading = false;
+          this.toastr.error(
+            'This member is deactivated. Reactivate them from the staff list before editing.',
+            'Not editable'
+          );
+          this.goBack();
+          return;
+        }
+
         this.form.patchValue({
           ...data,
           signature:     data.signatureImage || data.signatureBase64 || '',
