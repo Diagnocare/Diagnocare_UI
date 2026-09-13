@@ -173,6 +173,93 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return rows;
   }
 
+  // ── Empty state ────────────────────────────────────────────────────────────
+  // The grid is hidden whenever displayRows is empty — a headers-only table with
+  // no body reads as a broken page. These getters describe *why* it is empty so
+  // the placeholder can say something useful (and, where possible, offer the one
+  // click that fixes it). All primitives, so change detection stays cheap.
+
+  /** Plural name of the active role tab, e.g. 'Collection Boys'. */
+  get roleNamePlural(): string {
+    switch (this.roleFilter) {
+      case 'doctor':         return 'Doctors';
+      case 'collection-boy': return 'Collection Boys';
+      case 'other':          return 'Users';
+      default:               return 'Staff Members';
+    }
+  }
+
+  /**
+   * Why the grid has nothing to show:
+   *   'none'     — no staff at all in this lab
+   *   'role'     — nobody holds the currently selected role
+   *   'inactive' — the role has members, but every one of them is deactivated
+   *   'filter'   — the selected staff member is filtered out of this view
+   */
+  get emptyReason(): 'none' | 'role' | 'inactive' | 'filter' {
+    if (this.rows.length === 0) return 'none';
+
+    const roleRows = this.roleFilteredRows();
+    if (roleRows.length === 0) return 'role';
+
+    const visible = this.showInactive
+      ? roleRows
+      : roleRows.filter(r => isActiveByDate(r.deactivatedAt));
+    if (visible.length === 0) return 'inactive';
+
+    return 'filter';
+  }
+
+  get emptyIcon(): string {
+    if (this.emptyReason === 'filter')   return 'fa-filter';
+    if (this.emptyReason === 'inactive') return 'fa-user-slash';
+    switch (this.roleFilter) {
+      case 'doctor':         return 'fa-user-md';
+      case 'collection-boy': return 'fa-motorcycle';
+      default:               return 'fa-users';
+    }
+  }
+
+  get emptyTitle(): string {
+    switch (this.emptyReason) {
+      case 'none':     return 'No Staff Records Yet';
+      case 'role':     return `No ${this.roleNamePlural} Added`;
+      case 'inactive': return `All ${this.roleNamePlural} Are Inactive`;
+      default:         return 'Nothing Matches This Filter';
+    }
+  }
+
+  get emptyMessage(): string {
+    switch (this.emptyReason) {
+      case 'none':
+        return 'Once team members are registered, their weekly and monthly attendance will appear here.';
+      case 'role':
+        return `There are no ${this.roleNamePlural.toLowerCase()} in this lab right now. Pick another tab above, or add them from Lab Setup → Staff.`;
+      case 'inactive':
+        return `Every ${this.roleNamePlural.toLowerCase().replace(/s$/, '')} in this group has been deactivated, and deactivated members are hidden by default.`;
+      default:
+        return 'The selected staff member isn’t part of this view. Clear the filter to see the full list again.';
+    }
+  }
+
+  /** Label for the one-click fix, or '' when there is nothing to offer. */
+  get emptyActionLabel(): string {
+    switch (this.emptyReason) {
+      case 'inactive': return 'Show Inactive Staff';
+      case 'filter':   return 'Clear Filter';
+      default:         return '';
+    }
+  }
+
+  get emptyActionIcon(): string {
+    return this.emptyReason === 'inactive' ? 'fa-user-check' : 'fa-rotate-left';
+  }
+
+  runEmptyAction(): void {
+    if (this.emptyReason === 'inactive') { this.toggleInactive(); return; }
+    if (this.emptyReason === 'filter')   { this.selectedUserId = null; this.recalcTotals(); }
+  }
+
   // ── Holiday data ───────────────────────────────────────────────────────────
   /** ISO date strings of all holidays in the currently displayed period's year(s). */
   holidayDates = new Set<string>();

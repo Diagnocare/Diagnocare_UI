@@ -77,8 +77,14 @@
               <td>{{ u.contactPhone }}</td>
               <td class="action-buttons">
                 <ng-container *ngIf="!isProtectedUser(u)">
-                  <app-action-btn type="edit"   title="Edit User"   (clicked)="editUser(u.id)"></app-action-btn>
-                  <app-action-btn type="delete" title="Delete User" (clicked)="deleteUser(u.id)"></app-action-btn>
+                  <ng-container *ngIf="isMemberActive(u); else inactiveUserActions">
+                    <app-action-btn type="edit"   title="Edit User"       (clicked)="editUser(u.id)"></app-action-btn>
+                    <app-action-btn type="delete" title="Deactivate User" (clicked)="deactivateMember('user', u.id)"></app-action-btn>
+                  </ng-container>
+                  <ng-template #inactiveUserActions>
+                    <app-action-btn type="reactivate"  title="Reactivate User" (clicked)="reactivateMember('user', u.id)"></app-action-btn>
+                    <app-action-btn type="hard-delete" title="Delete Permanently" (clicked)="hardDeleteMember('user', u.id)"></app-action-btn>
+                  </ng-template>
                 </ng-container>
               </td>
             </tr>
@@ -109,8 +115,14 @@
               <td>{{ cb.qualification || '—' }}</td>
               <td>{{ cb.position || '—' }}</td>
               <td class="action-buttons">
-                <app-action-btn type="edit"   title="Edit Collection Boy"   (clicked)="editStaff('collection-boy', cb.id)"></app-action-btn>
-                <app-action-btn type="delete" title="Delete Collection Boy" (clicked)="deleteStaff('collection-boy', cb.id)"></app-action-btn>
+                <ng-container *ngIf="isMemberActive(cb); else inactiveCbActions">
+                  <app-action-btn type="edit"   title="Edit Collection Boy"       (clicked)="editStaff('collection-boy', cb.id)"></app-action-btn>
+                  <app-action-btn type="delete" title="Deactivate Collection Boy" (clicked)="deactivateMember('collection-boy', cb.id)"></app-action-btn>
+                </ng-container>
+                <ng-template #inactiveCbActions>
+                  <app-action-btn type="reactivate"  title="Reactivate Collection Boy" (clicked)="reactivateMember('collection-boy', cb.id)"></app-action-btn>
+                  <app-action-btn type="hard-delete" title="Delete Permanently"        (clicked)="hardDeleteMember('collection-boy', cb.id)"></app-action-btn>
+                </ng-template>
               </td>
             </tr>
           </tbody>
@@ -151,8 +163,14 @@
                 </ng-template>
               </td>
               <td class="action-buttons">
-                <app-action-btn type="edit"   title="Edit Doctor"   (clicked)="editStaff('doctor', doc.id)"></app-action-btn>
-                <app-action-btn type="delete" title="Delete Doctor" (clicked)="deleteStaff('doctor', doc.id)"></app-action-btn>
+                <ng-container *ngIf="isMemberActive(doc); else inactiveDocActions">
+                  <app-action-btn type="edit"   title="Edit Doctor"       (clicked)="editStaff('doctor', doc.id)"></app-action-btn>
+                  <app-action-btn type="delete" title="Deactivate Doctor" (clicked)="deactivateMember('doctor', doc.id)"></app-action-btn>
+                </ng-container>
+                <ng-template #inactiveDocActions>
+                  <app-action-btn type="reactivate"  title="Reactivate Doctor" (clicked)="reactivateMember('doctor', doc.id)"></app-action-btn>
+                  <app-action-btn type="hard-delete" title="Delete Permanently" (clicked)="hardDeleteMember('doctor', doc.id)"></app-action-btn>
+                </ng-template>
               </td>
             </tr>
           </tbody>

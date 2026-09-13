@@ -51,25 +51,27 @@
         </div>
 
         <!-- KPI cards — slide down into content area -->
+        <!-- A dash means "no value": either still loading, or the request failed.
+             Deliberately not 0, which would read as a real quiet day. -->
         <div class="ph-kpi-row">
           <div class="ph-kpi ph-kpi-d1">
             <div class="ph-kpi-icon ph-kpi-blue"><i class="fas fa-user-plus"></i></div>
-            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-num">{{ patientsToday !== null ? patientsToday : '—' }}</div>
             <div class="ph-kpi-lbl">Patients Today</div>
           </div>
           <div class="ph-kpi ph-kpi-d2">
             <div class="ph-kpi-icon ph-kpi-green"><i class="fas fa-file-medical-alt"></i></div>
-            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-num">{{ reportsDone !== null ? reportsDone : '—' }}</div>
             <div class="ph-kpi-lbl">Reports Done</div>
           </div>
           <div class="ph-kpi ph-kpi-d3">
             <div class="ph-kpi-icon ph-kpi-purple"><i class="fas fa-rupee-sign"></i></div>
-            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-num">{{ revenueToday !== null ? (revenueToday | number:'1.0-0') : '—' }}</div>
             <div class="ph-kpi-lbl">Revenue Today</div>
           </div>
           <div class="ph-kpi ph-kpi-d4">
             <div class="ph-kpi-icon ph-kpi-orange"><i class="fas fa-hourglass-half"></i></div>
-            <div class="ph-kpi-num">—</div>
+            <div class="ph-kpi-num">{{ testsPending !== null ? testsPending : '—' }}</div>
             <div class="ph-kpi-lbl">Tests Pending</div>
           </div>
         </div>
@@ -89,33 +91,28 @@
           </div>
 
           <div class="ph-vis-activity">
-            <div class="ph-vis-row">
-              <span class="ph-vdot2" style="background:#00b894;"></span>
-              <span class="ph-vis-name">Rahul Verma</span>
-              <span class="ph-vis-badge vb-done">Report Ready</span>
+            <div class="ph-vis-row" *ngFor="let row of activityRows; let i = index"
+                 [class.ph-vr-d1]="i === 1" [class.ph-vr-d2]="i === 2">
+              <span class="ph-vdot2" [style.background]="row.dotColor"></span>
+              <span class="ph-vis-name">{{ row.name }}</span>
+              <span class="ph-vis-badge" [ngClass]="row.badgeClass">{{ row.status }}</span>
             </div>
-            <div class="ph-vis-row ph-vr-d1">
-              <span class="ph-vdot2" style="background:#1e88e5;"></span>
-              <span class="ph-vis-name">Priya Mehta</span>
-              <span class="ph-vis-badge vb-prog">In Lab</span>
-            </div>
-            <div class="ph-vis-row ph-vr-d2">
-              <span class="ph-vdot2" style="background:#ffc107;"></span>
-              <span class="ph-vis-name">Suresh Kumar</span>
-              <span class="ph-vis-badge vb-wait">Pending</span>
+
+            <div class="ph-vis-empty" *ngIf="!isDashboardLoading && activityRows.length === 0">
+              No registrations yet today.
             </div>
           </div>
 
           <div class="ph-vis-spark">
-            <div class="ph-spark-lbl">Tests This Week</div>
+            <div class="ph-spark-lbl">Registrations This Week</div>
             <div class="ph-spark-bars">
-              <span class="ph-spark-bar" style="height:20px;background:rgba(30,136,229,.5); animation-delay:.1s;"></span>
-              <span class="ph-spark-bar" style="height:30px;background:rgba(30,136,229,.55);animation-delay:.2s;"></span>
-              <span class="ph-spark-bar" style="height:26px;background:rgba(0,184,148,.55); animation-delay:.3s;"></span>
-              <span class="ph-spark-bar" style="height:36px;background:rgba(30,136,229,.6); animation-delay:.4s;"></span>
-              <span class="ph-spark-bar" style="height:32px;background:rgba(0,184,148,.65); animation-delay:.5s;"></span>
-              <span class="ph-spark-bar" style="height:22px;background:rgba(30,136,229,.45);animation-delay:.6s;"></span>
-              <span class="ph-spark-bar" style="height:38px;background:rgba(0,184,148,.7); animation-delay:.7s;"></span>
+              <span class="ph-spark-bar"
+                    *ngFor="let bar of sparkBars; let i = index"
+                    [style.height.px]="bar.height"
+                    [style.background]="bar.future ? 'rgba(255,255,255,.12)' : 'rgba(30,136,229,.6)'"
+                    [style.animation-delay]="(i + 1) / 10 + 's'"
+                    [attr.title]="bar.label + ': ' + bar.count + (bar.count === 1 ? ' patient' : ' patients')">
+              </span>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { ToastrService } from 'ngx-toastr';
 
 import { MemberService, StaffCapacity } from 'src/app/services/memberService/member.service';
 import { ConfirmModalService }   from 'src/app/shared/confirm-modal/confirm-modal.service';
@@ -91,6 +92,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     private confirmModal:  ConfirmModalService,
     private router:        Router,
     private route:         ActivatedRoute,
+    private toastr:        ToastrService,
   ) {}
 
   ngOnInit(): void {
@@ -145,35 +147,90 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     this.router.navigate(['/users/edit', id], { queryParams: { type } });
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── Deactivate / Reactivate / Permanent delete ────────────────────────────
 
-  deleteUser(userId: number): void {
+  /**
+   * Reloads one tab and refreshes the head-count. Called after anything that
+   * changes a member's active state.
+   */
+  private refreshSection(type: SectionType): void {
+    this.sections.find(s => s.type === type)!.loaded = false;
+    this.loadSection(type);
+    this.loadCapacity();
+  }
+
+  /**
+   * The API returns `{ success, message }` on a 200 even when it refused the
+   * operation — a staff limit, a self-deactivation, a visit schedule still
+   * assigned. Without this the row simply did not move and the user was left
+   * guessing, which is how "delete does nothing" gets reported as a bug.
+   */
+  private handleResult(type: SectionType, result: any, fallback: string): void {
+    if (result?.success === false) {
+      this.toastr.error(result.message || fallback, 'Error');
+      return;
+    }
+    if (result?.message) this.toastr.success(result.message);
+    this.refreshSection(type);
+  }
+
+  /**
+   * Deactivates a member — the API keeps the row and stamps DeactivatedAt.
+   * Their attendance, salary history and the approvals they signed off stay
+   * intact, and the slot they occupied is freed. Reversible.
+   */
+  deactivateMember(type: SectionType, id: number): void {
+    const label = type === 'user' ? 'User' : type === 'doctor' ? 'Doctor' : 'Collection Boy';
     this.subs.add(
       this.confirmModal.confirm({
-        title: 'Delete User',
-        message: 'Are you sure you want to delete this user? This cannot be undone.',
-        confirmText: 'Delete', cancelText: 'Cancel'
+        title: `Deactivate ${label}`,
+        message: `Deactivate this ${label.toLowerCase()}? They lose access immediately and drop out of this list, ` +
+                 'but their attendance and salary history is kept. You can reactivate them later from "Show Inactive".',
+        confirmText: 'Deactivate', cancelText: 'Cancel'
       }).subscribe(confirmed => {
         if (!confirmed) return;
-        this.memberService.delete(userId).subscribe({
-          next:  () => { this.sections.find(s => s.type === 'user')!.loaded = false; this.loadSection('user'); this.loadCapacity(); },
+        this.memberService.delete(id).subscribe({
+          next:  r => this.handleResult(type, r, `Could not deactivate this ${label.toLowerCase()}.`),
+          error: () => {}   // HTTP/network errors are surfaced centrally by ErrorInterceptor
+        });
+      })
+    );
+  }
+
+  /** Restores a deactivated member. Refused by the API when the staff limit is reached. */
+  reactivateMember(type: SectionType, id: number): void {
+    const label = type === 'user' ? 'User' : type === 'doctor' ? 'Doctor' : 'Collection Boy';
+    this.subs.add(
+      this.confirmModal.confirm({
+        title: `Reactivate ${label}`,
+        message: `Reactivate this ${label.toLowerCase()}? They will be able to sign in again and will take a staff slot.`,
+        confirmText: 'Reactivate', cancelText: 'Cancel'
+      }).subscribe(confirmed => {
+        if (!confirmed) return;
+        this.memberService.reactivate(id).subscribe({
+          next:  r => this.handleResult(type, r, `Could not reactivate this ${label.toLowerCase()}.`),
           error: () => {}
         });
       })
     );
   }
 
-  deleteStaff(type: 'doctor' | 'collection-boy', id: number): void {
-    const label = type === 'doctor' ? 'Doctor' : 'Collection Boy';
+  /**
+   * Permanent erasure. Super Admin only (the API enforces it) and refused while
+   * the member still has visit schedules assigned.
+   */
+  hardDeleteMember(type: SectionType, id: number): void {
+    const label = type === 'user' ? 'User' : type === 'doctor' ? 'Doctor' : 'Collection Boy';
     this.subs.add(
       this.confirmModal.confirm({
-        title: `Delete ${label}`,
-        message: `Are you sure you want to delete this ${label.toLowerCase()}?`,
-        confirmText: 'Delete', cancelText: 'Cancel'
+        title: `Permanently Delete ${label}`,
+        message: `This PERMANENTLY deletes this ${label.toLowerCase()} along with their attendance, salary ` +
+                 'and login records. It cannot be undone. Continue?',
+        confirmText: 'Delete Permanently', cancelText: 'Cancel'
       }).subscribe(confirmed => {
         if (!confirmed) return;
-        this.memberService.delete(id).subscribe({
-          next:  () => { this.sections.find(s => s.type === type)!.loaded = false; this.loadSection(type); this.loadCapacity(); },
+        this.memberService.hardDelete(id).subscribe({
+          next:  r => this.handleResult(type, r, `Could not delete this ${label.toLowerCase()}.`),
           error: () => {}
         });
       })
