@@ -445,6 +445,18 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Re-entry guard.  The dialog auto-submits 100 ms after the sixth digit is
+    // entered AND leaves the "Verify Code" button clickable, so a user who types
+    // the last digit and then clicks Verify fires the request twice.  The OTP is
+    // single-use in the backend cache: the first request consumes it, the second
+    // comes back "Invalid OTP" and burns one of the three attempts that trigger
+    // the 15-minute lockout.
+    if (this.isVerifyingOtp) return;
+
+    // Drives [isSubmitting] on the dialog — spinner up, Verify disabled — for the
+    // whole round-trip AND, via navigateAfterLogin(), for the navigation that
+    // follows it.  Without this the submit has no visible effect whatsoever.
+    this.isVerifyingOtp = true;
 
     this._loginService.verifyAuth({
       authType: event.authType,
@@ -456,6 +468,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Clear the verifying spinner first, before any early return below —
         // an invalid code is still a completed request, so the dialog must go
         // back to an editable state instead of spinning forever.
+        this.isVerifyingOtp = false;
         if (!resp?.success) {
           const msg = (resp as any)?.message || 'Invalid code. Please try again.';
           // Lockout detected from verification response — close dialog, show lockout banner
@@ -469,8 +482,14 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.toastr.error(msg);
           return;
         }
+        // NOTE: do NOT clear isVerifyingOtp after this call.  handleSuccessfulLogin()
+        // hands off to navigateAfterLogin(), which sets it back to true and keeps the
+        // dialog's spinner up until the router promise settles.  Clearing it here ran
+        // synchronously right after that and wiped the flag again, so a navigation that
+        // waited on a guard (licenceGuard's GetPathologyExpiryDate call on the first
+        // login of a session) left the user staring at an idle dialog: no spinner, no
+        // message, no route change.
         this.handleSuccessfulLogin(resp);
-        this.isVerifyingOtp = false;
       },
       error: () => {
         this.isVerifyingOtp = false;

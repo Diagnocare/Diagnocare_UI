@@ -13,13 +13,14 @@ import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.com
 import { SetupMfaComponent } from '../setup-mfa/setup-mfa.component';
 import { SetupFingerprintComponent } from '../setup-fingerprint/setup-fingerprint.component';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['../account-pages.shared.css', './settings.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, OtpMfaDialogComponent, SetupMfaComponent, SetupFingerprintComponent]
+  imports: [CommonModule, FormsModule, OtpMfaDialogComponent, SetupMfaComponent, SetupFingerprintComponent, MaskedInputDirective]
 })
 export class SettingsComponent implements OnInit {
   user: any;
