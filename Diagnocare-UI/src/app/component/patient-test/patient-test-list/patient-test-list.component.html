@@ -368,6 +368,18 @@
                 <i class="fa fa-ban"></i>
                 {{ hasOpenRejection(detail) ? 'Sample rejected' : 'Was rejected' }}
               </button>
+
+              <!-- "Has this report been printed?" — read-only. Always shown, unlike the
+                   run/rejection chips which only appear when something out of the
+                   ordinary happened: whether a report was printed is worth knowing at a
+                   glance for every test. Set automatically by the Print button on the
+                   generated report itself — there is nothing to click here. -->
+              <span class="print-status-chip"
+                    [class.print-status-chip--printed]="isPrinted(detail)"
+                    [title]="printedTooltip(detail)">
+                <i class="fa" [ngClass]="isPrinted(detail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
+                {{ isPrinted(detail) ? 'Printed' : 'Not Printed' }}
+              </span>
             </div>
             <span class="badge" [ngClass]="detail.isAbnormal ? 'badge-danger' : 'badge-success'">
               {{ detail.isAbnormal ? 'Abnormal' : 'Normal' }}
@@ -566,6 +578,18 @@
           <span class="report-blocked-note"
                 *ngIf="!canIssueReport && !isLoadingParameters">
             <i class="fa fa-exclamation-circle"></i> {{ reportBlockedReason }}
+          </span>
+
+          <!-- Same read-only printed flag as the test list, surfaced here too since
+               this is the screen the operator is looking at right after printing.
+               Set automatically by the Print button inside the generated report —
+               there is nothing to click here. -->
+          <span class="print-status-chip print-status-chip--lg"
+                *ngIf="selectedTestDetail"
+                [class.print-status-chip--printed]="isPrinted(selectedTestDetail)"
+                [title]="printedTooltip(selectedTestDetail)">
+            <i class="fa" [ngClass]="isPrinted(selectedTestDetail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
+            {{ isPrinted(selectedTestDetail) ? 'Printed' : 'Not Printed' }}
           </span>
         </ng-container>
         <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">

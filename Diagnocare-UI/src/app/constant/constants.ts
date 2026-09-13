@@ -135,6 +135,12 @@ export const apiEndpoints = {
   rejectSample:"Reject",
   /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
   resolveSampleRejection:"Resolve",
+  /** Printed flag for one report (testRegId + testCode). Defaults to not-printed, never 404s. */
+  getPrintStatus:"GetPrintStatus",
+  /** Printed flags for every test code on a booking — one call for the whole list. */
+  getPrintStatuses:"GetPrintStatuses",
+  /** Manually marks one report printed or not-printed. */
+  setPrinted:"SetPrinted",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",

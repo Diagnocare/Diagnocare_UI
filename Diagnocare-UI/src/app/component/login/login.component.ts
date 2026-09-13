@@ -271,6 +271,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.loginForm.invalid) return;
 
     const raw = this.loginForm.value as LoginModel;
+    raw.userId = raw.userId.trim();
     this.isSubmitting = true;
 
     this._loginService.getUserDetails(raw).subscribe({
@@ -438,7 +439,7 @@ export class LoginComponent implements OnInit, OnDestroy {
    *   id = 0 for TOTP (backend loads user by userId); numeric user-id for OTP flows.
    */
   onOtpVerify(event: { code: string; authType: number }): void {
-    const userId = this.loginForm.get('userId')?.value as string;
+    const userId = this.loginForm.get('userId')?.value.trim() as string;
     if (!userId || !event.code || event.code.length !== 6) {
       this.toastr.warning('Please enter all 6 digits of the code.');
       return;

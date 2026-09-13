@@ -10,8 +10,8 @@
           {{ view === 'assign' ? 'Sample Collection Protocols' : (editorForm.protocolId ? 'Edit Protocol' : 'New Protocol') }}
         </h3>
         <p *ngIf="view === 'assign'">
-          {{ test?.testName }}
-          <span class="tpm-code" *ngIf="test?.testCode">({{ test?.testCode }})</span>
+          {{ test.testName }}
+          <span class="tpm-code" *ngIf="test.testCode">({{ test.testCode }})</span>
         </p>
         <p *ngIf="view === 'edit'">
           {{ editorIsDuplicate ? 'Duplicated from a standard protocol — review every field before saving.'
