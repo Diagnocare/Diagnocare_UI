@@ -120,7 +120,7 @@
     </div>
 
     <!-- User filter -->
-    <div class="user-filter" *ngIf="displayRows.length > 0">
+    <div class="user-filter" *ngIf="rows.length > 0">
       <i class="fa fa-user filter-icon"></i>
       <select class="user-select"
               [(ngModel)]="selectedUserId"
@@ -133,6 +133,27 @@
 
   </div><!-- /controls-bar -->
 
+  <!-- ── Shared empty state ────────────────────────────────────────────
+       Rendered in place of the grid whenever there is nothing to show — no
+       staff at all, an empty role tab, an all-inactive group, or a filter
+       that matches nobody. The copy names which of those it is, and offers
+       the single click that resolves it where one exists.
+       ──────────────────────────────────────────────────────────────────── -->
+  <ng-template #emptyStateTpl>
+    <div class="empty-state-card">
+      <div class="empty-visual">
+        <i class="fa" [ngClass]="emptyIcon"></i>
+      </div>
+
+      <h3 class="empty-title">{{ emptyTitle }}</h3>
+      <p class="empty-message">{{ emptyMessage }}</p>
+
+      <button class="empty-btn" *ngIf="emptyActionLabel" (click)="runEmptyAction()">
+        <i class="fa" [ngClass]="emptyActionIcon"></i> {{ emptyActionLabel }}
+      </button>
+    </div>
+  </ng-template>
+
   <!-- ── Attendance grid ──────────────────────────────────────────────── -->
   <div class="content-container">
     <ng-container *ngIf="!isLoading">
@@ -140,15 +161,13 @@
       <!-- ════════════════════════════════════════════════════════
            WEEKLY VIEW — single table, 7 columns
            ════════════════════════════════════════════════════════ -->
-      <div class="grid-wrapper" *ngIf="viewMode === 'weekly'">
+      <ng-container *ngIf="viewMode === 'weekly' && displayRows.length === 0">
+        <ng-container *ngTemplateOutlet="emptyStateTpl"></ng-container>
+      </ng-container>
 
-        <div class="empty-state" *ngIf="rows.length === 0">
-          <div class="empty-icon">👤</div>
-          <h3>No Users Found</h3>
-          <p>No registered users to display attendance for.</p>
-        </div>
+      <div class="grid-wrapper" *ngIf="viewMode === 'weekly' && displayRows.length > 0">
 
-        <table class="attendance-table" *ngIf="rows.length > 0">
+        <table class="attendance-table">
           <thead>
             <tr class="header-row">
               <th class="col-user sticky-col">
@@ -260,13 +279,11 @@
            ════════════════════════════════════════════════════════ -->
       <ng-container *ngIf="viewMode === 'monthly'">
 
-        <div class="empty-state" *ngIf="rows.length === 0">
-          <div class="empty-icon">👤</div>
-          <h3>No Users Found</h3>
-          <p>No registered users to display attendance for.</p>
-        </div>
+        <ng-container *ngIf="displayRows.length === 0">
+          <ng-container *ngTemplateOutlet="emptyStateTpl"></ng-container>
+        </ng-container>
 
-        <ng-container *ngIf="rows.length > 0">
+        <ng-container *ngIf="displayRows.length > 0">
 
           <!-- ── 1st Fortnight: days 1–15 ──────────────────────── -->
           <div class="fortnight-block" *ngIf="showFortnight1">
