@@ -126,9 +126,53 @@
     font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
   }
 
-  .date-cell { display: flex; flex-direction: column; }
+  .date-cell { display: flex; flex-direction: column; align-items: flex-start; }
   .date { font-weight: 600; color: var(--text-primary, #1e293b); }
   .day { color: var(--text-secondary, #94a3b8); font-size: 0.72rem; }
+
+  // ── Same-day history ─────────────────────────────────────────────
+  // One row per date; where a date was asked about more than once, this chip
+  // opens the attempts it replaced.
+  .history-chip {
+    margin-top: 0.3rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.45rem;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.08);
+    color: #6d28d9;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.5;
+    cursor: pointer;
+    white-space: nowrap;
+
+    i { font-size: 0.62rem; }
+    &:hover { background: rgba(124, 58, 237, 0.16); }
+    &.open { background: #7c3aed; border-color: #6d28d9; color: #fff; }
+  }
+
+  // Superseded attempts, shown indented under the row that replaced them.
+  .history-row {
+    background: rgba(100, 116, 139, 0.04);
+    font-size: 0.82rem;
+
+    td { color: var(--text-secondary, #64748b); }
+    &:hover { background: rgba(100, 116, 139, 0.09); }
+  }
+
+  .history-marker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.7rem;
+    font-style: italic;
+
+    i { color: rgba(124, 58, 237, 0.7); }
+  }
 
   .transition { .arrow { margin: 0 0.5rem; color: var(--text-secondary, #adb5bd); font-size: 0.75rem; } .to { font-weight: 600; } }
   .changed { color: #b45309; font-weight: 600; }

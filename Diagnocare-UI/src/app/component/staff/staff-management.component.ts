@@ -13,7 +13,7 @@ import { SignaturePreviewModalComponent } from 'src/app/shared/signature-preview
 
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { Role }      from 'src/app/constant/enums';
-import { isMemberActive } from 'src/app/shared/member-utils';
+import { isMemberActive, filterActiveMembers, filterInactiveMembers } from 'src/app/shared/member-utils';
 
 export type SectionType = 'user' | 'collection-boy' | 'doctor';
 
@@ -51,14 +51,45 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
   collectionBoys: MemberDto[] = [];
   doctors:        MemberDto[] = [];
 
-  showInactive = false;
+  /**
+   * Which set of members the list shows. The two are never mixed.
+   *
+   * They used to be: "Show Inactive" appended the deactivated members into the same
+   * table, in whatever order the API returned them, so a deactivated member could sit
+   * between two active ones and read as active at a glance. The rows are not
+   * interchangeable — an active row offers Edit and Deactivate, an inactive one only
+   * Reactivate — so interleaving them made the actions column look arbitrary too.
+   */
+  viewMode: 'active' | 'inactive' = 'active';
+
+  get showingInactive(): boolean { return this.viewMode === 'inactive'; }
 
   /** Filtered lists exposed to the template. */
-  get visibleUsers():          MemberDto[] { return this.showInactive ? this.users          : this.users.filter(isMemberActive); }
-  get visibleCollectionBoys(): MemberDto[] { return this.showInactive ? this.collectionBoys : this.collectionBoys.filter(isMemberActive); }
-  get visibleDoctors():        MemberDto[] { return this.showInactive ? this.doctors        : this.doctors.filter(isMemberActive); }
+  get visibleUsers():          MemberDto[] { return this.forCurrentView(this.users); }
+  get visibleCollectionBoys(): MemberDto[] { return this.forCurrentView(this.collectionBoys); }
+  get visibleDoctors():        MemberDto[] { return this.forCurrentView(this.doctors); }
 
-  toggleInactive(): void { this.showInactive = !this.showInactive; }
+  private forCurrentView(members: MemberDto[]): MemberDto[] {
+    return this.showingInactive ? filterInactiveMembers(members) : filterActiveMembers(members);
+  }
+
+  /**
+   * Deactivated members in the tab currently on screen — shown on the toggle so the
+   * user can see whether switching will show anything before they switch.
+   */
+  get inactiveCount(): number {
+    return filterInactiveMembers(this.listFor(this.activeSection.type)).length;
+  }
+
+  private listFor(type: SectionType): MemberDto[] {
+    return type === 'user'           ? this.users
+         : type === 'collection-boy' ? this.collectionBoys
+         :                             this.doctors;
+  }
+
+  toggleView(): void {
+    this.viewMode = this.showingInactive ? 'active' : 'inactive';
+  }
 
   /**
    * Staff head-count, fetched from the API — the limit is server configuration
@@ -72,7 +103,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
   get addDisabledReason(): string {
     return this.canAddStaff ? ''
       : `Staff limit reached — all ${this.capacity?.max} slots are in use. ` +
-        'Deactivate or delete a member to free one.';
+        'Deactivate a member to free one.';
   }
 
   /** Refreshed on load and after anything that frees or takes a slot. */
@@ -147,7 +178,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     this.router.navigate(['/users/edit', id], { queryParams: { type } });
   }
 
-  // ── Deactivate / Reactivate / Permanent delete ────────────────────────────
+  // ── Deactivate / Reactivate ───────────────────────────────────────────────
 
   /**
    * Reloads one tab and refreshes the head-count. Called after anything that
@@ -209,28 +240,6 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
         if (!confirmed) return;
         this.memberService.reactivate(id).subscribe({
           next:  r => this.handleResult(type, r, `Could not reactivate this ${label.toLowerCase()}.`),
-          error: () => {}
-        });
-      })
-    );
-  }
-
-  /**
-   * Permanent erasure. Super Admin only (the API enforces it) and refused while
-   * the member still has visit schedules assigned.
-   */
-  hardDeleteMember(type: SectionType, id: number): void {
-    const label = type === 'user' ? 'User' : type === 'doctor' ? 'Doctor' : 'Collection Boy';
-    this.subs.add(
-      this.confirmModal.confirm({
-        title: `Permanently Delete ${label}`,
-        message: `This PERMANENTLY deletes this ${label.toLowerCase()} along with their attendance, salary ` +
-                 'and login records. It cannot be undone. Continue?',
-        confirmText: 'Delete Permanently', cancelText: 'Cancel'
-      }).subscribe(confirmed => {
-        if (!confirmed) return;
-        this.memberService.hardDelete(id).subscribe({
-          next:  r => this.handleResult(type, r, `Could not delete this ${label.toLowerCase()}.`),
           error: () => {}
         });
       })
