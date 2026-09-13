@@ -68,7 +68,7 @@ jobs:
         run: npm ci --no-audit --no-fund --prefer-offline
 
       - name: Build DEV
-        run: npx --yes ng build --configuration development --progress=false
+        run: npx --yes ng build --configuration development
 
       - name: Deploy DEV to IIS
         working-directory: .
