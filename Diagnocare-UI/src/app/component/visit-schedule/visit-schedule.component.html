@@ -32,10 +32,26 @@
         <div class="detail-title">
           <i class="fa fa-calendar-day"></i>
           <span>{{ selectedDate | date:'EEEE, d MMMM yyyy' }}</span>
+          <span class="holiday-pill" *ngIf="selectedDayHolidayName">
+            <i class="fa fa-umbrella-beach"></i> {{ selectedDayHolidayName }}
+          </span>
         </div>
         <button class="btn btn-primary btn-sm" (click)="openForm()">
           <i class="fa fa-plus"></i> Assign Visit
         </button>
+      </div>
+
+      <!-- ── Holiday conflict banner ──────────────────────────────────────── -->
+      <!-- Visits already exist on a day that is registered as a holiday. -->
+      <div class="holiday-conflict-banner"
+           *ngIf="selectedDayHolidayName && dayVisits.length > 0">
+        <i class="fa fa-exclamation-triangle"></i>
+        <div>
+          <strong>{{ dayVisits.length }} visit{{ dayVisits.length === 1 ? '' : 's' }}
+            scheduled on a holiday</strong>
+          <span>This day is registered as <strong>{{ selectedDayHolidayName }}</strong>.
+            Consider rescheduling the visits below.</span>
+        </div>
       </div>
 
       <!-- ── Assignment form ─────────────────────────────────────────────── -->
@@ -150,6 +166,21 @@
           </div>
         </div>
 
+        <!-- ── Holiday warning + override ─────────────────────────────────── -->
+        <div class="holiday-warning" *ngIf="formHolidayName">
+          <div class="hw-head">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span>
+              {{ assignForm.get('visitDate')?.value | date:'d MMMM yyyy' }} is a holiday
+              — <strong>{{ formHolidayName }}</strong>.
+            </span>
+          </div>
+          <label class="hw-check">
+            <input type="checkbox" [(ngModel)]="overrideHoliday" [ngModelOptions]="{ standalone: true }" />
+            <span>Schedule this visit anyway</span>
+          </label>
+        </div>
+
         <!-- Purpose + Notes -->
         <div class="form-group">
           <label class="form-label">Purpose</label>
@@ -165,7 +196,9 @@
 
         <div class="form-actions">
           <button class="btn btn-cancel" type="button" (click)="cancelForm()">Cancel</button>
-          <button class="btn btn-primary" type="button" (click)="saveForm()" [disabled]="savingForm">
+          <button class="btn btn-primary" type="button" (click)="saveForm()"
+                  [disabled]="savingForm || holidayBlocksSave"
+                  [title]="holidayBlocksSave ? 'Confirm the holiday warning to continue' : ''">
             <i class="fa fa-save"></i> {{ savingForm ? 'Saving…' : 'Assign' }}
           </button>
         </div>
@@ -261,6 +294,7 @@
   *ngIf="editingVisit"
   [visit]="editingVisit"
   [members]="allMembers"
+  [calendarData]="calendarData"
   [saving]="savingEdit"
   (saved)="onEditSaved($event)"
   (cancelled)="cancelEdit()">

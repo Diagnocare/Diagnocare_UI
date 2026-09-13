@@ -121,6 +121,37 @@
   &.active { background: #0891b2; border-color: #0891b2; color: #fff; }
 }
 
+// ── Holiday warning ───────────────────────────────────────────────────────────
+.vem-holiday-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: .7rem .85rem;
+  margin-top: .25rem;
+
+  .vem-hw-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    font-size: .79rem;
+    color: #92400e;
+    i { color: #d97706; margin-top: .15rem; }
+  }
+
+  .vem-hw-check {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: .55rem 0 0;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #92400e;
+    cursor: pointer;
+    input { cursor: pointer; accent-color: #d97706; }
+  }
+}
+
 // ── Footer ────────────────────────────────────────────────────────────────────
 .vem-footer {
   display: flex;

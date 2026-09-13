@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
 import { PinModalService, PinModalMode } from './pin-modal.service';
 import { PinService }      from 'src/app/services/pinServices/pin.service';
 import { TokenService }    from 'src/app/core/interceptors/token.service';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 const MAX_ATTEMPTS     = 3;
 const MODAL_TIMEOUT_S  = 300; // 5 minutes
@@ -38,7 +39,7 @@ const MODAL_TIMEOUT_S  = 300; // 5 minutes
   templateUrl: './pin-modal.component.html',
   styleUrls: ['./pin-modal.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MaskedInputDirective],
 })
 export class PinModalComponent implements OnInit, OnDestroy {
 

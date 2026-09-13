@@ -53,6 +53,20 @@
   i { color: #0891b2; }
 }
 
+// Holiday pill next to the date — same violet used by the calendar chip.
+.holiday-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .7rem;
+  font-weight: 700;
+  color: #fff;
+  background: #7c3aed;
+  border-radius: 999px;
+  padding: 2px 9px;
+  i { color: #fff !important; }
+}
+
 // Refresh button in the detail header
 .btn-outline {
   background: #fff;

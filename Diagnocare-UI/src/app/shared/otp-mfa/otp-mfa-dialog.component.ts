@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 export interface MethodDef {
   key:        string;               // internal key used for routing
@@ -21,7 +22,7 @@ export interface MethodDef {
   templateUrl: './otp-mfa-dialog.component.html',
   styleUrls: ['./otp-mfa-dialog.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent]
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, MaskedInputDirective]
 })
 export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
