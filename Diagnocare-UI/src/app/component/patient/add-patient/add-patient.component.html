@@ -418,7 +418,7 @@
               </div>
               <div class="amount-card amount-card--discount">
                 <span class="amount-label">Discount</span>
-                <span class="amount-value">{{ patientForm.get('discount')?.value || 0 }}%</span>
+                <span class="amount-value">{{ (patientForm.get('discount')?.value || 0) | number:'1.0-2' }}%</span>
               </div>
               <div class="amount-card amount-card--net">
                 <span class="amount-label">Net Amount</span>
@@ -435,12 +435,17 @@
               <div class="form-group">
                 <label class="form-label">Discount (%)</label>
                   <input type="number" class="form-control" formControlName="discount"
-                    (change)="calculateNetAmount()" placeholder="0"
-                    min="0" [max]="maxDiscountPercent"
+                    (input)="calculateNetAmount()" placeholder="0"
+                    min="0" [max]="maxDiscountPercent" step="0.01"
+                    [class.is-invalid]="!!patientForm.get('discount')?.invalid"
                     [attr.tabindex]="getTabIndex('discount')" />
                 <small class="text-danger"
                        *ngIf="patientForm.get('discount')?.errors?.['maxExceeded']">
                   Discount cannot exceed {{ maxDiscountPercent }}%.
+                </small>
+                <small class="text-danger"
+                       *ngIf="patientForm.get('discount')?.errors?.['negative']">
+                  Discount cannot be negative.
                 </small>
               </div>
             </div>
@@ -449,8 +454,12 @@
               <div class="form-group">
                 <label class="form-label required">Net Amount (₹)</label>
                   <input type="text" class="form-control" formControlName="net_Amount"
-                    (change)="calculateDiscount()"
+                    (input)="calculateDiscount()"
                     [class.is-invalid]="isFieldInvalid('net_Amount')" [attr.tabindex]="getTabIndex('net_Amount')" />
+                <small class="text-danger"
+                       *ngIf="patientForm.get('net_Amount')?.errors?.['aboveTestAmount']">
+                  Net amount cannot be more than the test amount.
+                </small>
                 <app-field-error [control]="patientForm.get('net_Amount')" label="Net Amount" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
               <div class="form-group">

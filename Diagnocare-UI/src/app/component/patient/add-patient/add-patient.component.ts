@@ -544,7 +544,6 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   // ── DOB / Age ──────────────────────────────────────────────────────────────
 
   onDateInput(event: Event): void {
-    debugger;
     const input = event.target as HTMLInputElement;
     let { value, cursorPos } = this._common.formatDateInputMask(input.value);
 
@@ -939,28 +938,126 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   /** Maximum discount % allowed for this lab (admin-configured). */
   get maxDiscountPercent(): number { return this._token.getMaxDiscountPercent(); }
 
-  calculateNetAmount() {
-    const testAmount  = this.patientForm.get('test_Amount')?.value;
-    const discount    = this.patientForm.get('discount')?.value;
-    const maxDiscount = this._token.getMaxDiscountPercent();
+  /** Parses a form value that may be a string, number, null or '' into a number. */
+  private toNumber(value: any): number {
+    const n = parseFloat(String(value ?? '').trim());
+    return isNaN(n) ? 0 : n;
+  }
 
-    if (discount > maxDiscount) {
-      this.patientForm.get('discount')?.setErrors({ maxExceeded: true });
+  /** Rounds to 2 decimals — keeps money and percentages clean and API-friendly. */
+  private round2(n: number): number {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+  }
+
+  /**
+   * Adds or removes a single named error on a control WITHOUT wiping the errors
+   * its own validators produced.
+   *
+   * setErrors(null) clears everything — including `required` — which is how the
+   * old code could leave a control looking valid when it wasn't, and how a
+   * `maxExceeded` flag set from one field could never be cleared from the other.
+   */
+  private setControlError(controlName: string, key: string, on: boolean): void {
+    const ctrl = this.patientForm.get(controlName);
+    if (!ctrl) return;
+
+    const errors = { ...(ctrl.errors ?? {}) };
+
+    if (on) {
+      if (errors[key]) return;              // already flagged — nothing to do
+      errors[key] = true;
+      ctrl.setErrors(errors);
       return;
     }
-    this.patientForm.get('discount')?.setErrors(null);
 
-    if (discount <= maxDiscount && testAmount > 0) {
-      this.patientForm.patchValue({ net_Amount: testAmount - discount * testAmount / 100 });
+    if (!(key in errors)) return;           // not flagged — nothing to do
+    delete errors[key];
+    if (Object.keys(errors).length) {
+      ctrl.setErrors(errors);
+    } else {
+      ctrl.setErrors(null);
+      // Re-run the control's own validators (required, etc.) that setErrors(null)
+      // just cleared, so removing OUR flag can't accidentally make an empty
+      // field look valid.
+      ctrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 
+  /**
+   * Enforces the lab's maximum discount, from BOTH directions.
+   *
+   * Called whether the operator typed a percentage or typed a net amount, so the
+   * cap cannot be bypassed by entering a low net amount, and — just as important —
+   * the error can never get stuck after the value is corrected from the other field.
+   *
+   * @returns true when the discount is within the allowed range.
+   */
+  private validateDiscountLimit(discount: number): boolean {
+    const negative = discount < 0;
+    const exceeded = discount > this.maxDiscountPercent;
+
+    this.setControlError('discount', 'negative',    negative);
+    this.setControlError('discount', 'maxExceeded', !negative && exceeded);
+
+    return !negative && !exceeded;
+  }
+
+  /**
+   * Discount % → Net Amount.
+   *
+   * Bound to (input), not (change), so the Net Amount field and the summary cards
+   * move on every keystroke instead of waiting for the field to lose focus.
+   *
+   * Only net_Amount is patched here, so this can never ping-pong with
+   * calculateDiscount().
+   */
+  calculateNetAmount() {
+    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const discount   = this.toNumber(this.patientForm.get('discount')?.value);
+
+    // A net amount typed by hand may have been flagged as above the test amount;
+    // recalculating from the discount always produces a valid one.
+    this.setControlError('net_Amount', 'aboveTestAmount', false);
+
+    if (!this.validateDiscountLimit(discount)) return;  // keep the last good net amount
+    if (testAmount <= 0) return;
+
+    this.patientForm.patchValue({
+      net_Amount: this.round2(testAmount - discount * testAmount / 100)
+    });
+  }
+
+  /**
+   * Net Amount → Discount %.
+   *
+   * Bound to (input) for the same reason as above. Rounds to 2 dp so the operator
+   * sees "90.43%" rather than "90.43478260869566%", and so the value the API
+   * stores is a sane percentage.
+   */
   calculateDiscount() {
-    const testAmount = this.patientForm.get('test_Amount')?.value;
-    const netAmount  = this.patientForm.get('net_Amount')?.value;
-    if (netAmount > 0 && netAmount <= testAmount && testAmount > 0) {
-      this.patientForm.patchValue({ discount: (testAmount - netAmount) * 100 / testAmount });
+    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const rawNet     = String(this.patientForm.get('net_Amount')?.value ?? '').trim();
+
+    if (testAmount <= 0) return;
+
+    // Field cleared mid-edit — leave the discount alone and let `required` speak.
+    if (rawNet === '') {
+      this.setControlError('net_Amount', 'aboveTestAmount', false);
+      return;
     }
+
+    const netAmount = this.toNumber(rawNet);
+
+    // A net amount above the test amount is a negative discount — reject it here
+    // instead of silently doing nothing, which used to leave the two fields
+    // disagreeing with no explanation.
+    const aboveTest = netAmount > testAmount;
+    this.setControlError('net_Amount', 'aboveTestAmount', aboveTest);
+    if (aboveTest || netAmount < 0) return;
+
+    const discount = this.round2((testAmount - netAmount) * 100 / testAmount);
+    this.patientForm.patchValue({ discount });
+    this.validateDiscountLimit(discount);
   }
 
   /**
@@ -1144,6 +1241,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (!this.patientForm.valid) {
       this.stepTouched[this.currentStep] = true;
       this.patientForm.markAllAsTouched();
+      // Previously this returned silently, so a problem on an earlier step — or a
+      // discount over the lab limit — looked like a dead "Register Patient" button.
+      this.toastr.error(this.describeInvalidFields(), 'Cannot register yet');
       return;
     }
 
@@ -1167,6 +1267,40 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     }
 
     this.doRegisterPatient();
+  }
+
+  /** Human-readable labels for the controls named in validation messages. */
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    patient_Name: 'Patient Name', patient_DOB: 'Date of Birth', patient_Age: 'Age',
+    patient_Age_Group: 'Age Group', patient_Gender: 'Gender',
+    patient_Address: 'Address', relative_Name: 'Relative Name',
+    patient_Contact: 'Contact Number', patient_Email: 'Email',
+    test_Name: 'Test', test_Amount: 'Test Amount', referred_By_Type: 'Referred By Type',
+    referred_By: 'Referred By', discount: 'Discount (%)', net_Amount: 'Net Amount',
+    payment_Type: 'Payment Type', amount_Paid: 'Amount Paid',
+    amount_Pending: 'Amount Pending', payment_Mode: 'Payment Mode',
+  };
+
+  /** Builds the toast text listing what is still blocking registration. */
+  private describeInvalidFields(): string {
+    const discount = this.patientForm.get('discount');
+    if (discount?.errors?.['maxExceeded']) {
+      return `Discount cannot exceed ${this.maxDiscountPercent}%. Lower the discount or raise the net amount.`;
+    }
+    if (discount?.errors?.['negative']) {
+      return 'Discount cannot be negative.';
+    }
+    if (this.patientForm.get('net_Amount')?.errors?.['aboveTestAmount']) {
+      return 'Net amount cannot be more than the test amount.';
+    }
+
+    const invalid = Object.keys(this.patientForm.controls)
+      .filter(k => this.patientForm.get(k)?.invalid)
+      .map(k => AddPatientComponent.FIELD_LABELS[k] ?? k);
+
+    return invalid.length
+      ? `Please complete: ${invalid.slice(0, 4).join(', ')}${invalid.length > 4 ? '…' : ''}`
+      : 'Please review the highlighted fields.';
   }
 
   private doRegisterPatient() {
