@@ -668,7 +668,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
             salaryId:      rec.salaryId,
             paymentMonth:  `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
             paymentAmount: finalAmount,
-            paymentFor:    undefined,
+            paymentFor:    PaymentFor.AllComponents,
             paymentType:   PaymentType.Full,
           };
         },
@@ -749,7 +749,27 @@ export class SalaryComponent implements OnInit, OnDestroy {
     if (!this.paymentFormValid || !this.panelRecord) return;
     this.isAddingPayment = false;
 
-    this.salarySvc.addPayment(this.paymentForm)
+    // A Full payment settles EVERY component, so it must go to PayAllComponents,
+    // which writes one row per component that still has a balance.
+    //
+    // AddPayment's "Full" means something narrower — "settle ONE component in
+    // full" — and it reads that component from paymentFor. Sending a Full row
+    // without a paymentFor let the API fall back to its default of BaseSalary,
+    // so the request was validated against the base cap alone and failed with
+    // "BaseSalary for YYYY-MM is already fully paid" once base was settled, or
+    // "amount must exactly equal the pending BaseSalary balance" whenever
+    // allowances made the net differ from base. Neither is the intent here.
+    const request$ =
+      this.paymentForm.paymentType === PaymentType.Full
+        ? this.salarySvc.payAllComponents({
+            salaryId:     this.paymentForm.salaryId,
+            paymentMonth: this.paymentForm.paymentMonth,
+            paymentDate:  this.paymentForm.paymentDate,
+            reference:    this.paymentForm.reference || null,
+          })
+        : this.salarySvc.addPayment(this.paymentForm);
+
+    request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
