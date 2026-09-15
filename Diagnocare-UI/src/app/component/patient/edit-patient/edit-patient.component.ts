@@ -181,6 +181,17 @@ export class EditPatientComponent implements OnInit, OnDestroy {
     // errorMessage.length > 0? this.disabled=true:this.disabled=false;
     return errorMessage;
   }
+  /**
+   * The DOB in the text box as YYYY-MM-DD for the calendar picker beside it.
+   *
+   * The text box owns the date; this getter is how the calendar follows it, so
+   * it opens on the month that was typed (or loaded for the patient) instead of
+   * on today. Empty while the date is half-typed or impossible — see dmyToIso().
+   */
+  get dobIso(): string {
+    return this._common.dmyToIso(this.editPatientForm.get('patient_DOB')?.value);
+  }
+
   onDateInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const { value, cursorPos } = this._common.formatDateInputMask(input.value);
