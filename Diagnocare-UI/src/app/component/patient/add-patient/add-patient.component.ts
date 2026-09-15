@@ -543,6 +543,18 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── DOB / Age ──────────────────────────────────────────────────────────────
 
+  /**
+   * The typed DOB as YYYY-MM-DD for the calendar picker beside the text box.
+   *
+   * The text box is the single source of truth for the date; this getter is how
+   * the calendar follows it, so opening the calendar after typing 11/08/2001
+   * lands on August 2001 with the 11th highlighted rather than on today's month.
+   * Empty while the date is still half-typed or impossible — see dmyToIso().
+   */
+  get dobIso(): string {
+    return this._common.dmyToIso(this.patientForm.get('patient_DOB')?.value);
+  }
+
   onDateInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     let { value, cursorPos } = this._common.formatDateInputMask(input.value);

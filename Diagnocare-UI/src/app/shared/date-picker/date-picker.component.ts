@@ -38,7 +38,12 @@ const WEEK_DAYS   = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
  * Usage with reactive forms:
  *   <app-date-picker formControlName="myDate"></app-date-picker>
  *
+ * Usage next to a text field that owns the value (the picker only mirrors it —
+ * see the patient DOB row):
+ *   <app-date-picker [value]="dobIso" (dateChange)="onPicked($event)"></app-date-picker>
+ *
  * Optional inputs:
+ *   [value]        — current date (YYYY-MM-DD) when not bound via ngModel/formControlName
  *   [inputClass]   — extra CSS classes on the trigger element (e.g. "form-control")
  *   [min]          — minimum selectable date (YYYY-MM-DD)
  *   [max]          — maximum selectable date (YYYY-MM-DD)
@@ -71,10 +76,22 @@ export class DatePickerComponent implements ControlValueAccessor {
 
   @Output() dateChange = new EventEmitter<string>();
 
+  /**
+   * Current date in YYYY-MM-DD format.
+   *
+   * Also an @Input, so a parent that keeps the value somewhere else — a masked
+   * text box the operator types into, say — can push it in and have the grid
+   * open on that month instead of today. Writes go through writeValue(), so the
+   * binding and the ControlValueAccessor stay one and the same value.
+   */
+  @Input()
+  set value(val: string) { this.writeValue(val); }
+  get value(): string    { return this._value; }
+
   // ── State ─────────────────────────────────────────────────────────────────────
 
   /** Stored value in YYYY-MM-DD format. */
-  value        = '';
+  private _value = '';
   isDisabled   = false;
   showCalendar = false;
 
@@ -110,9 +127,9 @@ export class DatePickerComponent implements ControlValueAccessor {
 
   writeValue(val: string): void {
     // Normalise: strip time portion if API returns a full ISO datetime string
-    this.value = val ? val.split('T')[0] : '';
-    if (this.value) {
-      const d = new Date(this.value + 'T00:00:00');
+    this._value = val ? val.split('T')[0] : '';
+    if (this._value) {
+      const d = new Date(this._value + 'T00:00:00');
       if (!isNaN(d.getTime())) {
         this.viewMonth = d.getMonth();
         this.viewYear  = d.getFullYear();

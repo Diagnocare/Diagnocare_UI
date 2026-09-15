@@ -99,8 +99,11 @@
                     [class.is-invalid]="isFieldInvalid('patient_DOB')"
                     [attr.tabindex]="getTabIndex('patient_DOB')"
                   />
-                  <!-- Calendar picker (no formControlName — bridges via dateChange event) -->
+                  <!-- Calendar picker. No formControlName: the text box above owns the
+                       value as dd/mm/yyyy, so the picker reads it back in as ISO
+                       through [value] and hands picks out through (dateChange). -->
                   <app-date-picker
+                    [value]="dobIso"
                     [max]="todayIso"
                     (dateChange)="onDobPickerChange($event)"
                     placeholder="Pick from calendar"
