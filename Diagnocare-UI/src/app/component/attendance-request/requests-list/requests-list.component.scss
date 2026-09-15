@@ -40,6 +40,53 @@
   }
 }
 
+// ── Bucket tabs (admin) ───────────────────────────────────────────
+// An underlined tab strip rather than pill chips: these are three views of the
+// queue, not three filters layered onto it, and tabs are the shape people already
+// read that way. The count sits inside its tab so "is there work over there?"
+// is answered before the click.
+.bucket-tabs {
+  display: flex; gap: 0.25rem; margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  overflow-x: auto;
+
+  .bucket-tab {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: none; border: none;
+    padding: 0.6rem 1rem; margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    font-size: 0.875rem; font-weight: 500; white-space: nowrap; cursor: pointer;
+    color: var(--text-secondary, #64748b);
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    &:hover:not(.active) { color: var(--text-primary, #334155); }
+
+    &.active {
+      color: var(--primary-color, #2563eb);
+      border-bottom-color: var(--primary-color, #2563eb);
+      font-weight: 600;
+    }
+  }
+
+  // The badge carries the number, not urgency — an empty bucket is fine, not an
+  // alert — so only a non-zero count on the active tab gets the accent colour.
+  .tab-count {
+    min-width: 1.4rem; padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.14);
+    color: var(--text-secondary, #64748b);
+    font-size: 0.72rem; font-weight: 600; line-height: 1.5; text-align: center;
+
+    &.zero { opacity: 0.55; }
+  }
+
+  .bucket-tab.active .tab-count:not(.zero) {
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+  }
+}
+
 // ── Filter panel (admin) ──────────────────────────────────────────
 // Grid rather than flex-wrap: with flex-wrap, the "grow" search field's wide
 // flex-basis meant it was the one item forced onto its own line at common
@@ -54,9 +101,10 @@
   padding: 1rem; margin-bottom: 1rem;
 
   .filter-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
-  // Search spans two columns on its own row's worth of width, but stays
-  // grid-aligned with the fields above it rather than free-floating.
-  .filter-field.grow { grid-column: span 2; }
+  // With Status gone to the tab strip, the three remaining fields plus the buttons
+  // fit one row exactly — so search takes a single column and the actions the last,
+  // instead of the buttons being pushed onto a row of their own.
+  .filter-field.grow { grid-column: span 1; }
 
   label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary, #94a3b8); }
 
@@ -67,7 +115,7 @@
   app-date-picker ::ng-deep .dp-trigger { height: 38px; box-sizing: border-box; }
 
   .filter-actions {
-    grid-column: -3 / -1;
+    grid-column: -2 / -1;
     display: flex; justify-content: flex-end; gap: 0.5rem;
   }
   .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
@@ -214,6 +262,10 @@
 .ar-table .changed           { color: #b45309 !important; }
 .chip-bar .chip              { color: var(--text-secondary, #64748b) !important; }
 .chip-bar .chip.active       { color: #fff !important; }
+.bucket-tabs .bucket-tab     { color: var(--text-secondary, #64748b) !important; }
+.bucket-tabs .bucket-tab.active { color: var(--primary-color, #2563eb) !important; }
+.bucket-tabs .tab-count      { color: var(--text-secondary, #64748b) !important; }
+.bucket-tabs .bucket-tab.active .tab-count:not(.zero) { color: #fff !important; }
 .filter-panel label          { color: var(--text-secondary, #94a3b8) !important; }
 .pager .page-info            { color: var(--text-secondary, #64748b) !important; }
 .empty-state h3              { color: var(--text-primary, #334155) !important; }

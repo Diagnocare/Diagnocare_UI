@@ -10,9 +10,13 @@ import { RequestStatusBadgeComponent } from '../shared/request-status-badge.comp
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import {
+  AttendanceRequestCounts,
   AttendanceRequestDTO,
   AttendanceRequestFilter,
+  RequestBucket,
   RequestStatus,
+  REQUEST_BUCKETS,
+  USER_STATUS_FILTERS,
 } from 'src/app/models/attendanceRequest/attendance-request.model';
 
 /**
@@ -33,35 +37,19 @@ export class RequestsListComponent implements OnInit {
   readonly RequestStatus = RequestStatus;
 
   /**
-   * Sentinel for the admin's default view. Not a real RequestStatus — it maps to the
-   * `awaitingDecision` flag, which the server expands to Pending + WithdrawalRequested.
-   * Negative so it can never collide with a status value.
+   * The admin's three views. A queue is a worklist, not a database browser: the
+   * question on arrival is "what needs me?", and after that "what did I decide about
+   * X?" — so those are the filters. Listing all six lifecycle states instead meant
+   * three of them overlapped (Awaiting decision IS Pending + Withdrawal requested) and
+   * two were outcomes no admin acts on. The exact state is still on every row's badge.
    */
-  static readonly AWAITING_DECISION = -1;
-  readonly AWAITING_DECISION = RequestsListComponent.AWAITING_DECISION;
+  readonly buckets = REQUEST_BUCKETS;
 
-  readonly statusOptions = [
-    { value: 0, label: 'All' },
-    // Admin's working queue: both things that need a decision, in one list.
-    { value: RequestsListComponent.AWAITING_DECISION, label: 'Awaiting decision' },
-    { value: RequestStatus.Pending, label: 'Pending' },
-    { value: RequestStatus.Approved, label: 'Approved' },
-    { value: RequestStatus.WithdrawalRequested, label: 'Withdrawal requested' },
-    { value: RequestStatus.Rejected, label: 'Rejected' },
-    // Labels match REQUEST_STATUS_CONFIG — Cancelled is what withdrawing an unreviewed
-    // request produces; Withdrawn is an approved one whose attendance was rolled back.
-    { value: RequestStatus.Cancelled, label: 'Withdrawn' },
-    { value: RequestStatus.Withdrawn, label: 'Reverted' },
-  ];
+  /** Status chips for an employee's own list — short and personal, so all states stay. */
+  readonly userStatusOptions = USER_STATUS_FILTERS;
 
-  /**
-   * Chips shown to employees. "Awaiting decision" is an admin queue view and would be
-   * meaningless in a personal list, so it is filtered out rather than duplicated as a
-   * second array that could drift from statusOptions.
-   */
-  get userStatusOptions() {
-    return this.statusOptions.filter(o => o.value !== this.AWAITING_DECISION);
-  }
+  /** Tab badges. Null until loaded, so a tab never briefly claims zero work. */
+  counts: AttendanceRequestCounts | null = null;
 
   /**
    * True when the signed-in user REVIEWS other people's requests, i.e. Super
@@ -75,9 +63,9 @@ export class RequestsListComponent implements OnInit {
   total = 0;
   isLoading = false;
 
-  // Admin default: everything awaiting a decision (actionable). User default: All.
+  // Admin default: the work queue. Employees filter by status instead (see ngOnInit).
   filter: AttendanceRequestFilter = {
-    status: RequestsListComponent.AWAITING_DECISION,
+    bucket: 'needsaction', status: 0,
     search: '', fromDate: '', toDate: '',
     page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc',
   };
@@ -91,21 +79,16 @@ export class RequestsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.isReviewer = this.token.isSuperAdmin();
-    if (!this.isReviewer) this.filter.status = 0;   // users default to All of their own
     this.load();
+    if (this.isReviewer) this.loadCounts();
   }
 
   load(): void {
     this.isLoading = true;
     if (this.isReviewer) {
-      // The AWAITING_DECISION sentinel is not a status — translate it into the flag the
-      // server understands, and drop `status` so it can't be sent as a negative number.
-      const awaiting = this.filter.status === this.AWAITING_DECISION;
-
       const payload: AttendanceRequestFilter = {
         ...this.filter,
-        status: awaiting ? undefined : (this.filter.status || undefined),
-        awaitingDecision: awaiting ? true : undefined,
+        status: undefined,                       // the queue filters by bucket, not state
         search: this.filter.search?.trim() || undefined,
         fromDate: this.filter.fromDate || undefined,
         toDate: this.filter.toDate || undefined,
@@ -115,25 +98,58 @@ export class RequestsListComponent implements OnInit {
         error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
       });
     } else {
-      // Users have no "awaiting decision" view — their own list is short enough to read
-      // whole. Guard against the sentinel leaking through if the option is ever shown.
-      const status = this.filter.status === this.AWAITING_DECISION ? undefined : (this.filter.status || undefined);
-      this.service.getMyRequests(status).subscribe({
+      this.service.getMyRequests(this.filter.status || undefined).subscribe({
         next: (rows) => { this.rows = rows; this.total = rows.length; this.isLoading = false; },
         error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
       });
     }
   }
 
+  /**
+   * Badge totals for the tabs. Failure is swallowed on purpose: a missing count is a
+   * cosmetic loss, and a toast about it on top of the list's own error would be noise.
+   */
+  private loadCounts(): void {
+    this.service.getRequestCounts().subscribe({
+      next: (c) => (this.counts = c),
+      error: () => (this.counts = null),
+    });
+  }
+
   applyFilters(): void { this.filter.page = 1; this.load(); }
 
+  /**
+   * Clear the date range and search. The admin's tab survives on purpose — it is the
+   * view they chose, not a filter they set, and silently throwing them back to the
+   * queue after a search would lose their place.
+   */
   resetFilters(): void {
-    this.filter = { status: this.isReviewer ? this.AWAITING_DECISION : 0, search: '', fromDate: '', toDate: '',
-                    page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc' };
+    this.filter = {
+      ...this.filter,
+      status: 0,                       // employee chip bar back to All; unused by the queue
+      search: '', fromDate: '', toDate: '', page: 1,
+    };
     this.load();
   }
 
+  /** Employee chip bar. */
   setStatus(value: number): void { this.filter.status = value; this.applyFilters(); }
+
+  /**
+   * Admin tab switch. Counts are refreshed alongside, because arriving here after
+   * approving something is exactly when a stale badge would mislead.
+   */
+  setBucket(value: RequestBucket): void {
+    if (this.filter.bucket === value) return;
+    this.filter.bucket = value;
+    this.applyFilters();
+    this.loadCounts();
+  }
+
+  /** Badge number for a tab, or null while counts are still loading. */
+  bucketCount(key: keyof AttendanceRequestCounts): number | null {
+    return this.counts ? this.counts[key] : null;
+  }
 
   changePage(delta: number): void {
     const next = this.filter.page + delta;
@@ -180,18 +196,25 @@ export class RequestsListComponent implements OnInit {
   }
 
   /**
-   * True once the admin has narrowed the list beyond the default "awaiting
-   * decision" queue. Drives the empty-state copy — "nothing matches your
-   * filters" reads very differently from "there is nothing here at all".
+   * True once the admin has narrowed the list with the date range or search box.
+   * Switching tabs is not "filtering" here — an empty Decided tab means nothing has
+   * been decided yet, and offering to clear filters would be answering the wrong
+   * question. Only the controls the admin typed into count.
    */
   get hasActiveFilters(): boolean {
     if (this.isReviewer) {
-      return this.filter.status !== this.AWAITING_DECISION
-        || !!this.filter.search?.trim()
-        || !!this.filter.fromDate
-        || !!this.filter.toDate;
+      return !!this.filter.search?.trim() || !!this.filter.fromDate || !!this.filter.toDate;
     }
     return this.filter.status !== 0;
+  }
+
+  /** Empty-state heading for the current tab — each bucket is empty for its own reason. */
+  get emptyBucketMessage(): string {
+    switch (this.filter.bucket) {
+      case 'decided': return 'Nothing decided yet';
+      case 'all':     return 'No requests yet';
+      default:        return 'Nothing awaiting a decision';
+    }
   }
 
   /** Highlights rows the reviewer still needs to act on, so the queue scans at a glance. */
