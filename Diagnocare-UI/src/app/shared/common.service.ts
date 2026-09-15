@@ -201,6 +201,32 @@ throw new Error('Method not implemented.');
     return `${day}-${month}-${d.getFullYear()}`;
   }
 
+  /**
+   * DD/MM/YYYY → YYYY-MM-DD, but only for a date that actually exists.
+   *
+   * Unlike setYearofDate() this one returns '' for anything half-typed
+   * ("11/08"), impossible ("31/02/2001") or still in the future, which is what
+   * makes it safe to bind straight to a calendar: the grid holds still while the
+   * operator is mid-keystroke instead of jumping to the year 0011.
+   */
+  dmyToIso(dmy: string | null | undefined): string {
+    if (!dmy) return '';
+    const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dmy.trim());
+    if (!parts) return '';
+
+    const [, dd, mm, yyyy] = parts;
+    const day = +dd, month = +mm, year = +yyyy;
+    const d = new Date(year, month - 1, day);
+    // Date() rolls 31/02 over into March — compare the parts back to reject it.
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return '';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (d > today) return '';
+
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   setYearofDate(dob: string): string {
     if (!dob) return dob;
     if (dob.includes('/')) {

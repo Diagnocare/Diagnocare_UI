@@ -153,6 +153,8 @@ export const apiEndpoints = {
   requests:              'requests',
   myRequests:            'requests/mine',
   pendingRequestCount:   'requests/pending-count',
+  /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
+  requestCounts:         'requests/counts',
   cancelRequest:         'cancel',
   approveRequest:        'approve',
   rejectRequest:         'reject',
