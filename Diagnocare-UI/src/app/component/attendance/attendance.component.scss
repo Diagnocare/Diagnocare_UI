@@ -115,6 +115,8 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   &.chip-hd { background: $grad-hd; }
   &.chip-wo { background: linear-gradient(160deg, #3b82f6 0%, #2563eb 58%, #1d4ed8 100%); }
   &.chip-h  { background: $grad-holiday; }
+  // Correction request awaiting a decision — matches the R tile in the grid.
+  &.chip-req { background: linear-gradient(160deg, #a78bfa 0%, #7c3aed 58%, #6d28d9 100%); }
 }
 
 // ── Header actions ───────────────────────────────────────────────
@@ -629,6 +631,16 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   // Dirty — amber ring to flag unsaved (keeps the inner highlight)
   &.cell-dirty {
     box-shadow: 0 0 0 2.5px #f59e0b, inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  // The employee has a correction request awaiting a decision on this day: the
+  // tile reads "R". Only applied while the cell is clean — .cell-dirty wins once
+  // the admin has cycled it, so an unsaved edit is never hidden behind the R.
+  &.cell-requested {
+    background: #7c3aed;
+    color: #fff;
+    border-color: #6d28d9;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
   }
 
   // Today glow

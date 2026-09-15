@@ -7,6 +7,7 @@ import { PinService } from 'src/app/services/pinServices/pin.service';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { AuthType } from 'src/app/constant/enums';
 import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.component';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 /**
  * PinChangeFormComponent
@@ -29,7 +30,7 @@ import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.com
 @Component({
   selector: 'app-pin-change-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, OtpMfaDialogComponent],
+  imports: [CommonModule, FormsModule, OtpMfaDialogComponent, MaskedInputDirective],
   templateUrl: './pin-change-form.component.html',
   styleUrls: ['./pin-change-form.component.css'],
 })

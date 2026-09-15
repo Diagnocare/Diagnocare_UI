@@ -57,6 +57,24 @@ export class RequestFormComponent implements OnInit, OnDestroy {
   currentStatusCode: number | null = null;
   currentStatusLoading = false;
 
+  /**
+   * A request for the selected date that is already awaiting a decision.
+   *
+   * A second request for the same day is rejected by the server, so the form says so
+   * as soon as the date is picked and points at the existing request, rather than
+   * letting the employee fill the whole thing in and then meet an error.
+   * Create mode only — in edit mode the request being edited *is* the open one.
+   */
+  existingRequestId: number | null = null;
+  /** 'Pending' or 'Withdrawal Requested'. Empty when there is none. */
+  existingRequestLabel = '';
+  /** The status that request asked for, e.g. 'Half Day'. Empty when there is none. */
+  existingRequestedLabel = '';
+
+  get hasExistingRequest(): boolean {
+    return !this.isEdit && this.existingRequestId !== null;
+  }
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -113,6 +131,7 @@ export class RequestFormComponent implements OnInit, OnDestroy {
   private loadCurrentStatus(dateStr: string): void {
     this.currentStatusLabel = null;
     this.currentStatusCode = null;
+    this.clearExistingRequest();
     if (!dateStr) return;
 
     this.currentStatusLoading = true;
@@ -124,11 +143,32 @@ export class RequestFormComponent implements OnInit, OnDestroy {
           const gridStatus = mapBackendStatus(day?.status);
           this.currentStatusCode = this.toRequestStatusCode(gridStatus);
           this.currentStatusLabel = this.currentStatusCode === null ? null : this.gridStatusLabel(gridStatus);
+
+          // The same response carries any request still awaiting a decision for
+          // this date, so the duplicate check costs no extra call.
+          const open = res.rows?.[0]?.openRequests?.[dateStr] ?? null;
+          this.existingRequestId      = open?.requestId ?? null;
+          this.existingRequestLabel   = open?.requestStatusLabel ?? '';
+          this.existingRequestedLabel = open?.requestedStatusLabel ?? '';
+
           this.currentStatusLoading = false;
         },
         // Non-fatal — the form still works without the "currently recorded" hint.
         error: () => { this.currentStatusLoading = false; },
       });
+  }
+
+  private clearExistingRequest(): void {
+    this.existingRequestId = null;
+    this.existingRequestLabel = '';
+    this.existingRequestedLabel = '';
+  }
+
+  /** Open the request that already covers the selected date. */
+  openExistingRequest(): void {
+    if (this.existingRequestId) {
+      this.router.navigate(['/attendance-requests', this.existingRequestId]);
+    }
   }
 
   /** Monday (yyyy-MM-dd) of the week containing the given date — GetMyWeekly wants a Monday start. */
@@ -211,6 +251,9 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       this.form.markAllAsTouched();
       return;
     }
+    // The server would reject this anyway; refusing here keeps the form on the
+    // reason the employee can act on rather than an error toast.
+    if (this.hasExistingRequest) return;
     this.isSaving = true;
     const v = this.form.getRawValue();
 

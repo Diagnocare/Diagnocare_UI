@@ -179,6 +179,16 @@ export interface AttendanceRequestDTO {
   /** Sitting in the admin queue awaiting a withdrawal decision. */
   isWithdrawalPending: boolean;
   isReadOnly: boolean;
+
+  // ── Same-day history ───────────────────────────────────────────────────────
+  // "My requests" returns one row per attendance date, not per request. Where a
+  // date was asked about more than once, the newest attempt is the row and the
+  // ones it superseded arrive in earlierAttempts. Nothing is lost — the older
+  // rows still exist server-side and each still opens on its own detail page.
+  /** Superseded requests for the same date, newest first. Always empty on those entries themselves. */
+  earlierAttempts?: AttendanceRequestDTO[];
+  /** Requests filed for this date in total, this one included. 1 = no history. */
+  attemptCount?: number;
 }
 
 // ── Request payloads ─────────────────────────────────────────────────────────

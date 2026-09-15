@@ -198,6 +198,7 @@ export const apiEndpoints = {
   cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
   removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
   reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
+  /** Patients only — staff have no permanent delete, see MemberService.delete. */
   hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
   refundReceipt:            'Refund',            // PUT   api/receipt/Refund
   updateTpaDetails:         'UpdateTpaDetails',  // PUT   api/receipt/UpdateTpaDetails

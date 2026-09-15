@@ -95,7 +95,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let r of rows" class="clickable" [class.row-awaiting]="isAwaitingRow(r)" (click)="open(r)">
+          <ng-container *ngFor="let r of rows">
+          <tr class="clickable" [class.row-awaiting]="isAwaitingRow(r)" (click)="open(r)">
             <td *ngIf="isReviewer" class="emp-cell" data-label="Employee">
               <span class="avatar">{{ (r.employeeName || '?').charAt(0).toUpperCase() }}</span>
               {{ r.employeeName }}
@@ -104,6 +105,16 @@
               <div class="date-cell">
                 <span class="date">{{ r.attendanceDate | date:'dd MMM yyyy' }}</span>
                 <span class="day">{{ r.dayName }}</span>
+                <!-- This date was asked about more than once. The row is the latest
+                     attempt; the ones it replaced open underneath it on demand. -->
+                <button *ngIf="earlierCount(r) > 0" type="button" class="history-chip"
+                        [class.open]="isExpanded(r)"
+                        (click)="toggleHistory(r, $event)"
+                        [title]="isExpanded(r) ? 'Hide earlier requests for this date'
+                                               : 'Show earlier requests for this date'">
+                  <i class="fa" [ngClass]="isExpanded(r) ? 'fa-chevron-up' : 'fa-clock-rotate-left'"></i>
+                  {{ earlierCount(r) }} earlier
+                </button>
               </div>
             </td>
             <td class="transition" data-label="Current → Requested">
@@ -131,6 +142,29 @@
               <i class="fa fa-chevron-right chevron"></i>
             </td>
           </tr>
+
+          <!-- Superseded requests for the same date. Each still opens on its own
+               detail page — they are real records, just no longer the live one. -->
+          <tr *ngFor="let h of historyRows(r)"
+              class="clickable history-row" (click)="open(h)">
+            <td *ngIf="isReviewer" class="emp-cell"></td>
+            <td data-label="Date">
+              <span class="history-marker"><i class="fa fa-turn-up fa-rotate-180"></i> superseded</span>
+            </td>
+            <td class="transition" data-label="Current → Requested">
+              <span class="from">{{ h.currentStatusLabel || 'Unmarked' }}</span>
+              <i class="fa fa-arrow-right-long arrow"></i>
+              <span class="to">{{ h.requestedStatusLabel }}</span>
+            </td>
+            <td data-label="Applied">
+              <span *ngIf="h.approvedStatusLabel; else hDash">{{ h.approvedStatusLabel }}</span>
+              <ng-template #hDash><span class="muted">—</span></ng-template>
+            </td>
+            <td data-label="Status"><app-request-status-badge [status]="h.requestStatus"></app-request-status-badge></td>
+            <td *ngIf="!isReviewer" class="reason-cell" data-label="Reason">{{ h.reason || '—' }}</td>
+            <td class="actions-col"><i class="fa fa-chevron-right chevron"></i></td>
+          </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>

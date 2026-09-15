@@ -19,6 +19,9 @@ import {
   USER_STATUS_FILTERS,
 } from 'src/app/models/attendanceRequest/attendance-request.model';
 
+/** Shared empty result for collapsed history — see historyRows(). */
+const NO_HISTORY: AttendanceRequestDTO[] = [];
+
 /**
  * Single shared list of attendance correction requests for BOTH User and Admin.
  * - User  → their own requests, with "New / Edit / Cancel" affordances.
@@ -63,7 +66,14 @@ export class RequestsListComponent implements OnInit {
   total = 0;
   isLoading = false;
 
-  // Admin default: the work queue. Employees filter by status instead (see ngOnInit).
+  /**
+   * Rows whose earlier attempts are showing, keyed by requestId. Collapsed by
+   * default — the history is there for when it's asked for, not to reassert
+   * itself on every load. Cleared on reload so it can't point at stale ids.
+   */
+  private expanded = new Set<number>();
+
+  // Admin default: everything awaiting a decision (actionable). User default: All.
   filter: AttendanceRequestFilter = {
     bucket: 'needsaction', status: 0,
     search: '', fromDate: '', toDate: '',
@@ -85,6 +95,7 @@ export class RequestsListComponent implements OnInit {
 
   load(): void {
     this.isLoading = true;
+    this.expanded.clear();
     if (this.isReviewer) {
       const payload: AttendanceRequestFilter = {
         ...this.filter,
@@ -221,6 +232,35 @@ export class RequestsListComponent implements OnInit {
   isAwaitingRow(r: AttendanceRequestDTO): boolean {
     return this.isReviewer
       && (r.requestStatus === RequestStatus.Pending || r.requestStatus === RequestStatus.WithdrawalRequested);
+  }
+
+  // ── Same-day history ───────────────────────────────────────────────────────
+  // "My requests" returns one row per date. Where that date was asked about more
+  // than once, the older attempts come nested on the row rather than as separate
+  // rows, and open here on demand.
+
+  /** How many superseded requests sit behind this row. 0 when the day was asked about once. */
+  earlierCount(r: AttendanceRequestDTO): number {
+    return r.earlierAttempts?.length ?? 0;
+  }
+
+  isExpanded(r: AttendanceRequestDTO): boolean {
+    return this.expanded.has(r.requestId);
+  }
+
+  /** Opens or closes the history under one row. Stops the click reaching the row itself. */
+  toggleHistory(r: AttendanceRequestDTO, ev: Event): void {
+    ev.stopPropagation();
+    if (!this.expanded.delete(r.requestId)) this.expanded.add(r.requestId);
+  }
+
+  /**
+   * The history rows to render under `r` right now. Returns the same frozen empty
+   * array when collapsed rather than a fresh `[]` in the template, so ngFor's
+   * differ sees an unchanged reference instead of re-checking on every cycle.
+   */
+  historyRows(r: AttendanceRequestDTO): AttendanceRequestDTO[] {
+    return this.isExpanded(r) ? (r.earlierAttempts ?? NO_HISTORY) : NO_HISTORY;
   }
 
   /** Toggles newest/oldest first. Reviewer-only — a personal list is short enough to read whole. */
