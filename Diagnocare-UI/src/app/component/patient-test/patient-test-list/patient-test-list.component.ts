@@ -168,11 +168,15 @@ export class PatientTestListComponent implements OnInit {
    * Applies the current filter mode to `allPatientTests` and writes the
    * result into `patientTests` (which drives the template).
    *
-   * Default filter keeps only:
-   *  • Tests registered in the last `RECENT_DAYS` days, OR
-   *  • Tests whose report has not yet been generated.
+   * One rule: the default view keeps orders whose results are not finished.
+   * There is no date filter and there never was — this comment used to claim a
+   * `RECENT_DAYS` window, the labels and the empty state repeated the claim, and
+   * the code below has only ever compared status. Four places disagreeing about
+   * what a filter does is worse than no documentation at all, so the claim is
+   * gone rather than the behaviour: filtering a single patient's orders by age
+   * hides exactly the old order somebody opened the screen to find.
    *
-   * When `showAllTests` is true the entire history is shown.
+   * When `showAllTests` is true, every order is shown.
    */
   private filterTests(): void {
     let filtered: patientTest[];
@@ -216,14 +220,14 @@ export class PatientTestListComponent implements OnInit {
     });
   }
 
-  /** Shows the full history (all tests regardless of age or report status). */
+  /** Shows every order for this patient, finished or not. */
   showOldReports(): void {
     this.showAllTests = true;
     this.filterTests();
     this.activeCardIndex = 0;
   }
 
-  /** Returns to the default "recent + pending" view. */
+  /** Returns to the default "needs work" view. */
   showRecentOnly(): void {
     this.showAllTests = false;
     this.filterTests();
@@ -263,13 +267,13 @@ export class PatientTestListComponent implements OnInit {
 
   // ── Computed helpers ───────────────────────────────────────────────────
 
-  /** True when the full list has tests older than 15 days that are currently hidden. */
+  /** True when finished orders are currently hidden by the "Needs work" tab. */
   get hasOldTests(): boolean {
     if (this.showAllTests) return false;
     return this.allPatientTests.length > this.patientTests.length;
   }
 
-  /** Count of tests hidden by the recency filter. */
+  /** How many finished orders the "Needs work" tab is hiding. */
   get oldTestCount(): number {
     return this.allPatientTests.length - this.patientTests.length;
   }
@@ -279,7 +283,7 @@ export class PatientTestListComponent implements OnInit {
     return !this.isLoading && this.allPatientTests.length === 0;
   }
 
-  /** True when there IS history but nothing passes the recency filter. */
+  /** True when the patient has orders but all of them are finished. */
   get noRecentTests(): boolean {
     return (
       !this.isLoading &&

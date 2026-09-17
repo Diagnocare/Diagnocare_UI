@@ -78,6 +78,21 @@ export const routes: Routes = [
         loadComponent: () => import('./component/staff/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
+      // Work — the worklist. The lab's outstanding tests, grouped into queues
+      // rather than reached by guessing which patient contains them. Every role
+      // that does clinical work lands here; which queue they land on comes from
+      // their role (see defaultQueueForRole in work-queue.util.ts).
+      { path: 'work', title: 'Work',
+        loadComponent: () => import('./component/work/worklist/worklist.component').then(m => m.WorklistComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Verification — the sign-off step. Restricted to the roles allowed to
+      // stand behind a clinical result; the API enforces the same list, because
+      // a guard the client owns is not a control.
+      { path: 'work/verify/:id', title: 'Verify results',
+        loadComponent: () => import('./component/work/verify/verify-results.component').then(m => m.VerifyResultsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
       // Patients — all lab staff (not Doctor who just views reports)
       { path: 'patients', title: 'Patients',
         loadComponent: () => import('./component/patient/patients-list/patients-list.component').then(m => m.PatientsListComponent),

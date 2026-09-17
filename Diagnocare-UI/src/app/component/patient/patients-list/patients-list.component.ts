@@ -158,7 +158,12 @@ export class PatientsListComponent implements OnInit, OnDestroy {
   loadPatients() {
     this.isLoading = true;
     this.cdr.detectChanges();
-    this._patientService.searchPatients('', this.currentPage, this.pageSize, this.formatToDDMMYYYY(this.dateFrom), this.formatToDDMMYYYY(this.dateTo), this.statusFilter).pipe(
+    // The search term goes with every load, not just the ones that start at the
+    // Search button. This used to pass '' — so paging, changing the page size,
+    // switching status or deactivating anyone silently dropped the search while
+    // the box still showed what had been typed, and the list quietly became the
+    // full one. That behaviour is why people were taught to retype after paging.
+    this._patientService.searchPatients(this.searchTerm || '', this.currentPage, this.pageSize, this.formatToDDMMYYYY(this.dateFrom), this.formatToDDMMYYYY(this.dateTo), this.statusFilter).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response: any) => {
@@ -190,8 +195,16 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Searches the database, not the page you happen to be on.
+   *
+   * This used to call applyFilters(), which filters `paginatedPatients` — the
+   * rows already on screen. Typing a name and pressing Enter therefore searched
+   * ten records, and a patient on page 3 came back as "no patients match".
+   */
   onSearch() {
-    this.applyFilters();
+    this.currentPage = 1;
+    this.loadPatients();
   }
 
   onDateFilter() {
@@ -211,10 +224,16 @@ export class PatientsListComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Opens the completed patient's test view where the report can be
-   * viewed/downloaded. Reuses the existing patient-tests navigation.
+   * Opens the patient's tests, where each report can be viewed or downloaded.
+   *
+   * Named for what it does. It was called downloadCompletedReport and sat behind
+   * a button labelled "Report", but it downloads nothing — it navigates. A
+   * control whose label does not match its behaviour has to be un-taught person
+   * by person, and it quietly trains people to distrust every other label on the
+   * screen. There is no patient-level report endpoint to wire it to, so the
+   * honest fix is the name and the label, not a new behaviour.
    */
-  downloadCompletedReport(patientId: string) {
+  openPatientReports(patientId: string) {
     this.viewPatientTest(patientId);
   }
 
@@ -533,9 +552,18 @@ export class PatientsListComponent implements OnInit, OnDestroy {
       return reason ? `with: ${reason}` : 'dismissed';
     }
 
+  /**
+   * True when the list is showing today and nothing has been searched for.
+   *
+   * The `!this.statusFilter` clause was removed: statusFilter defaults to
+   * 'active' and the dropdown has no blank option, so it was always falsy and
+   * this method always returned false. The friendlier "No patients registered
+   * today" empty state could never appear, and someone who had searched for
+   * nothing at all was told to check their spelling.
+   */
   isTodayDateRange(): boolean {
     const today = this.localDateIso();
-    return this.dateFrom === today && this.dateTo === today && !this.searchTerm && !this.statusFilter;
+    return this.dateFrom === today && this.dateTo === today && !this.searchTerm;
   }
 searchInputPatients() {
   if (!this.searchTerm.trim()) {
@@ -545,7 +573,12 @@ searchInputPatients() {
 }
     searchPatients() {
       this.isLoading = true;
-      
+
+      // Any new search starts at page 1. Without this, searching while on page 3
+      // requested page 3 of the new result set — which is usually empty, so a
+      // search that matched several patients looked like it had found none.
+      this.currentPage = 1;
+
       // Check if there's any search criteria
       const hasSearchTerm = this.searchTerm && this.searchTerm.trim().length >= 2;
       const hasDateFilter = this.dateFrom || this.dateTo;

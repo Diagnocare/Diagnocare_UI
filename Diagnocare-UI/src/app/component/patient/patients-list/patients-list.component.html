@@ -211,7 +211,10 @@
                  hover three grey squares to find out which is which. -->
             <div class="action-buttons dc-actions-row" *ngIf="useNewUi">
                 <ng-container *ngIf="!isDeactivatedView(); else dcDeactivatedActions">
-                    <dc-action *ngIf="isCompletedView()" type="download" label="Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></dc-action>
+                    <!-- Labelled for what it does. It says "Reports" and opens the
+                         patient's tests, where each report can be viewed or
+                         downloaded — it never downloaded anything itself. -->
+                    <dc-action *ngIf="isCompletedView()" type="results" label="Reports" (clicked)="openPatientReports(patient.patient_Id)"></dc-action>
                     <dc-action type="results" label="Tests"      (clicked)="viewPatientTest(patient.patient_Id)"></dc-action>
                     <dc-action type="edit"                        (clicked)="editPatient(patient.patient_Id)"></dc-action>
                     <dc-action type="delete"  label="Deactivate"  (clicked)="confirmDelete(patient.patient_Id)"></dc-action>
@@ -224,7 +227,7 @@
 
             <div class="action-buttons" *ngIf="!useNewUi">
                 <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
-                    <app-action-btn *ngIf="isCompletedView()" type="download" title="Download Completed Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></app-action-btn>
+                    <app-action-btn *ngIf="isCompletedView()" type="view" title="Open Reports" (clicked)="openPatientReports(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="delete" title="Deactivate Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>

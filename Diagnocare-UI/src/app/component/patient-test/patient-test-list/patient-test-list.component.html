@@ -5,8 +5,8 @@
     <div class="header-left">
       <h1>Patient Test Results</h1>
       <p class="subtitle" *ngIf="!showPatientIdInput">
-        <span *ngIf="!showAllTests">Pending &amp; partial reports</span>
-        <span *ngIf="showAllTests">Full test history (incl. completed)</span>
+        <span *ngIf="!showAllTests">Orders with results still to enter</span>
+        <span *ngIf="showAllTests">Every order, including finished ones</span>
         <span *ngIf="patientId"> &mdash; Patient&nbsp;<strong>{{ patientId }}</strong></span>
       </p>
       <p class="subtitle" *ngIf="showPatientIdInput">View all patient test records</p>
@@ -20,19 +20,25 @@
 
       <!-- Filter mode segmented toggle -->
       <div class="filter-mode-toggle" *ngIf="!showPatientIdInput">
+        <!-- These two tabs filter on one thing: whether the results are finished.
+             They used to say "Recent & Pending" and claim a 15-day window that
+             filterTests() never applied, so a 2019 order with results outstanding
+             appeared under "Recent". People built a date-based model of the filter,
+             were contradicted by it, and concluded the filters were unpredictable.
+             The labels now say what the code does. -->
         <button class="filter-mode-btn"
                 [class.filter-mode-btn--active]="!showAllTests"
                 (click)="showRecentOnly()"
-                title="Show only recent and pending tests">
+                title="Orders that still have results to enter">
           <i class="fa fa-clock-o"></i>
-          <span>Recent &amp; Pending</span>
+          <span>Needs work</span>
         </button>
         <button class="filter-mode-btn"
                 [class.filter-mode-btn--active]="showAllTests"
                 (click)="showOldReports()"
-                title="Show full test history">
+                title="Every order for this patient">
           <i class="fa fa-history"></i>
-          <span>All Reports</span>
+          <span>All orders</span>
           <span class="filter-mode-count" *ngIf="!showAllTests && hasOldTests">+{{ oldTestCount }}</span>
         </button>
       </div>
@@ -89,15 +95,15 @@
     <!-- ── Empty: has history but nothing passes recent filter ──── -->
     <div *ngIf="noRecentTests && !errorMessage" class="no-recent-state">
       <div class="no-recent-icon"><i class="fa fa-check-circle"></i></div>
-      <h3 class="no-recent-title">All Reports Up to Date</h3>
+      <h3 class="no-recent-title">Nothing left to do for this patient</h3>
       <p class="no-recent-message">
-        No tests in the last <strong>{{ RECENT_DAYS }} days</strong> with pending reports.<br>
-        There {{ oldTestCount === 1 ? 'is' : 'are' }}
-        <strong>{{ oldTestCount }}</strong> older record{{ oldTestCount !== 1 ? 's' : '' }} in the archive.
+        Every order has all of its results entered.<br>
+        {{ oldTestCount === 1 ? 'There is' : 'There are' }}
+        <strong>{{ oldTestCount }}</strong> finished order{{ oldTestCount !== 1 ? 's' : '' }} to look back at.
       </p>
       <div class="no-data-actions">
         <button class="btn btn-outline btn-lg" (click)="showOldReports()">
-          <i class="fa fa-history"></i> View All Reports
+          <i class="fa fa-history"></i> View all orders
         </button>
       </div>
     </div>

@@ -28,6 +28,8 @@ export const controllerEndpoints = {
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
   feedback:      'api/feedback/',
+  /** The lab's outstanding work, as queues rather than filters. */
+  worklist:      'api/Worklist/',
 };
 
 export const apiEndpoints = {
@@ -67,6 +69,21 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+
+  // ── Worklist ──
+  /** One queue's items plus the counts for every queue. */
+  getWorklist: 'GetWorklist',
+  /** Signs a test's results off — this is what issues the report. */
+  verifyReport: 'Verify',
+  /** Withdraws a sign-off and sends the results back to the bench. */
+  returnForReentry: 'ReturnForReentry',
+  /** Whether a test is signed off — decides between "Verify & issue" and "Print". */
+  isVerified: 'IsVerified',
+  /** Records where a booking's sample was collected. */
+  markSampleCollected: 'MarkSampleCollected',
+  /** Pulls an already-issued report back for re-entry. */
+  recallReport: 'RecallReport',
+
   /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
   staffCapacity: 'Capacity',
   getById: 'GetById',
