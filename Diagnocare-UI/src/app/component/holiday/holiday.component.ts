@@ -236,7 +236,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
         remark:      this.draft.remark.trim(),
       };
       this.holidayService.update(dto).pipe(takeUntil(this.destroy$)).subscribe({
-        next:  () => { this.toastr.success('Holiday updated'); this.isSaving = false; this.closeModal(); this.loadHolidays(); },
+        next:  () => { this.isSaving = false; this.closeModal(); this.loadHolidays(); },
         error: () => { this.isSaving = false; },   // message shown centrally by ErrorInterceptor
       });
     } else {
@@ -246,7 +246,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
         remark:      this.draft.remark.trim(),
       };
       this.holidayService.add(dto).pipe(takeUntil(this.destroy$)).subscribe({
-        next:  () => { this.toastr.success('Holiday added'); this.isSaving = false; this.closeModal(); this.loadHolidays(); },
+        next:  () => { this.isSaving = false; this.closeModal(); this.loadHolidays(); },
         error: () => { this.isSaving = false; },   // message shown centrally by ErrorInterceptor
       });
     }
@@ -307,7 +307,6 @@ export class HolidayComponent implements OnInit, OnDestroy {
       next: results => {
         const saved  = results.filter(r => r !== null).length;
         const failed = results.length - saved;
-        if (saved  > 0) this.toastr.success(`${saved} holiday${saved   !== 1 ? 's' : ''} added successfully`);
         if (failed > 0) this.toastr.error(`${failed} holiday${failed  !== 1 ? 's' : ''} could not be saved`);
         this.isBulkSaving = false;
         this.closeBulkModal();
@@ -333,7 +332,7 @@ export class HolidayComponent implements OnInit, OnDestroy {
     if (!confirmed) return;
 
     this.holidayService.delete(h.holidayId).pipe(takeUntil(this.destroy$)).subscribe({
-      next:  () => { this.toastr.success('Holiday deleted'); this.loadHolidays(); },
+      next:  () => { this.loadHolidays(); },
       error: () => { /* message shown centrally by ErrorInterceptor */ },
     });
   }

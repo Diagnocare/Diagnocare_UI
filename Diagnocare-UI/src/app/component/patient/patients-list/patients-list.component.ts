@@ -16,6 +16,31 @@ import { PatientListDto } from 'src/app/models/patient/patient-list.dto';
 import { SortDirection, SortPatientField } from 'src/app/models/common/sort';
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
 
+/**
+ * sessionStorage key for the Status filter on the patients list.
+ *
+ * The list is left and re-entered constantly (eye icon → patient tests → back),
+ * and each return rebuilt the component with the default "Active" filter, so a
+ * user working through the Completed or Deactivated list had to re-select it
+ * every single time. Remembering the choice keeps the list where they left it.
+ *
+ * sessionStorage (not localStorage) is deliberate: the selection lives for the
+ * current browser tab/session only and is gone on the next sign-in, so nobody
+ * is surprised by a stale filter days later.
+ */
+const PATIENTS_STATUS_FILTER_KEY = 'dc.patientsList.statusFilter';
+
+/** Status values the dropdown offers — anything else in storage is ignored. */
+const PATIENTS_STATUS_FILTER_VALUES = ['active', 'Pending', 'Partial', 'Completed', 'deactivated'];
+
+// ── Simple UI kit ────────────────────────────────────────────────────────────
+// Labelled action buttons, one shared status vocabulary, and an empty state
+// that says what to do next. The originals stay behind *ngIf="!useNewUi".
+// import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
+// import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
+// import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
+// import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+
 
 @Component({
   selector: 'app-patients-list',
@@ -27,6 +52,10 @@ import { ActionButtonComponent } from 'src/app/shared/action-button/action-butto
 })
 
 export class PatientsListComponent implements OnInit, OnDestroy {
+
+  /** Simple-UI rollout flag — see shared/simple/simple-ui.flags.ts. */
+  // readonly useNewUi = USE_NEW_UI;
+
   private destroy$ = new Subject<void>();
 
   /** Today in YYYY-MM-DD (local time) — used to block future date selection in search filters. */
@@ -63,7 +92,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   // Pagination properties
   currentPage: number = 1;
-  pageSize: number = 5;
+  pageSize: number = 10;
   totalPages: number = 1;
   totalItems = 0;
   startIndex: number = 0;
@@ -90,7 +119,33 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     // fix hardcoded date to ISO format (yyyy-MM-dd)
     this.dateFrom = "";
     this.dateTo = "";
+    // Restore the Status filter chosen earlier in this session (see key doc above).
+    this.statusFilter = this.readStoredStatusFilter() ?? this.statusFilter;
     this.loadPatients();
+  }
+
+  /**
+   * Reads the remembered Status filter for this session.
+   * Returns null when nothing is stored, the stored value is no longer a valid
+   * option, or storage is unavailable (private mode / blocked cookies) — the
+   * caller then falls back to the default "Active" view.
+   */
+  private readStoredStatusFilter(): string | null {
+    try {
+      const saved = sessionStorage.getItem(PATIENTS_STATUS_FILTER_KEY);
+      return saved && PATIENTS_STATUS_FILTER_VALUES.includes(saved) ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Remembers the Status filter for the rest of this browser session. */
+  private storeStatusFilter(value: string): void {
+    try {
+      sessionStorage.setItem(PATIENTS_STATUS_FILTER_KEY, value);
+    } catch {
+      // Storage unavailable — the filter simply won't be remembered.
+    }
   }
 
   private mapPatient(p: any): PatientListDto {
@@ -132,10 +187,32 @@ export class PatientsListComponent implements OnInit, OnDestroy {
    * "36 years 7 months 2 days" → "36 yrs"
    * Falls back to the raw string if it cannot be parsed.
    */
+  /**
+   * Ages are stored as "41Y 5M 16D" (and, on older records, "41 Years").
+   * The list has one narrow column, so it shows the two largest parts that are
+   * present — "41y", "6m 30d", "12d" — which is enough to tell an adult from an
+   * infant at a glance without wrapping the cell.
+   */
   getDisplayAge(age: string): string {
     if (!age) return '—';
-    const match = age.match(/^(\d+)\s*year/i);
-    return match ? `${match[1]} yrs` : age;
+
+    const grab = (unit: string) => {
+      const m = age.match(new RegExp(`(\\d+)\\s*${unit}`, 'i'));
+      return m ? Number(m[1]) : 0;
+    };
+
+    // Legacy "41 Years" / a bare number.
+    if (!/\d+\s*[YMD]\b/i.test(age)) {
+      const legacy = age.match(/^(\d+)/);
+      return legacy ? `${legacy[1]}y` : age;
+    }
+
+    const parts: string[] = [];
+    const years = grab('Y'), months = grab('M'), days = grab('D');
+    if (years)  parts.push(`${years}y`);
+    if (months) parts.push(`${months}m`);
+    if (!years && days) parts.push(`${days}d`);
+    return parts.slice(0, 2).join(' ') || '0d';
   }
 
   /** CSS class for the urgent badge. */
@@ -190,6 +267,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     // Reload immediately so switching between Active / Completed (etc.) updates
     // the list without an extra click. Resets to the first page.
     this.currentPage = 1;
+    // Keep the choice for when the user returns from a test/report screen.
+    this.storeStatusFilter(this.statusFilter);
     this.loadPatients();
   }
 
@@ -417,7 +496,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient deactivated successfully', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Patient deactivation failed', 'Error');
@@ -453,7 +531,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient reactivated successfully', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Patient reactivation failed', 'Error');
@@ -486,7 +563,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: any) => {
         if (result?.success) {
-          this.toastr.success(result.message || 'Patient permanently deleted', 'Success');
           this.loadPatients();
         } else {
           this.toastr.error(result?.message || 'Permanent deletion failed', 'Error');

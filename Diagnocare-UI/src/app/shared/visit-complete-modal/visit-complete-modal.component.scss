@@ -352,3 +352,33 @@
   border: 1.5px solid #059669;
   &:hover:not(:disabled) { background: #047857; border-color: #047857; }
 }
+
+/* ══════════════════ THEME OVERRIDES (all modes) ══════════════════════════ */
+@mixin vcm-theme($surf,$sunken,$border,$t1,$t2,$inputbg) {
+  .vcm-modal   { background: $surf; }
+  .vcm-header, .vcm-footer { background: $sunken; border-color: $border; }
+  .vcm-title    { color: $t1 !important; }
+  .vcm-subtitle, .vcm-optional, .vcm-completed-at { color: $t2 !important; }
+  .vcm-label, .vcm-view-label { color: $t1 !important; }
+  .vcm-close    { color: $t2; }
+  .vcm-textarea { background: $inputbg; color: $t1; border-color: $border; }
+  .vcm-upload-btn { background: $sunken; color: $t2 !important; border-color: $border; }
+  .vcm-camera-btn { border-color: $border; }
+  .vcm-location-display { background: $sunken; color: $t2 !important; border-color: $border; }
+  .vcm-loc-clear { background: $sunken; color: $t2 !important; border-color: $border; }
+  .vcm-view-value { background: $sunken; color: $t1 !important; border-color: $border; }
+  .vcm-view-empty { background: $sunken; color: $t2 !important; }
+  .vcm-btn-cancel { background: $sunken; color: $t1 !important; border-color: $border; }
+}
+:host-context(html[data-theme="dark"])     { @include vcm-theme(#1e293b,#273548,#334155,#e2e8f0,#94a3b8,#0f172a); }
+:host-context(html[data-theme="midnight"]) { @include vcm-theme(#0d1117,#161b22,#21262d,#cdd6f4,#a6adc8,#020408); }
+:host-context(html[data-theme="warm"])     { @include vcm-theme(#fffdf7,#fef9f0,#e8d9c0,#3d2b1f,#7a5c4e,#fffdf7); }
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) { @include vcm-theme(#1e293b,#273548,#334155,#e2e8f0,#94a3b8,#0f172a); }
+}
+
+/* Semantic tints keep a light background in every theme — re-assert their
+   coloured text so the global light-text rule can't whiten it. */
+.vcm-location--done  { color: #065f46 !important; }
+.vcm-location--error { color: #991b1b !important; }
+.vcm-map-link        { color: #0891b2 !important; }

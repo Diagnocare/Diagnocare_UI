@@ -1,7 +1,6 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { TemplateListDTO } from 'src/app/models/template/template-list.dto';
@@ -21,42 +20,9 @@ export class TemplateService {
    * Returns the list of available templates (lightweight metadata only —
    * no htmlBody / cssStyles in this response).
    */
-  /**
-   * Saves a brand-new template to the database.
-   * The backend creates the record and returns the assigned templateId.
-   */
-  saveTemplate(payload: {
-    templateName: string;
-    description?: string;
-    category?: string;
-    htmlBody: string;
-    cssStyles: string;
-  }): Observable<TemplateDetailDTO> {
-    return this.http
-      .post<TemplateDetailDTO>(this.baseUrl + apiEndpoints.add, payload)
-      .pipe(catchError(this.errorHandler));
-  }
-
-  /**
-   * Updates an existing template identified by templateId.
-   */
-  updateTemplate(payload: {
-    templateId: number;
-    templateName: string;
-    description?: string;
-    category?: string;
-    htmlBody: string;
-    cssStyles: string;
-  }): Observable<TemplateDetailDTO> {
-    return this.http
-      .put<TemplateDetailDTO>(this.baseUrl + apiEndpoints.update, payload)
-      .pipe(catchError(this.errorHandler));
-  }
-
   getTemplates(): Observable<TemplateListDTO[]> {
     return this.http
-      .get<TemplateListDTO[]>(this.baseUrl + apiEndpoints.getAllList)
-      .pipe(catchError(this.errorHandler));
+      .get<TemplateListDTO[]>(this.baseUrl + apiEndpoints.getAllList);
   }
 
   /**
@@ -68,8 +34,7 @@ export class TemplateService {
    */
   getTemplateById(templateId: number): Observable<TemplateDetailDTO> {
     return this.http
-      .get<TemplateDetailDTO>(`${this.baseUrl}${apiEndpoints.getById}?id=${templateId}`)
-      .pipe(catchError(this.errorHandler));
+      .get<TemplateDetailDTO>(`${this.baseUrl}${apiEndpoints.getById}?id=${templateId}`);
   }
 
   /**
@@ -78,8 +43,7 @@ export class TemplateService {
    */
   getPathologyDefault(): Observable<{ templateId: number | null }> {
     return this.http
-      .get<{ templateId: number | null }>(`${this.baseUrl}${apiEndpoints.getPathologyDefault}`)
-      .pipe(catchError(this.errorHandler));
+      .get<{ templateId: number | null }>(`${this.baseUrl}${apiEndpoints.getPathologyDefault}`);
   }
 
   /**
@@ -88,11 +52,7 @@ export class TemplateService {
    */
   setPathologyDefault(templateId: number | null): Observable<any> {
     return this.http
-      .put(`${this.pathologyBaseUrl}${apiEndpoints.setDefaultTemplate}?templateId=${templateId}`, {})
-      .pipe(catchError(this.errorHandler));
+      .put(`${this.pathologyBaseUrl}${apiEndpoints.setDefaultTemplate}?templateId=${templateId}`, {});
   }
 
-  private errorHandler(error: HttpErrorResponse): Observable<never> {
-    return throwError(() => error.message || 'Server Error');
-  }
 }

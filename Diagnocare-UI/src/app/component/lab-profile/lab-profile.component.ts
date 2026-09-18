@@ -247,7 +247,6 @@ export class LabProfileComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next:  () => {
-            this.toastr.success('Logo uploaded successfully.');
             this.profileCache.clear(); // Next load should reflect the new logo.
           },
           error: () => { /* message shown centrally by ErrorInterceptor */ },
@@ -299,7 +298,6 @@ export class LabProfileComponent implements OnInit, OnDestroy {
   private onSaveSuccess(): void {
     this.isSaving = false;
     this.profileCache.clear(); // Local-only fields changed — next load should reflect them.
-    this.toastr.success('Lab profile saved successfully.');
   }
 
   private onSaveError(): void {

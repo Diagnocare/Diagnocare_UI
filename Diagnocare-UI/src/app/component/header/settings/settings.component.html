@@ -78,9 +78,11 @@
         <div class="pin-field-row">
           <label>New PIN</label>
           <div class="pin-input-group">
-            <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
+            <!-- Masked via appMasked, never type="password" — a session PIN must not
+                 land in the browser's password manager. See MaskedInputDirective. -->
+            <input type="text" [appMasked]="!showNewPin" class="form-input"
                    inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="e.g. 1234"
-                   [ngModel]="newPin" (ngModelChange)="newPin = onlyDigits($event)" autocomplete="new-password" />
+                   [ngModel]="newPin" (ngModelChange)="newPin = onlyDigits($event)" autocomplete="off" />
             <button type="button" class="pin-eye-btn" (click)="showNewPin = !showNewPin">
               <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
             </button>
@@ -89,9 +91,9 @@
         <div class="pin-field-row">
           <label>Confirm PIN</label>
           <div class="pin-input-group">
-            <input [type]="showNewPin ? 'text' : 'password'" class="form-input"
+            <input type="text" [appMasked]="!showNewPin" class="form-input"
                    inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Repeat PIN"
-                   [ngModel]="confirmPin" (ngModelChange)="confirmPin = onlyDigits($event)" autocomplete="new-password" />
+                   [ngModel]="confirmPin" (ngModelChange)="confirmPin = onlyDigits($event)" autocomplete="off" />
           </div>
         </div>
         <div class="action-row">
@@ -111,9 +113,9 @@
         <div class="pin-field-row">
           <label>Current PIN</label>
           <div class="pin-input-group">
-            <input [type]="showCurrentPin ? 'text' : 'password'" class="form-input"
+            <input type="text" [appMasked]="!showCurrentPin" class="form-input"
                    inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter to confirm removal"
-                   [ngModel]="currentPin" (ngModelChange)="currentPin = onlyDigits($event)" autocomplete="current-password" />
+                   [ngModel]="currentPin" (ngModelChange)="currentPin = onlyDigits($event)" autocomplete="off" />
             <button type="button" class="pin-eye-btn" (click)="showCurrentPin = !showCurrentPin">
               <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
             </button>
@@ -159,14 +161,20 @@
           <input class="radio-input" type="radio" name="authType"
                  [id]="'authType_' + opt.value"
                  [value]="opt.value"
-                 [disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled"
+                 [disabled]="(opt.value === AuthType.AuthenticationApp && !isMfaEnabled)
+                           || (opt.value === AuthType.Fingerprint && !isFingerprintEnabled)"
                  [(ngModel)]="selectedAuthType">
           <label class="radio-label" [for]="'authType_' + opt.value"
-                 [class.radio-label--disabled]="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
+                 [class.radio-label--disabled]="(opt.value === AuthType.AuthenticationApp && !isMfaEnabled)
+                                              || (opt.value === AuthType.Fingerprint && !isFingerprintEnabled)">
             {{ opt.label }}
             <span class="radio-hint"
                   *ngIf="opt.value === AuthType.AuthenticationApp && !isMfaEnabled">
               — set up the Authenticator App below first
+            </span>
+            <span class="radio-hint"
+                  *ngIf="opt.value === AuthType.Fingerprint && !isFingerprintEnabled">
+              — register your fingerprint below first
             </span>
           </label>
         </div>
@@ -185,6 +193,11 @@
        SECTION: AUTHENTICATOR APP (merged from its own page)
   ══════════════════════════════════════ -->
   <app-setup-mfa [embedded]="true" (mfaStatusChanged)="onMfaStatusChanged($event)"></app-setup-mfa>
+
+  <!-- ══════════════════════════════════════
+       SECTION: FINGERPRINT (WebAuthn)
+  ══════════════════════════════════════ -->
+  <app-setup-fingerprint [embedded]="true" (statusChanged)="onFingerprintStatusChanged($event)"></app-setup-fingerprint>
 
   <!-- ══════════════════════════════════════
        SECTION: APPEARANCE / THEME

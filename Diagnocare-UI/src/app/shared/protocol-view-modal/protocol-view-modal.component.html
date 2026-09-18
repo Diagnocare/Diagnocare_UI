@@ -1,0 +1,92 @@
+<div class="pvm-overlay" *ngIf="visible">
+  <div class="pvm-backdrop" (click)="close()"></div>
+
+  <div class="pvm-container" role="dialog" aria-modal="true" aria-label="Sample collection protocol">
+
+    <!-- ── Header ───────────────────────────────────────────────────────── -->
+    <div class="pvm-header">
+      <div class="pvm-header-left">
+        <h2><i class="fa fa-info-circle"></i> {{ title }}</h2>
+        <p class="pvm-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+      </div>
+      <button type="button" class="pvm-close" (click)="close()" title="Close" aria-label="Close">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────── -->
+    <div class="pvm-body">
+
+      <div class="pvm-loading" *ngIf="loading">
+        <div class="pvm-spinner"></div>
+        <p>Loading sample collection protocol…</p>
+      </div>
+
+      <div class="pvm-error" *ngIf="!loading && errorMessage">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <ng-container *ngIf="!loading && !errorMessage">
+
+        <div class="pvm-empty" *ngIf="!hasGroups">
+          <i class="fa fa-flask"></i>
+          <p>No tests found for this booking.</p>
+        </div>
+
+        <ng-container *ngIf="hasGroups">
+
+
+          <!-- Fasting first: it is the one instruction that has to reach the patient
+               before they arrive, and the longest fast in the set is what governs. -->
+          <div class="pvm-alert pvm-alert--fasting" *ngIf="fastingTests.length > 0">
+            <i class="fa fa-hourglass-half"></i>
+            <div>
+              <strong>Fasting required</strong>
+              <span class="pvm-alert-list">
+                <span *ngFor="let t of fastingTests; let last = last">
+                  {{ fastingText(t) }}<span *ngIf="!last">, </span>
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- An unlinked protocol is stated, never left blank: a silent gap reads as
+               "nothing special required", which is the wrong conclusion. -->
+          <div class="pvm-alert pvm-alert--missing" *ngIf="testsMissingProtocol.length > 0">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div>
+              <strong>No protocol linked</strong>
+              <span class="pvm-alert-list">
+                <span *ngFor="let t of testsMissingProtocol; let last = last">
+                  {{ t.testName }}<span *ngIf="!last">, </span>
+                </span>
+              </span>
+              <span class="pvm-alert-hint">Confirm the requirements with the laboratory before collecting.</span>
+            </div>
+          </div>
+
+          <div class="pvm-grid">
+            <div class="pvm-card" *ngFor="let g of groups; trackBy: trackByGroup">
+              <app-test-protocol-panel
+                [protocols]="g.protocols"
+                [testName]="g.testName"
+                [testCode]="g.testCode">
+              </app-test-protocol-panel>
+            </div>
+          </div>
+
+        </ng-container>
+      </ng-container>
+    </div>
+
+    <!-- ── Footer ───────────────────────────────────────────────────────── -->
+    <div class="pvm-footer">
+      <span class="pvm-footer-note" *ngIf="hasGroups && !loading">
+        <i class="fa fa-lock"></i> Reference only — protocols are maintained under Manage Tests.
+      </span>
+      <button type="button" class="pvm-btn" (click)="close()">Close</button>
+    </div>
+
+  </div>
+</div>

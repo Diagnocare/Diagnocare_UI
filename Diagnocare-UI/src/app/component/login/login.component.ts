@@ -4,7 +4,10 @@ import { ToastrService } from 'ngx-toastr';
 import { LoginModel } from '../../models/auth/loginModel';
 import { CommonModule } from '@angular/common';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
-import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
+import {
+  ActivatedRoute, NavigationCancel, NavigationEnd, NavigationError,
+  NavigationExtras, Router, RouterModule,
+} from '@angular/router';
 import { CommonService } from '../../shared/common.service';
 import { Role } from '../../constant/enums';
 import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
@@ -15,6 +18,8 @@ import { OtpManagerService } from 'src/app/services/otpServices/otp-manager.serv
 import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -126,6 +131,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private _tokenService:    TokenService,
     private _router:          Router,
     private _route:           ActivatedRoute,
+    private _fingerprint:     FingerprintService,
   ) {
     window.addEventListener('closeMfaDialog', this.closeMfaHandler);
     window.addEventListener('pageshow', this.onPageShow);
@@ -265,6 +271,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.loginForm.invalid) return;
 
     const raw = this.loginForm.value as LoginModel;
+    raw.userId = raw.userId.trim();
     this.isSubmitting = true;
 
     this._loginService.getUserDetails(raw).subscribe({
@@ -324,7 +331,17 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Use the user's preferred channel (loginType) to auto-select and send OTP
         const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-        if (response?.loginType === 3 && this.hasMfa) {
+        // Local development only — skip the code entirely. Guards live in
+        // isLocalSecondFactorSkip; a deployed build never satisfies them.
+        if (this.isLocalSecondFactorSkip) {
+          this.skipSecondFactorForLocalDev(raw.userId);
+          return;
+        }
+
+        if (response?.loginType === 4) {
+          // Fingerprint (WebAuthn) — no code to type; run the browser ceremony directly.
+          this.loginWithFingerprint(raw.userId);
+        } else if (response?.loginType === 3 && this.hasMfa) {
           // Authenticator App (TOTP) — no OTP to generate/send; open dialog in TOTP mode
           this.isTotpMode    = true;
           this.selectedMethod = null;
@@ -369,6 +386,50 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Fingerprint (WebAuthn) login ─────────────────────────────────────────────
+
+  /**
+   * Runs the WebAuthn assertion ceremony for a user whose preferred loginType is
+   * Fingerprint (4). On success, hands off to the shared post-verify navigation.
+   * On failure (cancelled prompt, no enrolled credential, agent error) the user
+   * can fall back to another factor via the OTP dialog.
+   */
+  private loginWithFingerprint(userId: string): void {
+    if (!FingerprintService.isSupported()) {
+      this.isSubmitting = false;
+      this.toastr.error('This browser does not support fingerprint sign-in. Please use another method.');
+      this.showOtpInput = false;
+      this.openOtpDialog();   // fallback: let the user pick email / phone
+      return;
+    }
+
+    this.isVerifyingOtp = true;
+    this._fingerprint.loginWithFingerprint(userId).subscribe({
+      next: (resp: any) => {
+        this.isVerifyingOtp = false;
+        this.isSubmitting   = false;
+        if (!resp?.success) {
+          const msg = resp?.message || 'Fingerprint verification failed.';
+          if (String(msg).toLowerCase().includes('locked')) {
+            this.isAccountLocked = true;
+            this.toastr.error(msg, 'Access Denied', { timeOut: 6000 });
+            return;
+          }
+          this.toastr.error(msg);
+          return;
+        }
+        this.handleSuccessfulLogin(resp);
+      },
+      error: (err: any) => {
+        this.isVerifyingOtp = false;
+        this.isSubmitting   = false;
+        const msg = err?.message || (typeof err === 'string' ? err : '') ||
+          'Fingerprint sign-in was cancelled or failed. Please try again.';
+        this.toastr.error(msg);
+      },
+    });
+  }
+
   // ── OTP dialog events ──────────────────────────────────────────────────────
 
   /**
@@ -378,12 +439,23 @@ export class LoginComponent implements OnInit, OnDestroy {
    *   id = 0 for TOTP (backend loads user by userId); numeric user-id for OTP flows.
    */
   onOtpVerify(event: { code: string; authType: number }): void {
-    const userId = this.loginForm.get('userId')?.value as string;
+    const userId = this.loginForm.get('userId')?.value.trim() as string;
     if (!userId || !event.code || event.code.length !== 6) {
       this.toastr.warning('Please enter all 6 digits of the code.');
       return;
     }
 
+    // Re-entry guard.  The dialog auto-submits 100 ms after the sixth digit is
+    // entered AND leaves the "Verify Code" button clickable, so a user who types
+    // the last digit and then clicks Verify fires the request twice.  The OTP is
+    // single-use in the backend cache: the first request consumes it, the second
+    // comes back "Invalid OTP" and burns one of the three attempts that trigger
+    // the 15-minute lockout.
+    if (this.isVerifyingOtp) return;
+
+    // Drives [isSubmitting] on the dialog — spinner up, Verify disabled — for the
+    // whole round-trip AND, via navigateAfterLogin(), for the navigation that
+    // follows it.  Without this the submit has no visible effect whatsoever.
     this.isVerifyingOtp = true;
 
     this._loginService.verifyAuth({
@@ -393,6 +465,9 @@ export class LoginComponent implements OnInit, OnDestroy {
       code: event.code,
     }).subscribe({
       next: (resp) => {
+        // Clear the verifying spinner first, before any early return below —
+        // an invalid code is still a completed request, so the dialog must go
+        // back to an editable state instead of spinning forever.
         this.isVerifyingOtp = false;
         if (!resp?.success) {
           const msg = (resp as any)?.message || 'Invalid code. Please try again.';
@@ -407,6 +482,13 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.toastr.error(msg);
           return;
         }
+        // NOTE: do NOT clear isVerifyingOtp after this call.  handleSuccessfulLogin()
+        // hands off to navigateAfterLogin(), which sets it back to true and keeps the
+        // dialog's spinner up until the router promise settles.  Clearing it here ran
+        // synchronously right after that and wiped the flag again, so a navigation that
+        // waited on a guard (licenceGuard's GetPathologyExpiryDate call on the first
+        // login of a session) left the user staring at an idle dialog: no spinner, no
+        // message, no route change.
         this.handleSuccessfulLogin(resp);
       },
       error: () => {
@@ -417,61 +499,159 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * True only when this build runs on a developer's own machine AND the
+   * environment opts in. Three independent conditions, all required:
+   *
+   *   1. `!environment.production` — a production build can never qualify.
+   *   2. `environment.devSkipSecondFactor` — explicit opt-in; false in the
+   *      production / qa / uat environment files.
+   *   3. The page is served from localhost — so the DEPLOYED dev server, which
+   *      uses the same environment.development.ts, still demands the code.
+   *
+   * Credentials are still validated by the server exactly as normal; only the
+   * OTP / TOTP / fingerprint step is skipped, and only here.
+   */
+  private get isLocalSecondFactorSkip(): boolean {
+    if (environment.production) return false;
+    if (!environment.devSkipSecondFactor) return false;
+
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  }
+
+  /**
+   * Local-dev shortcut: credentials are already validated, so mint the JWT
+   * directly instead of sending a code.
+   */
+  private skipSecondFactorForLocalDev(userId: string): void {
+    console.warn(
+      '[dev] Second factor skipped — local development only. ' +
+      'A deployed build cannot reach this path (see isLocalSecondFactorSkip).');
+
+    this._loginService.generateJwtToken(userId).subscribe({
+      next: (resp: any) => {
+        this.isSubmitting = false;
+        if (resp?.token) {
+          this.handleSuccessfulLogin(resp);
+        } else {
+          this.toastr.error('Local dev sign-in failed — could not issue a token.');
+        }
+      },
+      error: () => {
+        this.isSubmitting = false;
+        this.toastr.error('Local dev sign-in failed — could not issue a token.');
+      },
+    });
+  }
+
+  /**
    * Shared post-verify navigation.
    * Resolves the landing route from MODULE_ACCESS based on the JWT role claim
    * so each role arrives at the correct starting page.
    */
   private handleSuccessfulLogin(resp: any): void {
-    console.log('handleSuccessfulLogin: resp =', resp);
     const expiryDaysLeft = this.getPasswordExpiryDaysLeft();
-    console.log('handleSuccessfulLogin: expiryDaysLeft =', expiryDaysLeft);
     if (expiryDaysLeft !== null && expiryDaysLeft <= 0) {
-      console.log('handleSuccessfulLogin: password expired, redirecting to forgot-password');
-      this.closeOtpDialog();
       this.toastr.warning('Your password has expired. Please reset it to continue.');
-      this._router.navigate(['forgot-password'], { queryParams: { expired: true } });
+      this.navigateAfterLogin(['forgot-password'], { queryParams: { expired: true } });
       return;
     }
-console.log('handleSuccessfulLogin: password not expired, proceeding with login');
-console.log('handleSuccessfulLogin: resp.token =', resp.token);
     if (resp.token) {
-      // Token already stored in localStorage by verifyAuth()'s tap() — no action needed here.
-      console.log('handleSuccessfulLogin: token already stored, proceeding with navigation');
-      this.toastr.success('Login successful!');
-
-      this.closeOtpDialog();
-      console.log('closed OTP dialog');
       if (this.passwordUpdated === false) {
-        this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
+        this.navigateAfterLogin(['change-password'], { queryParams: { forceChange: true } });
       } else {
         this.storePasswordExpiryWarning();
-        this._router.navigate([this.resolveLandingRoute()]);
+        this.navigateAfterLogin([this.resolveLandingRoute()]);
       }
     } else {
       console.log('handleSuccessfulLogin: no token returned, calling refreshToken()');
+      // Keep the dialog spinner up across the refresh round-trip so the login
+      // form never becomes visible/editable mid-flight.
+      this.isVerifyingOtp = true;
       this._loginService.refreshToken().subscribe({
         next: (tokenResp) => {
           if (tokenResp?.success) {
             // Token already stored in localStorage by refreshToken()'s tap().
-            this.toastr.success('Login successful!');
-            this.closeOtpDialog();
-            console.log('closed OTP dialog');
             if (this.passwordUpdated === false) {
               console.log('handleSuccessfulLogin: password not updated, redirecting to change-password');
-              this._router.navigate(['change-password'], { queryParams: { forceChange: true } });
+              this.navigateAfterLogin(['change-password'], { queryParams: { forceChange: true } });
             } else {
               console.log('handleSuccessfulLogin: password updated, storing expiry warning and navigating to landing route');
               this.storePasswordExpiryWarning();
-              this._router.navigate([this.resolveLandingRoute()]);
-              console.log('handleSuccessfulLogin: navigation complete');
+              this.navigateAfterLogin([this.resolveLandingRoute()]);
             }
           } else {
+            this.isVerifyingOtp = false;
             this.toastr.error('Failed to retrieve authentication token.');
           }
         },
-        error: () => { this.toastr.error('Failed to retrieve authentication token.'); },
+        error: () => {
+          this.isVerifyingOtp = false;
+          this.toastr.error('Failed to retrieve authentication token.');
+        },
       });
     }
+  }
+
+  /**
+   * Navigates away from /login while keeping the OTP dialog mounted.
+   *
+   * Closing the dialog first (showOtpDialog = false) unmounts the full-screen
+   * overlay synchronously, while Router.navigate() only resolves on the next
+   * microtask (later still if a guard/resolver runs). That gap is what made the
+   * login page flash for a split second after a correct OTP. Keeping the dialog
+   * — and its spinner — up until the navigation promise settles means the user
+   * goes straight from "Verifying…" to the landing page.
+   *
+   * If navigation is rejected or blocked by a guard, the dialog is closed so the
+   * user isn't stuck behind a permanent overlay.
+   */
+  private navigateAfterLogin(commands: any[], extras?: NavigationExtras): void {
+    this.isVerifyingOtp = true;   // spinner stays until the route actually changes
+
+    // Router.navigate() resolving false only tells us the navigation did not
+    // stick — not why. These events carry the reason, and they are the fastest
+    // way to tell the two real causes apart on a deployed environment:
+    //   • NavigationCancel  → a guard returned a UrlTree, or a second
+    //                         navigation (interceptor redirect to /login,
+    //                         session-terminated kick) superseded this one.
+    //   • NavigationError   → a guard threw, or a lazy chunk failed to load.
+    const events: any[] = [];
+    const diag = this._router.events
+      .pipe(filter(e => e instanceof NavigationCancel ||
+                        e instanceof NavigationError ||
+                        e instanceof NavigationEnd))
+      .subscribe(e => events.push(e));
+
+    this._router.navigate(commands, extras)
+      .catch((err) => { events.push(err); return false; })
+      .then((ok) => {
+        this.isVerifyingOtp = false;
+        if (ok) { diag.unsubscribe(); return; }
+
+        console.warn('[post-login nav] blocked →', commands, events);
+
+        // One retry on the next macrotask. The usual blocker is transient: a
+        // guard's first-call HTTP (licenceGuard) still settling, or a redirect
+        // that has since finished. Retrying costs nothing when it was a real
+        // guard rejection — the second attempt is rejected the same way, and
+        // the user is left on /login exactly as before, but now with a logged
+        // reason instead of silence.
+        setTimeout(() => {
+          this._router.navigate(commands, extras)
+            .catch(() => false)
+            .then((retryOk) => {
+              diag.unsubscribe();
+              if (!retryOk) {
+                console.error('[post-login nav] retry also blocked →', commands, events);
+                this.closeOtpDialog();
+                this.toastr.error(
+                  'Signed in, but the page could not be opened. Please try again.',
+                  'Navigation failed');
+              }
+            });
+        }, 0);
+      });
   }
 
   /**
@@ -495,7 +675,6 @@ console.log('handleSuccessfulLogin: resp.token =', resp.token);
     if (!userId || !this.selectedMethod) return;
 
     this._otpManager.resendOtp(this.id, userId).subscribe({
-      next:  () => { this.toastr.info('OTP resent successfully.'); },
       error: () => { this.toastr.error('Failed to resend OTP. Please try again.'); },
     });
   }
@@ -640,7 +819,6 @@ console.log('handleSuccessfulLogin: resp.token =', resp.token);
   keepExistingSession(): void {
     this.isForcingLogin = false;
     this.showSessionConflictDialog = false;
-    this.toastr.info('Your existing session is still active. You can continue there.');
   }
 
   // ── Dialog helpers ─────────────────────────────────────────────────────────

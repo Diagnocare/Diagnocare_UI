@@ -166,6 +166,73 @@
   i { color: #0891b2; }
 }
 
+// ── Holiday awareness ─────────────────────────────────────────────────────────
+
+// Small pill next to the selected date when that date is a holiday.
+// Violet everywhere holidays appear — matches the calendar chip and legend.
+.holiday-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .7rem;
+  font-weight: 700;
+  color: #fff;
+  background: #7c3aed;
+  border-radius: 999px;
+  padding: 2px 9px;
+  i { color: #fff !important; }
+}
+
+// Banner shown when visits already sit on a day registered as a holiday.
+.holiday-conflict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #dc2626;
+  border-radius: 8px;
+  padding: .7rem .85rem;
+  margin-bottom: 1rem;
+
+  > i { color: #dc2626; margin-top: .15rem; }
+
+  div { display: flex; flex-direction: column; gap: .15rem; }
+  strong { font-size: .82rem; color: #991b1b; }
+  span   { font-size: .76rem; color: #b91c1c; }
+}
+
+// Warning + override checkbox inside the assign form.
+.holiday-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: .7rem .85rem;
+  margin-bottom: .85rem;
+
+  .hw-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    font-size: .79rem;
+    color: #92400e;
+    i { color: #d97706; margin-top: .15rem; }
+  }
+
+  .hw-check {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: .55rem 0 0;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #92400e;
+    cursor: pointer;
+    input { cursor: pointer; accent-color: #d97706; }
+  }
+}
+
 // ── Assignment form box ───────────────────────────────────────────────────────
 .assign-form-box {
   background: #f8fafc;

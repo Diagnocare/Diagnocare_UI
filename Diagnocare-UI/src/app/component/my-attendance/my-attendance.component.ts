@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
-import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
@@ -29,6 +28,17 @@ interface AttendanceCell {
   isHoliday:    boolean;
   holidayName:  string;
   dateStr:      string;
+  /**
+   * Set when a correction request for this day is still awaiting a decision.
+   * The cell then shows a "Requested" marker and clicking it opens that request
+   * instead of the new-request form — raising a second one for the same date is
+   * rejected by the server, and an error is a poor way to learn that.
+   */
+  requestId:            number | null;
+  /** 'Pending' or 'Withdrawal Requested'. Empty when there's no open request. */
+  requestStatusLabel:   string;
+  /** The status that was asked for, e.g. 'Half Day'. Empty when there's no open request. */
+  requestedStatusLabel: string;
 }
 
 interface AttendanceRow {
@@ -106,18 +116,30 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   constructor(
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
-    private toastr:        ToastrService,
     private datePipe:      DatePipe,
-    private router:        Router,
+    private router:        Router
   ) {}
 
   /**
    * Open the New Attendance Request form pre-filled with the clicked day's date.
    * Future dates and holidays can't be corrected, so they're ignored.
+   *
+   * A day that already has a request awaiting a decision goes to that request
+   * instead — the employee can edit or cancel it there. Sending them to a blank
+   * form would only end in the server's duplicate-request error.
    */
   requestCorrection(cell: AttendanceCell): void {
     if (!cell || cell.isFuture || cell.isHoliday) return;
+    if (cell.requestId) {
+      this.router.navigate(['/attendance-requests', cell.requestId]);
+      return;
+    }
     this.router.navigate(['/attendance-requests/new'], { queryParams: { date: cell.dateStr } });
+  }
+
+  /** True when this day already has a request awaiting a decision. */
+  hasOpenRequest(cell: AttendanceCell): boolean {
+    return !!cell.requestId;
   }
 
   ngOnInit(): void {
@@ -319,6 +341,8 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
       const future  = date > this.today;
       const holiday = this.holidayDates.has(dateStr);
       const loaded  = (future || holiday) ? AttendanceStatus.None : mapBackendStatus(dayRec?.status);
+      // A request in flight for this day — absent from the map means none.
+      const open = u.openRequests?.[dateStr] ?? null;
       return {
         attendanceId: dayRec?.attendanceId ?? 0,
         status:       loaded,
@@ -327,6 +351,9 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
         isHoliday:    holiday,
         holidayName:  this.holidayNames.get(dateStr) ?? '',
         dateStr,
+        requestId:            open?.requestId ?? null,
+        requestStatusLabel:   open?.requestStatusLabel ?? '',
+        requestedStatusLabel: open?.requestedStatusLabel ?? '',
       };
     });
 
@@ -338,12 +365,19 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   cellClass(cell: AttendanceCell): string {
     if (cell.isFuture)  return 'cell-future';
     if (cell.isHoliday) return 'cell-holiday';
-    return this.statusMap[cell.status]?.cssClass ?? 'cell-unmarked';
+    const base = this.statusMap[cell.status]?.cssClass ?? 'cell-unmarked';
+    // cell-requested repaints the tile entirely — the R has to be unmistakable,
+    // and a purple outline over a green "P" read as neither one thing nor the other.
+    return cell.requestId ? `${base} cell-requested` : base;
   }
 
   cellLabel(cell: AttendanceCell): string {
     if (cell.isFuture)  return '—';
     if (cell.isHoliday) return 'H';
+    // A day awaiting a decision reads as R, not as the status it currently holds.
+    // What it currently holds is in the tooltip; what the employee needs to see at
+    // a glance is that they have already asked about this day.
+    if (cell.requestId) return 'R';
     return this.statusMap[cell.status]?.shortLabel ?? '·';
   }
 
@@ -354,7 +388,19 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
       return name ? `${name} — Holiday` : 'Holiday';
     }
     const cfg = this.statusMap[cell.status];
-    return cfg?.value !== AttendanceStatus.None ? cfg.label : 'Not marked';
+    const current = cfg?.value !== AttendanceStatus.None ? cfg.label : 'Not marked';
+    if (cell.requestId) {
+      return `${current} — ${cell.requestStatusLabel || 'Pending'}: ` +
+             `${cell.requestedStatusLabel || 'a correction'} requested. Click to open the request.`;
+    }
+    return current;
+  }
+
+  /** Tooltip for a clickable cell — the template used to build this inline. */
+  cellActionTitle(cell: AttendanceCell): string {
+    if (cell.isFuture || cell.isHoliday) return this.cellTitle(cell);
+    if (cell.requestId) return this.cellTitle(cell);
+    return 'Click to request a correction for this day';
   }
 
   // ── Row summary ────────────────────────────────────────────────────────────

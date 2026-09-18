@@ -31,9 +31,31 @@
         </small>
       </div>
 
-      <div *ngIf="loadedRequest?.currentStatusLabel" class="current-note">
+      <div *ngIf="currentStatusLoading" class="current-note current-note--loading">
+        <i class="fa fa-spinner fa-spin"></i> Checking what's currently recorded…
+      </div>
+      <div *ngIf="!currentStatusLoading && currentStatusLabel" class="current-note">
         <i class="fa fa-circle-info"></i>
-        Currently recorded as <strong>{{ loadedRequest?.currentStatusLabel }}</strong> for this date.
+        Currently recorded as <strong>{{ currentStatusLabel }}</strong> for this date.
+      </div>
+      <div *ngIf="!currentStatusLoading && !currentStatusLabel && f['attendanceDate'].value" class="current-note current-note--muted">
+        <i class="fa fa-circle-info"></i>
+        Nothing recorded for this date yet.
+      </div>
+
+      <!-- A request for this date is already awaiting a decision. A second one is
+           rejected by the server, so point at the existing one instead. -->
+      <div *ngIf="!currentStatusLoading && hasExistingRequest" class="current-note current-note--blocked">
+        <i class="fa fa-clock"></i>
+        <span>
+          You already have a request for this date awaiting a decision<ng-container
+            *ngIf="existingRequestedLabel"> — {{ existingRequestLabel || 'Pending' }},
+            {{ existingRequestedLabel }} requested</ng-container>.
+          Edit or cancel that one instead of raising another.
+        </span>
+        <button type="button" class="open-existing-btn" (click)="openExistingRequest()">
+          View request <i class="fa fa-arrow-right"></i>
+        </button>
       </div>
 
       <div class="field">
@@ -49,6 +71,14 @@
         <small *ngIf="f['requestedStatus'].touched && f['requestedStatus'].invalid" class="field-error">
           Please select the status you're requesting.
         </small>
+
+        <!-- Only appears once there's a real change from what's on record — a
+             brand-new, never-marked day has nothing to be "subject to approval" yet. -->
+        <div *ngIf="isChangingRecordedStatus" class="approval-note">
+          <i class="fa fa-triangle-exclamation"></i>
+          This changes attendance already recorded as <strong>{{ currentStatusLabel }}</strong>.
+          Subject to approval from admin/super admin.
+        </div>
       </div>
 
       <div class="field">
@@ -63,7 +93,8 @@
 
       <div class="form-actions">
         <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
-        <button type="submit" class="btn-gradient" [disabled]="isSaving">
+        <button type="submit" class="btn-gradient" [disabled]="isSaving || hasExistingRequest"
+                [title]="hasExistingRequest ? 'A request for this date is already awaiting a decision' : ''">
           <i class="fa fa-paper-plane" *ngIf="!isSaving"></i>
           {{ isSaving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Submit Request') }}
         </button>

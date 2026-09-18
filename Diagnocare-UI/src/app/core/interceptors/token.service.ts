@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 
@@ -15,7 +15,7 @@ const ROLE_LABEL_TO_ID: Record<string, RoleId> = Object.fromEntries(
  * ─────────────
  * • sessionStorage.authToken       — JWT for this tab (cleared when tab/browser closes)
  * • sessionStorage.tabId           — UUID for this tab (survives refresh, clears on close)
- * • sessionStorage.sessionTerminated — set by SignalR kick-out; makes getToken() → null
+ * • sessionStorage.sessionTerminated — set on kick-out; makes getToken() → null
  *
  * • localStorage.browserId         — stable UUID per browser/profile, never cleared
  * • localStorage.cleanupToken      — mirrors authToken so logout can clear the DB even
@@ -58,7 +58,7 @@ export class TokenService {
   /**
    * Emits when a sibling tab broadcasts `session-terminated`.
    * AppComponent subscribes to this and redirects to /login immediately,
-   * before this tab's own SignalR sessionCheck event even arrives.
+   * before this tab makes its own API call and discovers the 401 independently.
    * This is the key to eliminating the multi-tab flicker loop.
    */
   readonly sessionKicked$ = new Subject<void>();
@@ -69,8 +69,16 @@ export class TokenService {
    */
   hasPendingCleanup = false;
 
+  private readonly zone = inject(NgZone);
+
   constructor() {
-    this.channel.onmessage = (evt) => this.handleBroadcast(evt.data);
+    // zone.js does not patch BroadcastChannel, so this callback fires OUTSIDE the
+    // Angular zone. Everything that continues from it — sessionKicked$ subscribers,
+    // tokenReceived$ subscribers, and any HTTP work they start — then runs outside
+    // the zone too, so component state can be updated without change detection ever
+    // being scheduled: the model changes and the view silently keeps the old value.
+    // Re-entering the zone here fixes that for every downstream consumer at once.
+    this.channel.onmessage = (evt) => this.zone.run(() => this.handleBroadcast(evt.data));
   }
 
   // ── UUID generation ────────────────────────────────────────────────────────
@@ -248,7 +256,7 @@ export class TokenService {
   }
 
   /**
-   * Marks THIS TAB's session as terminated (SignalR kick-out or auth interceptor).
+   * Marks THIS TAB's session as terminated (SESSION_TERMINATED 401 from the API).
    *
    * Removes the auth token from sessionStorage immediately so that:
    *  a) sibling tabs receiving a `request-token` broadcast won't see this tab's
@@ -265,8 +273,8 @@ export class TokenService {
     // Immediately disinfect every sibling tab in this browser.
     // Without this, Tab 2 might still have its token when Tab 1's login page
     // broadcasts `request-token` and Tab 2 would hand the stale token back,
-    // causing a /pathology ↔ /login flicker loop until Tab 2's own SignalR
-    // sessionCheck finally arrives and removes its token.
+    // causing a /pathology ↔ /login flicker loop until Tab 2's own next API call
+    // finally 401s and removes its token.
     this.channel.postMessage({ type: 'session-terminated' });
   }
 
@@ -296,7 +304,7 @@ export class TokenService {
         break;
 
       case 'logout':
-        // Sibling logged out — clear this tab too (SignalR handles redirect separately)
+        // Sibling logged out — clear this tab too (redirect is handled separately)
         sessionStorage.removeItem(this.TOKEN_KEY);
         sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
         break;
@@ -371,7 +379,14 @@ export class TokenService {
     return current !== null && roles.includes(current);
   }
 
-  isAdmin(): boolean    { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+  /** True for Admin OR Super Admin — i.e. "can see the Admin Panel". */
+  isAdmin(): boolean { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+
+  /**
+   * True only for Super Admin. Use this — not isAdmin() — to gate owner-level
+   * surfaces: lab profile writes, payroll, licence and role assignment.
+   */
+  isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
 

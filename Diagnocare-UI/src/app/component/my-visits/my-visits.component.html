@@ -5,8 +5,8 @@
   <!-- ── Header ─────────────────────────────────────────────────────────────── -->
   <div class="page-header">
     <div class="header-left">
-      <h1><i class="fa fa-route"></i> {{ isAdmin ? 'Staff Visits' : 'My Visits' }}</h1>
-      <p class="subtitle">{{ isAdmin ? 'All staff field visits' : 'Track your assigned field visits' }}</p>
+      <h1><i class="fa fa-route"></i> My Visits</h1>
+      <p class="subtitle">Track your assigned field visits</p>
     </div>
   </div>
 
@@ -32,6 +32,9 @@
         <div class="detail-title">
           <i class="fa fa-calendar-day"></i>
           <span>{{ selectedDate | date:'EEEE, d MMMM yyyy' }}</span>
+          <span class="holiday-pill" *ngIf="selectedDayHolidayName">
+            <i class="fa fa-umbrella-beach"></i> {{ selectedDayHolidayName }}
+          </span>
         </div>
         <button class="btn btn-outline btn-sm" (click)="loadVisits()" [disabled]="isLoading">
           <i class="fa fa-sync-alt" [class.fa-spin]="isLoading"></i> Refresh
@@ -73,7 +76,7 @@
           <app-visit-card
             *ngFor="let v of filteredVisits"
             [visit]="v"
-            [showMember]="isAdmin"
+            [showMember]="false"
             [canManage]="false"
             (complete)="openCompleteModal($event)"
             (viewDetails)="openViewDetails($event)">

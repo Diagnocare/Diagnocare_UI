@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, tap, throwError } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { FileToUpload } from 'src/app/models/pathology/fileToUpload';
 import { PathologyListDto } from 'src/app/models/pathology/pathology-list.dto';
@@ -9,7 +9,6 @@ import { PathologyRegisterDto } from 'src/app/models/pathology/pathology-registe
 import { PathologyRegisterResponseDto } from 'src/app/models/pathology/pathology-register-response.dto';
 import { PathologyPublicInfoDto } from 'src/app/models/pathology/pathology-public-info.dto';
 import { PathologyProfileDto } from 'src/app/models/pathology/pathology-profile.dto';
-import { PathologyExtendLicenseDto, PathologyExtendLicenseResponseDto } from 'src/app/models/pathology/pathology-extend-license.dto';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { CommonService } from 'src/app/shared/common.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -41,8 +40,7 @@ export class PathologyService {
       getPathology(): Observable<PathologyListDto>
       {
         let geturl=this.url+apiEndpoints.getProfile;
-        return this.httpClient.get<PathologyListDto>(geturl).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<PathologyListDto>(geturl);
       }
 
       /**
@@ -53,43 +51,55 @@ export class PathologyService {
       getProfile(): Observable<PathologyProfileDto>
       {
         let geturl=this.url+apiEndpoints.getProfile;
-        return this.httpClient.get<PathologyProfileDto>(geturl).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<PathologyProfileDto>(geturl);
       }
 
       /** Cheap change-check: returns { version } for the lab's shared profile. */
       getProfileVersion(): Observable<{ version: number }>
       {
-        return this.httpClient.get<{ version: number }>(this.url + apiEndpoints.getProfileVersion).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<{ version: number }>(this.url + apiEndpoints.getProfileVersion);
       }
 
       updatePathology(path: FormData | PathologyEditDto): Observable<PathologyListDto>
       {
-        return this.httpClient.put<PathologyListDto>(this.url+apiEndpoints.update, path).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.put<PathologyListDto>(this.url+apiEndpoints.update, path);
       }
 
       /** Public endpoint — no auth token required */
       registerPathology(dto: PathologyRegisterDto): Observable<PathologyRegisterResponseDto> {
         return this.httpClient.post<PathologyRegisterResponseDto>(
           this.url + apiEndpoints.add, dto
-        ).pipe(catchError(this.errorHandler));
+        );
       }
 
-      /** Public (no-auth) — check if pathology is registered and get expiry info */
-      getPublicInfo(): Observable<PathologyPublicInfoDto> {
+      /**
+       * Public (no-auth) — check if pathology is registered and get licence info.
+       * Works both before and after login.
+       *
+       * @param refresh  false (default) → licence details come from the server-side cache.
+       *                 true            → pulls the latest licence from the shared
+       *                                   PathologyManager API. Capped at 5 refreshes per hour;
+       *                                   past that the API still returns 200 with cached values
+       *                                   and `rateLimited: true`, so this never throws for
+       *                                   over-refreshing. Check `refreshesRemaining` for the
+       *                                   quota left.
+       */
+      getPublicInfo(refresh: boolean = false): Observable<PathologyPublicInfoDto> {
+        // An empty HttpParams adds no query string, so the default call is byte-for-byte
+        // the same request this method has always made.
+        let params = new HttpParams();
+        if (refresh) {
+          params = params.set('refresh', 'true');
+        }
+
         return this.httpClient.get<PathologyPublicInfoDto>(
-          this.url + apiEndpoints.getPublicInfo
-        ).pipe(catchError(this.errorHandler));
+          this.url + apiEndpoints.getPublicInfo, { params }
+        );
       }
 
-      /** Public (no-auth) — extend an existing pathology licence */
-      extendLicense(dto: PathologyExtendLicenseDto): Observable<PathologyExtendLicenseResponseDto> {
-        return this.httpClient.post<PathologyExtendLicenseResponseDto>(
-          this.url + apiEndpoints.extendLicense, dto
-        ).pipe(catchError(this.errorHandler));
-      }
+      // Note: no extendLicense() here by design. Licence extension lives in the
+      // shared Diagnocare application; this app only reads licence state via
+      // getPublicInfo() / getActiveLicense().
 
       /**
        * PUT — updates the grace buffer duration (minutes) stored in token_expiry_in_minutes.
@@ -105,8 +115,7 @@ export class PathologyService {
           // Keep the cached value in sync so callers don't need to (and so the
           // cache is fresh the next time AppComponent/interceptor reads it,
           // without another GET round-trip).
-          tap(() => this.tokenService.setGraceBufferMinutes(minutes)),
-          catchError(this.errorHandler));
+          tap(() => this.tokenService.setGraceBufferMinutes(minutes)));
       }
 
       /**
@@ -118,8 +127,7 @@ export class PathologyService {
           `${this.url}${apiEndpoints.updateMaxDiscount}?maxDiscountPercent=${maxDiscountPercent}`,
           null
         ).pipe(
-          tap(() => this.tokenService.setMaxDiscountPercent(maxDiscountPercent)),
-          catchError(this.errorHandler));
+          tap(() => this.tokenService.setMaxDiscountPercent(maxDiscountPercent)));
       }
 
       /**
@@ -131,8 +139,7 @@ export class PathologyService {
           `${this.url}${apiEndpoints.updateSessionLockout}?sessionLockoutMinutes=${sessionLockoutMinutes}`,
           null
         ).pipe(
-          tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)),
-          catchError(this.errorHandler));
+          tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)));
       }
 
       /**
@@ -144,19 +151,13 @@ export class PathologyService {
         return this.httpClient.post<any>(
           `${this.url}UploadLogo`,
           { logoBase64 }
-        ).pipe(catchError(this.errorHandler));
+        );
       }
 
       getPathologyExpiryDate(): Observable<any> {
         const geturl = this.url + apiEndpoints.getPathologyExpiryDate;
-        return this.httpClient.get<any>(geturl).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<any>(geturl);
       }
 
-      errorHandler(error:HttpErrorResponse)
-      {
-        const errorMessage = error.message || "Server Error";
-          return throwError(() => new Error(errorMessage));
-      }
 }
 

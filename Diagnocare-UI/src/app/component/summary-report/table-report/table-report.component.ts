@@ -299,7 +299,17 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     }
 
     // ── Chart setup (shared) ──────────────────────────────────────────────────
-    this.chartableNumericCols = this.cols.filter(c => c.kind === 'currency' || c.kind === 'number');
+    // Which columns can be charted is decided by what is actually IN the data,
+    // not by detectKind()'s name regex.
+    //
+    // The regex only recognises a fixed vocabulary (amount, collection, count,
+    // patients …). Any numeric field it does not happen to match was silently
+    // classed as 'text' and vanished from this dropdown — which is why the list
+    // could end up with a single entry on a report whose response carries eight
+    // numeric columns. Reading the values makes it correct for every report,
+    // including fields the API adds later.
+    this.chartableNumericCols = this.cols.filter(c => this.isChartable(c));
+
     if (!this.chartValueCol || !this.chartableNumericCols.find(c => c.key === this.chartValueCol)) {
       const defaultCurrency = this.chartableNumericCols.find(c => c.kind === 'currency');
       this.chartValueCol = defaultCurrency?.key ?? this.chartableNumericCols[0]?.key ?? '';
@@ -469,7 +479,6 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     a.download = `${this.reportId}_${yearPart}_${this.selectedPeriod}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    this.toastr.success('CSV downloaded.', 'Done');
   }
 
   private csvEscape(value: string): string {
@@ -495,6 +504,28 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
   }
 
   // ── Column builder ────────────────────────────────────────────────────────────
+
+  /**
+   * True when a column holds numbers worth plotting.
+   *
+   * Dates and badges are excluded by kind. Identifiers are excluded because
+   * they are numeric but plotting them is meaningless — a bar chart of patient
+   * IDs tells nobody anything. Everything else is judged on its values: if any
+   * row holds something that parses as a finite number, the column is offered.
+   */
+  private isChartable(col: ColDef): boolean {
+    if (col.kind === 'date' || col.kind === 'badge') return false;
+    if (/(^|[^a-z])id$/i.test(col.key)) return false;
+
+    // Prefer the unfiltered set: a column should not disappear from the chart
+    // dropdown just because the current row filter hid every value in it.
+    const sample = this.allRows.length > 0 ? this.allRows : this.rows;
+    return sample.some(row => {
+      const v = row[col.key];
+      if (v === null || v === undefined || v === '' || typeof v === 'boolean') return false;
+      return Number.isFinite(Number(v));
+    });
+  }
 
   private makeColDef(key: string): ColDef {
     return { key, label: this.toLabel(key), kind: this.detectKind(key), align: this.detectAlign(key) };

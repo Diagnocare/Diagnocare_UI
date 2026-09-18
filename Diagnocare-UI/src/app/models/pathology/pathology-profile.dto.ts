@@ -6,6 +6,12 @@
  * cache (see PathologyProfileCacheService).
  */
 export interface PathologyProfileDto {
+  /**
+   * This lab's pathology (tenant) ID, e.g. "Path1000". Used to scope outbound
+   * deep links — the feedback portal's "Track My Issues" view filters on it.
+   */
+  pathId: string;
+
   // ── From the shared PathologyManager API ──────────────────────────────
   path_Name: string;
   path_Code: string;

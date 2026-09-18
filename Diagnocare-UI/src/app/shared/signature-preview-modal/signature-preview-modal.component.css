@@ -131,15 +131,8 @@
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
-  color: #fff;
-}
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1976D2, #1565C0);
-  box-shadow: 0 3px 8px rgba(33, 150, 243, 0.35);
-  transform: translateY(-1px);
-}
+/* .btn-primary uses the app-wide button style — solid blue, inverts to white
+   on hover — defined in styles.css → "UNIFIED PRIMARY BUTTON". */
 
 .btn-danger {
   background: linear-gradient(135deg, #f44336, #d32f2f);

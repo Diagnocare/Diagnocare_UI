@@ -14,12 +14,30 @@
        routerLink="/register-pathology" class="dc-nav-register">
       <i class="fas fa-hospital-alt"></i> Register Pathology
     </a>
+    <!-- Pull the latest licence straight from the licence server (max 5 / hour) -->
+    <button *ngIf="navState === 'registered' || navState === 'extend'"
+            type="button" class="dc-nav-refresh"
+            [disabled]="refreshing"
+            [title]="refreshTooltip"
+            (click)="refreshLicence()">
+      <i class="fas fa-sync-alt" [class.fa-spin]="refreshing"></i>
+      {{ refreshing ? 'Checking…' : 'Refresh Licence' }}
+    </button>
+
     <a *ngIf="navState === 'registered' || navState === 'extend'"
        routerLink="/login" class="dc-nav-login">
       <i class="fas fa-sign-in-alt"></i> Login
     </a>
   </div>
 </nav>
+
+<!-- ── Licence refresh feedback ────────────────────────────────────── -->
+<div class="dc-refresh-note" *ngIf="refreshMessage"
+     [class.dc-refresh-warn]="refreshMessageKind === 'warn'">
+  <i class="fas" [class.fa-check-circle]="refreshMessageKind === 'ok'"
+                 [class.fa-exclamation-circle]="refreshMessageKind === 'warn'"></i>
+  <span>{{ refreshMessage }}</span>
+</div>
 
 <!-- ── Licence Expiry Banner ───────────────────────────────────────── -->
 <div class="dc-expiry-banner" *ngIf="navState === 'extend'"

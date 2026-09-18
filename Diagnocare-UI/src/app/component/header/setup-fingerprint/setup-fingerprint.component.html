@@ -1,0 +1,88 @@
+<!-- ══════════════════════════════════════
+     SECTION: FINGERPRINT (WebAuthn)
+══════════════════════════════════════ -->
+<div class="acct-card fp-card">
+  <div class="acct-card-header">
+    <span class="fp-badge" [class.fp-badge--on]="state === 'configured'">
+      <i class="fa fa-fingerprint"></i>
+    </span>
+    <div>
+      <h4 class="acct-card-title">
+        Fingerprint Sign-In
+        <span class="fp-pill fp-pill--on"  *ngIf="state === 'configured'"><i class="fa fa-check"></i> Active</span>
+        <span class="fp-pill fp-pill--off" *ngIf="state === 'setup'">Not set up</span>
+      </h4>
+      <p class="acct-card-sub">
+        Sign in with this device's fingerprint reader (Windows Hello / Touch ID).
+        Your fingerprint never leaves your device — only a secure key is stored.
+      </p>
+    </div>
+  </div>
+
+  <div class="acct-card-body">
+
+    <!-- Loading -->
+    <div *ngIf="state === 'loading'" class="fp-loading">
+      <i class="fa fa-spinner fa-spin"></i> Loading fingerprint status…
+    </div>
+
+    <!-- Unsupported browser / device -->
+    <div *ngIf="state === 'unsupported'" class="fp-note fp-note--warn">
+      <i class="fa fa-exclamation-triangle"></i>
+      <span>This browser or device doesn't support fingerprint sign-in. Try a device with
+      Windows Hello or Touch ID, on Chrome, Edge, or Safari.</span>
+    </div>
+
+    <!-- No fingerprint registered yet -->
+    <div *ngIf="state === 'setup'" class="fp-setup">
+      <div class="fp-empty">
+        <i class="fa fa-fingerprint fp-empty-icon"></i>
+        <p class="fp-empty-text">No fingerprint registered yet.</p>
+        <p class="fp-empty-sub">Register this device to use your fingerprint at login.</p>
+      </div>
+
+      <div class="fp-field">
+        <label for="fpLabelNew">Device name <span class="fp-optional">(optional)</span></label>
+        <input id="fpLabelNew" class="form-input" type="text" maxlength="128"
+               placeholder="e.g. My work laptop" [(ngModel)]="deviceLabel" />
+      </div>
+
+      <button class="dc-btn dc-btn--save fp-primary-btn" (click)="register()" [disabled]="registering">
+        <i class="fa" [class.fa-fingerprint]="!registering" [class.fa-spinner]="registering" [class.fa-spin]="registering"></i>
+        {{ registering ? 'Waiting for Windows Hello…' : 'Register fingerprint' }}
+      </button>
+    </div>
+
+    <!-- One or more fingerprints registered -->
+    <div *ngIf="state === 'configured'" class="fp-configured">
+      <ul class="fp-cred-list">
+        <li *ngFor="let c of credentials" class="fp-cred-item">
+          <span class="fp-cred-icon"><i class="fa fa-fingerprint"></i></span>
+          <span class="fp-cred-main">
+            <span class="fp-cred-name">{{ c.deviceLabel || 'Registered device' }}</span>
+            <span class="fp-cred-date" *ngIf="c.lastUsedAt">Last used {{ c.lastUsedAt | date:'medium' }}</span>
+            <span class="fp-cred-date" *ngIf="!c.lastUsedAt">Added {{ c.registeredAt | date:'mediumDate' }}</span>
+          </span>
+        </li>
+      </ul>
+
+      <div class="fp-add-row">
+        <input class="form-input" type="text" maxlength="128"
+               placeholder="Add another device (optional name)" [(ngModel)]="deviceLabel" />
+        <button class="dc-btn dc-btn--save dc-btn--sm" (click)="register()" [disabled]="registering">
+          <i class="fa" [class.fa-plus]="!registering" [class.fa-spinner]="registering" [class.fa-spin]="registering"></i>
+          {{ registering ? 'Waiting…' : 'Add' }}
+        </button>
+      </div>
+
+      <button class="fp-remove-link" (click)="removeAll()">
+        <i class="fa fa-trash"></i> Remove all fingerprints
+      </button>
+    </div>
+
+    <div *ngIf="error" class="fp-note fp-note--error">
+      <i class="fa fa-exclamation-circle"></i> <span>{{ error }}</span>
+    </div>
+
+  </div>
+</div>

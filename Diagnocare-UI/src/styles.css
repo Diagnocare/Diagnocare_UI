@@ -251,9 +251,13 @@ html[data-theme="midnight"] p, html[data-theme="midnight"] span, html[data-theme
 html[data-theme="midnight"] h1, html[data-theme="midnight"] h2, html[data-theme="midnight"] h3,
 html[data-theme="midnight"] h4, html[data-theme="midnight"] h5, html[data-theme="midnight"] h6 { color: #cdd6f4 !important; }
 
-html[data-theme="warm"]     p, html[data-theme="warm"]     span, html[data-theme="warm"]     li,
-html[data-theme="warm"]     h1, html[data-theme="warm"]    h2, html[data-theme="warm"]     h3,
-html[data-theme="warm"]     h4, html[data-theme="warm"]    h5, html[data-theme="warm"]     h6 { color: #f3eeea  !important; }
+/* NOTE: Warm is a LIGHT-card theme (cream cards on a brown gradient page), so a
+   blanket near-white text rule (like dark/midnight use) hid text on every card.
+   Warm text now falls back to the dark body colour (#3d2b1f) which is correct on
+   the cream cards; white text on the brown gradient is handled by .page-header *
+   (below) and by hero containers that set their own colour: #fff. If any loose
+   text sits directly on the gradient (not inside a card/header) and needs to be
+   white, scope it explicitly rather than reinstating this blanket rule. */
 
 /* Warm: text/icons inside buttons must follow the button's own color
    (white on coloured buttons, dark on light ones) — never the page text color. */
@@ -268,6 +272,193 @@ html[data-theme="midnight"] .acct-card-header *, html[data-theme="midnight"] .ac
 html[data-theme="midnight"] .page-header *,       html[data-theme="midnight"] .data-table th { color: #cdd6f4 !important; }
 html[data-theme="warm"]     .acct-card-header *, html[data-theme="warm"]     .acct-header *,
 html[data-theme="warm"]     .page-header *,       html[data-theme="warm"]     .data-table th { color: #fff !important; }
+/* NOTE (unified buttons): the per-theme "header primary buttons render as a
+   white pill" overrides that used to live here have been removed. Primary
+   actions now use ONE appearance everywhere — see the
+   "UNIFIED PRIMARY BUTTON" section at the end of this file. */
+
+/* ── Patient list status / urgency badges ─────────────────────────────────────
+   These are <span> pills; the global `[data-theme] span !important` rule whitens
+   their text into invisibility on the light tint. Re-assert per-theme here at the
+   global level (two-class specificity) so the fix can't lose to component-scope
+   specificity quirks. Backgrounds come from the component's own theme block. */
+html[data-theme="dark"]     .status-badge.status-completed { color: #86efac !important; }
+html[data-theme="dark"]     .status-badge.status-partial   { color: #93c5fd !important; }
+html[data-theme="dark"]     .status-badge.status-pending   { color: #fde68a !important; }
+html[data-theme="dark"]     .status-badge.status-unknown   { color: #94a3b8 !important; }
+html[data-theme="dark"]     .urgent-badge.urgent-yes       { color: #fca5a5 !important; }
+html[data-theme="dark"]     .urgent-badge.urgent-no        { color: #94a3b8 !important; }
+html[data-theme="midnight"] .status-badge.status-completed { color: #56d364 !important; }
+html[data-theme="midnight"] .status-badge.status-partial   { color: #79b8ff !important; }
+html[data-theme="midnight"] .status-badge.status-pending   { color: #fbbf24 !important; }
+html[data-theme="midnight"] .status-badge.status-unknown   { color: #8b949e !important; }
+html[data-theme="midnight"] .urgent-badge.urgent-yes       { color: #f97583 !important; }
+html[data-theme="midnight"] .urgent-badge.urgent-no        { color: #8b949e !important; }
+html[data-theme="warm"]     .status-badge.status-completed { color: #15803d !important; }
+html[data-theme="warm"]     .status-badge.status-partial   { color: #1d4ed8 !important; }
+html[data-theme="warm"]     .status-badge.status-pending   { color: #854d0e !important; }
+html[data-theme="warm"]     .status-badge.status-unknown   { color: #5c4636 !important; }
+html[data-theme="warm"]     .urgent-badge.urgent-yes       { color: #b91c1c !important; }
+html[data-theme="warm"]     .urgent-badge.urgent-no        { color: #4a3728 !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UNTHEMED LIGHT SURFACES — global safety net
+   ──────────────────────────────────────────────────────────────────────────────
+   These components hardcode a white/near-white background and never declared any
+   theme overrides. In the dark themes the blanket light-text rules above then put
+   near-white text on a white card = invisible. Theming the SURFACE here (rather
+   than patching each component) fixes the text everywhere at once, and keeps the
+   cards consistent with the app palette:
+     dark      surface #1e293b / sunken #273548 / input #0f172a / border #334155
+     midnight  surface #0d1117 / sunken #161b22 / input #020408 / border #21262d
+     warm      surface #fffdf7 / sunken #fef9f0 / input #fffdf7 / border #e8d9c0
+   ══════════════════════════════════════════════════════════════════════════════ */
+html[data-theme="dark"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel),
+html[data-theme="system"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel) {
+  background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+html[data-theme="dark"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header),
+html[data-theme="system"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header) {
+  background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+/* Generic containers shared by the remaining un-themed components. These are a
+   FALLBACK only: a component's own :host-context rule has higher specificity and
+   still wins wherever one exists. */
+html[data-theme="dark"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content),
+html[data-theme="system"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content) {
+  background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .form-input,
+html[data-theme="system"] .form-input {
+  background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important;
+}
+
+html[data-theme="midnight"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel) {
+  background: #0d1117 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+html[data-theme="midnight"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header) {
+  background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+html[data-theme="midnight"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content) {
+  background: #0d1117 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+html[data-theme="midnight"] .form-input {
+  background: #020408 !important; border-color: #21262d !important; color: #cdd6f4 !important;
+}
+
+html[data-theme="warm"] :is(.registration-card, .atm-cat-col, .contact-delete-container,
+  .help-card, .el-card, .le-card, .se-card, .template-picker, .referred-by-suggestions,
+  .patient-list-container, .rfb-filters, .vs-calendar-panel) {
+  background: #fffdf7 !important; border-color: #e8d9c0 !important; color: #3d2b1f !important;
+}
+html[data-theme="warm"] :is(.combo-input, .combo-prefix, .rfb-select, .rfb-btn, .tab-btn, .card-header) {
+  background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important;
+}
+html[data-theme="warm"] :is(.card, .table-container, .stat-card, .detail-card, .modal-content) {
+  background: #fffdf7 !important; border-color: #e8d9c0 !important; color: #3d2b1f !important;
+}
+html[data-theme="warm"] .form-input {
+  background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important;
+}
+
+/* ── Radio / choice pills (Gender, Marital Status, Type, …) ───────────────────
+   `.radio-pill span` is a near-white chip with dark ink. In the dark themes the
+   blanket light-text rule turned the label white on that white chip, so the
+   options were unreadable. Used by add-patient, add-test-modal and friends, so
+   it is themed once here. The CHECKED state keeps its brand gradient + white
+   label, which is correct in every theme. */
+html[data-theme="dark"]   .radio-pill span,
+html[data-theme="system"] .radio-pill span {
+  background: #0f172a !important; border-color: #334155 !important; color: #cbd5e1 !important;
+}
+html[data-theme="dark"]   .radio-pill:hover span,
+html[data-theme="system"] .radio-pill:hover span {
+  background: #273548 !important; border-color: #5b9cf6 !important; color: #e2e8f0 !important;
+}
+html[data-theme="midnight"] .radio-pill span {
+  background: #020408 !important; border-color: #21262d !important; color: #a6adc8 !important;
+}
+html[data-theme="midnight"] .radio-pill:hover span {
+  background: #161b22 !important; border-color: #4d9ef0 !important; color: #cdd6f4 !important;
+}
+html[data-theme="warm"] .radio-pill span {
+  background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #5c4636 !important;
+}
+html[data-theme="warm"] .radio-pill:hover span {
+  background: #f4e8d8 !important; border-color: #c4985a !important; color: #3d2b1f !important;
+}
+/* Selected pill — re-assert the white label so the blanket rules can't dull it */
+html[data-theme="dark"]     .radio-pill input[type="radio"]:checked + span,
+html[data-theme="midnight"] .radio-pill input[type="radio"]:checked + span,
+html[data-theme="warm"]     .radio-pill input[type="radio"]:checked + span,
+html[data-theme="system"]   .radio-pill input[type="radio"]:checked + span { color: #fff !important; }
+
+/* Native radio/checkbox glyphs — tint them to the theme's accent so they are
+   visible on dark surfaces instead of rendering as dim grey rings. */
+html[data-theme="dark"]     input[type="radio"], html[data-theme="dark"]     input[type="checkbox"] { accent-color: #5b9cf6; }
+html[data-theme="midnight"] input[type="radio"], html[data-theme="midnight"] input[type="checkbox"] { accent-color: #4d9ef0; }
+html[data-theme="warm"]     input[type="radio"], html[data-theme="warm"]     input[type="checkbox"] { accent-color: #c4985a; }
+html[data-theme="system"]   input[type="radio"], html[data-theme="system"]   input[type="checkbox"] { accent-color: #5b9cf6; }
+
+/* ── Section / field labels on dark form surfaces ─────────────────────────────
+   Small uppercase group headings (IDENTITY, DEMOGRAPHICS, CONTACT …) and field
+   labels are often hardcoded to a mid grey that muddies against dark cards.
+   Nudge them to the theme's secondary ink for a clearly legible hierarchy. */
+html[data-theme="dark"]     :is(.section-label, .form-section-title, .field-label, .form-label),
+html[data-theme="system"]   :is(.section-label, .form-section-title, .field-label, .form-label) { color: #94a3b8 !important; }
+html[data-theme="midnight"] :is(.section-label, .form-section-title, .field-label, .form-label) { color: #a6adc8 !important; }
+html[data-theme="warm"]     :is(.section-label, .form-section-title, .field-label, .form-label) { color: #7a5c4e !important; }
+
+/* ── SVG / icon-font visibility ───────────────────────────────────────────────
+   Icons drawn with `currentColor` follow their parent's themed colour and are
+   fine. These are the ones that DON'T: icons hardcoded to a dark ink colour,
+   which disappear on the dark surfaces above. Make them inherit instead. */
+html[data-theme="dark"]     :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa),
+html[data-theme="midnight"] :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa),
+html[data-theme="warm"]     :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa),
+html[data-theme="system"]   :is(.registration-card, .atm-cat-col, .help-card, .el-card, .le-card, .se-card, .card, .table-container, .stat-card, .detail-card, .modal-content) :is(svg, i, .fa) {
+  color: inherit;
+}
+
+/* SVGs that inherit their stroke/fill from CSS `currentColor` follow the themed
+   text colour automatically. These two rules make that opt-in explicit for icons
+   that would otherwise stay black on a dark surface. */
+html[data-theme="dark"]     svg:not([fill]):not([stroke]),
+html[data-theme="midnight"] svg:not([fill]):not([stroke]),
+html[data-theme="system"]   svg:not([fill]):not([stroke]) { fill: currentColor; }
+
+/* ── Confirm modal (shared logout / delete dialog) ────────────────────────────
+   Bootstrap's .modal-content stays light by default, but the heading rules above
+   force the <h5> .modal-title near-white (invisible on a light dialog). Theme the
+   whole dialog per palette so the title, body and close button stay readable. */
+html[data-theme="dark"]     #confirmModal .modal-content { background: #1e293b !important; border: 1px solid #334155 !important; }
+html[data-theme="dark"]     #confirmModal .modal-header,
+html[data-theme="dark"]     #confirmModal .modal-footer  { border-color: #334155 !important; }
+html[data-theme="dark"]     #confirmModal .modal-title   { color: #e2e8f0 !important; }
+html[data-theme="dark"]     #confirmModal .modal-body,
+html[data-theme="dark"]     #confirmModal .modal-body div { color: #cbd5e1 !important; }
+html[data-theme="dark"]     #confirmModal .btn-close      { filter: invert(1) grayscale(100%) brightness(1.8) !important; }
+
+html[data-theme="midnight"] #confirmModal .modal-content { background: #0d1117 !important; border: 1px solid #21262d !important; }
+html[data-theme="midnight"] #confirmModal .modal-header,
+html[data-theme="midnight"] #confirmModal .modal-footer  { border-color: #21262d !important; }
+html[data-theme="midnight"] #confirmModal .modal-title   { color: #cdd6f4 !important; }
+html[data-theme="midnight"] #confirmModal .modal-body,
+html[data-theme="midnight"] #confirmModal .modal-body div { color: #a6adc8 !important; }
+html[data-theme="midnight"] #confirmModal .btn-close      { filter: invert(1) grayscale(100%) brightness(1.8) !important; }
+
+html[data-theme="warm"]     #confirmModal .modal-content { background: #fffdf7 !important; border: 1px solid #e8d9c0 !important; }
+html[data-theme="warm"]     #confirmModal .modal-header,
+html[data-theme="warm"]     #confirmModal .modal-footer  { border-color: #e8d9c0 !important; }
+html[data-theme="warm"]     #confirmModal .modal-title   { color: #3d2b1f !important; }
+html[data-theme="warm"]     #confirmModal .modal-body,
+html[data-theme="warm"]     #confirmModal .modal-body div { color: #5c4636 !important; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 /* btn-secondary */
@@ -379,6 +570,21 @@ html[data-theme="midnight"] input.ng-invalid.ng-touched { border-left-color: #ef
   html[data-theme="system"] h4, html[data-theme="system"] h5, html[data-theme="system"] h6 { color: #e2e8f0 !important; }
   html[data-theme="system"] .acct-card-header *, html[data-theme="system"] .acct-header *,
   html[data-theme="system"] .page-header *,       html[data-theme="system"] .data-table th { color: #fff !important; }
+  /* (unified buttons) header white-pill override removed — see the
+     "UNIFIED PRIMARY BUTTON" section at the end of this file. */
+  html[data-theme="system"] .status-badge.status-completed { color: #86efac !important; }
+  html[data-theme="system"] .status-badge.status-partial   { color: #93c5fd !important; }
+  html[data-theme="system"] .status-badge.status-pending   { color: #fde68a !important; }
+  html[data-theme="system"] .status-badge.status-unknown   { color: #94a3b8 !important; }
+  html[data-theme="system"] .urgent-badge.urgent-yes       { color: #fca5a5 !important; }
+  html[data-theme="system"] .urgent-badge.urgent-no        { color: #94a3b8 !important; }
+  html[data-theme="system"] #confirmModal .modal-content { background: #1e293b !important; border: 1px solid #334155 !important; }
+  html[data-theme="system"] #confirmModal .modal-header,
+  html[data-theme="system"] #confirmModal .modal-footer  { border-color: #334155 !important; }
+  html[data-theme="system"] #confirmModal .modal-title   { color: #e2e8f0 !important; }
+  html[data-theme="system"] #confirmModal .modal-body,
+  html[data-theme="system"] #confirmModal .modal-body div { color: #cbd5e1 !important; }
+  html[data-theme="system"] #confirmModal .btn-close      { filter: invert(1) grayscale(100%) brightness(1.8) !important; }
   html[data-theme="system"] .btn-secondary, html[data-theme="system"] .btn-outline-secondary { background: #1e293b !important; border-color: #475569 !important; color: #cbd5e1 !important; }
   html[data-theme="system"] .btn-cancel { background: #1e293b !important; border-color: #334155 !important; color: #94a3b8 !important; }
   html[data-theme="system"] .btn-back   { background: #334155 !important; border-color: #475569 !important; color: #e2e8f0 !important; }
@@ -514,6 +720,16 @@ html[data-theme="midnight"] .pm-modal,
 html[data-theme="midnight"] .otp-card                   { background: #0d1117 !important; }
 html[data-theme="warm"]     .pm-modal,
 html[data-theme="warm"]     .otp-card                   { background: #fffdf7 !important; }
+html[data-theme="warm"] .otp-enter-label,
+html[data-theme="warm"] .otp-step-label,
+html[data-theme="warm"] .otp-send-title,
+html[data-theme="warm"] .otp-method-label   { color: #3d2b1f !important; }
+html[data-theme="warm"] .otp-resend-hint,
+html[data-theme="warm"] .otp-send-dest,
+html[data-theme="warm"] .otp-method-sub,
+html[data-theme="warm"] .otp-totp-hint,
+html[data-theme="warm"] .otp-countdown-num,
+html[data-theme="warm"] .otp-box-sep        { color: #7a5c4e !important; }
 
 html[data-theme="dark"]     .pm-header                  { border-bottom-color: #334155 !important; }
 html[data-theme="midnight"] .pm-header                  { border-bottom-color: #21262d !important; }
@@ -972,6 +1188,25 @@ body:has(#pinAuthModal.show) .spinner-container {
   box-shadow: none;
 }
 
+.btn-nav {
+  background: #567299; /* slate-600 — neutral-dark, clearly "previous" */
+  border: 1.5px solid #334155; /* slate-700 */
+  color: #ffffff; /* white — maximum contrast on slate bg */
+}
+
+  .btn-nav:hover:not(:disabled) {
+    background: #567299; /* slate-700, visibly darker on hover */
+    border-color: #1e293b;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(51, 65, 85, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-nav:active:not(:disabled) {
+    background: #567299;
+    transform: translateY(0);
+    box-shadow: none;
+  }
 /* Auto-adapt: white semi-transparent when inside the dark gradient page-header */
 .page-header .btn-back,
 .header-actions .btn-back,
@@ -990,33 +1225,11 @@ body:has(#pinAuthModal.show) .spinner-container {
   transform: translateY(-1px);
 }
 
-/* ── Primary actions on the dark gradient banner → solid white pill ────────── */
-/*
- * A brand-blue primary button has low contrast on the blue→purple page-header
- * gradient. Inside the banner, render primary actions (Add / Save / Search) as
- * a solid white pill with brand-blue text so they stand out clearly. Purely
- * scoped to the header — buttons elsewhere keep the standard blue fill.
- */
-.page-header .btn-primary,        .header-actions .btn-primary,        .header-actions-group .btn-primary,
-.page-header .dc-btn--save,       .header-actions .dc-btn--save,       .header-actions-group .dc-btn--save,
-.page-header .dc-btn--add,        .header-actions .dc-btn--add,        .header-actions-group .dc-btn--add,
-.page-header .dc-btn--search,     .header-actions .dc-btn--search,     .header-actions-group .dc-btn--search {
-  background: #ffffff;
-  color: #1e5ba8;
-  border: 1.5px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-}
-.page-header .btn-primary:hover:not(:disabled),        .header-actions .btn-primary:hover:not(:disabled),        .header-actions-group .btn-primary:hover:not(:disabled),
-.page-header .dc-btn--save:hover:not(:disabled),       .header-actions .dc-btn--save:hover:not(:disabled),       .header-actions-group .dc-btn--save:hover:not(:disabled),
-.page-header .dc-btn--add:hover:not(:disabled),        .header-actions .dc-btn--add:hover:not(:disabled),        .header-actions-group .dc-btn--add:hover:not(:disabled),
-.page-header .dc-btn--search:hover:not(:disabled),     .header-actions .dc-btn--search:hover:not(:disabled),     .header-actions-group .dc-btn--search:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.92);
-  color: #17457f;
-  border-color: #ffffff;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28);
-  transform: translateY(-1px);
-  filter: none;
-}
+/* (unified buttons) The "primary actions render as a white pill inside the
+   gradient banner" rules used to live here. They were the reason Add Patient
+   (in the header) and Search (in the filter bar) looked like two different
+   buttons. Primary actions now use ONE appearance everywhere — see the
+   "UNIFIED PRIMARY BUTTON" section at the end of this file. */
 
 /* ── Cancel / Close — neutral light grey across ALL pages ─────────────────── */
 /*
@@ -1505,6 +1718,11 @@ input.ng-invalid.ng-touched {
   border-color: var(--secondary-color);
   color: var(--text-light);
 }
+  .pagination-btn.active:hover {
+    background: var(--btn-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 0.25em 0.75em rgba(33, 150, 243, 0.4);
+  }
 
 .pagination-info {
   font-size: 0.875em;
@@ -1904,3 +2122,633 @@ ng-select { width: 100%; font-size: 14px; }
   top: 12px !important;
   right: 12px !important;
 }
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+   ║  RESPONSIVE LAYER — appended                                             ║
+   ║                                                                          ║
+   ║  Appended rather than @import-ed on purpose: an @import has to sit at the ║
+   ║  top of the file, which would load these rules BEFORE everything they are ║
+   ║  meant to override. Last in the file means last in the cascade, so no     ║
+   ║  !important is needed.                                                    ║
+   ║                                                                          ║
+   ║  Everything from here to the end of the file is this layer. To remove it, ║
+   ║  delete from this banner down.                                            ║
+   ╚══════════════════════════════════════════════════════════════════════════╝ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — RESPONSIVE LAYER
+   ──────────────────────────────────────────────────────────────────────────────
+   Loaded last, from styles.css, so these rules win over the layout defaults
+   without needing !important.
+
+   Two things this is fixing, and they are the same thing:
+
+     • Small screens. Phones and tablets.
+     • Browser zoom. A user on a 1440px monitor at 150% zoom has a 960px
+       viewport as far as CSS is concerned — the same situation as a small
+       laptop. Ctrl+= is by far the most common accessibility setting in a lab,
+       and the layout has to survive it.
+
+   Every breakpoint here is in `em`, not `px`. An em breakpoint is measured
+   against the root font size, so it moves when the user changes their browser's
+   text size as well as when they zoom — a px breakpoint only handles zoom.
+   The existing blocks in styles.css already use em; these match them.
+
+     30em  = 480px   phones
+     48em  = 768px   large phones, tablets portrait   (already in styles.css)
+     64em  = 1024px  tablets landscape, small laptops, 150% zoom on 1440
+     90em  = 1440px  large monitors                   (already in styles.css)
+
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   1 · EVERY SIZE — things that should never have been size-dependent
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Stop iOS inflating text when the phone is rotated to landscape. Without it,
+   a table that fitted in portrait comes back with different type sizes. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 100vh on a phone is the viewport *including* the browser's address bar, so a
+   full-height page always overflows by the height of that bar. dvh is the
+   dynamic height that accounts for it; the vh line stays first as the fallback
+   for older browsers. */
+.page-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Media should never be the reason a page scrolls sideways. */
+img, svg, video, canvas, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* A long unbroken string — an email address, a policy number, a test code —
+   otherwise sets the minimum width of its column and pushes the whole table
+   wider than the screen. */
+td, th, .patient-info, .ref-info, .dc-record__title, .alert, .no-data p {
+  overflow-wrap: anywhere;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────────
+   The single biggest source of sideways scrolling. styles.css turns this on
+   only below 48em, which leaves every width between 768px and the table's
+   natural size broken — laptops, tablets in landscape, and any zoomed desktop.
+   A table that fits simply does not scroll, so there is no cost to having this
+   on always. */
+.table-container,
+.table-responsive,
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Contain the scroll: without this the browser may scroll the page instead
+     of the table when a swipe starts on a cell. */
+  overscroll-behavior-x: contain;
+}
+
+/* The table itself must be allowed to exceed its container — that is what the
+   scroll is for. Without this, `width: 100%` squeezes columns into unreadable
+   slivers rather than scrolling. */
+.table-container > table,
+.table-responsive > table,
+.scroll-x > table {
+  min-width: max-content;
+}
+
+/* ── Pagination ────────────────────────────────────────────────────────────
+   A row of First / Previous / 1 2 3 4 5 / Next / Last plus a page-size select
+   is wider than any phone. Wrap it instead of overflowing. */
+.pagination {
+  flex-wrap: wrap;
+  /* row-gap only. Adding a column gap would widen the row and make it wrap at
+     widths where it previously fitted — the opposite of the intent. */
+  row-gap: 0.5em;
+}
+.pagination-controls {
+  flex-wrap: wrap;
+  row-gap: 0.35em;
+}
+
+/* ── Anything that lays buttons in a row ─────────────────────────────────────
+   Not row actions inside a table: that cell lives in a horizontally scrolling
+   container, so it has all the room it needs. Letting it wrap stacks four
+   buttons into a column and triples the height of every row in the table. */
+.action-buttons,
+.header-actions,
+.header-actions-group,
+.form-actions,
+.modal-footer-actions,
+.dc-actions-row {
+  flex-wrap: wrap;
+}
+
+/* Row actions inside a table stay on one line — see the note above. */
+td .action-buttons,
+.patients-table .action-buttons {
+  flex-wrap: nowrap;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   2 · ≤ 64em (1024px) — tablets landscape, small laptops, 150% zoom on 1440
+   The gap in the current stylesheet: everything here used to wait until 48em.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 64em) {
+
+  .content-container {
+    padding: 1em 1.25em;
+  }
+
+  .page-header {
+    padding: 1em 1.25em;
+  }
+
+  /* Filter rows: as many columns as genuinely fit, then wrap. A fixed column
+     count is what makes date pickers overlap their labels at this width. */
+  .search-row,
+  .filters-row,
+  .report-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75em;
+  }
+
+  /* Two-column forms become one column well before they get cramped. Reading a
+     label that has wrapped to three words per line is slower than scrolling. */
+  .form-row {
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+
+  /* The full-screen Add Test overlay: no wasted gutters at this width. */
+  .atm-page {
+    padding: 0;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   3 · ≤ 48em (768px) — tablets portrait and large phones
+   styles.css already covers the basics here; these are the gaps.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 48em) {
+
+  /* Header actions were centred, which reads as a mistake when the title above
+     them is left-aligned. */
+  .page-header {
+    align-items: stretch;
+  }
+  .header-actions,
+  .header-actions-group {
+    justify-content: flex-start;
+  }
+
+  /* Every custom overlay in the app: full-bleed rather than a floating card
+     with 8px of backdrop showing on each side. */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  .pm-modal,
+  .pcm-modal {
+    width: calc(100vw - 1.5rem);
+    max-width: none;
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+  }
+
+  /* Segmented toggles (Recent & Pending / All Reports) overflow their row. */
+  .filter-mode-toggle {
+    width: 100%;
+  }
+  .filter-mode-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Row actions: give each button room rather than letting four of them squash
+     into unreadable slivers. */
+  .action-buttons {
+    gap: 0.4em;
+  }
+
+  /* Amount summary cards and stat rows: two up, not four. */
+  .amount-summary,
+  .amount-cards,
+  .stats-row {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   4 · ≤ 30em (480px) — phones
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 30em) {
+
+  .content-container {
+    padding: 0.75em;
+  }
+
+  /* One action per row beats four buttons at 60px each. */
+  .form-actions .btn,
+  .modal-footer-actions .btn,
+  .header-actions .btn,
+  .header-actions .dc-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Pagination: keep First/Prev/Next/Last usable and let the numbers wrap
+     underneath rather than pushing the row off-screen. */
+  .page-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em;
+    justify-content: center;
+    width: 100%;
+    order: 3;
+  }
+  .pagination-info {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Stat and summary cards stack rather than shrinking below readable. */
+  .amount-summary,
+  .amount-cards,
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* The date range: From and To stack, with the arrow between them hidden —
+     it means nothing once they are one above the other. */
+  .date-inputs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5em;
+  }
+  /* Two selectors deep, to beat the per-screen rule that sets it to flex. */
+  .date-inputs .date-sep,
+  .date-range .date-sep {
+    display: none;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   5 · Very high zoom (≥ 200%) and narrow desktop windows
+   At this point the viewport is under ~400 CSS px on a normal monitor. Anything
+   still trying to be a row has to become a column, or the user is dragging a
+   horizontal scrollbar to read a sentence.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 24em) {
+
+  .page-header h1,
+  .page-header h2 {
+    font-size: 1.05em;
+  }
+
+  /* Icon-only is acceptable here and nowhere else: at this width a labelled
+     button would push everything else off the screen. The accessible name
+     stays on the button either way. */
+  .btn-action {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   6 · Print — reports and receipts are printed constantly in a lab
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  .page-header,
+  .header-actions,
+  .header-actions-group,
+  .action-buttons,
+  .pagination,
+  .search-section,
+  .form-actions,
+  app-header {
+    display: none !important;
+  }
+
+  .page-container {
+    background: #fff !important;
+    min-height: 0;
+  }
+  .content-container {
+    padding: 0;
+  }
+
+  /* A scroll container prints as a clipped box; on paper it just needs to be
+     the full table. */
+  .table-container,
+  .table-responsive,
+  .scroll-x {
+    overflow: visible !important;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   7 · Motion
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Age in years / months / days ──────────────────────────────────────────────
+   Three boxes that read as one field. Used by add-patient and edit-patient.
+   The unit sits under its box rather than inside it as a placeholder, so it is
+   still readable once a number has been typed over it. */
+.age-parts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5em;
+}
+.age-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+}
+.age-part .form-control {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* The spinner arrows are ~10px tall and add nothing here — the values are
+   typed, and there is a hard min/max on each box anyway. */
+.age-part input[type="number"]::-webkit-outer-spin-button,
+.age-part input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.age-part input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+.age-part__unit {
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #666);
+  text-align: center;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UNIFIED PRIMARY BUTTON  —  ONE style for every action button, app-wide
+   ──────────────────────────────────────────────────────────────────────────────
+   THE RULE
+     Every primary / action button is SOLID BRAND BLUE with a white label,
+     and INVERTS TO WHITE with a blue label and a blue border on hover.
+     Same size, same radius, same weight, same motion — on every page, in
+     every panel, inside the gradient page-header, and in every theme.
+
+   WHY THIS BLOCK IS LAST
+     It is the single source of truth. It sits at the end of the file and uses
+     !important so it also wins over Angular component styles (those are scoped
+     with an [_ngcontent-*] attribute, which otherwise outranks a plain global
+     class). Do NOT restyle these classes in a component .css/.scss file — if a
+     button needs to look different, it is a different KIND of button, so give
+     it the right intent class below instead.
+
+   WHICH CLASSES THIS COVERS (all render identically)
+     .dc-btn--save  --update  --submit  --confirm  --add          (canonical)
+     .dc-btn--search  --apply  --filter                           (canonical)
+     .btn-primary  .btn-search  .btn-add  .btn-save  .btn-submit   (legacy)
+     .btn-update  .btn-apply  .btn-filter  .btn-refresh            (legacy)
+
+   NOT COVERED — these keep their own meaning on purpose
+     .btn-danger / .dc-btn--delete   destructive        → red
+     .btn-cancel / .dc-btn--cancel   exit / back        → grey
+     .dc-btn--clear                  reset a filter     → outline
+     .btn-back                       navigation         → slate
+     .btn-action (table row icons)   icon-only actions  → unchanged
+
+   PREFERRED MARKUP FOR NEW SCREENS
+     <button class="dc-btn dc-btn--save">   Save / Add / Submit / Confirm
+     <button class="dc-btn dc-btn--search"> Search / Apply / Filter
+     <button class="dc-btn dc-btn--cancel"> Cancel / Close
+     <button class="dc-btn dc-btn--delete"> Delete
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* One place to change the brand blue for every action button. */
+:root {
+  --dc-action-blue:        #1e5ba8;
+  --dc-action-blue-dark:   #17457f;
+  --dc-action-blue-shadow: rgba(30, 91, 168, 0.32);
+}
+
+/* ── Shape: identical geometry for every action button ────────────────────── */
+.dc-btn--save,  .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add,
+.dc-btn--search, .dc-btn--apply, .dc-btn--filter,
+.btn-primary,   .btn-search,     .btn-add,        .btn-save,
+.btn-submit,    .btn-update,     .btn-apply,      .btn-filter,     .btn-refresh {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45em !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+  border-radius: 0.5em !important;
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  cursor: pointer;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+              box-shadow 0.15s ease, transform 0.15s ease !important;
+}
+
+/* Size — skipped for buttons that opted into a small/large/full variant. */
+.dc-btn--save:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--update:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--submit:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--confirm:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--add:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--search:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--apply:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.dc-btn--filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-primary:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-search:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-add:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-save:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-submit:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-update:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-apply:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
+.btn-refresh:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg) {
+  padding: 0.6em 1.2em !important;
+  font-size: 0.9em !important;
+}
+
+/* ── Resting state: solid brand blue, white label ─────────────────────────── */
+/*
+ * The border is white rather than transparent on purpose: against a white page
+ * it is invisible (so the button reads as a plain blue pill), while inside the
+ * blue→purple .page-header gradient it gives the button a crisp edge — which
+ * is what the old white-pill override was really solving. One rule, both
+ * backgrounds, no per-context special case.
+ */
+.dc-btn--save,  .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add,
+.dc-btn--search, .dc-btn--apply, .dc-btn--filter,
+.btn-primary,   .btn-search,     .btn-add,        .btn-save,
+.btn-submit,    .btn-update,     .btn-apply,      .btn-filter,     .btn-refresh {
+  background: var(--dc-action-blue) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none;
+}
+
+/* Icons and labels inside follow the button, never the page text colour. */
+.dc-btn--save *,  .dc-btn--update *, .dc-btn--submit *, .dc-btn--confirm *, .dc-btn--add *,
+.dc-btn--search *, .dc-btn--apply *, .dc-btn--filter *,
+.btn-primary *,   .btn-search *,     .btn-add *,        .btn-save *,
+.btn-submit *,    .btn-update *,     .btn-apply *,      .btn-filter *,     .btn-refresh * {
+  color: inherit !important;
+}
+
+/* ── Hover: inverts to white with a blue label and a blue border ──────────── */
+.dc-btn--save:hover:not(:disabled),   .dc-btn--update:hover:not(:disabled),
+.dc-btn--submit:hover:not(:disabled), .dc-btn--confirm:hover:not(:disabled),
+.dc-btn--add:hover:not(:disabled),    .dc-btn--search:hover:not(:disabled),
+.dc-btn--apply:hover:not(:disabled),  .dc-btn--filter:hover:not(:disabled),
+.btn-primary:hover:not(:disabled),    .btn-search:hover:not(:disabled),
+.btn-add:hover:not(:disabled),        .btn-save:hover:not(:disabled),
+.btn-submit:hover:not(:disabled),     .btn-update:hover:not(:disabled),
+.btn-apply:hover:not(:disabled),      .btn-filter:hover:not(:disabled),
+.btn-refresh:hover:not(:disabled) {
+  background: #ffffff !important;
+  color: var(--dc-action-blue) !important;
+  border-color: var(--dc-action-blue) !important;
+  box-shadow: 0 3px 10px var(--dc-action-blue-shadow) !important;
+  filter: none !important;
+  transform: none !important;
+}
+.dc-btn--save:hover:not(:disabled) *,   .dc-btn--update:hover:not(:disabled) *,
+.dc-btn--submit:hover:not(:disabled) *, .dc-btn--confirm:hover:not(:disabled) *,
+.dc-btn--add:hover:not(:disabled) *,    .dc-btn--search:hover:not(:disabled) *,
+.dc-btn--apply:hover:not(:disabled) *,  .dc-btn--filter:hover:not(:disabled) *,
+.btn-primary:hover:not(:disabled) *,    .btn-search:hover:not(:disabled) *,
+.btn-add:hover:not(:disabled) *,        .btn-save:hover:not(:disabled) *,
+.btn-submit:hover:not(:disabled) *,     .btn-update:hover:not(:disabled) *,
+.btn-apply:hover:not(:disabled) *,      .btn-filter:hover:not(:disabled) *,
+.btn-refresh:hover:not(:disabled) * {
+  color: var(--dc-action-blue) !important;
+}
+
+/* Keyboard focus gets the same inverted look plus a visible ring. */
+.dc-btn--save:focus-visible,   .dc-btn--update:focus-visible,
+.dc-btn--submit:focus-visible, .dc-btn--confirm:focus-visible,
+.dc-btn--add:focus-visible,    .dc-btn--search:focus-visible,
+.dc-btn--apply:focus-visible,  .dc-btn--filter:focus-visible,
+.btn-primary:focus-visible,    .btn-search:focus-visible,
+.btn-add:focus-visible,        .btn-save:focus-visible,
+.btn-submit:focus-visible,     .btn-update:focus-visible,
+.btn-apply:focus-visible,      .btn-filter:focus-visible,
+.btn-refresh:focus-visible {
+  outline: 2px solid var(--dc-action-blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* ── Active / pressed ─────────────────────────────────────────────────────── */
+.dc-btn--save:active:not(:disabled),   .dc-btn--update:active:not(:disabled),
+.dc-btn--submit:active:not(:disabled), .dc-btn--confirm:active:not(:disabled),
+.dc-btn--add:active:not(:disabled),    .dc-btn--search:active:not(:disabled),
+.dc-btn--apply:active:not(:disabled),  .dc-btn--filter:active:not(:disabled),
+.btn-primary:active:not(:disabled),    .btn-search:active:not(:disabled),
+.btn-add:active:not(:disabled),        .btn-save:active:not(:disabled),
+.btn-submit:active:not(:disabled),     .btn-update:active:not(:disabled),
+.btn-apply:active:not(:disabled),      .btn-filter:active:not(:disabled),
+.btn-refresh:active:not(:disabled) {
+  background: #f1f5f9 !important;
+  color: var(--dc-action-blue-dark) !important;
+  border-color: var(--dc-action-blue-dark) !important;
+  box-shadow: none !important;
+}
+
+/* ── Disabled: a muted version of the SAME button, never a ghost ──────────── */
+.dc-btn--save:disabled,   .dc-btn--update:disabled,  .dc-btn--submit:disabled,
+.dc-btn--confirm:disabled, .dc-btn--add:disabled,    .dc-btn--search:disabled,
+.dc-btn--apply:disabled,  .dc-btn--filter:disabled,
+.btn-primary:disabled,    .btn-search:disabled,      .btn-add:disabled,
+.btn-save:disabled,       .btn-submit:disabled,      .btn-update:disabled,
+.btn-apply:disabled,      .btn-filter:disabled,      .btn-refresh:disabled,
+.dc-btn--save.disabled,   .dc-btn--add.disabled,     .dc-btn--search.disabled,
+.btn-primary.disabled,    .btn-search.disabled {
+  background: #93aecf !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+/* ── Themes ───────────────────────────────────────────────────────────────── */
+/*
+ * The button keeps the same identity in every theme — the "white" half of the
+ * inversion becomes the theme's surface colour so the blue label stays
+ * readable. Warm uses its own accent so the button belongs to that palette.
+ */
+html[data-theme="dark"]     :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled),
+html[data-theme="midnight"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled),
+html[data-theme="system"]   :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled) {
+  background: #e8eef7 !important;
+  color: #17457f !important;
+  border-color: #17457f !important;
+}
+html[data-theme="dark"]     :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) *,
+html[data-theme="midnight"] :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) *,
+html[data-theme="system"]   :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) * {
+  color: #17457f !important;
+}
+
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):not(:disabled):not(.disabled) {
+  background: #9c5a28 !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
+}
+/* Warm disabled — the same muted-button idea in the warm palette. */
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):is(:disabled, .disabled) {
+  background: #c9a488 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  cursor: not-allowed !important;
+}
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled) {
+  background: #fffdf7 !important;
+  color: #9c5a28 !important;
+  border-color: #9c5a28 !important;
+}
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) * {
+  color: #9c5a28 !important;
+}
+
+/* The blanket `.page-header * { color: … }` theme rules would otherwise repaint
+   the label of a hovered button in the banner. Action buttons opt out. */
+html[data-theme="dark"]     .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) *,
+html[data-theme="midnight"] .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) *,
+html[data-theme="warm"]     .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) *,
+html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) * {
+  color: inherit !important;
+}
+
+/* ── Full-width variant keeps the shared look, just wider ─────────────────── */
+.btn-full, .dc-btn--block { width: 100% !important; }

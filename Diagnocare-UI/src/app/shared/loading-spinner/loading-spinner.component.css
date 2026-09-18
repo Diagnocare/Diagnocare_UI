@@ -43,3 +43,17 @@
   color: #333;
   font-weight: 500;
 }
+
+:host-context(html[data-theme="dark"]) .spinner-content { background-color: #1e293b; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+:host-context(html[data-theme="dark"]) .spinner-text    { color: #e2e8f0 !important; }
+
+:host-context(html[data-theme="midnight"]) .spinner-content { background-color: #0d1117; box-shadow: 0 8px 30px rgba(0,0,0,0.7); }
+:host-context(html[data-theme="midnight"]) .spinner-text    { color: #cdd6f4 !important; }
+
+:host-context(html[data-theme="warm"]) .spinner-content { background-color: #fffdf7; box-shadow: 0 8px 30px rgba(100,60,20,0.18); }
+:host-context(html[data-theme="warm"]) .spinner-text    { color: #3d2b1f !important; }
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .spinner-content { background-color: #1e293b; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+  :host-context(html[data-theme="system"]) .spinner-text    { color: #e2e8f0 !important; }
+}

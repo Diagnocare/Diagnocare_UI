@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
 import { CommonService } from 'src/app/shared/common.service';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
-import { ToastrService } from 'ngx-toastr';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confirm' | 'removed';
 
@@ -15,7 +15,7 @@ type PageState = 'loading' | 'configured' | 'setup' | 'verify' | 'disable-confir
   templateUrl: './setup-mfa.component.html',
   styleUrls: ['../account-pages.shared.css', './setup-mfa.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule, MaskedInputDirective]
 })
 export class SetupMfaComponent implements OnInit {
   /**
@@ -67,8 +67,7 @@ export class SetupMfaComponent implements OnInit {
     private headerService:  HeaderService,
     private common:         CommonService,
     private router:         Router,
-    private toastr:         ToastrService,
-    private confirmModal:   ConfirmModalService,
+    private confirmModal:   ConfirmModalService
   ) {
     const token = this.common.getAccessToken();
     if (token) {
@@ -148,7 +147,6 @@ export class SetupMfaComponent implements OnInit {
       next: (res) => {
         this.verifying = false;
         if (res.success) {
-          this.toastr.success('Authenticator app linked successfully!', 'MFA Enabled');
           this.mfaStatusChanged.emit(true);
           this.loadStatus();
         } else {
@@ -188,7 +186,6 @@ export class SetupMfaComponent implements OnInit {
       next: (res) => {
         this.disabling = false;
         if (res.success) {
-          this.toastr.success('MFA removed successfully.', 'Success');
           this.mfaStatusChanged.emit(false);
           // Server has wiped the secret, so the codes on the phone are already
           // inert. Show a dedicated screen reminding the user to also delete the

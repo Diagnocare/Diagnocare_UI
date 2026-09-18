@@ -5,19 +5,35 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="header-left">
-      <h1>Staff Management</h1>
+      <h1>
+        Staff Management
+        <!-- Head-count against the ceiling configured on the API (Staff:MaxStaffCount). -->
+        <span class="capacity-badge"
+              *ngIf="capacity"
+              [class.capacity-full]="!capacity.canAddMore"
+              title="Every role counts towards this limit, Super Admin included. Deactivated members do not.">
+          {{ capacity.used }} / {{ capacity.max }} staff
+        </span>
+      </h1>
       <p class="subtitle">Manage users, collection boys and doctors</p>
     </div>
     <div class="header-actions">
-      <!-- Show Inactive toggle -->
+      <!-- Active / Inactive switch. The two lists are shown separately, never merged —
+           see StaffManagementComponent.viewMode. -->
       <button class="btn btn-outline-secondary"
-              [class.active]="showInactive"
-              (click)="toggleInactive()"
-              title="Toggle inactive staff visibility">
-        <i class="fa" [ngClass]="showInactive ? 'fa-eye-slash' : 'fa-eye'"></i>
-        {{ showInactive ? 'Hide Inactive' : 'Show Inactive' }}
+              [class.active]="showingInactive"
+              (click)="toggleView()"
+              [title]="showingInactive
+                        ? 'Back to the active staff list'
+                        : 'Show deactivated staff on their own — the active list is hidden while this is on'">
+        <i class="fa" [ngClass]="showingInactive ? 'fa-users' : 'fa-user-slash'"></i>
+        {{ showingInactive ? 'Show Active' : 'Show Inactive' }}
+        <span class="toggle-count" *ngIf="!showingInactive && inactiveCount">{{ inactiveCount }}</span>
       </button>
-      <button class="btn btn-primary" (click)="add(activeSection.type)">
+      <button class="btn btn-primary"
+              [disabled]="!canAddStaff"
+              [title]="addDisabledReason"
+              (click)="add(activeSection.type)">
         <i class="fa fa-plus"></i> Add {{ activeSection.title | slice:0:-1 }}
       </button>
     </div>
@@ -37,6 +53,13 @@
       </button>
     </div>
 
+    <!-- Says plainly that the active list is hidden, so an empty or short table in
+         this mode is never mistaken for missing staff. -->
+    <div class="view-notice" *ngIf="showingInactive">
+      <i class="fa fa-user-slash"></i>
+      <span>Showing deactivated {{ activeSection.title.toLowerCase() }} only — active members are hidden.</span>
+    </div>
+
     <!-- Tab Content -->
     <div class="card table-container">
 
@@ -54,7 +77,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let u of visibleUsers" [class.row-inactive]="!isMemberActive(u)">
+            <tr *ngFor="let u of visibleUsers">
               <td>
                 {{ u.first_Name }} {{ u.last_Name }}
                 <span class="badge-inactive" *ngIf="!isMemberActive(u)">Inactive</span>
@@ -65,15 +88,23 @@
               <td>{{ u.contactPhone }}</td>
               <td class="action-buttons">
                 <ng-container *ngIf="!isProtectedUser(u)">
-                  <app-action-btn type="edit"   title="Edit User"   (clicked)="editUser(u.id)"></app-action-btn>
-                  <app-action-btn type="delete" title="Delete User" (clicked)="deleteUser(u.id)"></app-action-btn>
+                  <ng-container *ngIf="isMemberActive(u); else inactiveUserActions">
+                    <app-action-btn type="edit"   title="Edit User"       (clicked)="editUser(u.id)"></app-action-btn>
+                    <app-action-btn type="delete" title="Deactivate User" (clicked)="deactivateMember('user', u.id)"></app-action-btn>
+                  </ng-container>
+                  <ng-template #inactiveUserActions>
+                    <app-action-btn type="reactivate"  title="Reactivate User" (clicked)="reactivateMember('user', u.id)"></app-action-btn>
+                  </ng-template>
                 </ng-container>
               </td>
             </tr>
           </tbody>
         </table>
         <ng-template #emptyUsers>
-          <div class="no-data"><i class="fa fa-users"></i><p>No users registered yet.</p></div>
+          <div class="no-data">
+            <i class="fa fa-users"></i>
+            <p>{{ showingInactive ? 'No deactivated users.' : 'No users registered yet.' }}</p>
+          </div>
         </ng-template>
       </ng-container>
 
@@ -89,7 +120,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let cb of visibleCollectionBoys" [class.row-inactive]="!isMemberActive(cb)">
+            <tr *ngFor="let cb of visibleCollectionBoys">
               <td>
                 {{ cb.first_Name }} {{ cb.last_Name }}
                 <span class="badge-inactive" *ngIf="!isMemberActive(cb)">Inactive</span>
@@ -97,14 +128,22 @@
               <td>{{ cb.qualification || '—' }}</td>
               <td>{{ cb.position || '—' }}</td>
               <td class="action-buttons">
-                <app-action-btn type="edit"   title="Edit Collection Boy"   (clicked)="editStaff('collection-boy', cb.id)"></app-action-btn>
-                <app-action-btn type="delete" title="Delete Collection Boy" (clicked)="deleteStaff('collection-boy', cb.id)"></app-action-btn>
+                <ng-container *ngIf="isMemberActive(cb); else inactiveCbActions">
+                  <app-action-btn type="edit"   title="Edit Collection Boy"       (clicked)="editStaff('collection-boy', cb.id)"></app-action-btn>
+                  <app-action-btn type="delete" title="Deactivate Collection Boy" (clicked)="deactivateMember('collection-boy', cb.id)"></app-action-btn>
+                </ng-container>
+                <ng-template #inactiveCbActions>
+                  <app-action-btn type="reactivate"  title="Reactivate Collection Boy" (clicked)="reactivateMember('collection-boy', cb.id)"></app-action-btn>
+                </ng-template>
               </td>
             </tr>
           </tbody>
         </table>
         <ng-template #emptyCb>
-          <div class="no-data"><i class="fa fa-motorcycle"></i><p>No collection boys registered yet.</p></div>
+          <div class="no-data">
+            <i class="fa fa-motorcycle"></i>
+            <p>{{ showingInactive ? 'No deactivated collection boys.' : 'No collection boys registered yet.' }}</p>
+          </div>
         </ng-template>
       </ng-container>
 
@@ -121,7 +160,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let doc of visibleDoctors" [class.row-inactive]="!isMemberActive(doc)">
+            <tr *ngFor="let doc of visibleDoctors">
               <td>
                 {{ doc.first_Name }} {{ doc.last_Name }}
                 <span class="badge-inactive" *ngIf="!isMemberActive(doc)">Inactive</span>
@@ -139,14 +178,22 @@
                 </ng-template>
               </td>
               <td class="action-buttons">
-                <app-action-btn type="edit"   title="Edit Doctor"   (clicked)="editStaff('doctor', doc.id)"></app-action-btn>
-                <app-action-btn type="delete" title="Delete Doctor" (clicked)="deleteStaff('doctor', doc.id)"></app-action-btn>
+                <ng-container *ngIf="isMemberActive(doc); else inactiveDocActions">
+                  <app-action-btn type="edit"   title="Edit Doctor"       (clicked)="editStaff('doctor', doc.id)"></app-action-btn>
+                  <app-action-btn type="delete" title="Deactivate Doctor" (clicked)="deactivateMember('doctor', doc.id)"></app-action-btn>
+                </ng-container>
+                <ng-template #inactiveDocActions>
+                  <app-action-btn type="reactivate"  title="Reactivate Doctor" (clicked)="reactivateMember('doctor', doc.id)"></app-action-btn>
+                </ng-template>
               </td>
             </tr>
           </tbody>
         </table>
         <ng-template #emptyDoc>
-          <div class="no-data"><i class="fa fa-user-md"></i><p>No doctors registered yet.</p></div>
+          <div class="no-data">
+            <i class="fa fa-user-md"></i>
+            <p>{{ showingInactive ? 'No deactivated doctors.' : 'No doctors registered yet.' }}</p>
+          </div>
         </ng-template>
       </ng-container>
 

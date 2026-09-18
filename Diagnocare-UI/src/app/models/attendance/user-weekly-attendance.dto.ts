@@ -10,7 +10,9 @@
 export interface DayAttendanceDTO {
   attendanceId: number;
   /**
-   * Numeric string: "1"=Present, "2"=Absent, "3"=HalfDay, "4"=SecondHalf.
+   * Numeric string: "1"=Present, "2"=Absent, "3"=HalfDay, "6"=WeekOff
+   * (matches Diagnocare_API/Enums/AttendanceStatus.cs). "4" (Leave) and "5"
+   * (Holiday) were retired and only ever appear on legacy rows.
    * Use mapBackendStatus(dayRec.status) to get the frontend AttendanceStatus.
    */
   status:      string;
@@ -19,6 +21,25 @@ export interface DayAttendanceDTO {
   checkIn:     string | null;
   checkOut:    string | null;
   remarks:     string | null;
+}
+
+/**
+ * A correction request for one day that is still awaiting a decision.
+ *
+ * Sits beside `days` rather than inside a day cell because a request can exist for
+ * a day that has no attendance record at all — those cells come back null, and a
+ * null cell can't carry a flag.
+ */
+export interface OpenAttendanceRequestDTO {
+  requestId: number;
+  /** 1 = Pending, 5 = WithdrawalRequested. May arrive as a numeric string. */
+  requestStatus: number | string;
+  /** Display text: 'Pending' / 'Withdrawal Requested'. */
+  requestStatusLabel: string;
+  /** 1 = Present, 2 = Absent, 3 = HalfDay. May arrive as a numeric string. */
+  requestedStatus: number | string;
+  /** Display text: 'Present' / 'Absent' / 'Half Day'. */
+  requestedStatusLabel: string;
 }
 
 /** One user row returned by GET GetWeekly. */
@@ -33,6 +54,12 @@ export interface UserWeeklyRowDTO {
    * Value is null when no attendance record exists for that day.
    */
   days: { [date: string]: DayAttendanceDTO | null };
+  /**
+   * Days that already have a correction request awaiting a decision, keyed by ISO
+   * date string 'YYYY-MM-DD'. A date absent from this map has no open request.
+   * Older API builds omit the field entirely — treat undefined as "none".
+   */
+  openRequests?: { [date: string]: OpenAttendanceRequestDTO };
 }
 
 /** Top-level response from GET GetWeekly?startDate=YYYY-MM-DD */
