@@ -383,6 +383,50 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     return patient.patient_Id;
   }
 
+  /** Patient ID most recently copied — drives the brief "copied" tick on that row. */
+  copiedPatientId: string | null = null;
+  private copyResetTimer?: ReturnType<typeof setTimeout>;
+
+  /** Copies a patient's ID to the clipboard so staff can paste it into search or other screens. */
+  copyPatientId(patientId: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!patientId) return;
+
+    const onCopied = () => {
+      this.copiedPatientId = patientId;
+      this.toastr.success(`Patient ID ${patientId} copied`, '', { timeOut: 1500 });
+      clearTimeout(this.copyResetTimer);
+      this.copyResetTimer = setTimeout(() => {
+        this.copiedPatientId = null;
+        this.cdr.markForCheck();
+      }, 1500);
+      this.cdr.markForCheck();
+    };
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(patientId).then(onCopied, () => this.fallbackCopy(patientId) ? onCopied() : this.toastr.error('Could not copy Patient ID', 'Error'));
+    } else if (this.fallbackCopy(patientId)) {
+      onCopied();
+    } else {
+      this.toastr.error('Could not copy Patient ID', 'Error');
+    }
+  }
+
+  /** Clipboard fallback for non-secure (http) origins where navigator.clipboard is unavailable. */
+  private fallbackCopy(text: string): boolean {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
   getVisiblePages(): number[] {
     const pages: number[] = [];
     const maxVisible = 5;

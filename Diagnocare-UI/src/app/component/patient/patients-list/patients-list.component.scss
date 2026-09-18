@@ -630,36 +630,6 @@ input[type="radio"] {
     justify-content: center;
   }
   
-  /* Hide some columns on mobile */
-  .patients-table th:nth-child(5),
-  .patients-table td:nth-child(5),
-  .patients-table th:nth-child(6),
-  .patients-table td:nth-child(6),
-  .patients-table th:nth-child(8),
-  .patients-table td:nth-child(8),
-  .patients-table th:nth-child(9),
-  .patients-table td:nth-child(9) {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .patients-table th:nth-child(11),
-  .patients-table td:nth-child(11),
-  .patients-table th:nth-child(12),
-  .patients-table td:nth-child(12) {
-    display: none;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    gap: 2px;
-  }
-  
-  .btn-action {
-    width: 40px;
-    height: 40px;
-  }
 }
 
 /* Print Styles */
@@ -912,4 +882,156 @@ input[type="radio"] {
     .urgent-yes       { background: #450a0a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
     .urgent-no        { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
   }
+}
+
+
+/* ── Patient ID column ───────────────────────────────────────────── */
+.patients-table td.col-patient-id {
+  white-space: nowrap;
+}
+
+.patient-id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 3px 4px 3px 9px;
+  border-radius: 6px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.patient-id-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+  user-select: all;
+}
+
+.patient-id-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6366f1;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover { background: #e0e7ff; color: #3730a3; }
+  &:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
+  &.copied { color: #16a34a; }
+}
+
+/* ── Tablet: tighter table, horizontal scroll kept as safety net ─── */
+@media (max-width: 1024px) {
+  .patients-table { min-width: 860px; }
+  .patient-id-text { max-width: 110px; }
+}
+
+/* ── Phone: each patient row becomes a stacked card ─────────────── */
+@media (max-width: 768px) {
+  .table-container {
+    background: transparent !important;
+    box-shadow: none;
+    border-left: none !important;
+    overflow: visible;
+  }
+
+  .patients-table {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .patients-table thead {
+    display: none;
+  }
+
+  .patients-table,
+  .patients-table tbody,
+  .patients-table tr,
+  .patients-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .patients-table tr {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .patients-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0 !important;
+    text-align: right;
+    border-bottom: 1px dashed #e5e7eb;
+
+    &::before {
+      content: attr(data-label);
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #64748b;
+      text-align: left;
+    }
+
+    &:last-child { border-bottom: none; }
+  }
+
+  .patients-table td .patient-info { text-align: right; }
+  .patient-id-text { max-width: 55vw; }
+
+  .patients-table td.col-actions {
+    padding-top: 10px !important;
+
+    .action-buttons {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+  }
+
+  .pagination,
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .pagination-info {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .patients-table tr { padding: 8px 10px; }
+  .patients-table td { gap: 8px; }
+  .patients-table td::before { font-size: 10px; }
+}
+
+@media print {
+  .patient-id-copy { display: none !important; }
+  .patient-id-chip { background: none; border: none; padding: 0; }
 }
