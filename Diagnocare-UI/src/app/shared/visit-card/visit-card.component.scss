@@ -1,125 +1,262 @@
 // ══════════════════════════════════════════════════════════════════════════════
 //  Shared visit card
+//  Row layout when the card is wide (Visit Schedule list), stacked layout when
+//  it is narrow (My Visits two-column grid, phones) — via a container query.
 // ══════════════════════════════════════════════════════════════════════════════
+@use '../visit-tokens' as t;
+@include t.visit-tokens;
 
-:host { display: block; }
-
-.vc-type-badge {
-  display: inline-block;
-  font-size: .65rem;
-  font-weight: 700;
-  background: #e0f2fe;
-  color: #0369a1;
-  border-radius: 10px;
-  padding: 1px 7px;
-  margin-left: .4rem;
-  vertical-align: middle;
+:host {
+  display: block;
+  container-type: inline-size;
+  container-name: vcard;
 }
 
-.btn-outline {
-  background: #fff;
-  color: #0891b2;
-  border: 1.5px solid #0891b2;
-  &:hover { background: #e0f2fe; }
-}
-.btn-info {
-  background: #ede9fe;
-  color: #5b21b6;
-  border: 1.5px solid #ddd6fe;
-  &:hover { background: #ddd6fe; }
-}
-.btn-xs { padding: .22rem .55rem; font-size: .72rem; }
+.vc {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "time    side"
+    "body    body"
+    "actions actions";
+  gap: .75rem 1rem;
+  padding: 1rem 1.1rem 1rem 1.25rem;
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius-sm);
+  transition: box-shadow .18s, border-color .18s;
 
-.visit-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: .7rem .85rem;
-  transition: box-shadow .15s;
-  &:hover { box-shadow: 0 2px 10px rgba(30,91,168,.09); }
+  // status accent
+  &::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--vs-amber-dot);
+  }
+  &--done::before      { background: var(--vs-green-dot); }
+  &--cancelled::before { background: var(--vs-text-3); }
+  &--cancelled         { opacity: .7; }
+
+  &:hover { border-color: var(--vs-border-strong); box-shadow: var(--vs-shadow-hover); }
 }
-.vc-header {
+
+// ── Time ──────────────────────────────────────────────────────────────────────
+.vc-time {
+  grid-area: time;
+  display: flex;
+  align-items: baseline;
+  gap: .25rem;
+  color: var(--vs-text);
+  font-variant-numeric: tabular-nums;
+}
+.vc-time-main     { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
+.vc-time-meridiem { font-size: .7rem; font-weight: 600; color: var(--vs-text-3); text-transform: uppercase; }
+
+// ── Body ──────────────────────────────────────────────────────────────────────
+.vc-body { grid-area: body; min-width: 0; }
+
+.vc-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: .35rem;
+  gap: .5rem;
+  min-width: 0;
 }
-.vc-time {
-  font-size: .82rem;
-  font-weight: 700;
-  color: #0891b2;
-  i { margin-right: 4px; }
-}
-.vc-status {
-  font-size: .68rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 12px;
-  background: #fef3c7;
-  color: #92400e;
-  white-space: nowrap;
 
-  &--done      { background: #d1fae5; color: #065f46; }
-  &--cancelled { background: #fee2e2; color: #991b1b; }
-}
-.vc-contact { margin-bottom: .3rem; }
 .vc-name {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 650;
+  color: var(--vs-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-type {
+  flex-shrink: 0;
+  padding: .1rem .5rem;
+  border-radius: 6px;
+  font-size: .66rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  background: var(--vs-surface-2);
+  color: var(--vs-text-2);
+  border: 1px solid var(--vs-border);
+}
+
+.vc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem 1.1rem;
+  margin-top: .5rem;
+  font-size: .78rem;
+  color: var(--vs-text-2);
+}
+
+.vc-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-width: 0;
+  i { font-size: .7rem; color: var(--vs-text-3); }
+}
+
+.vc-member { color: var(--vs-text); font-weight: 500; }
+
+.vc-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: .6rem;
   font-weight: 700;
-  font-size: .82rem;
-  color: #1e293b;
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: .02em;
+  background: var(--vs-primary-soft);
+  color: var(--vs-primary-text);
 }
-.vc-meta, .vc-member, .vc-purpose, .vc-notes {
-  font-size: .74rem;
-  color: #64748b;
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  i { width: 13px; margin-right: 3px; }
+
+.vc-link {
+  color: var(--vs-text-2);
+  text-decoration: none;
+  &:hover { color: var(--vs-primary-text); i { color: var(--vs-primary-text); } }
 }
-.vc-meta a { color: #0891b2; text-decoration: none; &:hover { text-decoration: underline; } }
-.vc-map-link { margin-left: .35rem; color: #0891b2; }
-.vc-member { font-size: .76rem; color: #374151; margin-bottom: .3rem; }
-.vc-purpose { font-weight: 500; }
+
+.vc-address {
+  max-width: 100%;
+  span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.vc-note {
+  margin: .55rem 0 0;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: var(--vs-text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.vc-purpose { color: var(--vs-text); font-weight: 500; }
+.vc-sep     { margin: 0 .35rem; color: var(--vs-text-3); }
+
+// ── Side: status + actions ───────────────────────────────────────────────────
+// Narrow (stacked) layout: status top-right, actions in a footer row.
+.vc-side { display: contents; }
+
+.vc-status {
+  grid-area: side;
+  justify-self: end;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--vs-amber-soft);
+  color: var(--vs-amber);
+
+  &--done      { background: var(--vs-green-soft); color: var(--vs-green); }
+  &--cancelled { background: var(--vs-surface-2);  color: var(--vs-text-3); }
+}
+.vc-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 .vc-actions {
+  grid-area: actions;
   display: flex;
-  gap: .35rem;
-  margin-top: .45rem;
   flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--vs-border);
+  .vc-btn--danger { margin-left: auto; }
 }
 
-// ── Theme overrides ───────────────────────────────────────────────────────────
-:host-context(html[data-theme="dark"]) {
-  .visit-card      { border-color: #334155 !important;
-                     &:hover { box-shadow: 0 2px 10px rgba(0,0,0,.35) !important; } }
-  .vc-name         { color: #e2e8f0 !important; }
-  .vc-meta, .vc-member, .vc-notes { color: #64748b !important; }
-  .vc-member       { color: #94a3b8 !important; }
-  .btn-outline     { background: #0f172a !important; border-color: #0891b2 !important; color: #38bdf8 !important;
-                     &:hover { background: #082f49 !important; } }
+.vc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  height: 32px;
+  padding: 0 .8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: .76rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  i { font-size: .72rem; }
+
+  &:focus-visible { outline: 2px solid var(--vs-primary); outline-offset: 2px; }
+
+  &--ghost {
+    background: var(--vs-surface);
+    border-color: var(--vs-border);
+    color: var(--vs-text-2);
+    &:hover { background: var(--vs-surface-hover); border-color: var(--vs-border-strong); color: var(--vs-text); }
+  }
+
+  &--primary {
+    background: var(--vs-primary);
+    color: #fff;
+    &:hover { background: var(--vs-primary-hover); }
+  }
+
+  &--icon { width: 32px; padding: 0; }
+
+  &--danger {
+    background: transparent;
+    color: var(--vs-text-3);
+    &:hover { background: var(--vs-red-soft); color: var(--vs-red); }
+  }
 }
-:host-context(html[data-theme="midnight"]) {
-  .visit-card      { border-color: #21262d !important; }
-  .vc-name         { color: #cdd6f4 !important; }
-  .vc-meta, .vc-member, .vc-notes { color: #6e7681 !important; }
-  .vc-member       { color: #a6adc8 !important; }
-  .btn-outline     { background: #020408 !important; border-color: #0891b2 !important; color: #38bdf8 !important;
-                     &:hover { background: #041f30 !important; } }
-}
-:host-context(html[data-theme="warm"]) {
-  .visit-card      { border-color: #ddc9a8 !important; }
-  .vc-name         { color: #3d2b1f !important; }
-  .vc-meta, .vc-member, .vc-notes { color: #9e8272 !important; }
-  .btn-outline     { background: #fffdf7 !important; border-color: #c47028 !important; color: #9c5a28 !important;
-                     &:hover { background: #fdf3e3 !important; } }
-}
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .visit-card    { border-color: #334155 !important; }
-    .vc-name       { color: #e2e8f0 !important; }
+
+// ── Wide card (row): time | details | status + actions ───────────────────────
+@container vcard (min-width: 620px) {
+  .vc {
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    grid-template-areas: "time body side";
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.1rem 1.25rem 1.1rem 1.4rem;
+  }
+
+  .vc-time {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    align-self: stretch;
+    justify-content: center;
+    padding-right: 1.25rem;
+    border-right: 1px solid var(--vs-border);
+  }
+  .vc-time-main { font-size: 1.2rem; }
+
+  .vc-side {
+    grid-area: side;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .65rem;
+  }
+  .vc-status  { grid-area: auto; }
+  .vc-actions {
+    grid-area: auto;
+    padding-top: 0;
+    border-top: 0;
+    flex-wrap: nowrap;
+    .vc-btn--danger { margin-left: 0; }
   }
 }

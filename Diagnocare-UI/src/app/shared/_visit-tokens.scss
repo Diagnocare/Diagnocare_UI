@@ -1,0 +1,120 @@
+// ══════════════════════════════════════════════════════════════════════════════
+//  Visit module design tokens
+//  One palette for the Visit Schedule page, the shared calendar and the shared
+//  visit card. Each component does `@include visit-tokens;` at its root, so
+//  every theme is handled by swapping variables — no per-rule !important.
+// ══════════════════════════════════════════════════════════════════════════════
+
+@mixin visit-dark-tokens {
+  --vs-surface:        #1e293b;
+  --vs-surface-2:      #0f172a;
+  --vs-surface-hover:  #273548;
+  --vs-border:         #334155;
+  --vs-border-strong:  #475569;
+  --vs-text:           #e2e8f0;
+  --vs-text-2:         #94a3b8;
+  --vs-text-3:         #64748b;
+  --vs-primary:        #2563eb;
+  --vs-primary-hover:  #1d4ed8;
+  --vs-primary-soft:   #172b4d;
+  --vs-primary-text:   #93c5fd;
+  --vs-amber:          #fcd34d;
+  --vs-amber-soft:     #3b2f12;
+  --vs-green:          #6ee7b7;
+  --vs-green-soft:     #11332a;
+  --vs-red:            #fca5a5;
+  --vs-red-soft:       #331c24;
+  --vs-red-border:     #5b2530;
+  --vs-violet:         #c4b5fd;
+  --vs-violet-soft:    #2a2150;
+  --vs-shadow:         0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .3);
+  --vs-shadow-hover:   0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .4);
+}
+
+@mixin visit-tokens {
+  :host {
+    --vs-surface:        #ffffff;
+    --vs-surface-2:      #f8fafc;
+    --vs-surface-hover:  #f1f5f9;
+    --vs-border:         #e7ebf0;
+    --vs-border-strong:  #d6dce5;
+
+    --vs-text:           #0f172a;
+    --vs-text-2:         #475569;
+    --vs-text-3:         #94a3b8;
+
+    --vs-primary:        #1e5ba8;
+    --vs-primary-hover:  #194d8f;
+    --vs-primary-soft:   #eaf1fb;
+    --vs-primary-text:   #1e5ba8;
+
+    --vs-amber:          #b45309;
+    --vs-amber-soft:     #fef3c7;
+    --vs-amber-dot:      #f59e0b;
+
+    --vs-green:          #047857;
+    --vs-green-soft:     #dcfce7;
+    --vs-green-dot:      #10b981;
+
+    --vs-red:            #b91c1c;
+    --vs-red-soft:       #fef2f2;
+    --vs-red-border:     #fecaca;
+    --vs-red-dot:        #ef4444;
+
+    --vs-violet:         #6d28d9;
+    --vs-violet-soft:    #f3effe;
+    --vs-violet-dot:     #8b5cf6;
+
+    --vs-radius:         14px;
+    --vs-radius-sm:      10px;
+    --vs-shadow:         0 1px 2px rgba(15, 23, 42, .04), 0 10px 30px rgba(15, 23, 42, .07);
+    --vs-shadow-hover:   0 2px 4px rgba(15, 23, 42, .05), 0 12px 28px rgba(15, 23, 42, .09);
+  }
+
+  :host-context(html[data-theme="dark"]) { @include visit-dark-tokens; }
+
+  @media (prefers-color-scheme: dark) {
+    :host-context(html[data-theme="system"]) { @include visit-dark-tokens; }
+  }
+
+  :host-context(html[data-theme="midnight"]) {
+    --vs-surface:        #0d1117;
+    --vs-surface-2:      #010409;
+    --vs-surface-hover:  #161b22;
+    --vs-border:         #21262d;
+    --vs-border-strong:  #30363d;
+    --vs-text:           #cdd6f4;
+    --vs-text-2:         #a6adc8;
+    --vs-text-3:         #6e7681;
+    --vs-primary:        #1f6feb;
+    --vs-primary-hover:  #388bfd;
+    --vs-primary-soft:   #0c2d4a;
+    --vs-primary-text:   #79b8ff;
+    --vs-amber:          #f9c97a;
+    --vs-amber-soft:     #3a2a0d;
+    --vs-green:          #7ee2a8;
+    --vs-green-soft:     #0f2e1f;
+    --vs-red:            #ff9b9b;
+    --vs-red-soft:       #2d1215;
+    --vs-red-border:     #5c1f24;
+    --vs-violet:         #cba6f7;
+    --vs-violet-soft:    #231a38;
+    --vs-shadow:         0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px rgba(0, 0, 0, .35);
+    --vs-shadow-hover:   0 2px 4px rgba(0, 0, 0, .5), 0 12px 28px rgba(0, 0, 0, .45);
+  }
+
+  :host-context(html[data-theme="warm"]) {
+    --vs-surface:        #fffdf7;
+    --vs-surface-2:      #fef9f0;
+    --vs-surface-hover:  #fbf1e1;
+    --vs-border:         #eadcc6;
+    --vs-border-strong:  #ddc9a8;
+    --vs-text:           #3d2b1f;
+    --vs-text-2:         #7a5c4e;
+    --vs-text-3:         #a88f80;
+    --vs-primary:        #b0602a;
+    --vs-primary-hover:  #974f20;
+    --vs-primary-soft:   #fcecd9;
+    --vs-primary-text:   #9c5a28;
+  }
+}
