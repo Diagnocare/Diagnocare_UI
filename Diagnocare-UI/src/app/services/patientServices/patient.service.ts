@@ -8,8 +8,8 @@ import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { KeyValuePair } from 'src/app/models/common/keyValuePair';
 import { BookingResultDto } from '../../models/patient/booking-result.dto';
-import { PagedRequest, PagedResponse } from 'src/app/models/common/page-sort-request';
-import { PatientSearchFilter } from 'src/app/models/patient/patient-search-filter';
+import { PagedRequest, PagedResponse } from '../../models/common/page-sort-request';
+import { PatientSearchFilter } from '../../models/patient/patient-search-filter';
 
 @Injectable({
   providedIn: 'root'
