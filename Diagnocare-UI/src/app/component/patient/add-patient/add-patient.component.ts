@@ -238,8 +238,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.countryCodes = [{ code: DEFAULT_DIALING_CODE, label: `India (${DEFAULT_DIALING_CODE})` }];
       this.patientForm.patchValue({ country_Code: DEFAULT_DIALING_CODE });
 
-      // Load collection boys for "Collected By" dropdown
-      this._memberService.getAll(Role.Collection_Boy.id)
+      // Load collection boys for "Collected By" dropdown.
+      // Uses the LabOperations-scoped lookup, not api/User (Admin-only), so a
+      // Receptionist / Lab Assistant isn't 403'd off this page.
+      this._memberService.getCollectionBoysLookup()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
