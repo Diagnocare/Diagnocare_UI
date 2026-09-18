@@ -101,7 +101,7 @@
               <label class="form-label required">Group Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
                      [(ngModel)]="formData.group.name" #groupName="ngModel" required>
-              <div class="field-error" *ngIf="groupName.invalid && (groupName.touched || groupName.dirty)">
+              <div class="field-error" *ngIf="groupName.invalid && groupName.touched">
                 <i class="fa fa-exclamation-circle"></i> Group name is required
               </div>
             </div>
@@ -136,7 +136,7 @@
               <label class="form-label required">SubGroup Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
                      [(ngModel)]="formData.subGroup.name" #subGroupName="ngModel" required>
-              <div class="field-error" *ngIf="subGroupName.invalid && (subGroupName.touched || subGroupName.dirty)">
+              <div class="field-error" *ngIf="subGroupName.invalid && subGroupName.touched">
                 <i class="fa fa-exclamation-circle"></i> SubGroup name is required
               </div>
             </div>
@@ -171,7 +171,7 @@
               <label class="form-label required">Test Name</label>
               <input type="text" class="form-control" placeholder="e.g., TLC DLC"
                      [(ngModel)]="formData.test.testName" #testName="ngModel" required>
-              <div class="field-error" *ngIf="testName.invalid && (testName.touched || testName.dirty)">
+              <div class="field-error" *ngIf="testName.invalid && testName.touched">
                 <i class="fa fa-exclamation-circle"></i> Test name is required
               </div>
             </div>
@@ -187,6 +187,42 @@
                 <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
               </div>
             </div>
+
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="formData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(formData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="formData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
 
           </div>
         </ng-container>
@@ -266,6 +302,42 @@
               </div>
             </div>
 
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="formData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(formData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="formData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
+
           </div>
         </ng-container>
 
@@ -323,6 +395,42 @@
                 <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
               </div>
             </div>
+
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="formData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(formData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="formData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
 
           </div>
         </ng-container>
@@ -431,13 +539,18 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
                 <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                        [disabled]="!updatedFormData.group.testGroupId || editSubGroupsLoading"
                         (change)="onEditSubGroupSelect()">
-                  <option value="" disabled selected>Choose subgroup…</option>
-                  <ng-container *ngFor="let s of subGroups">
-                    <option *ngIf="s.parentGroupId === updatedFormData.group.testGroupId" [value]="s.testGroupId">
-                      {{ s.testGroupId }} — {{ s.name }}
-                    </option>
-                  </ng-container>
+                  <option value="" disabled selected>
+                    {{ !updatedFormData.group.testGroupId ? 'Select a group first…'
+                       : editSubGroupsLoading ? 'Loading subgroups…'
+                       : 'Choose subgroup…' }}
+                  </option>
+                  <option *ngFor="let s of editSubGroups" [value]="s.testGroupId">
+                    {{ s.testGroupId }} — {{ s.name }}
+                  </option>
+                  <option *ngIf="updatedFormData.group.testGroupId && !editSubGroupsLoading && editSubGroups.length === 0"
+                          value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
             </div>
@@ -490,13 +603,18 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
                 <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                        [disabled]="!updatedFormData.group.testGroupId || editSubGroupsLoading"
                         (change)="onEditSubGroupChangedForTest()">
-                  <option value="" disabled selected>Choose subgroup…</option>
-                  <ng-container *ngFor="let s of subGroups">
-                    <option *ngIf="s.parentGroupId === updatedFormData.group.testGroupId" [value]="s.testGroupId">
-                      {{ s.testGroupId }} — {{ s.name }}
-                    </option>
-                  </ng-container>
+                  <option value="" disabled selected>
+                    {{ !updatedFormData.group.testGroupId ? 'Select a group first…'
+                       : editSubGroupsLoading ? 'Loading subgroups…'
+                       : 'Choose subgroup…' }}
+                  </option>
+                  <option *ngFor="let s of editSubGroups" [value]="s.testGroupId">
+                    {{ s.testGroupId }} — {{ s.name }}
+                  </option>
+                  <option *ngIf="updatedFormData.group.testGroupId && !editSubGroupsLoading && editSubGroups.length === 0"
+                          value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
             </div>
@@ -504,14 +622,17 @@
             <div class="form-group" *ngIf="updatedFormData.subGroup.testGroupId">
               <label class="form-label required">Test</label>
               <select class="form-control" [(ngModel)]="updatedFormData.test.testCode"
+                      [disabled]="editTestsLoading"
                       (change)="onEditTestSelect()">
-                <option value="" disabled selected>Choose a test…</option>
-                <ng-container *ngFor="let t of tests">
-                  <option *ngIf="t.subGroupId === updatedFormData.subGroup.testGroupId" [value]="t.testCode">
-                    {{ t.testCode }} — {{ t.testName }}
-                  </option>
-                </ng-container>
-                <option *ngIf="tests.length == 0" value="" disabled>No tests in this subgroup</option>
+                <option value="" disabled selected>
+                  {{ editTestsLoading ? 'Loading tests…' : 'Choose a test…' }}
+                </option>
+                <option *ngFor="let t of editTests" [value]="t.testCode">
+                  {{ t.testCode }} — {{ t.testName }}
+                </option>
+                <option *ngIf="!editTestsLoading && editTests.length === 0" value="" disabled>
+                  No tests in this subgroup
+                </option>
               </select>
             </div>
 
@@ -539,6 +660,42 @@
                   <i class="fa fa-exclamation-circle"></i> Price must be greater than 0
                 </div>
               </div>
+
+            <!-- Picked from the seeded catalogue where possible, so the same technique is
+                 spelt the same on every test and the lab can ask which of its tests are run
+                 by PCR. "Other" is the escape hatch, not the default. -->
+            <div class="form-group">
+              <label class="form-label">Method / Technique</label>
+              <select class="form-control"
+                      [(ngModel)]="updatedFormData.test.techniqueId"
+                      (ngModelChange)="onTechniqueChange(updatedFormData.test)">
+                <option [ngValue]="null">Not recorded</option>
+                <optgroup *ngFor="let g of techniqueGroups" [label]="g.category">
+                  <option *ngFor="let t of g.techniques" [ngValue]="t.techniqueId"
+                          [title]="t.description || t.name">
+                    {{ t.name }}
+                  </option>
+                </optgroup>
+                <option [ngValue]="OTHER_TECHNIQUE">Other (specify)…</option>
+              </select>
+              <div class="field-hint">
+                Optional. Shown with the test's results and on its details.
+              </div>
+            </div>
+
+            <!-- Shown for "Other", and for a test that already carried free text from before
+                 the catalogue existed — otherwise an old test's method would vanish from the
+                 form the first time somebody opened it. -->
+            <div class="form-group" *ngIf="showsCustomMethod(updatedFormData.test)">
+              <label class="form-label">Technique name</label>
+              <input type="text" class="form-control" maxlength="200"
+                     placeholder="e.g., GOD-POD, Jaffe kinetic"
+                     [(ngModel)]="updatedFormData.test.method">
+              <div class="field-hint">
+                Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
 
             </ng-container>
           </div>

@@ -1,0 +1,54 @@
+<div class="acct-page">
+
+  <!-- ── Expired alert banner ─────────────────────────────────────────────── -->
+  <div class="dc-pin-expired-alert" *ngIf="isExpiredFlow">
+    <i class="fa fa-exclamation-triangle"></i>
+    <div>
+      <strong>Your PIN has expired.</strong>
+      All modules are locked until you set a new PIN. Please update your PIN below to continue.
+    </div>
+  </div>
+
+  <!-- ── Page header ──────────────────────────────────────────────────────── -->
+  <div class="acct-header">
+    <h2 class="acct-title"><i class="fa fa-key"></i> Change PIN</h2>
+    <p class="acct-subtitle">
+      {{ isExpiredFlow
+          ? 'Your ' + expiryDays + '-day PIN has expired. Set a new PIN to regain access.'
+          : 'Update your session PIN. PINs expire every ' + expiryDays + ' days.' }}
+    </p>
+  </div>
+
+  <!-- ── Card ─────────────────────────────────────────────────────────────── -->
+  <div class="acct-card">
+    <div class="acct-card-header">
+      <i class="fa fa-lock"></i>
+      <div>
+        <h4 class="acct-card-title">Set New PIN</h4>
+        <p class="acct-card-sub">
+          PIN must be 4–6 digits and cannot match your last {{ historySize }} PINs.
+        </p>
+      </div>
+    </div>
+
+    <div class="acct-card-body">
+
+      <!-- Success message -->
+      <div class="msg msg-success" *ngIf="pinSuccess">
+        <i class="fa fa-check-circle"></i> {{ pinSuccess }}
+        <span class="msg-sub">Redirecting…</span>
+      </div>
+
+      <!-- Shared change-PIN form -->
+      <app-pin-change-form
+        *ngIf="!pinSuccess"
+        [userName]="userName"
+        [showCancel]="!isExpiredFlow"
+        (changed)="onChanged()"
+        (cancelled)="onCancelled()">
+      </app-pin-change-form>
+
+    </div>
+  </div>
+
+</div>

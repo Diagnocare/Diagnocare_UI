@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { StepperComponent } from '../stepper/stepper.component';
@@ -7,9 +7,15 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
 import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
 import { CommonService } from 'src/app/shared/common.service';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { salutation, gender, maritalStatus, relations, ageGroup, paymentType, paymentMode, Role, InstitutionType } from 'src/app/constant/enums';
@@ -25,6 +31,13 @@ import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
 import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-details-modal.component';
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
+import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
+import { TokenService }              from 'src/app/core/interceptors/token.service';
+import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
+import {
+  TestBookingProtocolsDto,
+  TestProtocolDto,
+} from 'src/app/models/path-test/protocol/test-protocol.model';
 
 @Component({
   selector: 'app-patient-registration',
@@ -36,7 +49,12 @@ import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
     AutocompleteInputDirective,
     LoadingSpinnerComponent,
     DatePickerComponent,
-    TpaDetailsModalComponent
+    TpaDetailsModalComponent,
+    FieldErrorComponent,
+    FormKeyboardDirective,
+    NumericOnlyDirective,
+    PaymentCalculatorComponent,
+    TestProtocolPanelComponent,
   ],
   providers: [],
   standalone: true,
@@ -63,6 +81,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   currentStep = 1;
+
+  /** Exposed for [tabFields] binding on the form element. */
+  readonly tabFields = tabOrderAdd;
 
   /** True once the user clicks "Confirm" in the Partial Payment modal. */
   paymentConfirmed = false;
@@ -111,6 +132,26 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   selectedTests: TestItem[] = [];
   focusedTestId: string | null = null;
 
+  // ── Sample collection protocols ────────────────────────────────────────────
+  // Mirrors AddTestModalComponent — the two pickers are separate components, so a
+  // change to one belongs in both.
+  /**
+   * Protocols for the test the operator last clicked in the catalogue. A list, because a
+   * test can be collected under several. Null until something has been clicked; an empty
+   * array means the test has none linked, which the panel states in words.
+   */
+  focusedProtocols: TestProtocolDto[] | null = null;
+  focusedProtocolTestName = '';
+  focusedProtocolTestCode = '';
+  focusedProtocolLoading = false;
+  /** Guards against an earlier, slower protocol response overwriting a later one. */
+  private protocolRequestSeq = 0;
+
+  /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
+  selectedTestProtocols: TestBookingProtocolsDto[] = [];
+  selectedProtocolsLoading = false;
+  showSelectedProtocols = true;
+
   /** Upper bound for the DOB picker — today in YYYY-MM-DD format. */
   readonly todayIso = new Date().toISOString().split('T')[0];
   
@@ -133,7 +174,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     private _sampling:        SamplingLocationService,
     private _area:            AreaService,
     private _memberService:   MemberService,
-    private _contactService:  ContactAddressService
+    private _contactService:  ContactAddressService,
+    private _token:           TokenService,
+    private _sampleLabelService: SampleLabelService,
   ) {
     this.patientForm = this.fb.group({
       country_Code:      ['+91', Validators.required],
@@ -141,17 +184,35 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       serial_Number:        new FormControl({ value: 0,   disabled: true }),
       patient_Id:           new FormControl({ value: '',  disabled: true }),
       patient_Salutation:   ['Mr.', Validators.required],
-      patient_Name:         ['', [Validators.required, this._common.stringOnlyValidator()]],
-      patient_DOB:          ['', [Validators.required, this._common.checkFutureDate()]],
+      patient_Name:         ['', [Validators.required, AppValidators.stringOnly()]],
+      // Date of birth is no longer required on its own: a patient who does not
+      // know it can be recorded by typing their age instead, and the DOB is
+      // back-calculated. `patient_Age` stays required, so one of the two routes
+      // must still be used — it is filled by whichever the operator chooses.
+      patient_DOB:          ['', [AppValidators.noFutureDate()]],
       patient_Age:          ['', Validators.required],
       patient_Age_Group:    ['', Validators.required],
+
+      // Age as three parts. These are the inputs; `patient_Age` above is the
+      // composed "41Y 3M 12D" string that goes to the API.
+      patient_Age_Years:    [null],
+      patient_Age_Months:   [null],
+      patient_Age_Days:     [null],
       patient_Gender:       ['', Validators.required],
-      patient_Marital_Status: ['', Validators.required],
-      patient_Address:      ['', Validators.required],
-      relation:             ['S/O', Validators.required],
-      relative_Name:        ['', [Validators.required, this._common.stringOnlyValidator()]],
-      patient_Contact:      ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
-      patient_Email:        ['', [Validators.required, Validators.email]],
+      // Optional: plenty of walk-in patients decline to state it, and nothing
+      // downstream depends on it.
+      patient_Marital_Status: [''],
+      // Optional: walk-in patients often register without giving an address.
+      patient_Address:      [''],
+      relation:             ['S/O'],
+      // Optional, but still letters-only when something IS typed — stringOnly()
+      // returns null for an empty value, so a blank field is valid.
+      relative_Name:        ['', [AppValidators.stringOnly()]],
+      // Not required, but still validated when something IS typed —
+      // contactNumber() and email() both return null for an empty value, so a
+      // blank field is valid while a half-typed number is not.
+      patient_Contact:      ['', [AppValidators.contactNumber()]],
+      patient_Email:        ['', [Validators.email]],
       test_id:              [''],
       test_Name:            ['', Validators.required],
       urgent_Report:        [false],
@@ -287,7 +348,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (fieldName === 'patient_Marital_Status') {
       return !!(c.invalid && (c.touched || forceShow));
     }
-    return !!(c.invalid && (c.touched || c.dirty || forceShow));
+    return !!(c.invalid && (c.touched || forceShow));
   }
 
   // Track focus/blur for radio groups
@@ -338,11 +399,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   getFieldError(fieldName: string): string {
     const c = this.patientForm.get(fieldName);
     const forceShow = this.stepTouched[this.currentStep];
-    if (!c?.errors || (!c.touched && !c.dirty && !forceShow)) return '';
+    if (!c?.errors || (!c.touched && !forceShow)) return '';
     const e = c.errors;
     const label = this.fieldLabels[fieldName] ?? fieldName;
     if (e['required'])     return `${label} is required.`;
     if (e['email'])        return 'Please enter a valid email address.';
+    if (e['contactNumber']) return 'Enter a valid 10-digit mobile number that does not start with 0.';
     if (e['pattern'])      return fieldName === 'patient_Contact'
                              ? 'Enter a valid 10-digit mobile number.'
                              : `${label} format is invalid.`;
@@ -481,8 +543,19 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── DOB / Age ──────────────────────────────────────────────────────────────
 
+  /**
+   * The typed DOB as YYYY-MM-DD for the calendar picker beside the text box.
+   *
+   * The text box is the single source of truth for the date; this getter is how
+   * the calendar follows it, so opening the calendar after typing 11/08/2001
+   * lands on August 2001 with the 11th highlighted rather than on today's month.
+   * Empty while the date is still half-typed or impossible — see dmyToIso().
+   */
+  get dobIso(): string {
+    return this._common.dmyToIso(this.patientForm.get('patient_DOB')?.value);
+  }
+
   onDateInput(event: Event): void {
-    debugger;
     const input = event.target as HTMLInputElement;
     let { value, cursorPos } = this._common.formatDateInputMask(input.value);
 
@@ -559,23 +632,77 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       input.setSelectionRange(cursorPos, cursorPos);
       this.patientForm.get('patient_DOB')?.setValue(newValue, { emitEvent: true });
 
-      const age = this._common.calculateAge(newValue);
-      this.patientForm.patchValue({
-        patient_Age:       age,
-        patient_Age_Group: this._common.calculateAgeRange(parseInt(age.split(' ')[0]) || 0)
-      });
+      // One place computes age from DOB — see calculateAge().
+      this.calculateAge();
     }
   }
 
+  /**
+   * Date of birth → age. Fills the three Y/M/D boxes, the composed string that
+   * is sent to the API, and the age group.
+   *
+   * `emitEvent: false` on the parts: they are being written BY this method, and
+   * letting them emit would call onAgePartChange(), which writes the DOB back —
+   * a loop that would fight the operator mid-keystroke.
+   */
   calculateAge() {
     if (this.patientForm.controls['patient_DOB'].errors?.['noFutureDate']) return;
     const dob = this.patientForm.get('patient_DOB')?.value;
     if (!dob) return;
 
-    const isoDate  = this._common.setYearofDate(dob); // used internally only — not written back to form
-    const age      = this._common.calculateAge(isoDate);
-    const ageRange = this._common.calculateAgeRange(parseInt(age.split(' ')[0]));
-    this.patientForm.patchValue({ patient_Age: age, patient_Age_Group: ageRange });
+    const isoDate = this._common.setYearofDate(dob); // used internally only — not written back to form
+    const { years, months, days } = this._common.calculateAgeParts(isoDate);
+
+    this.patientForm.patchValue({
+      patient_Age_Years:  years,
+      patient_Age_Months: months,
+      patient_Age_Days:   days,
+    }, { emitEvent: false });
+
+    this.patientForm.patchValue({
+      patient_Age:       this._common.formatAgeParts(years, months, days),
+      patient_Age_Group: this._common.calculateAgeRange(years),
+    });
+  }
+
+  /**
+   * Age → date of birth. The other direction, for the patient who knows they
+   * are "about 45" but not the date.
+   *
+   * The DOB it produces is an approximation, which is what an age-only record
+   * is regardless — writing it keeps every downstream consumer (reports, the
+   * report header, the age group) working off one field.
+   */
+  onAgePartChange(): void {
+    const f = this.patientForm.value;
+    const years  = Number(f.patient_Age_Years)  || 0;
+    const months = Number(f.patient_Age_Months) || 0;
+    const days   = Number(f.patient_Age_Days)   || 0;
+
+    // Keep each part inside its own range rather than rejecting it: 18 months
+    // is a thing people type, and it means a year and a half.
+    const clamped = {
+      years:  Math.max(0, Math.min(150, years)),
+      months: Math.max(0, Math.min(11,  months)),
+      days:   Math.max(0, Math.min(31,  days)),
+    };
+    if (clamped.months !== months || clamped.days !== days || clamped.years !== years) {
+      this.patientForm.patchValue({
+        patient_Age_Years:  clamped.years  || null,
+        patient_Age_Months: clamped.months || null,
+        patient_Age_Days:   clamped.days   || null,
+      }, { emitEvent: false });
+    }
+
+    const hasAge = clamped.years > 0 || clamped.months > 0 || clamped.days > 0;
+
+    this.patientForm.patchValue({
+      patient_Age:       hasAge ? this._common.formatAgeParts(clamped.years, clamped.months, clamped.days) : '',
+      patient_Age_Group: hasAge ? this._common.calculateAgeRange(clamped.years) : '',
+      patient_DOB:       hasAge ? this._common.dobFromAgeParts(clamped.years, clamped.months, clamped.days) : '',
+    }, { emitEvent: false });
+
+    this.patientForm.get('patient_Age')?.markAsDirty();
   }
 
   /**
@@ -599,16 +726,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   get totalAmount(): number { return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0); }
 
   openTestForm(event: Event): void {
+    this.query = '';
     this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: GroupSubGroupModel[]) => {
-        debugger;
         this.groupedTests = res ?? [];
-        console.log(this.groupedTests);
         this.selectedTestGroup = this.groupedTests[0];
         this.selectedGroupId = this.selectedTestGroup?.testGroupId;
         this.getSubGroupList(this.selectedTestGroup!);
       },
-      error: () => { this.groupedTests = []; this.toastr.error('Failed to load test groups', 'Error'); }
+      error: () => { this.groupedTests = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -621,7 +747,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
         this.getMedicalTestList(this.selectedSubGroup!);
       },
-      error: () => { this.subGroupTests = []; this.toastr.error('Failed to load sub-groups', 'Error'); }
+      error: () => { this.subGroupTests = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -634,7 +760,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         const el = document.getElementById('testCatalogModal');
           if (el) this.showModal('testCatalogModal');
       },
-      error: () => { this.pathologyTest = []; this.toastr.error('Failed to load tests', 'Error'); }
+      error: () => { this.pathologyTest = []; }   // message shown centrally by ErrorInterceptor
     });
   }
 
@@ -646,16 +772,124 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   selectGroup(g: GroupSubGroupModel)    { this.selectedGroupId = g.testGroupId; this.getSubGroupList(g); }
   selectSubGroup(s: GroupSubGroupModel) { this.selectedSubGroupId = s.testGroupId; this.getMedicalTestList(s); }
 
+  /**
+   * A test with no parameters configured cannot be booked — there is nothing to
+   * enter results into and its report would render an empty table. The server
+   * rejects such a booking (PatientService.ValidateTestsAreBookableAsync); this
+   * stops the operator picking one and only finding out on Save.
+   *
+   * Mirrors AddTestModalComponent.isTestBookable — the two test pickers are
+   * separate components, so a rule added to one has to be added to both.
+   */
+  isTestBookable(t: TestItem): boolean {
+    return (t?.parameterCount ?? 0) > 0;
+  }
+
+  /**
+   * Loads the protocol for the test the operator just clicked.
+   *
+   * Responses are sequence-checked: clicking quickly through several tests can return
+   * out of order, and showing the wrong test's sample requirements is worse than
+   * showing none. Mirrors AddTestModalComponent.loadFocusedProtocol.
+   */
+  private loadFocusedProtocol(t: TestItem): void {
+    const testRegId = t?.testRegId ?? 0;
+    this.focusedProtocolTestName = t?.testName ?? '';
+    this.focusedProtocolTestCode = t?.testCode ?? '';
+
+    if (!testRegId) {
+      this.focusedProtocols = null;
+      this.focusedProtocolLoading = false;
+      return;
+    }
+
+    const seq = ++this.protocolRequestSeq;
+    this.focusedProtocolLoading = true;
+
+    this._testService.getTestProtocols(testRegId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (protocols) => {
+        if (seq !== this.protocolRequestSeq) return;
+        this.focusedProtocols = protocols ?? [];
+        this.focusedProtocolLoading = false;
+      },
+      // Message shown centrally by ErrorInterceptor. A null protocol makes the panel say
+      // the requirements are unknown, which is the truthful outcome here.
+      error: () => {
+        if (seq !== this.protocolRequestSeq) return;
+        this.focusedProtocols = null;
+        this.focusedProtocolLoading = false;
+      },
+    });
+  }
+
+  /** Loads protocols for everything in the basket, for the summary on the Test & Lab step. */
+  private loadSelectedProtocols(): void {
+    const codes = this.selectedTests.map(t => t.testCode).filter(c => !!c);
+    if (!codes.length) {
+      this.selectedTestProtocols = [];
+      this.selectedProtocolsLoading = false;
+      return;
+    }
+
+    this.selectedProtocolsLoading = true;
+    this._testService.getTestProtocolsByCodes(codes).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (grouped) => {
+        this.selectedTestProtocols = grouped ?? [];
+        this.selectedProtocolsLoading = false;
+      },
+      error: () => {
+        this.selectedTestProtocols = [];
+        this.selectedProtocolsLoading = false;
+      },
+    });
+  }
+
+  /** Tests in the basket with no protocol linked at all. */
+  get testsMissingProtocol(): TestBookingProtocolsDto[] {
+    return this.selectedTestProtocols.filter(t => !t.protocols?.length);
+  }
+
+  /**
+   * Tests in the basket that need the patient to fast, with the longest fast each one
+   * demands — the one requirement that has to reach the patient before they leave.
+   *
+   * The longest, not the first: a test collected under two protocols with 8 and 12 hours
+   * needs 12, and telling the patient the shorter number wastes their second trip.
+   */
+  get fastingTests(): { testName: string; hours: number | null }[] {
+    return this.selectedTestProtocols
+      .map(t => {
+        const fasting = (t.protocols ?? []).filter(p => p.fastingRequired);
+        if (!fasting.length) return null;
+        const hours = fasting.reduce<number | null>(
+          (max, p) => (p.fastingHours != null && (max == null || p.fastingHours > max) ? p.fastingHours : max),
+          null,
+        );
+        return { testName: t.testName, hours };
+      })
+      .filter((x): x is { testName: string; hours: number | null } => x !== null);
+  }
+
   toggleTestSelection(t: TestItem) {
     this.focusedTestId = t.testCode;
+    this.loadFocusedProtocol(t);
+
+    // Selecting is blocked, but de-selecting must always work — otherwise a test
+    // whose last parameter was deleted after it was picked would be stuck in the
+    // basket with no way to remove it.
+    if (!this.isTestBookable(t) && !this.selectedTestIds.has(t.testCode)) {
+      this.toastr.warning(
+        `${t.testName} has no parameters configured, so it cannot be booked.`,
+        'Test not available');
+      return;
+    }
+
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
-      this.toastr.info(`${t.testName} removed`);
     } else {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
-      this.toastr.info(`${t.testName} added`);
     }
   }
 
@@ -664,10 +898,19 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (!t) return;
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
-    this.toastr.info(`${t.testName} removed`);
+    this.selectedTestProtocols = this.selectedTestProtocols.filter(t => t.testCode !== testId);
   }
 
   modalTestClose() {
+    // Catches anything that got in before its parameters were removed.
+    const unbookable = this.selectedTests.filter(t => !this.isTestBookable(t));
+    if (unbookable.length) {
+      this.toastr.error(
+        `Remove ${unbookable.map(t => t.testName).join(', ')} — no parameters configured.`,
+        'Test not available');
+      return;
+    }
+
     this.patientForm.patchValue({
       test_Name:   this.selectedTests.map(t => t.testName).join(', '),
       test_Amount: this.totalAmount
@@ -675,6 +918,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     const el = document.getElementById('testCatalogModal');
     if (el) this.hideModal('testCatalogModal');
     this.calculateNetAmount();
+    // Bring the requirements back to the form step, where the operator is still with the
+    // patient and can tell them about fasting before they leave.
+    this.loadSelectedProtocols();
   }
 
   // ── Collection Modal ───────────────────────────────────────────────────────
@@ -701,20 +947,129 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Payment ────────────────────────────────────────────────────────────────
 
-  calculateNetAmount() {
-    const testAmount = this.patientForm.get('test_Amount')?.value;
-    const discount   = this.patientForm.get('discount')?.value;
-    if (discount <= 100 && testAmount > 0) {
-      this.patientForm.patchValue({ net_Amount: testAmount - discount * testAmount / 100 });
+  /** Maximum discount % allowed for this lab (admin-configured). */
+  get maxDiscountPercent(): number { return this._token.getMaxDiscountPercent(); }
+
+  /** Parses a form value that may be a string, number, null or '' into a number. */
+  private toNumber(value: any): number {
+    const n = parseFloat(String(value ?? '').trim());
+    return isNaN(n) ? 0 : n;
+  }
+
+  /** Rounds to 2 decimals — keeps money and percentages clean and API-friendly. */
+  private round2(n: number): number {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+  }
+
+  /**
+   * Adds or removes a single named error on a control WITHOUT wiping the errors
+   * its own validators produced.
+   *
+   * setErrors(null) clears everything — including `required` — which is how the
+   * old code could leave a control looking valid when it wasn't, and how a
+   * `maxExceeded` flag set from one field could never be cleared from the other.
+   */
+  private setControlError(controlName: string, key: string, on: boolean): void {
+    const ctrl = this.patientForm.get(controlName);
+    if (!ctrl) return;
+
+    const errors = { ...(ctrl.errors ?? {}) };
+
+    if (on) {
+      if (errors[key]) return;              // already flagged — nothing to do
+      errors[key] = true;
+      ctrl.setErrors(errors);
+      return;
+    }
+
+    if (!(key in errors)) return;           // not flagged — nothing to do
+    delete errors[key];
+    if (Object.keys(errors).length) {
+      ctrl.setErrors(errors);
+    } else {
+      ctrl.setErrors(null);
+      // Re-run the control's own validators (required, etc.) that setErrors(null)
+      // just cleared, so removing OUR flag can't accidentally make an empty
+      // field look valid.
+      ctrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 
+  /**
+   * Enforces the lab's maximum discount, from BOTH directions.
+   *
+   * Called whether the operator typed a percentage or typed a net amount, so the
+   * cap cannot be bypassed by entering a low net amount, and — just as important —
+   * the error can never get stuck after the value is corrected from the other field.
+   *
+   * @returns true when the discount is within the allowed range.
+   */
+  private validateDiscountLimit(discount: number): boolean {
+    const negative = discount < 0;
+    const exceeded = discount > this.maxDiscountPercent;
+
+    this.setControlError('discount', 'negative',    negative);
+    this.setControlError('discount', 'maxExceeded', !negative && exceeded);
+
+    return !negative && !exceeded;
+  }
+
+  /**
+   * Discount % → Net Amount.
+   *
+   * Bound to (input), not (change), so the Net Amount field and the summary cards
+   * move on every keystroke instead of waiting for the field to lose focus.
+   *
+   * Only net_Amount is patched here, so this can never ping-pong with
+   * calculateDiscount().
+   */
+  calculateNetAmount() {
+    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const discount   = this.toNumber(this.patientForm.get('discount')?.value);
+
+    // A net amount typed by hand may have been flagged as above the test amount;
+    // recalculating from the discount always produces a valid one.
+    this.setControlError('net_Amount', 'aboveTestAmount', false);
+
+    if (!this.validateDiscountLimit(discount)) return;  // keep the last good net amount
+    if (testAmount <= 0) return;
+
+    this.patientForm.patchValue({
+      net_Amount: this.round2(testAmount - discount * testAmount / 100)
+    });
+  }
+
+  /**
+   * Net Amount → Discount %.
+   *
+   * Bound to (input) for the same reason as above. Rounds to 2 dp so the operator
+   * sees "90.43%" rather than "90.43478260869566%", and so the value the API
+   * stores is a sane percentage.
+   */
   calculateDiscount() {
-    const testAmount = this.patientForm.get('test_Amount')?.value;
-    const netAmount  = this.patientForm.get('net_Amount')?.value;
-    if (netAmount > 0 && netAmount <= testAmount && testAmount > 0) {
-      this.patientForm.patchValue({ discount: (testAmount - netAmount) * 100 / testAmount });
+    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const rawNet     = String(this.patientForm.get('net_Amount')?.value ?? '').trim();
+
+    if (testAmount <= 0) return;
+
+    // Field cleared mid-edit — leave the discount alone and let `required` speak.
+    if (rawNet === '') {
+      this.setControlError('net_Amount', 'aboveTestAmount', false);
+      return;
     }
+
+    const netAmount = this.toNumber(rawNet);
+
+    // A net amount above the test amount is a negative discount — reject it here
+    // instead of silently doing nothing, which used to leave the two fields
+    // disagreeing with no explanation.
+    const aboveTest = netAmount > testAmount;
+    this.setControlError('net_Amount', 'aboveTestAmount', aboveTest);
+    if (aboveTest || netAmount < 0) return;
+
+    const discount = this.round2((testAmount - netAmount) * 100 / testAmount);
+    this.patientForm.patchValue({ discount });
+    this.validateDiscountLimit(discount);
   }
 
   /**
@@ -835,7 +1190,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     const netAmount  = parseFloat(String(this.patientForm.get('net_Amount')?.value)) || 0;
 
     if (amountPaid <= 0) {
-      this.amountPaidError = 'Please enter the amount paid.';
+      this.amountPaidError = 'Please enter the correct amount paid.';
       return;
     }
     if (amountPaid >= netAmount) {
@@ -888,7 +1243,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   getSerialNPatientId() {
     this._patientService.getSerialNPatientId().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data: any) => this.patientForm.patchValue({ serial_Number: data.key, patient_Id: data.value }),
-      error: (err: any)     => this.toastr.error('Failed to load serial number', 'Error')
+      error: () => { /* message shown centrally by ErrorInterceptor */ }
     });
   }
 
@@ -898,6 +1253,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (!this.patientForm.valid) {
       this.stepTouched[this.currentStep] = true;
       this.patientForm.markAllAsTouched();
+      // Previously this returned silently, so a problem on an earlier step — or a
+      // discount over the lab limit — looked like a dead "Register Patient" button.
+      this.toastr.error(this.describeInvalidFields(), 'Cannot register yet');
       return;
     }
 
@@ -921,6 +1279,40 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     }
 
     this.doRegisterPatient();
+  }
+
+  /** Human-readable labels for the controls named in validation messages. */
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    patient_Name: 'Patient Name', patient_DOB: 'Date of Birth', patient_Age: 'Age',
+    patient_Age_Group: 'Age Group', patient_Gender: 'Gender',
+    patient_Address: 'Address', relative_Name: 'Relative Name',
+    patient_Contact: 'Contact Number', patient_Email: 'Email',
+    test_Name: 'Test', test_Amount: 'Test Amount', referred_By_Type: 'Referred By Type',
+    referred_By: 'Referred By', discount: 'Discount (%)', net_Amount: 'Net Amount',
+    payment_Type: 'Payment Type', amount_Paid: 'Amount Paid',
+    amount_Pending: 'Amount Pending', payment_Mode: 'Payment Mode',
+  };
+
+  /** Builds the toast text listing what is still blocking registration. */
+  private describeInvalidFields(): string {
+    const discount = this.patientForm.get('discount');
+    if (discount?.errors?.['maxExceeded']) {
+      return `Discount cannot exceed ${this.maxDiscountPercent}%. Lower the discount or raise the net amount.`;
+    }
+    if (discount?.errors?.['negative']) {
+      return 'Discount cannot be negative.';
+    }
+    if (this.patientForm.get('net_Amount')?.errors?.['aboveTestAmount']) {
+      return 'Net amount cannot be more than the test amount.';
+    }
+
+    const invalid = Object.keys(this.patientForm.controls)
+      .filter(k => this.patientForm.get(k)?.invalid)
+      .map(k => AddPatientComponent.FIELD_LABELS[k] ?? k);
+
+    return invalid.length
+      ? `Please complete: ${invalid.slice(0, 4).join(', ')}${invalid.length > 4 ? '…' : ''}`
+      : 'Please review the highlighted fields.';
   }
 
   private doRegisterPatient() {
@@ -989,30 +1381,86 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Age:            f.patient_Age,
       patient_Age_Group:      f.patient_Age_Group,
       patient_Gender:         f.patient_Gender,
-      patient_Marital_Status: f.patient_Marital_Status,
+      // ?? '' on the now-optional fields: the API maps these to NOT NULL
+      // columns that default to an empty string, so a blank must arrive as ''
+      // rather than null — otherwise a skipped field is a 500, not a blank.
+      patient_Marital_Status: f.patient_Marital_Status ?? '',
       patient_Address:        f.patient_Address,
-      relation:               f.relation,
+      relation:               f.relation ?? '',
       relative_Name:          f.relative_Name,
-      patientDialingContact:  `${f.country_Code}-${f.patient_Contact}`,
-      patient_Email:          f.patient_Email,
+      patient_Contact:        `${f.patient_Contact ?? ''}`,
+      patient_Email:          f.patient_Email ?? '',
       patient_Reg_Date:       f.patient_Reg_Date,
       test,
       receipt,
     };
 
     this._patientService.AddPatient(payload).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: any) => {
+      next: (res: BookingResultDto) => {
         this.isLoading = false;
-        if (res) {
-          this.toastr.success('Patient Registered Successfully', 'Success');
-          this._route.navigate(['/patients']);
+
+        if (!res?.success) {
+          // API returned HTTP 200 but the operation failed (e.g. transaction
+          // rolled back). This is not an HTTP error, so the global interceptor
+          // won't fire — surface it explicitly.
+          this.toastr.error(res?.message || 'Failed to register patient. Please try again.', 'Error');
+          return;
         }
+
+        this.printSampleLabels(res);
+        this._route.navigate(['/patients']);
       },
-      error: (err: any) => {
+      error: () => {
+        // HTTP/network errors are surfaced centrally by ErrorInterceptor;
+        // here we only reset local state.
         this.isLoading = false;
-        this.toastr.error('Failed to register patient', 'Error');
       }
     });
+  }
+
+  /**
+   * Opens the sample collection labels for a just-created booking — one sticker
+   * per booked test, with the print dialog opening by itself.
+   *
+   * Called only after a confirmed successful registration, so a label can never
+   * be printed for a booking that was rolled back and does not exist.
+   *
+   * Failures here are deliberately non-fatal: the patient IS registered by this
+   * point, and blocking or alarming the operator over a label would misrepresent
+   * what happened. They are told how to reprint instead — the booking's labels
+   * remain available from the patient's test list.
+   */
+  private printSampleLabels(booking: BookingResultDto): void {
+    if (!booking.testRegId || !booking.labels?.length) {
+      return;
+    }
+
+    // Deliberately NOT piped through takeUntil(this.destroy$).
+    //
+    // The caller navigates to the patient list immediately after this returns,
+    // which destroys this component and completes destroy$. A label request bound
+    // to it would be cancelled mid-flight and the labels would silently never
+    // appear. This request has to outlive the screen that started it; ToastrService
+    // is app-scoped, so the messages below still reach the operator afterwards.
+    this._sampleLabelService.printLabels(booking.testRegId)
+      .subscribe({
+        next: (opened: boolean) => {
+          if (!opened) {
+            // A blocked pop-up is silent in most browsers; without this the
+            // operator would simply never see the labels and not know why.
+            this.toastr.warning(
+              'Patient registered, but the label window was blocked. ' +
+              'Allow pop-ups for this site, then reprint from the patient\'s tests.',
+              'Labels not shown');
+          }
+        },
+        error: () => {
+          this.toastr.warning(
+            'Patient registered, but the sample labels could not be fetched. ' +
+            'You can reprint them from the patient\'s tests.',
+            'Labels not printed');
+        }
+      });
   }
 
   getInvalidControls(form: FormGroup): string[] {

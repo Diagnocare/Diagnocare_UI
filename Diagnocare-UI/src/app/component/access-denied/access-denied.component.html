@@ -1,0 +1,37 @@
+<div class="ad-wrap">
+  <div class="ad-card" role="alert" aria-live="polite">
+
+    <div class="ad-icon-wrap">
+      <i class="fa fa-lock" aria-hidden="true"></i>
+    </div>
+
+    <h1 class="ad-title">Access denied</h1>
+
+    <p class="ad-explanation">{{ explanation }}</p>
+
+    <div class="ad-detail" *ngIf="attemptedPath">
+      <span class="ad-detail-label">Requested</span>
+      <code class="ad-detail-value">{{ attemptedPath }}</code>
+    </div>
+
+    <div class="ad-detail">
+      <span class="ad-detail-label">Signed in as</span>
+      <span class="ad-detail-value ad-role">{{ roleLabel }}</span>
+    </div>
+
+    <p class="ad-help">
+      If you believe you should have access to this,
+      ask an administrator to review your role.
+    </p>
+
+    <div class="ad-actions">
+      <button type="button" class="ad-btn ad-btn--primary" (click)="goHome()">
+        <i class="fa fa-home" aria-hidden="true"></i> Back to my home
+      </button>
+      <button type="button" class="ad-btn ad-btn--ghost" (click)="goBack()">
+        <i class="fa fa-arrow-left" aria-hidden="true"></i> Go back
+      </button>
+    </div>
+
+  </div>
+</div>

@@ -8,14 +8,18 @@ import { FormsModule } from '@angular/forms';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
+/** sessionStorage key for the cached profile photo data-URL. */
+const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${userName}`;
 
 @Component({
   selector: 'app-change-password',
   templateUrl: './change-password.component.html',
   styleUrls: ['../account-pages.shared.css', './change-password.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule, FormKeyboardDirective, MaskedInputDirective]
 })
 export class ChangePasswordComponent {
   oldPassword = '';
@@ -26,6 +30,8 @@ export class ChangePasswordComponent {
   newPasswordMatch: boolean | null = null;
   newPasswordValid: boolean | null = null;
   isForceChange: boolean = false;
+  passwordChanged: boolean = false;
+  profilePhotoUrl: string = '/assets/defaultPic.jpg';
     onNewPasswordChange() {
       this.newPasswordValid = this.validatePasswordStrength(this.newPassword);
       // Also re-check confirm password match if confirmPassword has value
@@ -64,6 +70,7 @@ export class ChangePasswordComponent {
       }
     }
     this.isForceChange = this.route.snapshot.queryParamMap.get('forceChange') === 'true';
+    
   }
 
   onOldPasswordChange() {
@@ -125,7 +132,6 @@ export class ChangePasswordComponent {
           this.newPasswordValid = null;
           return;
         }
-        this.toastr.success('Password changed successfully!', 'Success');
         this.oldPassword = '';
         this.newPassword = '';
         this.confirmPassword = '';
@@ -142,7 +148,7 @@ export class ChangePasswordComponent {
             this.router.navigate(['/pathology']);
           }
         } else {
-          this.router.navigate(['/profile']);
+          this.passwordChanged = true;
         }
       },
       error: () => {

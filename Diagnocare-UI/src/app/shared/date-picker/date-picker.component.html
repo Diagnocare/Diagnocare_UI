@@ -40,57 +40,108 @@
   <div class="dp-panel" *ngIf="showCalendar" role="dialog" aria-modal="true" aria-label="Date picker"
        (mousedown)="$event.stopPropagation()">
 
-    <!-- Header: year and month navigation -->
+    <!--
+      Header. The label in the middle is a button that switches grids: from the
+      days it opens the years, from the months or years it goes back to the days.
+      The arrows either side step whatever the open grid steps in — a month, a
+      year, or a page of years.
+    -->
     <div class="dp-header">
       <div class="dp-nav-row">
-        <button type="button" class="dp-nav-btn" (click)="prevYear()"  title="Previous year">
+        <button type="button" class="dp-nav-btn" *ngIf="view === 'days'"
+                (click)="prevYear()"  title="Previous year">
           <i class="fa fa-angle-double-left"></i>
         </button>
-        <button type="button" class="dp-nav-btn" (click)="prevMonth()" title="Previous month">
+        <button type="button" class="dp-nav-btn"
+                (click)="stepBack()"
+                [disabled]="view === 'years' && !canPageBack"
+                [title]="view === 'years' ? 'Earlier years' : view === 'months' ? 'Previous year' : 'Previous month'">
           <i class="fa fa-angle-left"></i>
         </button>
 
-        <span class="dp-month-year">{{ viewLabel }}</span>
+        <button type="button" class="dp-month-year dp-view-switch"
+                (click)="toggleView()"
+                [attr.aria-label]="viewSwitchLabel"
+                [title]="viewSwitchLabel">
+          {{ viewLabel }}
+          <i class="fa dp-view-caret" [ngClass]="view === 'days' ? 'fa-angle-down' : 'fa-angle-up'"></i>
+        </button>
 
-        <button type="button" class="dp-nav-btn" (click)="nextMonth()" title="Next month">
+        <button type="button" class="dp-nav-btn"
+                (click)="stepForward()"
+                [disabled]="view === 'years' && !canPageForward"
+                [title]="view === 'years' ? 'Later years' : view === 'months' ? 'Next year' : 'Next month'">
           <i class="fa fa-angle-right"></i>
         </button>
-        <button type="button" class="dp-nav-btn" (click)="nextYear()"  title="Next year">
+        <button type="button" class="dp-nav-btn" *ngIf="view === 'days'"
+                (click)="nextYear()"  title="Next year">
           <i class="fa fa-angle-double-right"></i>
         </button>
       </div>
     </div>
 
+    <!-- Year grid — 24 years a page, paged by the arrows above -->
+    <table *ngIf="view === 'years'" class="dp-grid" style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <tbody>
+        <tr *ngFor="let row of yearRows">
+          <td *ngFor="let cell of row; trackBy: trackByCell" class="dp-td">
+            <button
+              type="button"
+              class="dp-day dp-cell"
+              [class.dp-day--selected]="cell.isSelected"
+              [class.dp-day--today]="cell.isCurrent && !cell.isSelected"
+              [class.dp-day--disabled]="cell.isDisabled"
+              [disabled]="cell.isDisabled"
+              (mousedown)="selectYear(cell)"
+              [title]="cell.label"
+            >{{ cell.label }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Month grid for the chosen year -->
+    <table *ngIf="view === 'months'" class="dp-grid" style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <tbody>
+        <tr *ngFor="let row of monthRows">
+          <td *ngFor="let cell of row; trackBy: trackByCell" class="dp-td">
+            <button
+              type="button"
+              class="dp-day dp-cell"
+              [class.dp-day--selected]="cell.isSelected"
+              [class.dp-day--today]="cell.isCurrent && !cell.isSelected"
+              [class.dp-day--disabled]="cell.isDisabled"
+              [disabled]="cell.isDisabled"
+              (mousedown)="selectMonth(cell)"
+              [title]="monthNames[cell.value] + ' ' + viewYear"
+            >{{ cell.label }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
     <!-- Calendar table -->
-    <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+    <table *ngIf="view === 'days'" style="width:100%;border-collapse:collapse;table-layout:fixed;">
       <thead>
         <tr>
-          <th *ngFor="let d of weekDays"
-              style="text-align:center;font-size:0.7em;font-weight:700;color:#8a96a8;padding:4px 0;text-transform:uppercase;background:#fff;">
+          <th *ngFor="let d of weekDays" class="dp-th">
             {{ d }}
           </th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let week of calendarWeeks">
-          <td *ngFor="let day of week" style="padding:1px;background:#fff;">
+          <td *ngFor="let day of week" class="dp-td">
             <button
               type="button"
+              class="dp-day"
+              [class.dp-day--selected]="day.isSelected"
+              [class.dp-day--today]="day.isToday && !day.isSelected"
+              [class.dp-day--other]="!day.inMonth"
+              [class.dp-day--disabled]="day.isDisabled"
               [disabled]="day.isDisabled"
               (mousedown)="selectDay(day)"
               [title]="day.date | date:'dd-MM-yyyy'"
-              style="display:block;width:100%;height:32px;border:none;border-radius:6px;cursor:pointer;font-size:0.82em;font-weight:500;background:transparent;color:#1a2e4a;"
-              [style.background]="day.isSelected ? 'linear-gradient(135deg,#1E5BA8,#667eea)'
-                                : day.isToday    ? '#dbeafe'
-                                : 'transparent'"
-              [style.color]="day.isSelected ? '#ffffff'
-                           : day.isToday    ? '#1E5BA8'
-                           : !day.inMonth   ? '#c5cedc'
-                           : '#1a2e4a'"
-              [style.font-weight]="(day.isSelected || day.isToday) ? '700' : '500'"
-              [style.opacity]="day.isDisabled ? '0.35' : '1'"
-              [style.cursor]="day.isDisabled ? 'not-allowed' : 'pointer'"
-              [style.box-shadow]="day.isSelected ? '0 2px 6px rgba(30,91,168,0.35)' : 'none'"
             >{{ day.date.getDate() }}</button>
           </td>
         </tr>

@@ -15,13 +15,14 @@ import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.
 import { DropRequestDTO } from 'src/app/models/path-test/drop-request.dto';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
+import { TestProtocolModalComponent } from '../test-protocol-modal/test-protocol-modal.component';
 
 @Component({
   selector: 'app-manage-tests',
   templateUrl: './manage-tests.component.html',
   styleUrls: ['./manage-tests.component.scss'],
   standalone: true,
-  imports: [FormsModule, CommonModule, AddEditModalComponent, ConfirmModalComponent],
+  imports: [FormsModule, CommonModule, AddEditModalComponent, ConfirmModalComponent, TestProtocolModalComponent],
   encapsulation: ViewEncapsulation.None
 })
 export class ManageTestsComponent implements OnInit,OnDestroy {
@@ -53,6 +54,9 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
   showModal:boolean = false;
   mode:'add' | 'edit' = "add";
 
+  /** Sample-collection protocol editor, open for the currently selected test. */
+  showProtocolModal = false;
+
   /** Tracks what the user explicitly clicked last — independent of auto-selection during data load. */
   lastUserSelection: 'group' | 'subgroup' | 'test' | null = null;
 
@@ -82,6 +86,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
     this.focusedTestId = null;
     this.showAddModal = false;
     this.showModal = false;
+    this.showProtocolModal = false;
     this.mode = 'add';
     this.lastUserSelection = null;
   }
@@ -213,12 +218,11 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
 
       this._pathTest.AddGroupWithSubgroupsAndTests(payload).subscribe({
         next: () => {
-          this.toastr.success(`${data.selected} added successfully`, 'Success');
           this.reloadAndSelect(addedSelected, addedStep, addedGroupId, addedSubGroupId, addedTestCode);
           if (typeof data.done === 'function') data.done();
         },
         error: () => {
-          this.toastr.error(`Error adding ${data.selected}`, 'Error');
+          // Message shown centrally by ErrorInterceptor.
           if (typeof data.done === 'function') data.done();
         }
       });
@@ -229,12 +233,11 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         const groupDTO = this.mapGroupToDTO(data.updatedFormData.group, '0');
         this._pathTest.updateGroupDetails(groupDTO).subscribe({
           next: () => {
-            this.toastr.success('Group updated successfully', 'Success');
             this.getAllGroupList();
             if (typeof data.done === 'function') data.done();
           },
           error: () => {
-            this.toastr.error('Error updating group', 'Error');
+            // Message shown centrally by ErrorInterceptor.
             if (typeof data.done === 'function') data.done();
           }
         });
@@ -244,12 +247,11 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         const subDTO    = this.mapGroupToDTO(data.updatedFormData.subGroup, parentId);
         this._pathTest.updateGroupDetails(subDTO).subscribe({
           next: () => {
-            this.toastr.success('Subgroup updated successfully', 'Success');
             this.getAllGroupList();
             if (typeof data.done === 'function') data.done();
           },
           error: () => {
-            this.toastr.error('Error updating subgroup', 'Error');
+            // Message shown centrally by ErrorInterceptor.
             if (typeof data.done === 'function') data.done();
           }
         });
@@ -260,12 +262,11 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         const testDTO = this.mapTestToDTO(data.updatedFormData.test);
         this._pathTest.updatePathTest(testDTO).subscribe({
           next: () => {
-            this.toastr.success('Test updated successfully', 'Success');
             this.getAllGroupList(true);
             if (typeof data.done === 'function') data.done();
           },
           error: () => {
-            this.toastr.error('Error updating test', 'Error');
+            // Message shown centrally by ErrorInterceptor.
             if (typeof data.done === 'function') data.done();
           }
         });
@@ -389,8 +390,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         });
       },
       error: (err) => {
-        console.error('Group reload after add failed:', err);
-        this.toastr.error('Failed to reload groups', 'Error');
+        console.error('Group reload after add failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -417,8 +417,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Group fetch failed:', err);
-        this.toastr.error('Failed to load groups', 'Error');
+        console.error('Group fetch failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -434,8 +433,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         }
       },
       error: (err) => {
-        console.error('SubGroup fetch failed:', err);
-        this.toastr.error('Failed to load subgroups', 'Error');
+        console.error('SubGroup fetch failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -447,8 +445,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         this.tests = data;
       },
       error: (err) => {
-        console.error('Test fetch failed:', err);
-        this.toastr.error('Failed to load tests', 'Error');
+        console.error('Test fetch failed:', err);   // message shown centrally by ErrorInterceptor
       }
     });
   }
@@ -512,7 +509,6 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
 
       this._pathTest.dropTest(request).subscribe({
         next: () => {
-          this.toastr.success(`${label} deleted successfully.`, 'Deleted');
           this.selectedTest = null;
           this.selectedTestId = null;
           if (request.type === 'group') {
@@ -528,7 +524,7 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
           this.getAllGroupList(true);
         },
         error: () => {
-          this.toastr.error(`Failed to delete ${label}.`, 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.lastUserSelection = null;
         }
       });
@@ -548,6 +544,37 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
     else{
       this.toastr.warning('Please select a test to manage its parameters.', 'No Test Selected');
     }
+  }
+
+  /**
+   * Opens the sample-collection protocol editor for the selected test.
+   *
+   * A modal rather than a route, unlike Manage Parameter: a protocol is one form for one
+   * test, and keeping the catalogue browser visible behind it means the admin can close it
+   * and move to the next test without re-navigating and losing their place in the list.
+   */
+  manageTestProtocol()
+  {
+    if (this.selectedTest != null) {
+      this.showProtocolModal = true;
+    } else {
+      this.toastr.warning('Please select a test to manage its sample collection protocol.', 'No Test Selected');
+    }
+  }
+
+  closeProtocolModal()
+  {
+    this.showProtocolModal = false;
+  }
+
+  /**
+   * After a protocol is saved or removed. Nothing in the three catalogue columns is
+   * derived from the protocol, so there is no list to reload — the editor re-reads on its
+   * next open, and the booking screens read from the API each time.
+   */
+  onProtocolSaved()
+  {
+    this.showProtocolModal = false;
   }
   close() { 
     this._route.navigate(['/patients']);

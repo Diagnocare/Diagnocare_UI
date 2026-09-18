@@ -216,6 +216,38 @@
 
       <!-- Employee picker -->
       <div class="config-card picker-card">
+        <!-- User type — switches which role's members the picker lists -->
+        <div class="staff-type-row">
+          <div class="picker-label"><i class="fa fa-id-badge"></i> User Type</div>
+
+          <!-- Staff-type tabs — these drive the picker only. The monthly tab has
+               its own independent roleFilter; do NOT bind to that one here. -->
+          <div class="staff-type-tabs" role="tablist" aria-label="User type">
+            <button type="button" class="staff-type-tab" role="tab"
+                    [class.active]="configStaffType === 'user'"
+                    [attr.aria-selected]="configStaffType === 'user'"
+                    (click)="setConfigStaffType('user')">
+              <i class="fa fa-user"></i> Users
+            </button>
+            <button type="button" class="staff-type-tab" role="tab"
+                    [class.active]="configStaffType === 'doctor'"
+                    [attr.aria-selected]="configStaffType === 'doctor'"
+                    (click)="setConfigStaffType('doctor')">
+              <i class="fa fa-user-md"></i> Doctor
+            </button>
+            <button type="button" class="staff-type-tab" role="tab"
+                    [class.active]="configStaffType === 'collection-boy'"
+                    [attr.aria-selected]="configStaffType === 'collection-boy'"
+                    (click)="setConfigStaffType('collection-boy')">
+              <i class="fa fa-motorcycle"></i> Collection Boy
+            </button>
+          </div>
+
+          <span class="staff-type-count">
+            {{ staffTypeCount }} {{ staffTypeCount === 1 ? staffTypeSingular : staffTypeLabel }}
+          </span>
+        </div>
+
         <div class="picker-label"><i class="fa fa-user-circle"></i> Select Employee</div>
 
         <div class="chosen-user" *ngIf="selectedConfigUserId; else showPicker">
@@ -234,25 +266,26 @@
                 *ngIf="isDropdownOpen"
                 class="dropdown-search"
                 type="text"
-                placeholder="Type to search employees…"
+                [placeholder]="'Type to search ' + staffTypeLabel.toLowerCase() + '…'"
                 [(ngModel)]="userSearchTerm"
                 (click)="$event.stopPropagation()"
                 autofocus
               />
               <span *ngIf="!isDropdownOpen" class="dropdown-placeholder">
-                Search and select an employee…
+                Search and select a {{ staffTypeSingular.toLowerCase() }}…
               </span>
               <i class="fa fa-chevron-down dropdown-arrow" [class.rotated]="isDropdownOpen"></i>
             </div>
             <div class="dropdown-list" *ngIf="isDropdownOpen" (mouseleave)="closeDropdown()">
               <div class="dropdown-empty" *ngIf="filteredUserList.length === 0">
-                <i class="fa fa-inbox"></i> No employees found
+                <i class="fa fa-inbox"></i> No {{ staffTypeLabel }} found
               </div>
               <div class="dropdown-option" *ngFor="let u of filteredUserList" (click)="selectUser(u)">
                 <div class="opt-avatar">{{ userInitial(fullName(u)) }}</div>
                 <div class="opt-details">
                   <div class="opt-name">{{ fullName(u) }}</div>
-                  <div class="opt-username">@{{ u.user_Name }}</div>
+                  <div class="opt-username" *ngIf="u.user_Name">@{{ u.user_Name }}</div>
+                  <div class="opt-username" *ngIf="!u.user_Name">{{ staffTypeLabel }}</div>
                 </div>
                 <span class="opt-config-badge" *ngIf="hasConfig(u.id)">Configured</span>
               </div>
@@ -404,8 +437,13 @@
               </div>
             </div>
 
-            <!-- Revenue % component -->
-            <div class="salary-component-card" [class.active]="hasPercentComponent">
+            <!-- Revenue % component — hidden until phase 2.
+                 Deliberately *ngIf rather than deleted: an employee already
+                 configured on a revenue % keeps the value, which round-trips
+                 untouched on save. Flip revenuePercentEnabled to restore. -->
+            <div class="salary-component-card"
+                 *ngIf="revenuePercentEnabled"
+                 [class.active]="hasPercentComponent">
               <div class="scc-header">
                 <span class="scc-icon pct-icon"><i class="fa fa-percent"></i></span>
                 <div>
@@ -479,7 +517,7 @@
 
           <div class="config-form-actions">
             <button
-              class="btn btn-success"
+              class="btn btn-primary"
               (click)="saveConfig()"
               [disabled]="isSavingConfig || (!hasFixedComponent && !hasPercentComponent)"
             >
@@ -654,8 +692,10 @@
                             [class.fa-coins]="pay.paymentType !== 'Full'"></i>
               {{ pay.paymentType === 'Full' ? 'Full' : 'Partial' }}
             </span>
-            <span *ngIf="pay.paymentType !== 'Full'" class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
-              {{ paymentForLabel(pay.paymentSource) }}
+            <!-- A Pay Full row is filed under Base Salary but covers every
+                 component, so it is labelled for what it actually settled. -->
+            <span class="pay-for-badge" [ngClass]="paymentRowClass(pay)">
+              {{ paymentRowLabel(pay) }}
             </span>
           </div>
         </div>
@@ -689,6 +729,11 @@
       <div>
         <div class="pm-header-title">
           {{ paymentForm.paymentType === PaymentType.Full ? 'Full Payment' : 'Partial Payment' }}
+          <!-- Full settles every component, so say so rather than leaving the
+               user to assume it is base salary only. -->
+          <span class="pm-header-scope" *ngIf="paymentForm.paymentType === PaymentType.Full">
+            · All Components
+          </span>
         </div>
         <div class="pm-header-sub">{{ panelRecord.fullName }} · {{ monthLabel }}</div>
       </div>
@@ -817,7 +862,7 @@
 
   <!-- ── Modal footer ── -->
   <div class="pm-footer">
-    <button class="btn btn-outline-secondary" (click)="toggleAddPayment()">
+    <button class="dc-btn dc-btn--cancel" (click)="toggleAddPayment()">
       <i class="fa fa-times"></i> Cancel
     </button>
     <button

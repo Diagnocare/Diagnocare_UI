@@ -1,9 +1,7 @@
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
-import { throwError } from 'rxjs/internal/observable/throwError';
 import { Observable } from 'rxjs/internal/Observable';
-import { catchError } from 'rxjs/internal/operators/catchError';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 
 
@@ -25,16 +23,12 @@ export class HeaderService {
 
   getUserDetails(userName: string) {
       const endpoint = `${this.url}${apiEndpoints.getUserDetails}?userName=${userName}`;
-      return this.httpClient.get(endpoint).pipe(
-      catchError(this.errorHandler.bind(this))
-    );
+      return this.httpClient.get(endpoint);
   }
   
   validateOldPassword(userName: string, oldPassword: string) {
     const endpoint = `${this.url}${apiEndpoints.validateOldPassword}?userName=${userName}&oldPassword=${oldPassword}`;
-    return this.httpClient.get(endpoint).pipe(
-      catchError(this.errorHandler.bind(this))
-    );
+    return this.httpClient.get(endpoint);
   }
 
   /**
@@ -45,9 +39,7 @@ export class HeaderService {
    */
   getProfileImage(userName: string): Observable<Blob> {
     const endpoint = `${this.url}${apiEndpoints.profileImage}?userName=${userName}`;
-    return this.httpClient.get(endpoint, { responseType: 'blob' }).pipe(
-      catchError(this.errorHandler.bind(this))
-    );
+    return this.httpClient.get(endpoint, { responseType: 'blob' });
   }
   uploadProfilePhoto(userName: string, file: File) {
     const endpoint = `${this.url}${apiEndpoints.uploadProfileImage}`;
@@ -80,33 +72,30 @@ export class HeaderService {
       return this.httpClient.post<{ success: boolean; message: string }>(
         endpoint,
         { id, userId, channel, email, contactPhone }
-      ).pipe(catchError(this.errorHandler.bind(this)));
+      );
     }
 
     /**
-     * Verifies a profile-update OTP.
+     * Verifies a profile-update OTP (email/phone) or TOTP code (authenticator app).
+     * authType: 1=Mobile, 2=Email, 3=AuthenticationApp
      * Returns { success, message } only — no JWT issued.
      */
-    verifyProfileOtp(userId: string, code: string): Observable<{ success: boolean; message: string }> {
+    verifyProfileOtp(userId: string, code: string, authType: number = 1): Observable<{ success: boolean; message: string }> {
       const endpoint = `${this.url}${apiEndpoints.verifyProfileOtp}`;
       return this.httpClient.post<{ success: boolean; message: string }>(
         endpoint,
-        { userId, code }
-      ).pipe(catchError(this.errorHandler.bind(this)));
+        { userId, code, authType }
+      );
     }
 
     updateUserEmail(userName: string, email: string) {
       const endpoint = `${this.url}${apiEndpoints.updateUserEmail}`;
-      return this.httpClient.put(endpoint, { userName, email }).pipe(
-        catchError(this.errorHandler.bind(this))
-      );
+      return this.httpClient.put(endpoint, { userName, email });
     }
 
     updateUserPhone(userName: string, contactPhone: string) {
       const endpoint = `${this.url}${apiEndpoints.updateUserPhone}`;
-      return this.httpClient.put(endpoint, { userName, contactPhone }).pipe(
-        catchError(this.errorHandler.bind(this))
-      );
+      return this.httpClient.put(endpoint, { userName, contactPhone });
     }
 
     getMFAStatus(userName: string): Observable<{
@@ -125,23 +114,17 @@ export class HeaderService {
         accountName?: string;
         deviceName?:  string;
         configuredAt?: string;
-      }>(endpoint).pipe(
-        catchError(this.errorHandler.bind(this))
-      );
+      }>(endpoint);
     }
 
     setupMFA(userName: string): Observable<{ qrCodeImageBase64: string; qrCodeUri: string; manualEntryKey: string; issuer: string }> {
       const endpoint = `${this.mfaUrl}${apiEndpoints.setupMFA}?userName=${encodeURIComponent(userName)}`;
-      return this.httpClient.post<{ qrCodeImageBase64: string; qrCodeUri: string; manualEntryKey: string; issuer: string }>(endpoint, { userName }).pipe(
-        catchError(this.errorHandler.bind(this))
-      );
+      return this.httpClient.post<{ qrCodeImageBase64: string; qrCodeUri: string; manualEntryKey: string; issuer: string }>(endpoint, { userName });
     }
 
     verifyMFA(userName: string, code: string, deviceName?: string): Observable<{ success: boolean; message?: string }> {
       const endpoint = `${this.mfaUrl}${apiEndpoints.confirmMfaSetup}`;
-      return this.httpClient.post<{ success: boolean; message?: string }>(endpoint, { userId: userName, TotpCode: code, deviceName }).pipe(
-        catchError(this.errorHandler.bind(this))
-      );
+      return this.httpClient.post<{ success: boolean; message?: string }>(endpoint, { userId: userName, TotpCode: code, deviceName });
     }
 
     disableMFA(userName: string, totpCode: string): Observable<{ success: boolean; message?: string }> {
@@ -149,10 +132,7 @@ export class HeaderService {
       return this.httpClient.post<{ success: boolean; message?: string }>(
         endpoint,
         { UserId: userName, TotpCode: totpCode }
-      ).pipe(catchError(this.errorHandler.bind(this)));
+      );
     }
 
-    private errorHandler(error: HttpErrorResponse): Observable<never> {
-    return throwError(() => error.message || 'Server Error');
-  }
 }

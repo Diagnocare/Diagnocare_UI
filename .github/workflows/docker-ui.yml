@@ -1,0 +1,71 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Build & push the Diagnocare UI Docker image.
+#
+# Runs only when UI files change (see `paths` filter) so API-only commits don't
+# rebuild the UI. Pushes to GitHub Container Registry (ghcr.io) — no extra
+# secrets needed; GITHUB_TOKEN is provided automatically.
+#
+# Image:  ghcr.io/<owner>/<repo>-ui
+# ──────────────────────────────────────────────────────────────────────────────
+name: Docker - UI
+
+on:
+  push:
+    branches: [master_UI]
+    paths:
+      - "Diagnocare-UI/**"
+      - ".github/workflows/docker-ui.yml"
+  pull_request:
+    paths:
+      - "Diagnocare-UI/**"
+      - ".github/workflows/docker-ui.yml"
+  workflow_dispatch: {}      # allow manual runs from the Actions tab
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-ui
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write        # required to push to ghcr.io
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Only log in / push on non-PR events (PRs from forks can't access secrets).
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master_UI' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Diagnocare-UI
+          file: ./Diagnocare-UI/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

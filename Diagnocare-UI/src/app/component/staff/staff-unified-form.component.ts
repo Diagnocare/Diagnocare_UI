@@ -4,12 +4,17 @@ import {
   ReactiveFormsModule, FormBuilder, FormGroup, AbstractControl,
   FormControl, Validators, ValidatorFn
 } from '@angular/forms';
+import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
+import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { switchMap } from 'rxjs/operators';
 import { of, Observable } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 
 import { MemberService }      from 'src/app/services/memberService/member.service';
 import { CommonService }      from 'src/app/shared/common.service';
+import { AppValidators }       from 'src/app/shared/validators/app-validators';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -18,6 +23,7 @@ import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.comp
 
 import { Role } from 'src/app/constant/enums';
 import { MemberDto } from 'src/app/models/member/member.dto';
+import { isMemberActive } from 'src/app/shared/member-utils';
 
 export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
 
@@ -28,7 +34,8 @@ export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule,
-    LoadingSpinnerComponent, ConfirmModalComponent, SignaturePreviewModalComponent, DatePickerComponent
+    LoadingSpinnerComponent, ConfirmModalComponent, SignaturePreviewModalComponent, DatePickerComponent,
+    FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective,
   ]
 })
 export class StaffUnifiedFormComponent implements OnInit {
@@ -41,6 +48,15 @@ export class StaffUnifiedFormComponent implements OnInit {
   loadingMsg = '';
 
   form!: FormGroup;
+  submitted = false;
+
+  /** Tab order varies by form type — user has contactPhone/typeUserId, doctor has qualification/position. */
+  get tabFields(): string[] {
+    const common = ['user_Name', 'first_Name', 'last_Name', 'effectiveFrom', 'deactivatedAt'];
+    if (this.formType === 'user')           return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'typeUserId', 'effectiveFrom', 'deactivatedAt'];
+    if (this.formType === 'doctor')         return ['user_Name', 'first_Name', 'last_Name', 'qualification', 'position', 'effectiveFrom', 'deactivatedAt'];
+    return common; // collection-boy
+  }
 
   /** Role options shown in the User type selector */
   userRoleOptions = [
@@ -63,6 +79,7 @@ export class StaffUnifiedFormComponent implements OnInit {
   private confirmModal = inject(ConfirmModalService);
   private route        = inject(ActivatedRoute);
   private router       = inject(Router);
+  private toastr       = inject(ToastrService);
 
   // ── Init ───────────────────────────────────────────────────────────────────
 
@@ -95,10 +112,10 @@ export class StaffUnifiedFormComponent implements OnInit {
             updateOn: 'blur'
           }
         ),
-        first_Name:    ['', [Validators.required, Validators.pattern('^[a-zA-Z]*$')]],
-        last_Name:     ['', [Validators.required, Validators.pattern('^[a-zA-Z]*$')]],
+        first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
+        last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
         email:         ['', [Validators.required, Validators.email]],
-        contactPhone:  ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+        contactPhone:  ['', [Validators.required, AppValidators.contactNumber()]],
         typeUserId:    ['', Validators.required],
         effectiveFrom: [null, Validators.required],
         deactivatedAt: [null],
@@ -117,8 +134,8 @@ export class StaffUnifiedFormComponent implements OnInit {
             updateOn: 'blur'
           }
         ),
-        first_Name:    ['', [Validators.required, Validators.pattern('^[a-zA-Z ]*$')]],
-        last_Name:     ['', [Validators.required, Validators.pattern('^[a-zA-Z ]*$')]],
+        first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
+        last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
         qualification:  ['', isDoctor ? Validators.required : []],
         position:       ['', isDoctor ? Validators.required : []],
         signature:      [''],
@@ -182,6 +199,20 @@ export class StaffUnifiedFormComponent implements OnInit {
 
     this.memberService.getById(id).subscribe({
       next: (data) => {
+        // A deactivated member is read-only. The list hides Edit for them, but the
+        // route is still reachable by URL or a stale tab, and the API refuses the
+        // save with a 409 — so turn it back here rather than let someone fill in a
+        // form that cannot be submitted.
+        if (!isMemberActive(data)) {
+          this.isLoading = false;
+          this.toastr.error(
+            'This member is deactivated. Reactivate them from the staff list before editing.',
+            'Not editable'
+          );
+          this.goBack();
+          return;
+        }
+
         this.form.patchValue({
           ...data,
           signature:     data.signatureImage || data.signatureBase64 || '',
@@ -207,6 +238,7 @@ export class StaffUnifiedFormComponent implements OnInit {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   onSubmit(): void {
+    this.submitted = true;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -334,6 +366,6 @@ export class StaffUnifiedFormComponent implements OnInit {
 
   isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);
-    return !!(ctrl?.invalid && ctrl?.touched);
+    return !!(ctrl?.invalid && (ctrl?.touched || this.submitted));
   }
 }

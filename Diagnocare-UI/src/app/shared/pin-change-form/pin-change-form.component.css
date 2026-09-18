@@ -1,0 +1,192 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Shared PIN change form
+   Styles mirror the account-page convention (Settings) so the fields, labels
+   and buttons look identical everywhere this form is used.
+══════════════════════════════════════════════════════════════════════════ */
+
+.pin-change-form { display: block; }
+
+/* Hint text above the form */
+.pin-form-hint {
+  font-size: 0.82em;
+  color: #475569;
+  margin-bottom: 0.85em;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+}
+
+/* ── PIN field rows (label + input aligned) ─────────────────────────────── */
+.pin-field-row {
+  display: grid;
+  grid-template-columns: 8em 1fr;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 0.75em;
+}
+.pin-field-row label {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.form-input {
+  width: 100%;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 0.45em;
+  padding: 0.5em 0.75em;
+  font-size: 0.9em;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1e293b;
+}
+.form-input:focus {
+  border-color: #1e5ba8;
+  box-shadow: 0 0 0 2px rgba(30, 91, 168, 0.12);
+}
+
+.pin-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pin-input-group .form-input {
+  padding-right: 2.5em;
+  flex: 1;
+}
+
+.pin-eye-btn {
+  position: absolute;
+  right: 0.55em;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.9em;
+  cursor: pointer;
+  padding: 0.25em;
+  line-height: 1;
+}
+.pin-eye-btn:hover { color: #1e5ba8; }
+
+/* Forgot-PIN link — aligned under the input column */
+.pin-forgot-row {
+  display: grid;
+  grid-template-columns: 8em 1fr;
+  gap: 0.6em;
+  margin: -0.35em 0 0.75em;
+}
+.pin-forgot-row::before { content: ""; }
+.btn-link-sm {
+  justify-self: start;
+  background: none;
+  border: none;
+  color: #1e5ba8;
+  font-size: 0.85em;
+  cursor: pointer;
+  padding: 0.2em 0.4em;
+  border-radius: 0.35em;
+  transition: background 0.15s;
+}
+.btn-link-sm:hover { background: #eef2ff; }
+
+/* Match indicator */
+.pin-match-row { margin: -0.35em 0 0.6em; }
+.pin-match { font-size: 0.8em; display: inline-flex; align-items: center; gap: 0.3em; }
+.pin-match--ok  { color: #16a34a; }
+.pin-match--err { color: #dc2626; }
+
+/* Feedback messages */
+.msg {
+  font-size: 0.85em;
+  margin-top: 0.75em;
+  padding: 0.5em 0.75em;
+  border-radius: 0.45em;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+}
+.msg-error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* Actions */
+.action-row {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.75em;
+}
+.btn-save {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  color: #fff;
+  border: none;
+  border-radius: 0.45em;
+  padding: 0.45em 1em;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: filter 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+.btn-save:hover:not(:disabled) { filter: brightness(1.07); }
+.btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.45em;
+  padding: 0.45em 1em;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+.btn-cancel:hover:not(:disabled) { background: #e2e8f0; }
+.btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THEME OVERRIDES (match the account pages across themes)
+══════════════════════════════════════════════════════════════════════════ */
+
+/* Dark */
+:host-context(html[data-theme="dark"]) .form-input        { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .form-input:focus  { border-color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .pin-field-row label { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .pin-form-hint     { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .pin-eye-btn       { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .btn-link-sm       { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .btn-link-sm:hover { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .btn-save          { background: linear-gradient(135deg, #166534, #15803d); }
+:host-context(html[data-theme="dark"]) .btn-cancel        { background: #1e293b; color: #94a3b8; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .msg-error         { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+
+/* Midnight */
+:host-context(html[data-theme="midnight"]) .form-input        { background: #0d1117; border-color: #21262d; color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .form-input:focus  { border-color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .pin-field-row label { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .pin-form-hint     { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .pin-eye-btn       { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .btn-link-sm       { color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .btn-link-sm:hover { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .btn-save          { background: linear-gradient(135deg, #064e3b, #065f46); }
+:host-context(html[data-theme="midnight"]) .btn-cancel        { background: #0d1117; color: #a6adc8; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .msg-error         { background: #200e0e; color: #f87171; border-color: #6b1111; }
+
+/* Warm */
+:host-context(html[data-theme="warm"]) .btn-link-sm       { color: #9c5a28; }
+:host-context(html[data-theme="warm"]) .btn-link-sm:hover { background: #f5ede0; }
+:host-context(html[data-theme="warm"]) .btn-save          { background: linear-gradient(135deg, #4a7c3f, #5a9e4f); }
+:host-context(html[data-theme="warm"]) .btn-cancel        { background: #fdf8f0; color: #7a5c4e; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .msg-error         { background: #fdf0ee; color: #c0392b; border-color: #e8a09a; }
+
+/* System (OS dark) */
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .form-input        { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .pin-field-row label { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .pin-eye-btn       { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .btn-cancel        { background: #1e293b; color: #94a3b8; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .msg-error         { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+}

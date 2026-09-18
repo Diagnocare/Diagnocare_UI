@@ -10,6 +10,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
   <script src="assets/runtime-config.js"></script>
+  <!-- Apply saved theme before Angular bootstraps to prevent flash of light theme -->
+  <script>
+    (function () {
+      try {
+        var valid = ['light', 'dark', 'midnight', 'warm', 'system'];
+        var theme = null;
+        // Primary: user-specific key (requires a live token in sessionStorage)
+        var token = sessionStorage.getItem('authToken');
+        if (token) {
+          var parts = token.split('.');
+          if (parts.length >= 2) {
+            var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            var username = payload && payload.sub;
+            if (username) {
+              theme = localStorage.getItem('diagnocare_theme_' + username);
+            }
+          }
+        }
+        // Fallback: last-applied theme written by ThemeService.apply()
+        // Covers the case where the token was already cleared before the full
+        // page reload (e.g. logout flow: clearAuth() → window.location.href = '/').
+        if (!theme || valid.indexOf(theme) === -1) {
+          theme = localStorage.getItem('diagnocare_theme_last');
+        }
+        if (valid.indexOf(theme) !== -1) {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      } catch (e) { /* silently ignore — Angular will apply the theme after bootstrap */ }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

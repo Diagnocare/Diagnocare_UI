@@ -147,12 +147,11 @@
 
     <!-- Actions -->
     <div class="tdm-actions">
-      <button type="button" class="tdm-btn tdm-btn--cancel" (click)="cancel()">
+      <button type="button" class="dc-btn dc-btn--cancel" (click)="cancel()">
         <i class="fa fa-times"></i> {{ readOnly ? 'Close' : 'Cancel' }}
       </button>
-      <button *ngIf="!readOnly" type="submit" class="tdm-btn tdm-btn--save"
-              [disabled]="initialValues !== null && !hasChanges"
-              [class.tdm-btn--disabled]="initialValues !== null && !hasChanges">
+      <button *ngIf="!readOnly" type="submit" class="dc-btn dc-btn--save"
+              [disabled]="initialValues !== null && !hasChanges">
         <i class="fa fa-check"></i>
         {{ initialValues !== null ? 'Save Changes' : 'Confirm TPA Details' }}
       </button>

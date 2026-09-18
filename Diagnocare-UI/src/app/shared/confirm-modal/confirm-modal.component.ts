@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ConfirmModalService, ConfirmOptions } from './confirm-modal.service';
 
@@ -7,7 +8,7 @@ import { ConfirmModalService, ConfirmOptions } from './confirm-modal.service';
   selector: 'app-confirm-modal',
   templateUrl: './confirm-modal.component.html',
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule]
 })
 export class ConfirmModalComponent implements OnInit, OnDestroy {
   title = 'Confirm';
@@ -15,32 +16,73 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
   confirmText = 'Confirm';
   cancelText = 'Cancel';
   hideCancelButton = false;
+  isLoading = false;
 
+  // Reason input
+  showReasonInput = false;
+  reasonLabel = 'Reason';
+  reasonPlaceholder = '';
+  reasonRequired = false;
+  reasonValue = '';
+
+  private showLoadingOnConfirm = false;
   private modal: any;
-  private sub!: Subscription;
+  private subs: Subscription[] = [];
 
   constructor(private confirmModalService: ConfirmModalService) {}
 
   ngOnInit(): void {
-    this.sub = this.confirmModalService.open$.subscribe((options: ConfirmOptions) => {
-      this.title = options.title ?? 'Confirm';
-      this.message = options.message;
-      this.confirmText = options.confirmText ?? 'Confirm';
-      this.cancelText = options.cancelText ?? 'Cancel';
-      this.hideCancelButton = options.hideCancelButton ?? false;
-      this.modal = new (window as any).bootstrap.Modal(document.getElementById('confirmModal')!, { backdrop: 'static' });
-      this.modal.show();
-    });
+    this.subs.push(
+      this.confirmModalService.open$.subscribe((options: ConfirmOptions) => {
+        this.title = options.title ?? 'Confirm';
+        this.message = options.message;
+        this.confirmText = options.confirmText ?? 'Confirm';
+        this.cancelText = options.cancelText ?? 'Cancel';
+        this.hideCancelButton = options.hideCancelButton ?? false;
+        this.showLoadingOnConfirm = options.showLoadingOnConfirm ?? false;
+        this.showReasonInput = options.showReasonInput ?? false;
+        this.reasonLabel = options.reasonLabel ?? 'Reason';
+        this.reasonPlaceholder = options.reasonPlaceholder ?? '';
+        this.reasonRequired = options.reasonRequired ?? false;
+        this.reasonValue = '';
+        this.isLoading = false;
+        this.modal = new (window as any).bootstrap.Modal(document.getElementById('confirmModal')!, { backdrop: 'static' });
+        this.modal.show();
+      }),
+
+      this.confirmModalService.loading$.subscribe(loading => {
+        this.isLoading = loading;
+      }),
+
+      this.confirmModalService.dismiss$.subscribe(() => {
+        this.hideModal();
+      })
+    );
+  }
+
+  /** True when the reason field is required but still empty. */
+  get isReasonMissing(): boolean {
+    return this.showReasonInput && this.reasonRequired && !this.reasonValue.trim();
   }
 
   onConfirm(): void {
-    this.hideModal();
-    this.confirmModalService.resolve(true);
+    if (this.isReasonMissing) {
+      return; // guard: required reason not provided
+    }
+    const reason = this.reasonValue.trim();
+    if (this.showLoadingOnConfirm) {
+      // Resolve immediately so the caller's subscribe fires and can call setLoading(true),
+      // but keep the modal open — caller must call dismiss() when done.
+      this.confirmModalService.resolve(true, reason);
+    } else {
+      this.hideModal();
+      this.confirmModalService.resolve(true, reason);
+    }
   }
 
   onCancel(): void {
     this.hideModal();
-    this.confirmModalService.resolve(false);
+    this.confirmModalService.resolve(false, '');
   }
 
   private hideModal(): void {
@@ -53,6 +95,6 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.sub?.unsubscribe();
+    this.subs.forEach(s => s.unsubscribe());
   }
 }

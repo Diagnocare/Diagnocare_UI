@@ -1,37 +1,32 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { of, race, timer } from 'rxjs';
-import { catchError, map, take } from 'rxjs/operators';
-import { LoginService } from 'src/app/services/loginServices/login.service';
+import { race, timer } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 import { TokenService } from '../interceptors/token.service';
 
 export const authGuard: CanActivateFn = (_route, state) => {
-  const tokenSvc  = inject(TokenService);
-  const loginSvc  = inject(LoginService);
-  const router    = inject(Router);
+  const tokenSvc = inject(TokenService);
+  const router   = inject(Router);
 
-  // Token is valid — let through immediately
-  if (tokenSvc.hasToken() && !tokenSvc.isTokenExpired()) {
-    return true;
-  }
-
-  // Force-change-password flow: user has a restricted token that may not pass
-  // isTokenExpired() or a refresh. As long as a token exists, allow navigation
-  // so the user can reach the change-password page.
-  const url = state.url;
-  if (tokenSvc.hasToken() && url.includes('change-password') && url.includes('forceChange=true')) {
-    return true;
-  }
-
-  // Token is expired but still present — try a silent refresh
+  // Token present (valid OR expired) — let through unconditionally.
+  //
+  // We intentionally do NOT attempt a silent refresh here even when the token
+  // is expired.  LoginService.refreshToken() uses Angular's HttpBackend
+  // (raw HTTP, zero interceptors), so calling it from the guard would bypass
+  // the auth interceptor's PIN gate entirely — the token would be silently
+  // refreshed without ever showing the PIN modal, defeating the whole
+  // session-expiry security model.
+  //
+  // The correct flow for an expired token is:
+  //   1. Guard returns true  → route activates, page renders.
+  //   2. Page makes its first API call  → auth interceptor detects expiry.
+  //   3. Interceptor calls pinGatedRefresh()  → PIN modal shown.
+  //   4. User enters PIN  → interceptor refreshes token and retries the call.
+  //
+  // Force-change-password restricted tokens are also covered: a token exists,
+  // so this branch returns true and the change-password page can load normally.
   if (tokenSvc.hasToken()) {
-    return loginSvc.refreshToken().pipe(
-      map(() => true),
-      catchError(() => {
-        tokenSvc.clearAuth();
-        return of(router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } }));
-      })
-    );
+    return true;
   }
 
   // ── No token ──────────────────────────────────────────────────────────────

@@ -33,11 +33,11 @@
           <div class="avatar-actions">
             <input type="file" accept="image/*" (change)="onProfilePicChange($event)"
                    style="display:none;" #fileInput>
-            <button class="btn btn-outline-secondary btn-sm" (click)="fileInput.click()">
-              <i class="fas fa-camera me-1"></i>Change Photo
+            <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="fileInput.click()">
+              <i class="fas fa-camera"></i>Change Photo
             </button>
-            <button *ngIf="previewAvailable" class="btn btn-primary btn-sm" (click)="saveProfilePic()">
-              <i class="fas fa-save me-1"></i>Save
+            <button *ngIf="previewAvailable" class="dc-btn dc-btn--save dc-btn--sm" (click)="saveProfilePic()">
+              <i class="fas fa-save"></i>Save
             </button>
           </div>
 
@@ -84,43 +84,84 @@
               </div>
 
               <div *ngIf="editField === 'email'">
-                <div *ngIf="editStep === 'input'">
-                  <div class="input-group mb-2">
-                    <input type="email" class="form-control" placeholder="Enter new email"
-                           [(ngModel)]="newEmail" name="newEmail">
-                    <button class="btn btn-primary" (click)="sendOtp()" [disabled]="otpSending">
-                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
-                      Send OTP
+
+                <!-- Step 1: Enter new email -->
+                <div *ngIf="editStep === 'input'" class="prof-otp-step">
+                  <div class="prof-input-row">
+                    <div class="prof-input-wrap">
+                      <i class="fas fa-envelope prof-input-icon"></i>
+                      <input type="email" class="form-control prof-input"
+                             placeholder="Enter new email address"
+                             [(ngModel)]="newEmail" name="newEmail">
+                    </div>
+                    <button class="prof-send-btn" (click)="sendOtp()" [disabled]="otpSending">
+                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm"></span>
+                      <i *ngIf="!otpSending" class="fas fa-paper-plane"></i>
+                      {{ otpSending ? 'Sending…' : 'Send OTP' }}
                     </button>
-                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
                   </div>
-                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+                  <button class="prof-cancel-link" (click)="cancelEdit()">
+                    <i class="fas fa-times"></i> Cancel
+                  </button>
+                  <div *ngIf="errorMsg" class="msg msg-error mt-1">{{ errorMsg }}</div>
                 </div>
 
-                <div *ngIf="editStep === 'otp'">
-                  <p class="otp-hint">
-                    <i class="fas fa-info-circle me-1"></i>OTP sent to <strong>{{ newEmail }}</strong>
-                  </p>
-                  <div class="input-group mb-2">
-                    <input type="text" class="form-control" placeholder="6-digit OTP"
-                           maxlength="6" [(ngModel)]="otpCode" name="otpCodeEmail">
-                    <button class="btn btn-success" (click)="verifyAndSave()" [disabled]="otpVerifying || saving">
-                      <span *ngIf="otpVerifying || saving" class="spinner-border spinner-border-sm me-1"></span>
-                      Verify & Save
-                    </button>
-                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                <!-- Step 2: Enter OTP -->
+                <div *ngIf="editStep === 'otp'" class="prof-otp-step">
+                  <div class="prof-otp-sent-badge">
+                    <i class="fas fa-check-circle"></i>
+                    OTP sent to <strong>{{ newEmail }}</strong>
                   </div>
-                  <div class="otp-links">
-                    <button class="btn btn-link btn-sm p-0" (click)="resendOtp()"
-                            [disabled]="resendCountdown > 0 || otpSending">
-                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
-                      {{ resendCountdown > 0 ? 'Resend in ' + resendCountdown + 's' : 'Resend OTP' }}
-                    </button>
-                    <button class="btn btn-link btn-sm p-0 text-secondary"
-                            (click)="editStep = 'input'; otpCode = ''; errorMsg = ''">Change email</button>
+
+                  <!-- 6-box OTP input -->
+                  <div class="prof-otp-boxes" (paste)="onOtpDigitPaste($event)">
+                    <input *ngFor="let d of otpDigits; let i = index"
+                           class="prof-otp-box" type="text" inputmode="numeric"
+                           maxlength="1" [value]="d"
+                           (input)="onOtpDigitInput(i, $event)"
+                           (keydown)="onOtpDigitKeydown(i, $event)"
+                           autocomplete="one-time-code">
                   </div>
-                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+
+                  <!-- Verify button -->
+                  <button class="prof-verify-btn" (click)="verifyAndSave()"
+                          [disabled]="otpVerifying || saving || otpCode.length < 6">
+                    <span *ngIf="otpVerifying || saving" class="spinner-border spinner-border-sm"></span>
+                    <i *ngIf="!otpVerifying && !saving" class="fas fa-check-circle"></i>
+                    {{ (otpVerifying || saving) ? 'Verifying…' : 'Verify & Save' }}
+                  </button>
+
+                  <!-- Resend + back row -->
+                  <div class="prof-otp-actions">
+                    <!-- Circular resend countdown -->
+                    <button class="prof-resend-btn" (click)="resendOtp()"
+                            [disabled]="resendCountdown > 0 || otpSending"
+                            [class.prof-resend-active]="resendCountdown === 0 && !otpSending">
+                      <span *ngIf="resendCountdown > 0" class="prof-resend-circle-wrap">
+                        <svg class="prof-resend-svg" viewBox="0 0 36 36">
+                          <circle class="prof-resend-track" cx="18" cy="18" r="15.915"/>
+                          <circle class="prof-resend-progress"
+                                  cx="18" cy="18" r="15.915"
+                                  [style.stroke-dashoffset]="resendCircleOffset"/>
+                        </svg>
+                        <span class="prof-resend-count">{{ resendCountdown }}</span>
+                      </span>
+                      <span *ngIf="resendCountdown === 0">
+                        <i class="fas fa-redo-alt"></i>
+                      </span>
+                      {{ resendCountdown > 0 ? 'Resend OTP' : (otpSending ? 'Sending…' : 'Resend OTP') }}
+                    </button>
+                    <span class="prof-action-sep">|</span>
+                    <button class="prof-back-link" (click)="goBackToInput()">
+                      <i class="fas fa-arrow-left"></i> Change email
+                    </button>
+                    <span class="prof-action-sep">|</span>
+                    <button class="prof-cancel-link" (click)="cancelEdit()">Cancel</button>
+                  </div>
+
+                  <div *ngIf="errorMsg" class="msg msg-error mt-1">{{ errorMsg }}</div>
                 </div>
+
               </div>
 
             </div>
@@ -139,43 +180,83 @@
               </div>
 
               <div *ngIf="editField === 'phone'">
-                <div *ngIf="editStep === 'input'">
-                  <div class="input-group mb-2">
-                    <input type="tel" class="form-control" placeholder="Enter 10-digit phone number"
-                           maxlength="10" [(ngModel)]="newPhone" name="newPhone">
-                    <button class="btn btn-primary" (click)="sendOtp()" [disabled]="otpSending">
-                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
-                      Send OTP
+
+                <!-- Step 1: Enter new phone -->
+                <div *ngIf="editStep === 'input'" class="prof-otp-step">
+                  <div class="prof-input-row">
+                    <div class="prof-input-wrap">
+                      <i class="fas fa-phone prof-input-icon"></i>
+                      <input type="tel" class="form-control prof-input"
+                             placeholder="Enter 10-digit phone number"
+                             maxlength="10" inputmode="numeric" appNumericOnly [(ngModel)]="newPhone" name="newPhone">
+                    </div>
+                    <button class="prof-send-btn" (click)="sendOtp()" [disabled]="otpSending">
+                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm"></span>
+                      <i *ngIf="!otpSending" class="fas fa-paper-plane"></i>
+                      {{ otpSending ? 'Sending…' : 'Send OTP' }}
                     </button>
-                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
                   </div>
-                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+                  <button class="prof-cancel-link" (click)="cancelEdit()">
+                    <i class="fas fa-times"></i> Cancel
+                  </button>
+                  <div *ngIf="errorMsg" class="msg msg-error mt-1">{{ errorMsg }}</div>
                 </div>
 
-                <div *ngIf="editStep === 'otp'">
-                  <p class="otp-hint">
-                    <i class="fas fa-info-circle me-1"></i>OTP sent to <strong>{{ newPhone }}</strong>
-                  </p>
-                  <div class="input-group mb-2">
-                    <input type="text" class="form-control" placeholder="6-digit OTP"
-                           maxlength="6" [(ngModel)]="otpCode" name="otpCodePhone">
-                    <button class="btn btn-success" (click)="verifyAndSave()" [disabled]="otpVerifying || saving">
-                      <span *ngIf="otpVerifying || saving" class="spinner-border spinner-border-sm me-1"></span>
-                      Verify & Save
-                    </button>
-                    <button class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                <!-- Step 2: Enter OTP -->
+                <div *ngIf="editStep === 'otp'" class="prof-otp-step">
+                  <div class="prof-otp-sent-badge">
+                    <i class="fas fa-check-circle"></i>
+                    OTP sent to <strong>{{ newPhone }}</strong>
                   </div>
-                  <div class="otp-links">
-                    <button class="btn btn-link btn-sm p-0" (click)="resendOtp()"
-                            [disabled]="resendCountdown > 0 || otpSending">
-                      <span *ngIf="otpSending" class="spinner-border spinner-border-sm me-1"></span>
-                      {{ resendCountdown > 0 ? 'Resend in ' + resendCountdown + 's' : 'Resend OTP' }}
-                    </button>
-                    <button class="btn btn-link btn-sm p-0 text-secondary"
-                            (click)="editStep = 'input'; otpCode = ''; errorMsg = ''">Change number</button>
+
+                  <!-- 6-box OTP input -->
+                  <div class="prof-otp-boxes" (paste)="onOtpDigitPaste($event)">
+                    <input *ngFor="let d of otpDigits; let i = index"
+                           class="prof-otp-box" type="text" inputmode="numeric"
+                           maxlength="1" [value]="d"
+                           (input)="onOtpDigitInput(i, $event)"
+                           (keydown)="onOtpDigitKeydown(i, $event)"
+                           autocomplete="one-time-code">
                   </div>
-                  <div *ngIf="errorMsg" class="msg msg-error">{{ errorMsg }}</div>
+
+                  <!-- Verify button -->
+                  <button class="prof-verify-btn" (click)="verifyAndSave()"
+                          [disabled]="otpVerifying || saving || otpCode.length < 6">
+                    <span *ngIf="otpVerifying || saving" class="spinner-border spinner-border-sm"></span>
+                    <i *ngIf="!otpVerifying && !saving" class="fas fa-check-circle"></i>
+                    {{ (otpVerifying || saving) ? 'Verifying…' : 'Verify & Save' }}
+                  </button>
+
+                  <!-- Resend + back row -->
+                  <div class="prof-otp-actions">
+                    <button class="prof-resend-btn" (click)="resendOtp()"
+                            [disabled]="resendCountdown > 0 || otpSending"
+                            [class.prof-resend-active]="resendCountdown === 0 && !otpSending">
+                      <span *ngIf="resendCountdown > 0" class="prof-resend-circle-wrap">
+                        <svg class="prof-resend-svg" viewBox="0 0 36 36">
+                          <circle class="prof-resend-track" cx="18" cy="18" r="15.915"/>
+                          <circle class="prof-resend-progress"
+                                  cx="18" cy="18" r="15.915"
+                                  [style.stroke-dashoffset]="resendCircleOffset"/>
+                        </svg>
+                        <span class="prof-resend-count">{{ resendCountdown }}</span>
+                      </span>
+                      <span *ngIf="resendCountdown === 0">
+                        <i class="fas fa-redo-alt"></i>
+                      </span>
+                      {{ resendCountdown > 0 ? 'Resend OTP' : (otpSending ? 'Sending…' : 'Resend OTP') }}
+                    </button>
+                    <span class="prof-action-sep">|</span>
+                    <button class="prof-back-link" (click)="goBackToInput()">
+                      <i class="fas fa-arrow-left"></i> Change number
+                    </button>
+                    <span class="prof-action-sep">|</span>
+                    <button class="prof-cancel-link" (click)="cancelEdit()">Cancel</button>
+                  </div>
+
+                  <div *ngIf="errorMsg" class="msg msg-error mt-1">{{ errorMsg }}</div>
                 </div>
+
               </div>
 
             </div>

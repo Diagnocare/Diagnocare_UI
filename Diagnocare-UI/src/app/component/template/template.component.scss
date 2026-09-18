@@ -483,3 +483,23 @@
   .preview-header-actions { width: 100%; justify-content: flex-end; }
   .preview-title { font-size: 0.95em; }
 }
+
+// ══ THEME OVERRIDES ══════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .download-dialog   { background: #1e293b !important; color: #e2e8f0 !important; }
+  .no-default-banner { background: #3b2a08 !important; border-color: #78500a !important; color: #fcd34d !important; }
+}
+:host-context(html[data-theme="midnight"]) {
+  .download-dialog   { background: #0d1117 !important; color: #cdd6f4 !important; }
+  .no-default-banner { background: #1c1205 !important; border-color: #4a3006 !important; color: #fcd34d !important; }
+}
+:host-context(html[data-theme="warm"]) {
+  .no-default-banner { background: #fef3c7 !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .download-dialog   { background: #1e293b !important; color: #e2e8f0 !important; }
+    .no-default-banner { background: #3b2a08 !important; border-color: #78500a !important; color: #fcd34d !important; }
+  }
+}

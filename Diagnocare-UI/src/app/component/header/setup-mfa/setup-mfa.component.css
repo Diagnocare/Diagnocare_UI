@@ -185,6 +185,26 @@
   box-shadow: 0 0 0 3px rgba(30,91,168,0.15);
 }
 
+/* ── OTP input + show/hide eye ─────────────────────── */
+.otp-input-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.otp-eye-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1.05em;
+  padding: 0.3em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.otp-eye-btn:hover { color: #1e5ba8; }
+
 .verify-hint {
   font-size: 0.88em;
   color: #475569;
@@ -316,3 +336,148 @@
   color: #64748b;
 }
 .hint-text i { margin-right: 0.3em; }
+
+/* ══════════════════════════════════════════════════════
+   THEME OVERRIDES  (:host-context beats [_ngcontent] scope)
+══════════════════════════════════════════════════════ */
+
+/* ── Dark ─────────────────────────── */
+:host-context(html[data-theme="dark"]) .status-ok            { background: rgba(34,197,94,0.13); border-color: rgba(34,197,94,0.4); border-left: 3px solid #22c55e; color: #86efac; }
+:host-context(html[data-theme="dark"]) .info-item            { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .info-label           { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .info-label i         { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .info-value           { color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .device-chip          { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+:host-context(html[data-theme="dark"]) .step-list            { color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .qr-img               { border-color: #334155; background: #1e293b; }
+:host-context(html[data-theme="dark"]) .qr-label             { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .divider              { color: #475569; }
+:host-context(html[data-theme="dark"]) .divider::before,
+:host-context(html[data-theme="dark"]) .divider::after       { background: #334155; }
+:host-context(html[data-theme="dark"]) .key-row              { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .key-value            { color: #e2e8f0; }
+:host-context(html[data-theme="dark"]) .key-btn              { border-color: #334155; color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .key-btn:hover        { background: #1e3a5f; color: #5b9cf6; border-color: #3b82f6; }
+:host-context(html[data-theme="dark"]) .key-hint             { color: #64748b; }
+:host-context(html[data-theme="dark"]) .otp-input            { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .otp-input:focus      { border-color: #5b9cf6; box-shadow: 0 0 0 3px rgba(91,156,246,0.15); }
+:host-context(html[data-theme="dark"]) .otp-eye-btn          { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .otp-eye-btn:hover    { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .verify-hint          { color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .btn-cancel           { background: #1e293b; color: #94a3b8; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .btn-cancel:hover     { background: #273548; }
+:host-context(html[data-theme="dark"]) .btn-danger           { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+:host-context(html[data-theme="dark"]) .btn-danger:hover     { background: #3b1c1c; }
+:host-context(html[data-theme="dark"]) .device-name-block    { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .device-label         { color: #cbd5e1; }
+:host-context(html[data-theme="dark"]) .device-label i       { color: #5b9cf6; }
+:host-context(html[data-theme="dark"]) .optional-badge       { color: #64748b; background: #1e293b; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .device-input         { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .device-input:focus   { border-color: #5b9cf6; box-shadow: 0 0 0 2px rgba(91,156,246,0.15); }
+:host-context(html[data-theme="dark"]) .device-hint          { color: #64748b; }
+:host-context(html[data-theme="dark"]) .hint-text            { color: #94a3b8; }
+
+/* ── Midnight ─────────────────────── */
+:host-context(html[data-theme="midnight"]) .status-ok            { background: rgba(45,212,140,0.1); border-color: rgba(45,212,140,0.34); border-left: 3px solid #16a34a; color: #6ee7b7; }
+:host-context(html[data-theme="midnight"]) .info-item            { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .info-label           { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .info-label i         { color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .info-value           { color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .device-chip          { background: #11162a; border-color: #1e3a8a; color: #93c5fd; }
+:host-context(html[data-theme="midnight"]) .step-list            { color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .qr-img               { border-color: #21262d; background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .qr-label             { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .divider              { color: #30363d; }
+:host-context(html[data-theme="midnight"]) .divider::before,
+:host-context(html[data-theme="midnight"]) .divider::after       { background: #21262d; }
+:host-context(html[data-theme="midnight"]) .key-row              { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .key-value            { color: #cdd6f4; }
+:host-context(html[data-theme="midnight"]) .key-btn              { border-color: #21262d; color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .key-btn:hover        { background: #11162a; color: #4d9ef0; border-color: #1e3a8a; }
+:host-context(html[data-theme="midnight"]) .key-hint             { color: #484f58; }
+:host-context(html[data-theme="midnight"]) .otp-input            { background: #0d1117; color: #cdd6f4; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .otp-input:focus      { border-color: #4d9ef0; box-shadow: 0 0 0 3px rgba(77,158,240,0.15); }
+:host-context(html[data-theme="midnight"]) .otp-eye-btn          { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .otp-eye-btn:hover    { color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .verify-hint          { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .btn-cancel           { background: #0d1117; color: #a6adc8; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .btn-cancel:hover     { background: #161b22; }
+:host-context(html[data-theme="midnight"]) .btn-danger           { background: #200e0e; color: #f87171; border-color: #6b1111; }
+:host-context(html[data-theme="midnight"]) .btn-danger:hover     { background: #2d1515; }
+:host-context(html[data-theme="midnight"]) .device-name-block    { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .device-label         { color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .device-label i       { color: #4d9ef0; }
+:host-context(html[data-theme="midnight"]) .optional-badge       { color: #484f58; background: #0d1117; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .device-input         { background: #0d1117; color: #cdd6f4; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .device-input:focus   { border-color: #4d9ef0; box-shadow: 0 0 0 2px rgba(77,158,240,0.15); }
+:host-context(html[data-theme="midnight"]) .device-hint          { color: #484f58; }
+:host-context(html[data-theme="midnight"]) .hint-text            { color: #a6adc8; }
+
+/* ── Warm ─────────────────────────── */
+:host-context(html[data-theme="warm"]) .status-ok            { background: #f0fdf4; border-color: #a5d6a7; color: #2e7d32; }
+:host-context(html[data-theme="warm"]) .info-item            { background: #fef9f0; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .info-label           { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .info-label i         { color: #9c5a28; }
+:host-context(html[data-theme="warm"]) .info-value           { color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .device-chip          { background: #fef3e2; border-color: #c47028; color: #7c4a18; }
+:host-context(html[data-theme="warm"]) .step-list            { color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .qr-img               { border-color: #ddc9a8; background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .qr-label             { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .divider              { color: #c9b090; }
+:host-context(html[data-theme="warm"]) .divider::before,
+:host-context(html[data-theme="warm"]) .divider::after       { background: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .key-row              { background: #fef9f0; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .key-value            { color: #3d2b1f; }
+:host-context(html[data-theme="warm"]) .key-btn              { border-color: #ddc9a8; color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .key-btn:hover        { background: #fef3e2; color: #9c5a28; border-color: #c47028; }
+:host-context(html[data-theme="warm"]) .key-hint             { color: #c9b090; }
+:host-context(html[data-theme="warm"]) .otp-input            { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .otp-input:focus      { border-color: #c47028; box-shadow: 0 0 0 3px rgba(196,112,40,0.15); }
+:host-context(html[data-theme="warm"]) .otp-eye-btn          { color: #9e8272; }
+:host-context(html[data-theme="warm"]) .otp-eye-btn:hover    { color: #c47028; }
+:host-context(html[data-theme="warm"]) .verify-hint          { color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .btn-cancel           { background: #fef9f0; color: #7a5c4e; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .btn-cancel:hover     { background: #f5ede0; }
+:host-context(html[data-theme="warm"]) .btn-danger           { background: #fdf0ee; color: #c0392b; border-color: #e8a09a; }
+:host-context(html[data-theme="warm"]) .btn-danger:hover     { background: #fde5e3; }
+:host-context(html[data-theme="warm"]) .device-name-block    { background: #fef9f0; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .device-label         { color: #4a3728; }
+:host-context(html[data-theme="warm"]) .device-label i       { color: #9c5a28; }
+:host-context(html[data-theme="warm"]) .optional-badge       { color: #c9b090; background: #fef9f0; border-color: #e8d5b7; }
+:host-context(html[data-theme="warm"]) .device-input         { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .device-input:focus   { border-color: #c47028; box-shadow: 0 0 0 2px rgba(196,112,40,0.15); }
+:host-context(html[data-theme="warm"]) .device-hint          { color: #c9b090; }
+:host-context(html[data-theme="warm"]) .hint-text            { color: #7a5c4e; }
+
+/* ── System (OS dark) ─────────────── */
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .status-ok            { background: rgba(34,197,94,0.13); border-color: rgba(34,197,94,0.4); border-left: 3px solid #22c55e; color: #86efac; }
+  :host-context(html[data-theme="system"]) .info-item            { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .info-label           { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .info-label i         { color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .info-value           { color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .device-chip          { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  :host-context(html[data-theme="system"]) .step-list            { color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .qr-img               { border-color: #334155; background: #1e293b; }
+  :host-context(html[data-theme="system"]) .qr-label             { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .divider              { color: #475569; }
+  :host-context(html[data-theme="system"]) .divider::before,
+  :host-context(html[data-theme="system"]) .divider::after       { background: #334155; }
+  :host-context(html[data-theme="system"]) .key-row              { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .key-value            { color: #e2e8f0; }
+  :host-context(html[data-theme="system"]) .key-btn              { border-color: #334155; color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .key-btn:hover        { background: #1e3a5f; color: #5b9cf6; border-color: #3b82f6; }
+  :host-context(html[data-theme="system"]) .otp-input            { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .otp-input:focus      { border-color: #5b9cf6; box-shadow: 0 0 0 3px rgba(91,156,246,0.15); }
+  :host-context(html[data-theme="system"]) .otp-eye-btn          { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .otp-eye-btn:hover    { color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .verify-hint          { color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .btn-cancel           { background: #1e293b; color: #94a3b8; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .btn-danger           { background: #2d1515; color: #f87171; border-color: #7f1d1d; }
+  :host-context(html[data-theme="system"]) .device-name-block    { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .device-label         { color: #cbd5e1; }
+  :host-context(html[data-theme="system"]) .optional-badge       { color: #64748b; background: #1e293b; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .device-input         { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .device-input:focus   { border-color: #5b9cf6; }
+  :host-context(html[data-theme="system"]) .hint-text            { color: #94a3b8; }
+}

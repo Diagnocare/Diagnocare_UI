@@ -81,6 +81,45 @@ describe('TokenService', () => {
       service.clearAuth();
       expect(service.hasToken()).toBeFalse();
     });
+
+    it('removeToken does NOT clear cached pathology policy settings (survives logout)', () => {
+      service.setGraceBufferMinutes(15);
+      service.setMaxDiscountPercent(40);
+      service.setSessionLockoutMinutes(20);
+
+      service.removeToken();
+
+      expect(service.hasCachedPolicies()).toBeTrue();
+      expect(service.getGraceBufferMinutes()).toBe(15);
+      expect(service.getMaxDiscountPercent()).toBe(40);
+      expect(service.getSessionLockoutMinutes()).toBe(20);
+    });
+  });
+
+  // ── Pathology policy cache ──────────────────────────────────────────────────
+
+  describe('hasCachedPolicies', () => {
+    it('returns false when nothing has been cached yet', () => {
+      expect(service.hasCachedPolicies()).toBeFalse();
+    });
+
+    it('returns true once the grace buffer has been cached', () => {
+      service.setGraceBufferMinutes(10);
+      expect(service.hasCachedPolicies()).toBeTrue();
+    });
+
+    it('clearCachedPolicies resets all three cached values', () => {
+      service.setGraceBufferMinutes(10);
+      service.setMaxDiscountPercent(30);
+      service.setSessionLockoutMinutes(15);
+
+      service.clearCachedPolicies();
+
+      expect(service.hasCachedPolicies()).toBeFalse();
+      expect(service.getGraceBufferMinutes()).toBe(0);
+      expect(service.getMaxDiscountPercent()).toBe(50);
+      expect(service.getSessionLockoutMinutes()).toBe(30);
+    });
   });
 
   // ── decodeToken ──────────────────────────────────────────────────────────

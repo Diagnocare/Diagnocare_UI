@@ -1,0 +1,54 @@
+<div class="visit-card">
+  <div class="vc-header">
+    <span class="vc-time"><i class="fa fa-clock"></i> {{ formatTime(visit.visitTime) }}</span>
+    <span class="vc-status"
+          [class.vc-status--done]="visit.status === 'Completed'"
+          [class.vc-status--cancelled]="visit.status === 'Cancelled'">
+      {{ visit.status }}
+    </span>
+  </div>
+
+  <div class="vc-contact">
+    <div class="vc-name">
+      <i class="fa fa-building"></i> {{ visit.contactName }}
+      <span class="vc-type-badge" *ngIf="visit.contactType">{{ visit.contactType }}</span>
+    </div>
+    <div class="vc-meta" *ngIf="visit.contactPhone">
+      <i class="fa fa-phone"></i> <a [href]="'tel:' + visit.contactPhone">{{ visit.contactPhone }}</a>
+    </div>
+    <div class="vc-meta" *ngIf="visit.contactAddress">
+      <i class="fa fa-map-marker-alt"></i> {{ visit.contactAddress }}
+      <a [href]="mapsUrl(visit.contactAddress)" target="_blank" rel="noopener"
+         class="vc-map-link" title="Open in Maps"><i class="fa fa-directions"></i></a>
+    </div>
+  </div>
+
+  <div class="vc-member" *ngIf="showMember && visit.memberName">
+    <i class="fa fa-user"></i> <strong>{{ visit.memberName }}</strong>
+  </div>
+
+  <div class="vc-purpose" *ngIf="visit.purpose"><i class="fa fa-bullseye"></i> {{ visit.purpose }}</div>
+  <div class="vc-notes"   *ngIf="visit.notes"><i class="fa fa-sticky-note"></i> {{ visit.notes }}</div>
+
+  <div class="vc-actions">
+    <!-- Pending -->
+    <ng-container *ngIf="visit.status === 'Pending'">
+      <button class="btn btn-outline btn-xs" *ngIf="canManage" (click)="edit.emit(visit)">
+        <i class="fa fa-pencil-alt"></i> Edit
+      </button>
+      <button class="btn btn-success btn-xs" (click)="complete.emit(visit)">
+        <i class="fa fa-check"></i> Complete
+      </button>
+    </ng-container>
+
+    <!-- Completed -->
+    <button class="btn btn-info btn-xs" *ngIf="visit.status === 'Completed'" (click)="viewDetails.emit(visit)">
+      <i class="fa fa-eye"></i> View Details
+    </button>
+
+    <!-- Admin delete -->
+    <button class="btn btn-danger btn-xs" *ngIf="canManage" (click)="remove.emit(visit.id)">
+      <i class="fa fa-trash"></i>
+    </button>
+  </div>
+</div>

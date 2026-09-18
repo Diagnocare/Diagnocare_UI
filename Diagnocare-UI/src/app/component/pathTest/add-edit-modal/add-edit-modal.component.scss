@@ -504,3 +504,10 @@ select.form-control {
     .auto-badge { font-size: 0.68em; }
   }
 }
+
+/* Hint under an optional field — quieter than .field-error, which is for problems. */
+.field-hint {
+  margin-top: 0.3em;
+  font-size: 0.72em;
+  color: #94a3b8;
+}

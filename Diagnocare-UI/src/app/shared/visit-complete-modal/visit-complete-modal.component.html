@@ -127,10 +127,10 @@
 
   <!-- ── Footer ───────────────────────────────────────────────────────────── -->
   <div class="vcm-footer">
-    <button class="vcm-btn vcm-btn-cancel" type="button" (click)="cancel()" [disabled]="saving">
+    <button class="dc-btn dc-btn--cancel" type="button" (click)="cancel()" [disabled]="saving">
       {{ viewMode ? 'Close' : 'Cancel' }}
     </button>
-    <button class="vcm-btn vcm-btn-confirm" type="button" (click)="confirm()"
+    <button class="dc-btn dc-btn--save" type="button" (click)="confirm()"
             [disabled]="saving" *ngIf="!viewMode">
       <i class="fa" [class.fa-check]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
       {{ saving ? 'Saving…' : 'Mark as Completed' }}

@@ -11,6 +11,7 @@ import { SalaryService } from 'src/app/services/salaryServices/salary.service';
 import { MemberService } from 'src/app/services/memberService/member.service';
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { filterActiveMembers, isActiveByDate } from 'src/app/shared/member-utils';
+import { Role } from 'src/app/constant/enums';
 import {
   SalaryStatus,
   PaymentFor,
@@ -22,6 +23,7 @@ import {
   AddPaymentDTO,
   SaveSalaryConfigDTO,
   CalculatePayableSalaryDTO,
+  PartialPaymentDTO,
 } from 'src/app/models/salary/salary.dto';
 
 @Component({
@@ -34,6 +36,7 @@ import {
 })
 export class SalaryComponent implements OnInit, OnDestroy {
 
+  readonly revenuePercentEnabled = false;
   // ── Tab state ──────────────────────────────────────────────────────────────
   activeTab: 'monthly' | 'config' = 'monthly';
 
@@ -221,8 +224,90 @@ export class SalaryComponent implements OnInit, OnDestroy {
       case PaymentFor.BaseSalary:      return 'pay-for-basesalary';
       case PaymentFor.TravelAllowance: return 'pay-for-travelallowance';
       case PaymentFor.OtherAllowance:  return 'pay-for-otherallowance';
+      case PaymentFor.AllComponents:   return 'pay-for-allcomponents';
       default:                          return '';
     }
+  }
+
+  // ── "All Components" labelling of a Pay Full row ───────────────────────────
+  //
+  // A Pay Full settles base + travel + other in a single transaction, but the
+  // API records it as ONE row filed under Base Salary. Showing that row as
+  // "Base Salary" is misleading — the money covers every component.
+  //
+  // The row is recognised by the only thing that can distinguish it: its amount
+  // exceeds the cap of the component it is filed under, which is impossible for
+  // a payment that really is for that component alone.
+  //
+  // Deliberately NOT keyed off paymentType. The API marks a row "Full" whenever
+  // it *completes* its component, so an ordinary partial that finishes off
+  // Travel Allowance comes back as "Full" too and must keep its own label.
+
+  /** Server-authoritative cap for one component in the month on screen. */
+  private capForSource(source: PaymentFor | number): number {
+    const rec = this.panelRecord;
+    if (!rec) return 0;
+    switch (Number(source)) {
+      case PaymentFor.BaseSalary:      return rec.baseSalaryCap ?? 0;
+      case PaymentFor.TravelAllowance: return rec.travelAllowance ?? 0;
+      case PaymentFor.OtherAllowance:  return rec.otherAllowance ?? 0;
+      default:                          return 0;
+    }
+  }
+
+  /**
+   * Payment ids that overshoot their component, recomputed only when the
+   * payments array itself changes (the getters below run on every change
+   * detection pass, so this must not walk the list each time).
+   */
+  private allCompCacheKey: PartialPaymentDTO[] | null = null;
+  private allCompIds = new Set<number>();
+
+  private allComponentsIds(): Set<number> {
+    const rows = this.panelRecord?.payments ?? [];
+    if (this.allCompCacheKey === rows) return this.allCompIds;
+
+    const ids = new Set<number>();
+    const cumulative = new Map<number, number>();
+
+    // Same ordering the API uses to decide Full vs Partial, so the two agree.
+    const ordered = [...rows].sort((a, b) =>
+      (a.paymentDate ?? '').localeCompare(b.paymentDate ?? '') || a.paymentId - b.paymentId);
+
+    for (const p of ordered) {
+      const src   = Number(p.paymentSource);
+      const cap   = this.capForSource(src);
+      const total = (cumulative.get(src) ?? 0) + (p.paymentAmount ?? 0);
+      cumulative.set(src, total);
+
+      // Paying more into a component than that component is worth is only
+      // possible when the row is really covering the other components too.
+      // Amounts are whole rupees; the half-rupee margin absorbs rounding.
+      if (cap > 0 && total > cap + 0.5) ids.add(p.paymentId);
+    }
+
+    this.allCompCacheKey = rows;
+    this.allCompIds      = ids;
+    return ids;
+  }
+
+  /** True when a recorded payment spans more than the component it is filed under. */
+  isAllComponentsPayment(pay: PartialPaymentDTO): boolean {
+    return this.allComponentsIds().has(pay.paymentId);
+  }
+
+  /** Display label for a payment row in the history list. */
+  paymentRowLabel(pay: PartialPaymentDTO): string {
+    return this.isAllComponentsPayment(pay)
+      ? PaymentForLabels[PaymentFor.AllComponents]
+      : this.paymentForLabel(pay.paymentSource);
+  }
+
+  /** Matching CSS modifier for a payment row in the history list. */
+  paymentRowClass(pay: PartialPaymentDTO): string {
+    return this.isAllComponentsPayment(pay)
+      ? this.paymentForClass(PaymentFor.AllComponents)
+      : this.paymentForClass(pay.paymentSource);
   }
 
   /** Strips the time portion from an ISO datetime string for clean display. */
@@ -265,7 +350,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.calcLoadingUserId = null;
         },
         error: () => {
-          this.toastr.error('Failed to calculate salary. Please try again.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isCalculating     = false;
           this.calcLoadingUserId = null;
         },
@@ -279,11 +364,63 @@ export class SalaryComponent implements OnInit, OnDestroy {
   }
 
   // ── Salary config state ────────────────────────────────────────────────────
+  /**
+   * Every member eligible for a salary config — users, collection boys and doctors.
+   * The user endpoint omits Collection Boys (5) and Doctors (6) unless a role is
+   * passed, so the three lists are fetched separately and merged here.
+   */
   userList: MemberDto[] = [];
 
+  // ── Staff-type selector (config tab) ──────────────────────────────────────
+  configStaffType: 'user' | 'collection-boy' | 'doctor' = 'user';
+
+  /** Which typeUserId values belong to each staff type in the picker. */
+  private readonly STAFF_TYPE_ROLES: Record<'user' | 'collection-boy' | 'doctor', number[]> = {
+    'user':           [Role.User.id, Role.Assistant.id, Role.Admin.id],
+    'collection-boy': [Role.Collection_Boy.id],
+    'doctor':         [Role.Doctor.id],
+  };
+
+  /** Plural label for the selected staff type — used in placeholders and empty states. */
+  get staffTypeLabel(): string {
+    switch (this.configStaffType) {
+      case 'doctor':         return 'Doctors';
+      case 'collection-boy': return 'Collection Boys';
+      default:               return 'Users';
+    }
+  }
+
+  /** How many active members the selected user type has (search term ignored). */
+  get staffTypeCount(): number {
+    const allowedRoles = this.STAFF_TYPE_ROLES[this.configStaffType];
+    return this.userList.filter(u =>
+      allowedRoles.includes(u.typeUserId) &&
+      u.last_Name?.toLowerCase() !== 'admin'
+    ).length;
+  }
+
+  /** Singular label for the selected staff type. */
+  get staffTypeSingular(): string {
+    switch (this.configStaffType) {
+      case 'doctor':         return 'Doctor';
+      case 'collection-boy': return 'Collection Boy';
+      default:               return 'User';
+    }
+  }
+
+  setConfigStaffType(type: 'user' | 'collection-boy' | 'doctor'): void {
+    if (this.configStaffType === type) return;
+    this.configStaffType = type;
+    // The selected employee belongs to the previous type — drop it so the
+    // config card below never shows someone who is not in the visible list.
+    this.clearUserSelection();
+    this.isDropdownOpen = false;
+  }
+
   get filteredUserList(): MemberDto[] {
+    const allowedRoles = this.STAFF_TYPE_ROLES[this.configStaffType];
     const eligible = this.userList.filter(u =>
-      u.typeUserId !== 4 &&
+      allowedRoles.includes(u.typeUserId) &&
       u.last_Name?.toLowerCase() !== 'admin'
     );
     if (!this.userSearchTerm.trim()) return eligible;
@@ -423,7 +560,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         },
         error: () => {
-          this.toastr.error('Failed to load salary data.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isLoading = false;
         },
       });
@@ -531,12 +668,12 @@ export class SalaryComponent implements OnInit, OnDestroy {
             salaryId:      rec.salaryId,
             paymentMonth:  `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
             paymentAmount: finalAmount,
-            paymentFor:    undefined,
+            paymentFor:    PaymentFor.AllComponents,
             paymentType:   PaymentType.Full,
           };
         },
         error: () => {
-          this.toastr.error('Failed to calculate payable salary.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isCalculatingForPayment = false;
         },
       });
@@ -612,7 +749,27 @@ export class SalaryComponent implements OnInit, OnDestroy {
     if (!this.paymentFormValid || !this.panelRecord) return;
     this.isAddingPayment = false;
 
-    this.salarySvc.addPayment(this.paymentForm)
+    // A Full payment settles EVERY component, so it must go to PayAllComponents,
+    // which writes one row per component that still has a balance.
+    //
+    // AddPayment's "Full" means something narrower — "settle ONE component in
+    // full" — and it reads that component from paymentFor. Sending a Full row
+    // without a paymentFor let the API fall back to its default of BaseSalary,
+    // so the request was validated against the base cap alone and failed with
+    // "BaseSalary for YYYY-MM is already fully paid" once base was settled, or
+    // "amount must exactly equal the pending BaseSalary balance" whenever
+    // allowances made the net differ from base. Neither is the intent here.
+    const request$ =
+      this.paymentForm.paymentType === PaymentType.Full
+        ? this.salarySvc.payAllComponents({
+            salaryId:     this.paymentForm.salaryId,
+            paymentMonth: this.paymentForm.paymentMonth,
+            paymentDate:  this.paymentForm.paymentDate,
+            reference:    this.paymentForm.reference || null,
+          })
+        : this.salarySvc.addPayment(this.paymentForm);
+
+    request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -624,7 +781,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.isAddingPayment = false;
         },
         error: () => {
-          this.toastr.error('Failed to record payment.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isAddingPayment = true;
         },
       });
@@ -635,20 +792,28 @@ export class SalaryComponent implements OnInit, OnDestroy {
   private loadConfigTab(): void {
     this.isLoadingConfigTab = true;
     forkJoin({
-      users:   this.memberSvc.getAll().pipe(catchError(() => of([] as MemberDto[]))),
+      // The role-less call returns everyone EXCEPT collection boys and doctors,
+      // so those two roles are requested explicitly and merged below.
+      users:          this.memberSvc.getAll().pipe(catchError(() => of([] as MemberDto[]))),
+      collectionBoys: this.memberSvc.getAll(Role.Collection_Boy.id).pipe(catchError(() => of([] as MemberDto[]))),
+      doctors:        this.memberSvc.getAll(Role.Doctor.id).pipe(catchError(() => of([] as MemberDto[]))),
       configs: this.salarySvc.getSalaryConfig().pipe(catchError(() => of([] as UserSalaryConfigDTO[]))),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ users, configs }) => {
+        next: ({ users, collectionBoys, doctors, configs }) => {
+          // De-duplicate by id in case a role appears in more than one response.
+          const merged = Array.from(
+            new Map([...users, ...collectionBoys, ...doctors].map(u => [u.id, u] as [number, MemberDto])).values()
+          );
           // Only active staff are relevant for salary configuration
-          this.userList           = filterActiveMembers(users);
+          this.userList           = filterActiveMembers(merged);
           this.configList         = configs;
           this.isLoadingConfigTab = false;
           if (!this.userList.length) this.toastr.warning('Could not load employee list.', 'Warning');
         },
         error: () => {
-          this.toastr.error('Failed to load config data.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isLoadingConfigTab = false;
         },
       });
@@ -747,7 +912,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.refreshConfigs();
         },
         error: () => {
-          this.toastr.error('Failed to save salary config.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.isSavingConfig = false;
         },
       });

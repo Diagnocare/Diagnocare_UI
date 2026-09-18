@@ -1,13 +1,18 @@
 import { Injectable } from '@angular/core';
-import { ValidatorFn, AbstractControl, ValidationErrors, FormGroup, AsyncValidatorFn } from '@angular/forms';
-import { PathologyFormKeys, validationMessages } from '../constant/constants';
+import { AbstractControl, FormGroup } from '@angular/forms';
+import { loginFormProperty } from '../constant/constants';
 import { Observable, map } from 'rxjs';
 import { InstitutionType } from '../constant/enums';
+import { TokenService } from '../core/interceptors/token.service';
+import { collectFormErrors, resolveFirstError } from './validators/validation-messages';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CommonService {
+
+  constructor(private tokenService: TokenService) {}
+
 isFormDisabled(arg0: FormGroup<any>) {
 throw new Error('Method not implemented.');
 }
@@ -84,6 +89,104 @@ throw new Error('Method not implemented.');
     return 'Senior';
   }
 
+  // ── Age in years / months / days ────────────────────────────────────────────
+  // A single "41 Years" string cannot describe an infant, and a paediatric
+  // sample is reported against age in months or days. These four helpers are the
+  // whole conversion: DOB → parts, parts → DOB, parts → stored string, and back.
+
+  /** Splits the gap between a date of birth and today into whole Y / M / D. */
+  calculateAgeParts(dob: string): { years: number; months: number; days: number } {
+    const empty = { years: 0, months: 0, days: 0 };
+    if (!dob) return empty;
+
+    let date: Date;
+    if (dob.includes('/')) {
+      const [day, month, year] = dob.split('/').map(Number);
+      date = new Date(year, month - 1, day);
+    } else {
+      date = new Date(dob);
+    }
+    if (isNaN(date.getTime())) return empty;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    if (date > today) return empty;
+
+    let years  = today.getFullYear() - date.getFullYear();
+    let months = today.getMonth()    - date.getMonth();
+    let days   = today.getDate()     - date.getDate();
+
+    // Borrow days from the month that actually precedes today, not a nominal 30,
+    // so "born on the 31st" does not read a day out in a short month.
+    if (days < 0) {
+      months--;
+      days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    return { years, months, days };
+  }
+
+  /**
+   * The stored form: "41Y 3M 12D". Zero parts are dropped, so a plain adult is
+   * "41Y" — shorter to read and well inside the API's field length. A patient
+   * born today is "0D" rather than an empty string, which would look like a
+   * missing value.
+   */
+  formatAgeParts(years: number, months: number, days: number): string {
+    const parts: string[] = [];
+    if (years)  parts.push(`${years}Y`);
+    if (months) parts.push(`${months}M`);
+    if (days)   parts.push(`${days}D`);
+    return parts.length ? parts.join(' ') : '0D';
+  }
+
+  /**
+   * Reads an age back into parts. Accepts the new "41Y 3M 12D" form, the legacy
+   * "41 Years" written by earlier builds, and a bare number — so existing
+   * patients open in the edit form with their age intact.
+   */
+  parseAgeParts(stored: string | null | undefined): { years: number; months: number; days: number } {
+    const text = (stored ?? '').trim();
+    if (!text) return { years: 0, months: 0, days: 0 };
+
+    const compact = /(\d+)\s*Y|(\d+)\s*M|(\d+)\s*D/gi;
+    if (compact.test(text)) {
+      const grab = (unit: string) => {
+        const m = text.match(new RegExp(`(\\d+)\\s*${unit}`, 'i'));
+        return m ? Number(m[1]) : 0;
+      };
+      return { years: grab('Y'), months: grab('M'), days: grab('D') };
+    }
+
+    // Legacy "41 Years" / "41"
+    const legacy = text.match(/^(\d+)/);
+    return { years: legacy ? Number(legacy[1]) : 0, months: 0, days: 0 };
+  }
+
+  /**
+   * Today minus the given age, as dd/mm/yyyy for the DOB text field.
+   *
+   * This is what lets an operator record a patient who does not know their date
+   * of birth — extremely common — by typing the age they do know. The result is
+   * an approximation by construction, which is exactly what an age-only record
+   * is anyway.
+   */
+  dobFromAgeParts(years: number, months: number, days: number): string {
+    if (!years && !months && !days) return '';
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setFullYear(d.getFullYear() - (years || 0));
+    d.setMonth(d.getMonth() - (months || 0));
+    d.setDate(d.getDate() - (days || 0));
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+
   /**
    * Normalises a date entered as DD/MM/YYYY to YYYY-MM-DD (ISO).
    * Passes through any value already in acceptable format.
@@ -96,6 +199,32 @@ throw new Error('Method not implemented.');
     const day   = d.getDate().toString().padStart(2, '0');
     const month = (d.getMonth() + 1).toString().padStart(2, '0');
     return `${day}-${month}-${d.getFullYear()}`;
+  }
+
+  /**
+   * DD/MM/YYYY → YYYY-MM-DD, but only for a date that actually exists.
+   *
+   * Unlike setYearofDate() this one returns '' for anything half-typed
+   * ("11/08"), impossible ("31/02/2001") or still in the future, which is what
+   * makes it safe to bind straight to a calendar: the grid holds still while the
+   * operator is mid-keystroke instead of jumping to the year 0011.
+   */
+  dmyToIso(dmy: string | null | undefined): string {
+    if (!dmy) return '';
+    const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dmy.trim());
+    if (!parts) return '';
+
+    const [, dd, mm, yyyy] = parts;
+    const day = +dd, month = +mm, year = +yyyy;
+    const d = new Date(year, month - 1, day);
+    // Date() rolls 31/02 over into March — compare the parts back to reject it.
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return '';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (d > today) return '';
+
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   setYearofDate(dob: string): string {
@@ -119,113 +248,59 @@ throw new Error('Method not implemented.');
 
       return invalidControls;
     }
- getAccessToken() {
-    const token = sessionStorage.getItem('authToken');
-    return token ?? '';
+ getAccessToken(): string {
+    return this.tokenService.getToken() ?? '';
   }
 
-  stringOnlyValidator(): ValidatorFn {
-      return (control: AbstractControl): ValidationErrors | null => {
-        const value = control.value;
+  // ── Validators ────────────────────────────────────────────────────────────
+  // Custom validators now live in ./validators/app-validators.ts (AppValidators).
+  // Import and use them directly in forms, e.g.:
+  //   name:   ['', [Validators.required, AppValidators.stringOnly()]],
+  //   mobile: ['', [Validators.required, AppValidators.contactNumber()]],
+  //   dob:    ['', [Validators.required, AppValidators.noFutureDate()]],
 
-        if (value === null || value === '') {
-          return null; // allow empty, use Validators.required separately if needed
-        }
-        
-        const regex = /^[A-Za-z\s]+$/; // allows letters and spaces only
-        return regex.test(value) ? null : { stringOnly: true };
-      };
-    }
+  // ── Centralised control-level helpers ─────────────────────────────────────
 
-    checkFutureDate(): ValidatorFn {
-      return (control: AbstractControl): ValidationErrors | null => {
-        const value = control.value;
+  /**
+   * Returns a human-readable error message for a single reactive form control.
+   *
+   * @param control  The AbstractControl to inspect (may be null/undefined)
+   * @param label    Display name of the field, e.g. 'Email Address'
+   *
+   * Used by FieldErrorComponent; can also be called directly in templates:
+   *   {{ cs.getControlError(form.get('email'), 'Email') }}
+   */
+  getControlError(control: AbstractControl | null | undefined, label: string): string {
+    // Delegates to the centralised message map (validators/validation-messages.ts).
+    return resolveFirstError(control, label);
+  }
 
-        if (value === null || value === '') {
-          return null; // allow empty, use Validators.required separately if needed
-        }
-        
-        const inputDate = new Date(control.value);
-        const today = new Date();
+  /**
+   * Returns true when a control should display its error state.
+   *
+   * @param control    The AbstractControl to check
+   * @param forceShow  Pass true after a submit attempt to force-reveal errors
+   *                   on untouched controls (e.g. bound to a "submitted" flag)
+   */
+  isControlInvalid(control: AbstractControl | null | undefined, forceShow = false): boolean {
+    if (!control) return false;
+    // Reveal on blur/tab-out (touched) or submit (forceShow), not while typing (dirty).
+    return !!(control.invalid && (control.touched || forceShow));
+  }
 
-        // Normalize both to midnight to avoid time-of-day issues
-        inputDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
+  // ── Form-level helpers (existing) ──────────────────────────────────────────
 
-        // ❌ If input date is greater than today → invalid
-        return inputDate > today ? { noFutureDate: true } : null;
+    /** Labels an error message with the login-form display name where known. */
+    private labelFor = (key: string): string =>
+      (loginFormProperty as Record<string, string>)[key] ?? key;
 
-      };
-    }
-
+    /** Touched/dirty error messages for a form. Delegates to the central map. */
     getFormValidationErrors(form: FormGroup): string[] {
-      const messages: string[] = [];
-      
-      Object.keys(form.controls).forEach(key => {
-        const control = form.get(key);
-        const controlErrors = (control?.touched || control?.dirty) ? control?.errors : null;
-        
-        if (controlErrors) {
-          Object.keys(controlErrors).forEach(errorKey => {
-            switch (errorKey) {
-              case 'required':
-                messages.push(validationMessages.required(key as  PathologyFormKeys));
-                break;
-              case 'minlength':
-                messages.push(validationMessages.minLength(key as PathologyFormKeys,controlErrors[errorKey].requiredLength));
-                break;
-              case 'pattern':
-                messages.push(validationMessages.pattern(key as PathologyFormKeys,'10 digits'));
-                break;
-              case 'email':
-                messages.push(validationMessages.email(key as PathologyFormKeys));
-                break;
-              case 'stringOnly':
-                messages.push(validationMessages.stringOnly(key as PathologyFormKeys));
-                break;
-              case 'noFutureDate':
-                messages.push(validationMessages.noFutureDate(key as PathologyFormKeys));
-                break;
-            }
-          });
-        }
-      });
-      return messages;
+      return collectFormErrors(form, this.labelFor);
     }
 
-    
-
-    getNextButtonDisabledStatus(form:FormGroup):string[]{
-      const messages: string[] = [];
-      Object.keys(form.controls).forEach(key => {
-        const control = form.get(key);
-        const controlErrors = control?.errors;
-        
-        if (controlErrors) {
-          Object.keys(controlErrors).forEach(errorKey => {
-            switch (errorKey) {
-              case 'required':
-                messages.push(`${key} is required`);
-                break;
-              case 'minlength':
-                messages.push(`${key} must be at least ${controlErrors[errorKey].requiredLength} characters`);
-                break;
-              case 'pattern':
-                messages.push(`${key} must be 6 or 10 digits`);
-                break;
-              case 'email':
-                messages.push(`${key} must be a valid email`);
-                break;
-              case 'stringOnly':
-                messages.push(`${key} must have only character, number not allowed`);
-                break;
-              case 'noFutureDate':
-                messages.push(`${key} cannot have future date`);
-                break;
-            }
-          });
-        }
-      });
-      return messages;
+    /** All error messages for a form (ignores touched/dirty). */
+    getNextButtonDisabledStatus(form: FormGroup): string[] {
+      return collectFormErrors(form, this.labelFor, false);
     }
 }

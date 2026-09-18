@@ -1,4 +1,4 @@
-import { get } from "@okta/okta-auth-js";
+﻿import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -9,12 +9,14 @@ export const controllerEndpoints = {
   login: 'api/login/',
   otp: 'api/Otp/',
   mfa: 'api/Mfa/',
+  fingerprint: 'api/Fingerprint/',
   address: 'api/addressManager/',
   collectionBoy: 'api/collectionBoys/',
   doctor: 'api/doctors/',
   patient: 'api/patient/',
   patientReport: 'api/PatientReport/',
   patientTestReportGeneration: 'api/TestReportGeneration/',
+  sampleLabel: 'api/SampleLabel/',
   pathology: 'api/pathology/',
   test: 'api/test/',
   user: 'api/user/',
@@ -26,17 +28,34 @@ export const controllerEndpoints = {
   salary:     'api/salary/',
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
+  feedback:      'api/feedback/',
+  /**
+   * Repeat testing — how many times a test was run on the collected sample, and why.
+   * Its own controller: this is about the conduct of the test, not its values.
+   */
+  testRun:       'api/TestRun/',
+  /**
+   * Sample rejection — a collected sample that could not be used, and why. Its own
+   * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
+   */
+  sampleRejection: 'api/SampleRejection/',
 };
 
 export const apiEndpoints = {
   getPublicInfo: 'GetPublicInfo',
-  extendLicense: 'ExtendLicense',
   uploadImage: 'addImage',
   generateOTP:"generate-otp",
   resendOtp:"resend-otp",
   cancelOtp:"cancel-otp",
   verifyOtp: "verify-otp",
   verify:    "Verify",         // unified endpoint — VerifyAuthRequest
+  // ── Fingerprint (WebAuthn / FIDO2) ──
+  fpStatus:          "status",           // GET  api/Fingerprint/status?userName=
+  fpRegisterBegin:   "register/begin",   // POST api/Fingerprint/register/begin?userName=
+  fpRegisterComplete:"register/complete",// POST api/Fingerprint/register/complete?userName=&label=
+  fpAssertBegin:     "assert/begin",     // POST api/Fingerprint/assert/begin?userName=
+  fpAssertComplete:  "assert/complete",  // POST api/Fingerprint/assert/complete?userName=
+  fpDisable:         "disable",          // POST api/Fingerprint/disable?userName=
   resetPassword: 'ForgotPassword',
   validateOldPassword:"ValidateOldPassword",
   getPathologyExpiryDate:"GetPathologyExpiryDate",
@@ -59,7 +78,11 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+  /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
+  staffCapacity: 'Capacity',
   getById: 'GetById',
+  getProfile: 'GetProfile',
+  getProfileVersion: 'GetProfileVersion',
   add: 'Add',
   update: 'Update',
   delete: 'Delete',
@@ -76,33 +99,107 @@ export const apiEndpoints = {
   getTestList:"GetTestList",
   getPathTest:"GetPathologyTest",
   getTestParameter:"GetTestParameter",
+  /** The seeded catalogue of laboratory techniques, for the picker on the test form. */
+  getTechniques:"GetTechniques",
+  /** The whole sample-collection protocol library, with usage counts. */
+  getProtocolLibrary:"GetProtocolLibrary",
+  /** One protocol's full content. */
+  getProtocol:"GetProtocol",
+  /** The protocols one test is collected under, in order. */
+  getTestProtocols:"GetTestProtocols",
+  /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
+  getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /** Which library protocol a test's name suggests. Admin / Super Admin only. */
+  suggestTestProtocol:"SuggestTestProtocol",
+  /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */
+  saveProtocol:"SaveProtocol",
+  /** Replaces the whole set of protocols linked to a test. Admin / Super Admin only. */
+  saveTestProtocolAssignments:"SaveTestProtocolAssignments",
+  /** Deletes a lab-authored protocol from the library. Admin / Super Admin only. */
+  deleteProtocol:"DeleteProtocol",
+  /** Every recorded run of one test on one booking, with the reason for each repeat. */
+  getTestRunHistory:"GetHistory",
+  /** Run counts for every test on a booking — one call, so a list can be badged cheaply. */
+  getTestRunBookingCounts:"GetBookingCounts",
+  /** Records that a test was run again on the sample already collected. A reason is required. */
+  repeatTestRun:"Repeat",
+  /** Marks which run the lab stands behind. */
+  acceptTestRun:"Accept",
+  /** The standard sample-rejection reasons, grouped by cause. Served so the UI cannot drift. */
+  getSampleRejectionReasons:"GetReasons",
+  /** Every rejection recorded against one test on one booking. */
+  getSampleRejectionHistory:"GetHistory",
+  /** Rejection flags for every test on a booking — one call for the whole list. */
+  getSampleRejectionBookingSummary:"GetBookingSummary",
+  /** Records that a collected sample could not be used. */
+  rejectSample:"Reject",
+  /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
+  resolveSampleRejection:"Resolve",
+  /** Printed flag for one report (testRegId + testCode). Defaults to not-printed, never 404s. */
+  getPrintStatus:"GetPrintStatus",
+  /** Printed flags for every test code on a booking — one call for the whole list. */
+  getPrintStatuses:"GetPrintStatuses",
+  /** Manually marks one report printed or not-printed. */
+  setPrinted:"SetPrinted",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",
   dropTest:"Delete",
-  getTemplates:"GetTemplates",
-  previewTemplate:"PreviewTemplate",
-  downloadTemplate:"DownloadTemplate",
   getWeeklyAttendance:  'GetWeekly',
   getMonthly: 'GetMonthly',
+  getMyWeeklyAttendance: 'GetMyWeekly',
+  getMyMonthly:          'GetMyMonthly',
+  // Attendance correction requests — all under the single Attendance controller
+  requests:              'requests',
+  myRequests:            'requests/mine',
+  pendingRequestCount:   'requests/pending-count',
+  /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
+  requestCounts:         'requests/counts',
+  cancelRequest:         'cancel',
+  approveRequest:        'approve',
+  rejectRequest:         'reject',
+  /** Owner asks for an approved request to be undone — does NOT revert attendance. */
+  withdrawRequest:       'withdraw',
+  /** Admin grants the withdrawal — reverts attendance atomically. */
+  approveWithdrawal:     'withdraw/approve',
+  /** Admin refuses the withdrawal — request returns to Approved. */
+  rejectWithdrawal:      'withdraw/reject',
   generateSalary:      'Generate',
   generateReceiptPdf: 'GenerateReceiptPdf',
   getHolidaysByYear: 'GetHolidayCalendar',
   getPathologyDefault:   'GetPathologyDefault',
   setDefaultTemplate:   'SetDefaultTemplate',
   addPayment:    'AddPayment',
+  /** Settles every salary component for a month, one payment row per component. */
+  payAllComponents: 'PayAllComponents',
   addTestWithReceipt: 'AddTestWithReceipt',
   getSalaryConfig:          'GetConfig',
   saveSalaryConfig:         'SaveConfig',
   calculatePayableSalary:   'CalculatePayableSalary',
-  updateTokenExpiry:        'UpdateTokenExpiry',
+  /** Self-service — returns the logged-in staff member's own salary summary */
+  getMySalary:              'GetMySalary',
+  /** Self-service — returns the logged-in staff member's salary payment receipt PDF for a month */
+  generateMySalaryReceipt:  'GenerateMySalaryReceipt',
+  /** Self-service — returns the logged-in staff member's actual salary payments (all months) */
+  getMyPayments:            'GetMyPayments',
+  /** Self-service — returns a PDF receipt for a single salary payment (ownership-validated) */
+  generateMyPaymentReceipt: 'GenerateMyPaymentReceipt',
+  /** Maps to DB column token_expiry_in_minutes — stores the PIN grace buffer duration */
+  updateGraceBuffer:        'UpdateGraceBuffer',
+  /** Admin-only — updates the max discount percentage (0–99) any user may apply */
+  updateMaxDiscount:        'UpdateMaxDiscount',
+  /** Admin-only — updates how many minutes hidden before screen-lock fires (0 = disabled) */
+  updateSessionLockout:     'UpdateSessionLockout',
   getMFAStatus:             'status',          // GET  api/Mfa/status
   setupMFA:                 'setup',           // POST api/Mfa/setup
   confirmMfaSetup:          'confirm-setup',   // POST api/Mfa/confirm-setup
   verifyTotpLogin:          'Verify',          // POST api/Otp/Verify  (authType=Mfa)
   disableMFA:               'disable',         // POST api/Mfa/disable
-  cancelTest:               'CancelTest',        // PUT   api/patient/CancelTest
-  removeTests:              'RemoveTests',       // PATCH api/patient/RemoveTests
+  cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
+  removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
+  reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
+  /** Patients only — staff have no permanent delete, see MemberService.delete. */
+  hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
   refundReceipt:            'Refund',            // PUT   api/receipt/Refund
   updateTpaDetails:         'UpdateTpaDetails',  // PUT   api/receipt/UpdateTpaDetails
   clearSession:             'ClearSession',      // POST  api/login/ClearSession
@@ -211,7 +308,8 @@ export const profileMenu = {
   profile:        { id: 'profile',        label: 'My Profile',      route: 'profile',         icon: 'user' },
   settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
   changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
-  setupMfa:       { id: 'setupMfa',       label: 'Authenticator App', route: 'setup-mfa',     icon: 'mobile' },
+  // Authenticator App is now a section inside Settings (see settings page).
+  help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
 };
 
 export const labOperationMenu = {
@@ -228,19 +326,45 @@ export const labSetupMenu = {
 }
 /**
  * Admin Panel navigation items.
- * Items with `superAdminOnly: true` are visible only to Super Admins.
- * All other items are visible to both Admin and Super Admin.
+ *
+ * The dropdown itself is gated by ModuleAccess.adminPanel (Admin + Super Admin).
+ * Items marked `superAdminOnly: true` are hidden from Admin within that dropdown.
+ *
+ * The previous flag was named `adminOnly`, which was a no-op: the template tested
+ * `!item.adminOnly || isAdmin`, and isAdmin is true for BOTH Admin and Super Admin,
+ * so every item marked "admin only" was shown to everyone who could see the panel.
+ * The flag is now `superAdminOnly` and is tested against isSuperAdmin.
  */
 export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; superAdminOnly?: boolean }> = {
   userDetails:   { id: 'userDetails',   label: 'User details',      route: 'users',           icon: 'fa-user-cog' },
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
-  salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave' },
+  // Payroll is owner-only — an Admin must not be able to edit their own pay.
+  salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
-  // Super Admin only — template management
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt', superAdminOnly: true },
+  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
+};
+
+/**
+ * User Panel navigation items — self-service views scoped to the logged-in user.
+ *
+ * `access` names the ModuleAccess flag that decides whether the item appears.
+ * The header filters on it, so the panel is no longer all-or-nothing: a role can
+ * be given the User Panel for a single item without also being shown links its
+ * route guard would deny. Admin is exactly that case — salary administration is
+ * Super Admin only, so an Admin gets My Salary here and nothing else, while
+ * still seeing everyone's holidays via the Admin Panel.
+ */
+export const userOptions: Record<string, {
+  id: string; label: string; route: string; icon?: string;
+  access: 'myAttendance' | 'myVisits' | 'mySalary' | 'myHolidays';
+}> = {
+  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check', access: 'myAttendance' },
+  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route',          access: 'myVisits'     },
+  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave', access: 'mySalary'    },
+  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt',   access: 'myHolidays'   },
 };
 
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {
@@ -271,6 +395,9 @@ export const summaryReportApiEndpoints: { [key: string]: string } = {
   worksheetReport:      'worksheet-report',
   receiptRegister:      'receipt-register',
   refundRegister:       'refund-register',
+  // Dashboard revenue figures only — not a Reports page entry, so it is
+  // deliberately absent from reportConfigs below.
+  dailyCollection:      'daily-collection',
   billRegister:         'bill-register',
   patientDiagnosisReport: 'patient-diagnosis-report',
   pndtTestReport:       'pndt-test-report',

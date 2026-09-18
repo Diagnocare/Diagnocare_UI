@@ -1,0 +1,251 @@
+// ── Attendance request models & shared config ────────────────────────────────
+//
+// Mirrors the backend contracts in Model/Dtos/AttendanceRequest.
+// The backend serialises statuses as integers; labels are provided alongside.
+
+/**
+ * Lifecycle state of a request (matches C# AttendanceRequestStatus).
+ *
+ *   Pending             → Approved | Rejected | Cancelled
+ *   Approved            → WithdrawalRequested
+ *   WithdrawalRequested → Withdrawn | Approved      (admin decides)
+ *
+ * Rejected / Cancelled / Withdrawn are terminal. The server owns these rules —
+ * this enum exists to render them, not to enforce them.
+ */
+export enum RequestStatus {
+  Pending = 1,
+  Approved = 2,
+  Rejected = 3,
+  Cancelled = 4,
+  /** Employee asked for an approved correction to be undone; awaiting admin. */
+  WithdrawalRequested = 5,
+  /** Admin granted the withdrawal; the attendance record has been reverted. */
+  Withdrawn = 6,
+}
+
+/**
+ * Attendance status the request targets (matches C# AttendanceStatus).
+ * 4 (Leave) and 5 (Holiday) were retired — the backend rejects them, and public
+ * holidays come from the holiday calendar instead. The gap in the numbering is
+ * deliberate so WeekOff keeps matching the integer already stored in the database.
+ */
+export enum AttendanceStatusCode {
+  Present = 1,
+  Absent = 2,
+  HalfDay = 3,
+  WeekOff = 6,
+}
+
+/** The only statuses an employee may request. WeekOff is admin-managed. */
+export const REQUESTABLE_STATUSES: { value: number; label: string }[] = [
+  { value: AttendanceStatusCode.Present, label: 'Present' },
+  { value: AttendanceStatusCode.Absent, label: 'Absent' },
+  { value: AttendanceStatusCode.HalfDay, label: 'Half Day' },
+];
+
+/** Admin may additionally apply this when overriding before approval. */
+export const ALL_ATTENDANCE_STATUSES: { value: number; label: string }[] = [
+  ...REQUESTABLE_STATUSES,
+  { value: AttendanceStatusCode.WeekOff, label: 'Week Off' },
+];
+
+/** UI chip config per request status: label + CSS modifier class. */
+export const REQUEST_STATUS_CONFIG: {
+  [key in RequestStatus]: { label: string; cssClass: string };
+} = {
+  [RequestStatus.Pending]:  { label: 'Pending',  cssClass: 'badge-pending' },
+  [RequestStatus.Approved]: { label: 'Approved', cssClass: 'badge-approved' },
+  [RequestStatus.Rejected]: { label: 'Rejected', cssClass: 'badge-rejected' },
+
+  // Reached by withdrawing a request nobody had reviewed yet, so "Withdrawn" is what
+  // the employee actually did. The enum name stays Cancelled server-side because that
+  // is the lifecycle state; this is the word for it in the UI.
+  [RequestStatus.Cancelled]: { label: 'Withdrawn', cssClass: 'badge-cancelled' },
+
+  // Shares the pending styling: both mean "waiting on an admin", and the admin queue
+  // reads more clearly when the two look alike.
+  [RequestStatus.WithdrawalRequested]: { label: 'Withdrawal requested', cssClass: 'badge-pending' },
+
+  // Distinct from the above: this one HAD been approved and its attendance was rolled
+  // back. "Reverted" says what happened to the record, and keeps the two terminal
+  // withdrawal outcomes tellable apart in a list.
+  [RequestStatus.Withdrawn]: { label: 'Reverted', cssClass: 'badge-cancelled' },
+};
+
+// ── Admin queue buckets ──────────────────────────────────────────────────────
+//
+// Six lifecycle states are the right vocabulary for one request's history and the
+// wrong one for a queue. An admin opening this screen asks "what needs me?", then
+// occasionally "what did I decide about X?" — not "show me WithdrawalRequested".
+// Offering all six as filters meant three overlapping choices (awaiting decision IS
+// pending + withdrawal requested) and two nobody ever filters by. These buckets are
+// what the queue filters on; the per-row badge still names the exact state.
+
+export type RequestBucket = 'needsaction' | 'decided' | 'all';
+
+export const REQUEST_BUCKETS: {
+  value: RequestBucket;
+  label: string;
+  /** Key into AttendanceRequestCounts for this bucket's badge. */
+  countKey: keyof AttendanceRequestCounts;
+  /** Shown as the tab's tooltip, so the grouping is never a guess. */
+  hint: string;
+}[] = [
+  { value: 'needsaction', label: 'Needs action', countKey: 'needsAction',
+    hint: 'New corrections and withdrawal requests waiting on you' },
+  { value: 'decided', label: 'Decided', countKey: 'decided',
+    hint: 'Requests you approved, rejected, or reverted' },
+  { value: 'all', label: 'All', countKey: 'all',
+    hint: 'Every request, including ones employees withdrew themselves' },
+];
+
+/** Per-bucket totals for the queue tabs. Unfiltered by date range or search. */
+export interface AttendanceRequestCounts {
+  needsAction: number;
+  decided: number;
+  all: number;
+}
+
+/**
+ * Status chips for the employee's own list. Their list is personal and short, so
+ * every state is filterable — the crowding problem was only ever the admin queue's.
+ * 0 = no filter.
+ */
+export const USER_STATUS_FILTERS: { value: number; label: string }[] = [
+  { value: 0, label: 'All' },
+  { value: RequestStatus.Pending, label: 'Pending' },
+  { value: RequestStatus.Approved, label: 'Approved' },
+  { value: RequestStatus.WithdrawalRequested, label: 'Withdrawal requested' },
+  { value: RequestStatus.Rejected, label: 'Rejected' },
+  // Labels follow REQUEST_STATUS_CONFIG, where the enum names and the words shown
+  // to people deliberately differ — see the notes on that map.
+  { value: RequestStatus.Cancelled, label: 'Withdrawn' },
+  { value: RequestStatus.Withdrawn, label: 'Reverted' },
+];
+
+export function attendanceStatusLabel(value: number | null | undefined): string {
+  const found = ALL_ATTENDANCE_STATUSES.find(s => s.value === value);
+  return found ? found.label : '—';
+}
+
+// ── Server response ──────────────────────────────────────────────────────────
+
+export interface AttendanceRequestDTO {
+  requestId: number;
+  userId: number;
+  employeeName: string;
+
+  attendanceDate: string;   // ISO
+  dayName: string;
+
+  currentStatus: number | null;
+  currentStatusLabel: string | null;
+  requestedStatus: number;
+  requestedStatusLabel: string;
+  approvedStatus: number | null;
+  approvedStatusLabel: string | null;
+
+  requestStatus: number;    // RequestStatus
+  requestStatusLabel: string;
+
+  reason: string | null;
+  adminRemarks: string | null;
+
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  created: string | null;
+
+  // ── Withdrawal ─────────────────────────────────────────────────────────────
+  withdrawalReason: string | null;
+  withdrawalRequestedAt: string | null;
+  /** Status the attendance record was rolled back to. Null if it was deleted. */
+  revertedToStatus: number | null;
+  revertedToStatusLabel: string | null;
+
+  // Server-computed flags — the UI renders from these, never re-derives rules.
+  canEdit: boolean;
+  /** Legacy cancel endpoint. The UI renders `canWithdraw` instead. */
+  canCancel: boolean;
+  /**
+   * Owner may take this request back — either Pending (immediate) or Approved with
+   * payroll still open (seeks approval). Pair with `withdrawalNeedsApproval`.
+   */
+  canWithdraw: boolean;
+  /** True when withdrawing starts a review rather than taking effect at once. */
+  withdrawalNeedsApproval: boolean;
+  /** Why withdrawal is unavailable, when it is. Shown so a missing button isn't a mystery. */
+  withdrawalBlockedReason: string | null;
+  /** Sitting in the admin queue awaiting a withdrawal decision. */
+  isWithdrawalPending: boolean;
+  isReadOnly: boolean;
+
+  // ── Same-day history ───────────────────────────────────────────────────────
+  // "My requests" returns one row per attendance date, not per request. Where a
+  // date was asked about more than once, the newest attempt is the row and the
+  // ones it superseded arrive in earlierAttempts. Nothing is lost — the older
+  // rows still exist server-side and each still opens on its own detail page.
+  /** Superseded requests for the same date, newest first. Always empty on those entries themselves. */
+  earlierAttempts?: AttendanceRequestDTO[];
+  /** Requests filed for this date in total, this one included. 1 = no history. */
+  attemptCount?: number;
+}
+
+// ── Request payloads ─────────────────────────────────────────────────────────
+
+export interface CreateAttendanceRequestDTO {
+  attendanceDate: string;    // 'yyyy-MM-dd'
+  requestedStatus: string;   // numeric string, e.g. '1'
+  reason?: string;
+}
+
+export interface UpdateAttendanceRequestDTO {
+  requestedStatus: string;
+  reason?: string;
+}
+
+export interface ApproveAttendanceRequestDTO {
+  approvedStatus?: string;   // omit/empty = approve as requested
+  remarks?: string;
+}
+
+export interface RejectAttendanceRequestDTO {
+  remarks: string;
+}
+
+/**
+ * Employee takes a request back.
+ * Reason is required only when the request is Approved — the server enforces that.
+ */
+export interface WithdrawAttendanceRequestDTO {
+  reason?: string;
+}
+
+/** Admin decides a withdrawal. Remarks required when refusing. */
+export interface DecideWithdrawalDTO {
+  remarks?: string;
+}
+
+export interface AttendanceRequestFilter {
+  userId?: number;
+  /** Single lifecycle state — the employee's own list. The admin queue sends `bucket`. */
+  status?: number;
+  /** Admin queue view: needsaction | decided | all. Overrides `status`. */
+  bucket?: RequestBucket;
+  /** @deprecated Superseded by `bucket: 'needsaction'`. Server still honours it. */
+  awaitingDecision?: boolean;
+  fromDate?: string;
+  toDate?: string;
+  search?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDir?: string;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}

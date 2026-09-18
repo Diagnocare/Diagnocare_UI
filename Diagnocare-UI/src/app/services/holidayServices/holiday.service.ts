@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, forkJoin, of, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
@@ -19,15 +19,13 @@ export class HolidayService {
   /** GET api/holiday/GetByYear?year=YYYY */
   getByYear(year: number): Observable<HolidayDTO[]> {
     return this.http
-      .get<HolidayDTO[]>(`${this.baseUrl}${apiEndpoints.getHolidaysByYear}?year=${year}`)
-      .pipe(catchError(this.errorHandler));
+      .get<HolidayDTO[]>(`${this.baseUrl}${apiEndpoints.getHolidaysByYear}?year=${year}`);
   }
 
   /** POST api/holiday/Add */
   add(dto: CreateHolidayDTO): Observable<HolidayDTO> {
     return this.http
-      .post<HolidayDTO>(`${this.baseUrl}${apiEndpoints.add}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .post<HolidayDTO>(`${this.baseUrl}${apiEndpoints.add}`, dto);
   }
 
   /**
@@ -47,18 +45,13 @@ export class HolidayService {
   /** PUT api/holiday/Update */
   update(dto: UpdateHolidayDTO): Observable<HolidayDTO> {
     return this.http
-      .put<HolidayDTO>(`${this.baseUrl}${apiEndpoints.update}`, dto)
-      .pipe(catchError(this.errorHandler));
+      .put<HolidayDTO>(`${this.baseUrl}${apiEndpoints.update}`, dto);
   }
 
   /** DELETE api/holiday/Delete/{id} */
   delete(holidayId: number): Observable<any> {
     return this.http
-      .delete(`${this.baseUrl}${apiEndpoints.delete}/${holidayId}`)
-      .pipe(catchError(this.errorHandler));
+      .delete(`${this.baseUrl}${apiEndpoints.delete}/${holidayId}`);
   }
 
-  private errorHandler(error: HttpErrorResponse): Observable<never> {
-    return throwError(() => error.message || 'Server Error');
-  }
 }

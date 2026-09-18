@@ -736,3 +736,79 @@
 @media print {
   .no-print { display: none !important; }
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  THEME OVERRIDES
+// ══════════════════════════════════════════════════════════════════
+
+:host-context(html[data-theme="dark"]) {
+  .br-error-card          { background: #450a0a !important; border-color: #7f1d1d !important; }
+  .br-error-title         { color: #fca5a5 !important; }
+  .br-error-msg           { color: #fca5a5 !important; }
+  .not-found-card         { background: #1e293b !important; }
+  .br-summary-banner      { background: #1e293b !important; }
+  .card-content           { background: #1e293b !important; }
+  .test-card .card-footer { background: #0f172a !important; }
+  .br-fully-paid-chip,
+  .br-settled-chip        { background: #052e16 !important; border-color: #166534 !important; color: #86efac !important; }
+  .br-balance-chip        { background: #450a0a !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }
+  .br-cancelled-badge     { background: #450a0a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
+  .br-cancelled-footer-chip { background: #450a0a !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }
+  .status-badge.status-paid     { background: #052e16 !important; border-color: #166534 !important; color: #86efac !important; }
+  .status-badge.status-partial  { background: #431407 !important; border-color: #92400e !important; color: #fdba74 !important; }
+  .status-badge.status-pending  { background: #450a0a !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }
+  .br-refund-strip        { background: #1e3a5f !important; border-color: #1d4ed8 !important; }
+  .br-refund-tr           { background: #1e3a5f !important; border-bottom-color: #1d4ed8 !important; }
+  .br-refund-tr:hover     { background: #1e3a5f !important; }
+  .br-rcpt-mode           { background: #1e3a5f !important; border-color: #1d4ed8 !important; }
+  .tpa-status--pending    { background: #431407 !important; color: #fdba74 !important; border-color: #92400e !important; }
+  .tpa-status--approved   { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+  .tpa-status--settled    { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
+  .btn-refund-row         { background: #1e3a5f !important; border-color: #1d4ed8 !important; color: #93c5fd !important; }
+  .btn-tpa-view           { background: #1e3a5f !important; border-color: #1d4ed8 !important; color: #93c5fd !important; }
+  .br-rcpt-kind--payment  { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
+  .br-rcpt-kind--refund   { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+  .br-refund-detail-row   { background: #082f49 !important; border-left-color: #1d4ed8 !important; }
+  .br-refunded-chip       { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
+}
+
+:host-context(html[data-theme="midnight"]) {
+  .br-error-card          { background: #2d0a0a !important; border-color: #6b0f0f !important; }
+  .not-found-card         { background: #0d1117 !important; }
+  .br-summary-banner      { background: #0d1117 !important; }
+  .card-content           { background: #0d1117 !important; }
+  .test-card .card-footer { background: #020408 !important; }
+  .br-fully-paid-chip,
+  .br-settled-chip        { background: #031a0e !important; border-color: #0f5132 !important; color: #6ee7b7 !important; }
+  .br-balance-chip        { background: #2d0a0a !important; border-color: #6b0f0f !important; color: #f87171 !important; }
+  .status-badge.status-paid    { background: #031a0e !important; border-color: #0f5132 !important; color: #6ee7b7 !important; }
+  .status-badge.status-partial { background: #2d0f04 !important; border-color: #78350f !important; color: #fbbf24 !important; }
+  .status-badge.status-pending { background: #2d0a0a !important; border-color: #6b0f0f !important; color: #f87171 !important; }
+  .br-refund-tr           { background: #11162a !important; }
+  .tpa-status--pending    { background: #2d0f04 !important; color: #fbbf24 !important; border-color: #78350f !important; }
+  .tpa-status--approved   { background: #11162a !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
+  .tpa-status--settled    { background: #031a0e !important; color: #6ee7b7 !important; border-color: #0f5132 !important; }
+}
+
+:host-context(html[data-theme="warm"]) {
+  .br-error-card          { background: #fef2f2 !important; border-color: #fca5a5 !important; }
+  .not-found-card         { background: #fffdf7 !important; }
+  .br-summary-banner      { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+  .card-content           { background: #fffdf7 !important; }
+  .test-card .card-footer { background: #fef9f0 !important; border-top-color: #ddc9a8 !important; }
+  .br-fully-paid-chip,
+  .br-settled-chip        { background: #f0fdf4 !important; border-color: #86efac !important; color: #166534 !important; }
+  .br-balance-chip        { background: #fef2f2 !important; border-color: #fca5a5 !important; color: #991b1b !important; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .br-error-card     { background: #450a0a !important; border-color: #7f1d1d !important; }
+    .not-found-card    { background: #1e293b !important; }
+    .br-summary-banner { background: #1e293b !important; }
+    .card-content      { background: #1e293b !important; }
+    .br-fully-paid-chip,
+    .br-settled-chip   { background: #052e16 !important; border-color: #166534 !important; color: #86efac !important; }
+    .br-balance-chip   { background: #450a0a !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }
+  }
+}

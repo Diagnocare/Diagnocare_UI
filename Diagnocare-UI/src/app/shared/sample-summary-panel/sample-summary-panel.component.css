@@ -1,0 +1,230 @@
+/*
+ * Sample summary panel.
+ *
+ * Read at a counter, usually at a glance, and the number it exists to convey is the tube
+ * count — so that number is the largest thing in the panel and everything else sits in a
+ * calmer register beneath it. Colours follow the protocol panel rather than introducing a
+ * new palette, because the two are almost always shown together.
+ */
+
+.ssp {
+  font-size: 0.86rem;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+/* ── States ─────────────────────────────────────────────────────────────── */
+
+.ssp-state {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.ssp-state--error {
+  border-style: solid;
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.ssp-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+/* ── Heading ────────────────────────────────────────────────────────────── */
+
+.ssp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 10px;
+  margin-bottom: 0.7rem;
+}
+
+.ssp-head-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ssp-head-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.ssp-head-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #0f766e;
+}
+
+.ssp-head-sub {
+  font-size: 0.8rem;
+  color: #0d9488;
+}
+
+/* The tube count, sized to be read without leaning in. */
+.ssp-tube-count {
+  min-width: 2.1rem;
+  height: 2.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #0d9488;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0 0.5rem;
+}
+
+.ssp-tube-count--multi {
+  background: #0f766e;
+}
+
+/* ── The samples ────────────────────────────────────────────────────────── */
+
+.ssp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ssp-item {
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #14b8a6;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.6rem 0.75rem;
+}
+
+.ssp-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ssp-item-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ssp-item-container,
+.ssp-item-qty {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.ssp-count {
+  flex-shrink: 0;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 0.12rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ssp-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.ssp-item-tags:empty {
+  margin-top: 0;
+}
+
+.ssp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.ssp-tag--fasting {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.ssp-tag--draws {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+.ssp-item-tests {
+  margin-top: 0.35rem;
+  font-size: 0.79rem;
+  color: #64748b;
+}
+
+/* ── Tests with no recorded sample ──────────────────────────────────────── */
+
+.ssp-missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
+.ssp-missing i {
+  margin-top: 0.15rem;
+}
+
+.ssp-missing strong {
+  display: block;
+  font-weight: 600;
+}
+
+.ssp-missing-list {
+  display: block;
+}
+
+.ssp-missing-hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+/*
+ * The panel is dropped into blocks that do not know about it (the booking step's protocol
+ * block, the protocol modal's body), so it carries its own bottom gap rather than making
+ * each host add one.
+ */
+:host {
+  display: block;
+  margin-bottom: 0.9rem;
+}

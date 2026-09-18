@@ -9,8 +9,10 @@ import { UnitService }             from 'src/app/services/unitServices/unit.serv
 import { PathologyService }        from 'src/app/services/pathologyServices/pathology.service';
 import { ConfirmModalService }     from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent }   from 'src/app/shared/confirm-modal/confirm-modal.component';
+import { TokenService }            from 'src/app/core/interceptors/token.service';
+import { Role }                    from 'src/app/constant/enums';
 
-export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'token';
+export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'policies';
 
 @Component({
   selector: 'app-lab-setup',
@@ -46,13 +48,32 @@ export class LabSetupComponent implements OnInit {
   editUnitName  = '';
   editUnitError = '';
 
-  // ── Token Expiry ────────────────────────────────────────────────────
-  tokenExpiryMinutes: number | null = null;
-  tokenExpiryInput:   number | null = null;
-  tokenExpirySaving   = false;
-  tokenExpiryLoading  = false;
-  tokenExpiryError    = '';
-  tokenExpirySuccess  = '';
+  // ── Grace Buffer (stored as token_expiry_in_minutes in DB) ──────────
+  graceBufferMinutes: number | null = null;
+  graceBufferInput:   number | null = null;
+  graceBufferSaving   = false;
+  graceBufferError    = '';
+  graceBufferSuccess  = '';
+
+  // ── Policies (max discount + session lockout) ──────────────────────
+  policiesLoading      = false;
+  policiesLoaded       = false;
+  maxDiscountValue:    number | null = null;
+  maxDiscountInput:    number | null = null;
+  maxDiscountSaving    = false;
+  maxDiscountError     = '';
+  maxDiscountSuccess   = '';
+  sessionLockoutValue: number | null = null;
+  sessionLockoutInput: number | null = null;
+  sessionLockoutSaving = false;
+  sessionLockoutError  = '';
+  sessionLockoutSuccess = '';
+
+  /** True when the current user is an Admin or Super Admin — only they may edit policies. */
+  get isAdmin(): boolean {
+    const role = this.tokenService.getUserRole();
+    return role === Role.Admin.id || role === Role.Super_Admin.id;
+  }
 
   constructor(
     private samplingService:  SamplingLocationService,
@@ -60,6 +81,7 @@ export class LabSetupComponent implements OnInit {
     private unitService:      UnitService,
     private pathologyService: PathologyService,
     private confirmModal:     ConfirmModalService,
+    private tokenService:     TokenService,
     private router:           Router,
   ) {}
 
@@ -71,8 +93,10 @@ export class LabSetupComponent implements OnInit {
 
   switchTab(tab: LabSetupTab): void {
     this.activeTab = tab;
-    if (tab === 'token' && this.tokenExpiryMinutes === null && !this.tokenExpiryLoading) {
-      this.loadTokenExpiry();
+    // Grace buffer, max discount and screen-lock timeout are now all loaded
+    // together when the merged Policies tab is opened.
+    if (tab === 'policies' && !this.policiesLoaded && !this.policiesLoading) {
+      this.loadPolicies();
     }
   }
 
@@ -277,48 +301,117 @@ export class LabSetupComponent implements OnInit {
     });
   }
 
-  // ── Token Expiry helpers ───────────────────────────────────────────
+  // ── Grace Buffer helpers (loaded via loadPolicies; part of the Policies tab) ──
 
-  private loadTokenExpiry(): void {
-    this.tokenExpiryLoading = true;
-    this.tokenExpiryError   = '';
-    this.pathologyService.getPathology().subscribe({
-      next: (data) => {
-        this.tokenExpiryMinutes = data.tokenExpiryMinutes ?? null;
-        this.tokenExpiryInput   = this.tokenExpiryMinutes;
-        this.tokenExpiryLoading = false;
+  saveGraceBuffer(): void {
+    const minutes = this.graceBufferInput;
+    if (minutes === null || minutes === undefined || isNaN(Number(minutes))) {
+      this.graceBufferError = 'Please enter a valid number of minutes.';
+      return;
+    }
+    if (Number(minutes) < 0) {
+      this.graceBufferError = 'Grace buffer cannot be negative. Use 0 to disable.';
+      return;
+    }
+    this.graceBufferError   = '';
+    this.graceBufferSuccess = '';
+    this.graceBufferSaving  = true;
+
+    this.pathologyService.updateGraceBuffer(Number(minutes)).subscribe({
+      next: () => {
+        this.graceBufferMinutes = Number(minutes);
+        // TokenService cache is updated by PathologyService itself on success.
+        this.graceBufferSuccess = 'Grace buffer updated successfully.';
+        this.graceBufferSaving  = false;
+        setTimeout(() => this.graceBufferSuccess = '', 4000);
       },
       error: () => {
-        this.tokenExpiryError   = 'Failed to load current token expiry. Please try again.';
-        this.tokenExpiryLoading = false;
+        this.graceBufferError  = 'Failed to save grace buffer. Please try again.';
+        this.graceBufferSaving = false;
       },
     });
   }
 
-  saveTokenExpiry(): void {
-    const minutes = this.tokenExpiryInput;
-    if (minutes === null || minutes === undefined || isNaN(Number(minutes))) {
-      this.tokenExpiryError = 'Please enter a valid number of minutes.';
-      return;
-    }
-    if (minutes < 1) {
-      this.tokenExpiryError = 'Token expiry must be at least 1 minute.';
-      return;
-    }
-    this.tokenExpiryError   = '';
-    this.tokenExpirySuccess = '';
-    this.tokenExpirySaving  = true;
+  // ── Policies helpers ───────────────────────────────────────────────────────
 
-    this.pathologyService.updateTokenExpiry(Number(minutes)).subscribe({
-      next: () => {
-        this.tokenExpiryMinutes = Number(minutes);
-        this.tokenExpirySuccess = 'Token expiry updated successfully.';
-        this.tokenExpirySaving  = false;
-        setTimeout(() => this.tokenExpirySuccess = '', 4000);
+  private loadPolicies(): void {
+    this.policiesLoading = true;
+    this.pathologyService.getPathology().subscribe({
+      next: (data) => {
+        // Grace buffer (merged into the Policies tab)
+        this.graceBufferMinutes = data.graceBufferMinutes ?? 0;
+        this.graceBufferInput   = this.graceBufferMinutes;
+        this.tokenService.setGraceBufferMinutes(this.graceBufferMinutes);
+
+        this.maxDiscountValue   = data.maxDiscountPercent  ?? 50;
+        this.maxDiscountInput   = this.maxDiscountValue;
+        this.sessionLockoutValue= data.sessionLockoutMinutes ?? 30;
+        this.sessionLockoutInput= this.sessionLockoutValue;
+        this.policiesLoaded     = true;
+        this.policiesLoading    = false;
+        // Keep TokenService cache in sync
+        this.tokenService.setMaxDiscountPercent(this.maxDiscountValue);
+        this.tokenService.setSessionLockoutMinutes(this.sessionLockoutValue);
       },
       error: () => {
-        this.tokenExpiryError  = 'Failed to save token expiry. Please try again.';
-        this.tokenExpirySaving = false;
+        this.maxDiscountError   = 'Failed to load policy settings. Please try again.';
+        this.policiesLoading    = false;
+      },
+    });
+  }
+
+  saveMaxDiscount(): void {
+    const val = this.maxDiscountInput;
+    if (val === null || val === undefined || isNaN(Number(val))) {
+      this.maxDiscountError = 'Please enter a valid number.';
+      return;
+    }
+    if (Number(val) < 0 || Number(val) > 99) {
+      this.maxDiscountError = 'Discount must be between 0 and 99. (100% is never allowed.)';
+      return;
+    }
+    this.maxDiscountError   = '';
+    this.maxDiscountSuccess = '';
+    this.maxDiscountSaving  = true;
+    this.pathologyService.updateMaxDiscount(Number(val)).subscribe({
+      next: () => {
+        this.maxDiscountValue   = Number(val);
+        // TokenService cache is updated by PathologyService itself on success.
+        this.maxDiscountSuccess = 'Max discount updated successfully.';
+        this.maxDiscountSaving  = false;
+        setTimeout(() => this.maxDiscountSuccess = '', 4000);
+      },
+      error: () => {
+        this.maxDiscountError  = 'Failed to save max discount. Please try again.';
+        this.maxDiscountSaving = false;
+      },
+    });
+  }
+
+  saveSessionLockout(): void {
+    const val = this.sessionLockoutInput;
+    if (val === null || val === undefined || isNaN(Number(val))) {
+      this.sessionLockoutError = 'Please enter a valid number.';
+      return;
+    }
+    if (Number(val) < 0 || Number(val) > 1440) {
+      this.sessionLockoutError = 'Lockout timeout must be between 0 (disabled) and 1440 minutes (24 hours).';
+      return;
+    }
+    this.sessionLockoutError   = '';
+    this.sessionLockoutSuccess = '';
+    this.sessionLockoutSaving  = true;
+    this.pathologyService.updateSessionLockout(Number(val)).subscribe({
+      next: () => {
+        this.sessionLockoutValue = Number(val);
+        // TokenService cache is updated by PathologyService itself on success.
+        this.sessionLockoutSuccess = 'Session lockout updated successfully.';
+        this.sessionLockoutSaving  = false;
+        setTimeout(() => this.sessionLockoutSuccess = '', 4000);
+      },
+      error: () => {
+        this.sessionLockoutError  = 'Failed to save session lockout. Please try again.';
+        this.sessionLockoutSaving = false;
       },
     });
   }

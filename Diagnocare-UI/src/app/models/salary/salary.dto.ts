@@ -28,13 +28,29 @@ export enum PaymentFor {
   BaseSalary      = 1,
   TravelAllowance = 2,
   OtherAllowance  = 3,
+  /**
+   * UI-only sentinel for "settle every component at once", offered on Full
+   * payments. It is NEVER sent as a payment source or persisted — selecting it
+   * routes the save to PayAllComponents, which writes one real row per
+   * component (each with its own source of 1/2/3).
+   */
+  AllComponents   = 99,
 }
 
 export const PaymentForLabels: Record<PaymentFor, string> = {
   [PaymentFor.BaseSalary]:      'Base Salary',
   [PaymentFor.TravelAllowance]: 'Travel Allowance',
   [PaymentFor.OtherAllowance]:  'Other Allowance',
+  [PaymentFor.AllComponents]:   'All Components',
 };
+
+/** Request body for POST api/salary/PayAllComponents. */
+export interface PayAllComponentsDTO {
+  salaryId:     number;
+  paymentMonth: string;
+  paymentDate:  string;
+  reference?:   string | null;
+}
 
 // ── Salary config (per user, persisted setting) ───────────────────────────────
 
@@ -114,19 +130,55 @@ export interface SalaryRecordDTO {
   typeUserId:            number;
   deactivatedAt?:        string | null;
   baseSalary:            number;
+  /**
+   * Contract PF, computed on the FULL base salary. Display-only.
+   * Never use this to work out what is payable, or what a payment may be —
+   * use `adjustedPfAmount` and the `*Cap` / `*Pending` fields instead.
+   */
   pfAmount?:             number;
+  /** PF percentage applied to the base salary (0-100). */
+  pfPercentage?:         number;
   travelAllowance?:      number;
   otherAllowance?:       number;
   grossSalary?:          number;
-  /** baseSalary + travelAllowance + otherAllowance − pfAmount */
+  /**
+   * Contract net salary: baseSalary + travelAllowance + otherAllowance − pfAmount.
+   * Fixed per employee — it does NOT move with the month's attendance, so it is
+   * never the right figure to compare against paid/pending.
+   */
   netSalary?:            number;
+
+  // ── Month-scoped, leave-adjusted figures — use these for money owed ────────
+  /** Salary withheld for leave taken beyond the monthly allowance. */
+  leaveDeductionAmount?:  number;
+  /** baseSalary − leaveDeductionAmount. */
+  payableBaseSalary?:     number;
+  /** PF actually withheld this month, computed on payableBaseSalary. */
+  adjustedPfAmount?:      number;
+  /** payableBaseSalary − adjustedPfAmount + travelAllowance + otherAllowance. */
+  netPayableSalary?:      number;
+  absentDays?:            number;
+  halfDays?:              number;
+  allowedLeavesPerMonth?: number;
+
   totalPaid?:            number;
+  /** netPayableSalary − totalPaid. */
   pendingAmount?:        number;
   paymentCount?:         number;
   isFullyPaid:           boolean;
-  baseSalaryPaid?:       number;
-  travelAllowancePaid?:  number;
-  otherAllowancePaid?:   number;
+
+  // ── Per-component caps and balances (server-authoritative) ────────────────
+  // The API validates every payment against these exact values, so they must be
+  // used as-is rather than recomputed from baseSalary/pfAmount on the client.
+  /** payableBaseSalary − adjustedPfAmount. */
+  baseSalaryCap?:          number;
+  baseSalaryPaid?:         number;
+  baseSalaryPending?:      number;
+  travelAllowancePaid?:    number;
+  travelAllowancePending?: number;
+  otherAllowancePaid?:     number;
+  otherAllowancePending?:  number;
+
   payments:              PartialPaymentDTO[];
   /** Derived on the frontend from isFullyPaid + totalPaid. */
   status?:               SalaryStatus;
@@ -137,9 +189,12 @@ export interface MonthlySalaryResponseDTO {
   /** ISO month string e.g. "2026-05" */
   month:           string;
   totalEmployees?: number;
+  /** Sum of contract netSalary — ignores leave deductions. Reference only. */
   totalNetSalary?: number;
+  /** Sum of netPayableSalary — the figure that reconciles with paid + pending. */
+  totalNetPayable?: number;
   totalPaid?:      number;
-  // totalPending?:   number;
+  totalPending?:   number;
   fullyPaidCount?: number;
   pendingCount?:   number;
   employees:       SalaryRecordDTO[];
@@ -148,6 +203,53 @@ export interface MonthlySalaryResponseDTO {
 export interface GenerateSalaryDTO {
   month: number;
   year:  number;
+}
+
+// ── Self-service salary summary (My Salary) ───────────────────────────────────
+
+/** One month's summary line inside the self-service salary view. */
+export interface MonthlySalarySummaryDTO {
+  /** "YYYY-MM" */
+  month:                string;
+  /** Fixed net salary from salary config (no leave adjustment). */
+  netSalary:            number;
+  /** Actual amount owed for this month after leave deductions. */
+  netPayableSalary:     number;
+  /** Salary deducted for excess leaves this month. */
+  leaveDeductionAmount: number;
+  totalPaid:            number;
+  /** netPayableSalary − totalPaid */
+  pendingAmount:        number;
+  paymentCount:         number;
+}
+
+/** One actual salary payment transaction (self-service My Payments view). */
+export interface SalaryPaymentDTO {
+  paymentId:          number;
+  salaryId:           number;
+  /** "YYYY-MM" — the salary month this payment applies to. */
+  paymentMonth:       string;
+  /** ISO datetime the payment was made. */
+  paymentDate:        string;
+  paymentAmount:      number;
+  reference?:         string | null;
+  /** 1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance */
+  paymentSource:      number;
+  /** "BaseSalary" | "TravelAllowance" | "OtherAllowance" — shown as the payment mode. */
+  paymentSourceName:  string;
+  /** "Full" | "Partial" */
+  paymentType?:       string;
+}
+
+/** Response from GET api/salary/GetMySalary — the logged-in user's own summary. */
+export interface UserSalarySummaryDTO {
+  salaryId:         number;
+  userId:           number;
+  userName:         string;
+  fullName:         string;
+  baseSalary:       number;
+  netSalary:        number;
+  monthlySummaries: MonthlySalarySummaryDTO[];
 }
 
 // ── Payable salary calculation result ────────────────────────────────────────
@@ -175,4 +277,14 @@ export interface CalculatePayableSalaryDTO {
   deductionAmount:       number;
   /** baseSalary − deductionAmount */
   payableBaseSalary:     number;
+  travelAllowance?:      number;
+  otherAllowance?:       number;
+  /**
+   * PF withheld for THIS month, charged on payableBaseSalary — not the contract
+   * pfAmount on the salary record, which is charged on the full base salary.
+   * These differ by (deductionAmount x pf%) whenever leave was deducted.
+   */
+  pfAmount?:             number;
+  /** payableBaseSalary − pfAmount + travelAllowance + otherAllowance */
+  netPayableSalary?:     number;
 }

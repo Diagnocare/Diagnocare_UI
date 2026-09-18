@@ -1,0 +1,396 @@
+/* ═══════════════════════ PAYMENT CALCULATOR TRIGGER ══════════════════════ */
+
+.pcm-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: none;
+  border: 1.5px solid #1E5BA8;
+  border-radius: 20px;
+  color: #1E5BA8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  letter-spacing: 0.2px;
+}
+
+.pcm-trigger:hover {
+  background: #1E5BA8;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30, 91, 168, 0.22);
+}
+
+.pcm-trigger .fa {
+  font-size: 0.82rem;
+}
+
+/* ═══════════════════════════ MODAL OVERLAY ════════════════════════════════ */
+
+.pcm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 25, 50, 0.45);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  animation: pcmFadeIn 0.18s ease;
+}
+
+@keyframes pcmFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ═══════════════════════════ MODAL CARD ═══════════════════════════════════ */
+
+.pcm-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 12px 40px rgba(15, 25, 50, 0.22), 0 2px 8px rgba(15, 25, 50, 0.1);
+  overflow: hidden;
+  animation: pcmSlideUp 0.2s ease;
+}
+
+@keyframes pcmSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.pcm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid #e8edf8;
+  background: linear-gradient(135deg, #1E5BA8 0%, #2d6fc4 100%);
+}
+
+.pcm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pcm-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.pcm-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+
+.pcm-close {
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.pcm-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Amount Due strip ───────────────────────────────────────────────────── */
+
+.pcm-amount-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: #eef3fb;
+  border-bottom: 1px solid #d8e3f5;
+}
+
+.pcm-strip-label {
+  font-size: 0.78rem;
+  color: #5a6a88;
+  font-weight: 500;
+}
+
+.pcm-strip-value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1E5BA8;
+}
+
+/* ── Body ───────────────────────────────────────────────────────────────── */
+
+.pcm-body {
+  padding: 18px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pcm-input-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.pcm-input-label .fa {
+  color: #1E5BA8;
+}
+
+.pcm-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #c5d0e8;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1a2a45;
+  font-weight: 600;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  -moz-appearance: textfield;
+  box-sizing: border-box;
+}
+
+.pcm-input::-webkit-outer-spin-button,
+.pcm-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.pcm-input:focus {
+  border-color: #1E5BA8;
+  box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.12);
+}
+
+.pcm-input::placeholder {
+  color: #9dafc8;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+/* ── Result panel ───────────────────────────────────────────────────────── */
+
+.pcm-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* Idle */
+.pcm-result--idle {
+  background: #f4f6fb;
+  border-color: #dde3f0;
+}
+.pcm-result--idle .pcm-result-icon,
+.pcm-result--idle .pcm-result-label {
+  color: #8898b0;
+}
+.pcm-result--idle .pcm-result-sub { color: #a0aec0; }
+
+/* Balance Due — amber */
+.pcm-result--balance {
+  background: #fff8e6;
+  border-color: #f5c842;
+}
+.pcm-result--balance .pcm-result-icon  { color: #c07800; }
+.pcm-result--balance .pcm-result-label { color: #7a5100; }
+.pcm-result--balance .pcm-result-amount { color: #c07800; }
+.pcm-result--balance .pcm-result-sub   { color: #a07030; }
+
+/* Return Amount — teal */
+.pcm-result--return {
+  background: #e6f7f5;
+  border-color: #34bfab;
+}
+.pcm-result--return .pcm-result-icon  { color: #1a8c7a; }
+.pcm-result--return .pcm-result-label { color: #0e5249; }
+.pcm-result--return .pcm-result-amount { color: #1a8c7a; }
+.pcm-result--return .pcm-result-sub   { color: #2a7060; }
+
+/* Payment Complete — green */
+.pcm-result--complete {
+  background: #e8f8ee;
+  border-color: #4caf73;
+}
+.pcm-result--complete .pcm-result-icon  { color: #2d8c4e; }
+.pcm-result--complete .pcm-result-label { color: #1a5c30; }
+.pcm-result--complete .pcm-result-sub   { color: #3a7a50; }
+
+/* Icon */
+.pcm-result-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Text block */
+.pcm-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pcm-result-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pcm-result-amount {
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pcm-result-sub {
+  font-size: 0.73rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.pcm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px 14px;
+  border-top: 1px solid #e8edf8;
+}
+
+.pcm-btn-clear {
+  padding: 7px 16px;
+  background: none;
+  border: 1.5px solid #c5d0e8;
+  border-radius: 7px;
+  color: #5a6a88;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pcm-btn-clear:hover {
+  border-color: #8898b0;
+  background: #f4f6fb;
+}
+
+.pcm-btn-done {
+  padding: 7px 20px;
+  background: #1E5BA8;
+  border: none;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pcm-btn-done:hover {
+  background: #174d90;
+  box-shadow: 0 2px 8px rgba(30, 91, 168, 0.25);
+}
+
+/* ══════════════════════════ THEME OVERRIDES ══════════════════════════════
+   The modal card is a light surface; the app's global theme rules force
+   label/span text light (for dark page backgrounds), which hides text on the
+   light card. Theme the surfaces + text per palette so everything stays
+   readable in dark / midnight / warm / system. */
+:host-context(html[data-theme="dark"]) .pcm-modal        { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .pcm-header       { border-bottom-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-amount-strip { background: #273548; border-bottom-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-strip-label  { color: #94a3b8 !important; }
+:host-context(html[data-theme="dark"]) .pcm-strip-value  { color: #5b9cf6 !important; }
+:host-context(html[data-theme="dark"]) .pcm-input-label  { color: #cbd5e1 !important; }
+:host-context(html[data-theme="dark"]) .pcm-input        { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-result--idle { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-footer       { border-top-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-btn-clear    { color: #94a3b8 !important; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pcm-btn-clear:hover { background: #273548; border-color: #475569; }
+
+:host-context(html[data-theme="midnight"]) .pcm-modal        { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .pcm-header       { border-bottom-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-amount-strip { background: #161b22; border-bottom-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-strip-label  { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .pcm-strip-value  { color: #4d9ef0 !important; }
+:host-context(html[data-theme="midnight"]) .pcm-input-label  { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .pcm-input        { background: #020408; color: #cdd6f4; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-result--idle { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-footer       { border-top-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-btn-clear    { color: #a6adc8 !important; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pcm-btn-clear:hover { background: #161b22; border-color: #30363d; }
+
+:host-context(html[data-theme="warm"]) .pcm-modal        { background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .pcm-header       { border-bottom-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-amount-strip { background: #fef9f0; border-bottom-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-strip-label  { color: #7a5c4e !important; }
+:host-context(html[data-theme="warm"]) .pcm-strip-value  { color: #9c5a28 !important; }
+:host-context(html[data-theme="warm"]) .pcm-input-label  { color: #4a3728 !important; }
+:host-context(html[data-theme="warm"]) .pcm-input        { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .pcm-result--idle { background: #fef9f0; border-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-footer       { border-top-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pcm-btn-clear    { color: #7a5c4e !important; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .pcm-btn-clear:hover { background: #fef9f0; border-color: #c4a882; }
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .pcm-modal        { background: #1e293b; }
+  :host-context(html[data-theme="system"]) .pcm-header       { border-bottom-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-amount-strip { background: #273548; border-bottom-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-strip-label  { color: #94a3b8 !important; }
+  :host-context(html[data-theme="system"]) .pcm-strip-value  { color: #5b9cf6 !important; }
+  :host-context(html[data-theme="system"]) .pcm-input-label  { color: #cbd5e1 !important; }
+  :host-context(html[data-theme="system"]) .pcm-input        { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-result--idle { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-footer       { border-top-color: #334155; }
+  :host-context(html[data-theme="system"]) .pcm-btn-clear    { color: #94a3b8 !important; border-color: #334155; }
+}
+
+/* Semantic result panels keep their light tints in every theme, so re-assert
+   their coloured text with !important to beat the global light-text rule
+   (otherwise the labels get whitened and vanish on the tint). */
+.pcm-result--balance .pcm-result-icon,
+.pcm-result--balance .pcm-result-amount { color: #c07800 !important; }
+.pcm-result--balance .pcm-result-label  { color: #7a5100 !important; }
+.pcm-result--balance .pcm-result-sub    { color: #a07030 !important; }
+.pcm-result--return .pcm-result-icon,
+.pcm-result--return .pcm-result-amount  { color: #1a8c7a !important; }
+.pcm-result--return .pcm-result-label   { color: #0e5249 !important; }
+.pcm-result--return .pcm-result-sub     { color: #2a7060 !important; }
+.pcm-result--complete .pcm-result-icon  { color: #2d8c4e !important; }
+.pcm-result--complete .pcm-result-label { color: #1a5c30 !important; }
+.pcm-result--complete .pcm-result-sub   { color: #3a7a50 !important; }

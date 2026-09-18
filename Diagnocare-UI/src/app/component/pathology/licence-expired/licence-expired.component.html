@@ -37,41 +37,35 @@
       </ul>
     </div>
 
-    <!-- Renew call to action — Super Admin sees Extend button; others see contact message -->
+    <!-- Already renewed elsewhere? Pull the latest licence from the licence server -->
+    <div class="le-refresh-box">
+      <button type="button" class="le-btn le-btn-refresh"
+              [disabled]="refreshing"
+              [title]="refreshTooltip"
+              (click)="refreshLicence()">
+        <i class="fa fa-sync-alt" [class.fa-spin]="refreshing"></i>
+        {{ refreshing ? 'Checking…' : 'Check for Updated Licence' }}
+      </button>
+      <p class="le-refresh-msg" *ngIf="refreshMessage"
+         [class.le-refresh-warn]="refreshMessageKind === 'warn'">
+        {{ refreshMessage }}
+      </p>
+    </div>
+
+    <!-- Renew call to action — renewal happens outside this application -->
     <div class="le-cta-box">
-
-      <!-- Super Admin: extend licence -->
-      <ng-container *ngIf="isSuperAdmin">
-        <p class="le-cta-text le-cta-admin">
-          <i class="fa fa-shield"></i>
-          As Super Admin you can extend the licence directly from here.
-        </p>
-        <div class="le-actions">
-          <a routerLink="/extend-license" class="le-btn le-btn-extend">
-            <i class="fa fa-calendar-plus"></i> Extend Licence
-          </a>
-          <button class="le-btn le-btn-outline" (click)="logout()">
-            <i class="fa fa-sign-out-alt"></i> Logout
-          </button>
-        </div>
-      </ng-container>
-
-      <!-- All other users: contact admin message -->
-      <ng-container *ngIf="!isSuperAdmin">
-        <p class="le-cta-text">
-          Please contact your Diagnocare administrator to renew your licence and
-          restore full access.
-        </p>
-        <div class="le-actions">
-          <button class="le-btn le-btn-primary" (click)="goToPathology()">
-            <i class="fa fa-home"></i> Go to Home
-          </button>
-          <button class="le-btn le-btn-outline" (click)="logout()">
-            <i class="fa fa-sign-out-alt"></i> Logout
-          </button>
-        </div>
-      </ng-container>
-
+      <p class="le-cta-text">
+        Please contact your Diagnocare administrator to renew your licence and
+        restore full access.
+      </p>
+      <div class="le-actions">
+        <button class="le-btn le-btn-primary" (click)="goToPathology()">
+          <i class="fa fa-home"></i> Go to Home
+        </button>
+        <button class="le-btn le-btn-outline" (click)="logout()">
+          <i class="fa fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
     </div>
 
   </div>

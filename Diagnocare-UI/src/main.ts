@@ -20,11 +20,19 @@ import { importProvidersFrom } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
+import { ErrorInterceptor } from './app/core/interceptors/error.interceptor';
+import { installAutofillGuard } from './app/shared/autofill-guard';
 
+// Stop Chrome pushing the saved login user id into every text box.
+// Must run before the first render so fields are stamped as they appear.
+installAutofillGuard();
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideHttpClient(withInterceptors([AuthInterceptor])),
+    // ErrorInterceptor is listed first so it is the OUTERMOST on the response path:
+    // AuthInterceptor (inner) handles 401 refresh/retry first, and only unresolved
+    // errors bubble out to ErrorInterceptor for a centralised toast.
+    provideHttpClient(withInterceptors([ErrorInterceptor, AuthInterceptor])),
     provideRouter(
       routes,
       withRouterConfig({ onSameUrlNavigation: 'reload' })

@@ -439,3 +439,91 @@
   cursor: not-allowed;
   transform: none;
 }
+
+/* ══════════════════════════ THEME OVERRIDES ══════════════════════════════
+   The .pm-modal container is themed globally (styles.css). Its inner text uses
+   explicit dark colours on <div>s, so on the themed (dark/cream) card it would
+   be invisible. Theme the inner surfaces + text per palette for every mode. */
+:host-context(html[data-theme="dark"]) .pm-title        { color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .pm-subtitle,
+:host-context(html[data-theme="dark"]) .pm-amount-label,
+:host-context(html[data-theme="dark"]) .pm-summary-label,
+:host-context(html[data-theme="dark"]) .pm-select-icon,
+:host-context(html[data-theme="dark"]) .pm-input-icon   { color: #94a3b8 !important; }
+:host-context(html[data-theme="dark"]) .pm-amount-value,
+:host-context(html[data-theme="dark"]) .pm-label        { color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .pm-type-toggle,
+:host-context(html[data-theme="dark"]) .pm-type-btn + .pm-type-btn { border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pm-type-btn     { background: #273548; color: #94a3b8; }
+:host-context(html[data-theme="dark"]) .pm-select,
+:host-context(html[data-theme="dark"]) .pm-input,
+:host-context(html[data-theme="dark"]) .pm-input--text  { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pm-summary-row  { background: #273548; }
+:host-context(html[data-theme="dark"]) .pm-tpa-panel    { background: #273548; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .pm-tpa-header   { color: #93b4f7 !important; }
+:host-context(html[data-theme="dark"]) .pm-btn--cancel  { background: #334155; color: #e2e8f0 !important; }
+:host-context(html[data-theme="dark"]) .pm-btn--cancel:hover:not(:disabled) { background: #3f4d63; }
+
+:host-context(html[data-theme="midnight"]) .pm-title        { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .pm-subtitle,
+:host-context(html[data-theme="midnight"]) .pm-amount-label,
+:host-context(html[data-theme="midnight"]) .pm-summary-label,
+:host-context(html[data-theme="midnight"]) .pm-select-icon,
+:host-context(html[data-theme="midnight"]) .pm-input-icon   { color: #a6adc8 !important; }
+:host-context(html[data-theme="midnight"]) .pm-amount-value,
+:host-context(html[data-theme="midnight"]) .pm-label        { color: #cdd6f4 !important; }
+:host-context(html[data-theme="midnight"]) .pm-type-toggle,
+:host-context(html[data-theme="midnight"]) .pm-type-btn + .pm-type-btn { border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pm-type-btn     { background: #161b22; color: #a6adc8; }
+:host-context(html[data-theme="midnight"]) .pm-select,
+:host-context(html[data-theme="midnight"]) .pm-input,
+:host-context(html[data-theme="midnight"]) .pm-input--text  { background: #020408; color: #cdd6f4; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pm-summary-row  { background: #161b22; }
+:host-context(html[data-theme="midnight"]) .pm-tpa-panel    { background: #161b22; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .pm-tpa-header   { color: #8ba4e8 !important; }
+:host-context(html[data-theme="midnight"]) .pm-btn--cancel  { background: #21262d; color: #cdd6f4 !important; }
+
+:host-context(html[data-theme="warm"]) .pm-title        { color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .pm-subtitle,
+:host-context(html[data-theme="warm"]) .pm-amount-label,
+:host-context(html[data-theme="warm"]) .pm-summary-label,
+:host-context(html[data-theme="warm"]) .pm-select-icon,
+:host-context(html[data-theme="warm"]) .pm-input-icon   { color: #7a5c4e !important; }
+:host-context(html[data-theme="warm"]) .pm-amount-value,
+:host-context(html[data-theme="warm"]) .pm-label        { color: #3d2b1f !important; }
+:host-context(html[data-theme="warm"]) .pm-type-toggle,
+:host-context(html[data-theme="warm"]) .pm-type-btn + .pm-type-btn { border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .pm-type-btn     { background: #fef9f0; color: #7a5c4e; }
+:host-context(html[data-theme="warm"]) .pm-select,
+:host-context(html[data-theme="warm"]) .pm-input,
+:host-context(html[data-theme="warm"]) .pm-input--text  { background: #fffdf7; color: #3d2b1f; border-color: #ddc9a8; }
+:host-context(html[data-theme="warm"]) .pm-summary-row  { background: #fef9f0; }
+:host-context(html[data-theme="warm"]) .pm-tpa-panel    { background: #fef4e4; border-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .pm-tpa-header   { color: #9c5a28 !important; }
+:host-context(html[data-theme="warm"]) .pm-btn--cancel  { background: #fef9f0; color: #3d2b1f !important; }
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) .pm-title        { color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .pm-subtitle,
+  :host-context(html[data-theme="system"]) .pm-amount-label,
+  :host-context(html[data-theme="system"]) .pm-summary-label,
+  :host-context(html[data-theme="system"]) .pm-select-icon,
+  :host-context(html[data-theme="system"]) .pm-input-icon   { color: #94a3b8 !important; }
+  :host-context(html[data-theme="system"]) .pm-amount-value,
+  :host-context(html[data-theme="system"]) .pm-label        { color: #e2e8f0 !important; }
+  :host-context(html[data-theme="system"]) .pm-type-btn     { background: #273548; color: #94a3b8; }
+  :host-context(html[data-theme="system"]) .pm-select,
+  :host-context(html[data-theme="system"]) .pm-input,
+  :host-context(html[data-theme="system"]) .pm-input--text  { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .pm-summary-row  { background: #273548; }
+  :host-context(html[data-theme="system"]) .pm-tpa-panel    { background: #273548; border-color: #334155; }
+  :host-context(html[data-theme="system"]) .pm-tpa-header   { color: #93b4f7 !important; }
+  :host-context(html[data-theme="system"]) .pm-btn--cancel  { background: #334155; color: #e2e8f0 !important; }
+}
+
+/* Semantic coloured text — re-assert so the global light-text rule can't hide it. */
+.pm-amount-value--net      { color: #7c3aed !important; }
+.pm-summary-value--paid    { color: #16a34a !important; }
+.pm-summary-value--pending { color: #d97706 !important; }
+.pm-required, .pm-field-error, .pm-save-error { color: #dc2626 !important; }
+.pm-tpa-note               { color: #b45309 !important; }

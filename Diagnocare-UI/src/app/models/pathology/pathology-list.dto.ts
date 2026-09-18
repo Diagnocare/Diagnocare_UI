@@ -27,6 +27,13 @@ export interface PathologyListDto {
   created:string;
   LastModifiedBy: string;
   LastModified:string;
-  tokenExpiryMinutes?: number;
+  /** Grace buffer (minutes) stored as token_expiry_in_minutes in the DB.
+   *  Within this window after JWT expiry, PIN re-authentication is offered
+   *  instead of a full redirect to /login. */
+  graceBufferMinutes?: number;
+  /** Maximum discount (%) any user may apply on a patient bill (0–99). Default 50. */
+  maxDiscountPercent?: number;
+  /** Minutes the page must be hidden before the screen-lock PIN fires on return. 0 = disabled. */
+  sessionLockoutMinutes?: number;
   licenseKey?: string;
 }

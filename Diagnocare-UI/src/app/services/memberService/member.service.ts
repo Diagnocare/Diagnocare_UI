@@ -9,6 +9,17 @@ import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { MemberDto }                     from 'src/app/models/member/member.dto';
 import { RoleId }                        from 'src/app/constant/enums';
 
+/**
+ * Staff head-count vs the ceiling configured on the API (`Staff:MaxStaffCount`).
+ * Every role counts, Super Admin included; deactivated members do not.
+ */
+export interface StaffCapacity {
+  used: number;
+  max: number;
+  remaining: number;
+  canAddMore: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MemberService {
 
@@ -46,6 +57,15 @@ export class MemberService {
       .pipe(map(list => this.normalizeList(list)));
   }
 
+  /**
+   * How many staff slots are used, and how many the lab is allowed.
+   * Never hard-code the limit here — it is API configuration. Use this to disable
+   * Add controls early; the API rejects an over-limit create with 409 regardless.
+   */
+  getCapacity(): Observable<StaffCapacity> {
+    return this.http.get<StaffCapacity>(this.baseUrl + apiEndpoints.staffCapacity);
+  }
+
   // ── Single record ─────────────────────────────────────────────────────────
 
   getById(id: number): Observable<MemberDto> {
@@ -64,8 +84,24 @@ export class MemberService {
     return this.http.put<MemberDto>(this.baseUrl + apiEndpoints.update, member);
   }
 
+  /**
+   * The only delete — deactivates the member (the API stamps DeactivatedAt).
+   * The row survives, so attendance records, salary history and the "reviewed by"
+   * stamp on every attendance request they approved stay intact. Reversible via
+   * `reactivate`. Deactivated members drop out of the list unless "Show Inactive"
+   * is on, and can no longer sign in.
+   *
+   * There is no permanent delete: removing the row would destroy audit history the
+   * lab has to be able to produce. An erasure request scrubs the personal fields
+   * instead of dropping the row.
+   */
   delete(id: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}${apiEndpoints.delete}?id=${id}`);
+  }
+
+  /** Restores a deactivated member. Refused by the API when the staff limit is reached. */
+  reactivate(id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}${apiEndpoints.reactivate}?id=${id}`, {});
   }
 
   // ── Validation ────────────────────────────────────────────────────────────

@@ -1,0 +1,161 @@
+/* ── Shell ──────────────────────────────────────────────────────────────────
+   Renders inside LayoutComponent's <router-outlet>, so the app header stays
+   visible and the user can navigate away using nav they DO have access to.
+   That is the whole point: a dead-end full-screen page would strand them.     */
+.ad-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.ad-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 40px 36px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(13, 27, 42, 0.08);
+  text-align: center;
+}
+
+/* ── Lock badge ─────────────────────────────────────────────────────────── */
+.ad-icon-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 30px;
+    color: #b45309;
+  }
+}
+
+/* ── Copy ───────────────────────────────────────────────────────────────── */
+.ad-title {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0d1b2a;
+}
+
+.ad-explanation {
+  margin: 0 0 22px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+/* ── Detail rows ────────────────────────────────────────────────────────── */
+.ad-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.ad-detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.ad-detail-value {
+  font-size: 13px;
+  color: #1e293b;
+  word-break: break-all;
+  text-align: right;
+}
+
+code.ad-detail-value {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  background: transparent;
+  padding: 0;
+}
+
+.ad-role {
+  font-weight: 600;
+}
+
+.ad-help {
+  margin: 18px 0 26px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+/* ── Actions ────────────────────────────────────────────────────────────── */
+.ad-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ad-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  i { font-size: 13px; }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+.ad-btn--primary {
+  background: #1a3a5c;
+  border: 1px solid #1a3a5c;
+  color: #fff;
+
+  &:hover { background: #16324f; }
+}
+
+.ad-btn--ghost {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+
+  &:hover { border-color: #94a3b8; }
+}
+
+/* ── Small screens ──────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ad-wrap { padding: 24px 12px; }
+  .ad-card { padding: 32px 22px; }
+
+  .ad-detail {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .ad-detail-value { text-align: left; }
+
+  .ad-btn { flex: 1 1 100%; justify-content: center; }
+}

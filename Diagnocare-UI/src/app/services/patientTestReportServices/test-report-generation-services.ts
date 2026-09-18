@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 
@@ -45,12 +45,30 @@ export class TestReportGenerationServices {
       apiUrl += `&pathBranch=${encodeURIComponent(pathBranch)}`;
     }
     return this.httpClient
-      .get(apiUrl, { responseType: 'text' })
-      .pipe(catchError(this.errorHandler));
+      .get(apiUrl, { responseType: 'text' });
   }
 
-  private errorHandler(error: HttpErrorResponse): Observable<never> {
-    console.error(error);
-    return throwError(() => new Error(error.message || 'Server Error'));
+  /**
+   * Downloads the report as a PDF.
+   *
+   * The backend renders a real, full-A4 PDF (headless Chromium) and streams the
+   * file back as a Blob, which the caller saves via an anchor download.
+   *
+   * @param pathBranch  Optional pathology branch name passed as a query param.
+   */
+  downloadTestReport(
+    patientTestId: number,
+    testCode: string,
+    pathBranch?: string
+  ): Observable<Blob> {
+    let apiUrl =
+      `${this.url}${apiEndpoints.generateTestReportPDF}` +
+      `?patientTestId=${patientTestId}&testCode=${testCode}&format=pdf`;
+    if (pathBranch) {
+      apiUrl += `&pathBranch=${encodeURIComponent(pathBranch)}`;
+    }
+    return this.httpClient
+      .get(apiUrl, { responseType: 'blob' });
   }
+
 }

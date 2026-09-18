@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 
@@ -15,7 +15,7 @@ const ROLE_LABEL_TO_ID: Record<string, RoleId> = Object.fromEntries(
  * ─────────────
  * • sessionStorage.authToken       — JWT for this tab (cleared when tab/browser closes)
  * • sessionStorage.tabId           — UUID for this tab (survives refresh, clears on close)
- * • sessionStorage.sessionTerminated — set by SignalR kick-out; makes getToken() → null
+ * • sessionStorage.sessionTerminated — set on kick-out; makes getToken() → null
  *
  * • localStorage.browserId         — stable UUID per browser/profile, never cleared
  * • localStorage.cleanupToken      — mirrors authToken so logout can clear the DB even
@@ -58,7 +58,7 @@ export class TokenService {
   /**
    * Emits when a sibling tab broadcasts `session-terminated`.
    * AppComponent subscribes to this and redirects to /login immediately,
-   * before this tab's own SignalR sessionCheck event even arrives.
+   * before this tab makes its own API call and discovers the 401 independently.
    * This is the key to eliminating the multi-tab flicker loop.
    */
   readonly sessionKicked$ = new Subject<void>();
@@ -69,8 +69,16 @@ export class TokenService {
    */
   hasPendingCleanup = false;
 
+  private readonly zone = inject(NgZone);
+
   constructor() {
-    this.channel.onmessage = (evt) => this.handleBroadcast(evt.data);
+    // zone.js does not patch BroadcastChannel, so this callback fires OUTSIDE the
+    // Angular zone. Everything that continues from it — sessionKicked$ subscribers,
+    // tokenReceived$ subscribers, and any HTTP work they start — then runs outside
+    // the zone too, so component state can be updated without change detection ever
+    // being scheduled: the model changes and the view silently keeps the old value.
+    // Re-entering the zone here fixes that for every downstream consumer at once.
+    this.channel.onmessage = (evt) => this.zone.run(() => this.handleBroadcast(evt.data));
   }
 
   // ── UUID generation ────────────────────────────────────────────────────────
@@ -85,7 +93,7 @@ export class TokenService {
    */
   private generateUUID(): string {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return this.generateUUID();
+      return crypto.randomUUID();
     }
     // RFC 4122 §4.4 compliant fallback
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -217,7 +225,15 @@ export class TokenService {
     return !!this.getToken();
   }
 
-  /** Remove the stored JWT and clear all auth state for this tab and all sibling tabs. */
+  /**
+   * Remove the stored JWT and clear all auth state for this tab and all sibling tabs.
+   * Deliberately does NOT clear the cached pathology policy settings (grace buffer,
+   * max discount, session lockout) — that cache is keyed to the browser/pathology,
+   * not the login session, and is kept fresh by PathologyService whenever the
+   * corresponding value is updated (see updateGraceBuffer/updateMaxDiscount/
+   * updateSessionLockout). Clearing it here would force a DB round-trip on every
+   * login even when nothing changed.
+   */
   removeToken(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
@@ -240,7 +256,7 @@ export class TokenService {
   }
 
   /**
-   * Marks THIS TAB's session as terminated (SignalR kick-out or auth interceptor).
+   * Marks THIS TAB's session as terminated (SESSION_TERMINATED 401 from the API).
    *
    * Removes the auth token from sessionStorage immediately so that:
    *  a) sibling tabs receiving a `request-token` broadcast won't see this tab's
@@ -257,8 +273,8 @@ export class TokenService {
     // Immediately disinfect every sibling tab in this browser.
     // Without this, Tab 2 might still have its token when Tab 1's login page
     // broadcasts `request-token` and Tab 2 would hand the stale token back,
-    // causing a /pathology ↔ /login flicker loop until Tab 2's own SignalR
-    // sessionCheck finally arrives and removes its token.
+    // causing a /pathology ↔ /login flicker loop until Tab 2's own next API call
+    // finally 401s and removes its token.
     this.channel.postMessage({ type: 'session-terminated' });
   }
 
@@ -288,7 +304,7 @@ export class TokenService {
         break;
 
       case 'logout':
-        // Sibling logged out — clear this tab too (SignalR handles redirect separately)
+        // Sibling logged out — clear this tab too (redirect is handled separately)
         sessionStorage.removeItem(this.TOKEN_KEY);
         sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
         break;
@@ -363,7 +379,13 @@ export class TokenService {
     return current !== null && roles.includes(current);
   }
 
-  isAdmin(): boolean    { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+  /** True for Admin OR Super Admin — i.e. "can see the Admin Panel". */
+  isAdmin(): boolean { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+
+  /**
+   * True only for Super Admin. Use this — not isAdmin() — to gate owner-level
+   * surfaces: lab profile writes, payroll, licence and role assignment.
+   */
   isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
@@ -379,5 +401,107 @@ export class TokenService {
     if (!decoded?.exp) return -1;
     const remaining = decoded.exp * 1000 - Date.now();
     return remaining > 0 ? remaining : 0;
+  }
+
+  // ── Grace buffer ───────────────────────────────────────────────────────────
+
+  private readonly GRACE_BUFFER_KEY         = 'diagnocare_grace_buffer_minutes';
+  private readonly MAX_DISCOUNT_KEY         = 'diagnocare_max_discount_percent';
+  private readonly SESSION_LOCKOUT_KEY      = 'diagnocare_session_lockout_minutes';
+
+  /**
+   * Persist the pathology-configured grace buffer (in minutes) to localStorage.
+   * Called by the lab-setup component when the admin saves the setting, and also
+   * by AppComponent on init when it fetches pathology info.
+   */
+  setGraceBufferMinutes(minutes: number): void {
+    localStorage.setItem(this.GRACE_BUFFER_KEY, String(minutes));
+  }
+
+  /**
+   * Retrieve the grace buffer duration (in minutes).
+   * Returns 0 if not configured (disables grace-period PIN auth).
+   */
+  getGraceBufferMinutes(): number {
+    const raw = localStorage.getItem(this.GRACE_BUFFER_KEY);
+    if (!raw) return 0;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }
+
+  /**
+   * Returns true when the stored JWT is expired BUT the expiry happened within
+   * the pathology-configured grace buffer window.
+   *
+   * Formula:
+   *   milliseconds_since_expiry = now - (exp * 1000)
+   *   within_grace = milliseconds_since_expiry <= graceBufferMinutes * 60 * 1000
+   *
+   * Returns false when:
+   *   • No token is stored
+   *   • Grace buffer is 0 (disabled)
+   *   • Token expired longer ago than the grace window
+   */
+  // ── Max discount ───────────────────────────────────────────────────────────
+
+  /** Persist the admin-configured maximum discount percentage. */
+  setMaxDiscountPercent(percent: number): void {
+    localStorage.setItem(this.MAX_DISCOUNT_KEY, String(percent));
+  }
+
+  /**
+   * Returns the maximum discount percentage allowed (0–99).
+   * Default 50 if not yet configured.
+   */
+  getMaxDiscountPercent(): number {
+    const raw = localStorage.getItem(this.MAX_DISCOUNT_KEY);
+    if (!raw) return 50;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 50 : Math.min(parsed, 99);
+  }
+
+  // ── Session lockout ────────────────────────────────────────────────────────
+
+  /** Persist the admin-configured session lockout threshold (minutes). */
+  setSessionLockoutMinutes(minutes: number): void {
+    localStorage.setItem(this.SESSION_LOCKOUT_KEY, String(minutes));
+  }
+
+  /**
+   * Returns the session lockout threshold in minutes.
+   * 0 means screen lock is disabled. Default 30.
+   */
+  getSessionLockoutMinutes(): number {
+    const raw = localStorage.getItem(this.SESSION_LOCKOUT_KEY);
+    if (!raw) return 30;
+    const parsed = parseInt(raw, 10);
+    return isNaN(parsed) || parsed < 0 ? 30 : parsed;
+  }
+
+  /**
+   * True when pathology policy settings (grace buffer, max discount, session
+   * lockout) are already cached in localStorage from a previous load.
+   * AppComponent uses this to skip the DB round-trip on repeat page loads.
+   */
+  hasCachedPolicies(): boolean {
+    return localStorage.getItem(this.GRACE_BUFFER_KEY) !== null;
+  }
+
+  /** Clear cached pathology policy settings (called on logout). */
+  clearCachedPolicies(): void {
+    localStorage.removeItem(this.GRACE_BUFFER_KEY);
+    localStorage.removeItem(this.MAX_DISCOUNT_KEY);
+    localStorage.removeItem(this.SESSION_LOCKOUT_KEY);
+  }
+
+  isWithinGracePeriod(): boolean {
+    const graceMs = this.getGraceBufferMinutes() * 60 * 1000;
+    if (graceMs <= 0) return false;
+
+    const decoded = this.decodeToken();
+    if (!decoded?.exp) return false;
+
+    const expiredAgoMs = Date.now() - decoded.exp * 1000;
+    return expiredAgoMs > 0 && expiredAgoMs <= graceMs;
   }
 }

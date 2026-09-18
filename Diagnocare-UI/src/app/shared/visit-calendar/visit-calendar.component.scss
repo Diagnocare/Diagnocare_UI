@@ -1,0 +1,241 @@
+// ══════════════════════════════════════════════════════════════════════════════
+//  Shared visit calendar (grid, badges, legend, month nav)
+// ══════════════════════════════════════════════════════════════════════════════
+
+:host { display: block; }
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.cal-nav-btn {
+  background: none;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  &:hover { background: #f1f5f9; }
+}
+.cal-month-label { font-size: .97rem; font-weight: 700; color: #1e293b; }
+
+.cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+.cal-dow {
+  text-align: center;
+  font-size: .69rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  padding: 4px 0 6px;
+}
+
+.cal-cell {
+  text-align: center;
+  padding: 3px;
+  cursor: pointer;
+  vertical-align: top;
+  position: relative;
+
+  &:hover { background: #f1f5f9; border-radius: 6px; }
+
+  // ── Holiday ───────────────────────────────────────────────────────────────
+  // A registered holiday gets its own colour (violet) — distinct from pending
+  // amber, done green and today cyan. Still clickable: scheduling is allowed
+  // after an explicit override.
+  &.is-holiday {
+    background: #f5f3ff;
+    border-radius: 6px;
+
+    .cal-day-num { color: #6d28d9; }
+    &:hover { background: #ede9fe; }
+  }
+
+  // A holiday that still has visits on it — the case this whole feature exists for.
+  &.has-conflict {
+    outline: 1.5px dashed #dc2626;
+    outline-offset: -2px;
+  }
+
+  &.other-month {
+    opacity: .3;
+    cursor: default;
+    &:hover { background: none; }
+  }
+
+  &.today .cal-day-num {
+    background: #0891b2;
+    color: #fff;
+    border-radius: 50%;
+  }
+
+  &.selected {
+    background: #e0f2fe;
+    border-radius: 6px;
+    outline: 2px solid #0891b2;
+    outline-offset: -1px;
+  }
+}
+
+.cal-day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #1e293b;
+  border-radius: 50%;
+}
+
+// Marker row under the day number — visit count and holiday label together.
+.cal-markers {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+// Count badge — solid, high-contrast so "all done" is clearly visible
+.cal-badge {
+  font-size: .65rem;
+  font-weight: 800;
+  background: #f59e0b;          // pending — solid amber
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  &--all-done {
+    background: #16a34a;        // all done — solid green
+    color: #fff;
+  }
+
+  &--conflict {
+    background: #dc2626;        // scheduled on a holiday — solid red
+    color: #fff;
+  }
+}
+
+// ── Holiday label ─────────────────────────────────────────────────────────────
+// Named chip so a holiday reads at a glance, the same way the count badge does.
+.cal-tag {
+  max-width: 100%;
+  font-size: .57rem;
+  font-weight: 800;
+  line-height: 1.35;
+  border-radius: 10px;
+  padding: 1px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &--holiday {
+    background: #7c3aed;        // holiday — solid violet
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.cal-conflict-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: .6rem;
+  color: #dc2626;
+}
+
+.cal-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: .75rem;
+  font-size: .72rem;
+  color: #64748b;
+  justify-content: center;
+}
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  &--pending { background: #f59e0b; }
+  &--done    { background: #16a34a; }
+  &--today   { background: #0891b2; }
+  &--holiday { background: #7c3aed; }
+}
+.leg-warn { color: #dc2626; font-size: .7rem; }
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 600px) {
+  .cal-cell { padding: 2px; }
+  .cal-day-num { width: 24px; height: 24px; font-size: .75rem; }
+  .cal-dow  { font-size: .62rem; padding-bottom: 4px; }
+  .cal-badge { font-size: .6rem; padding: 1px 4px; }
+  .cal-tag   { font-size: .52rem; padding: 1px 4px; }
+  .cal-legend { flex-wrap: wrap; gap: .55rem .8rem; }
+}
+@media (max-width: 400px) {
+  .cal-day-num { width: 20px; height: 20px; font-size: .7rem; }
+  .cal-month-label { font-size: .88rem; }
+  // Too narrow for a readable name — keep the colour, drop the text.
+  .cal-tag { font-size: 0; padding: 3px; border-radius: 50%; }
+}
+
+// ── Theme overrides ───────────────────────────────────────────────────────────
+:host-context(html[data-theme="dark"]) {
+  .cal-nav-btn     { border-color: #334155 !important; color: #94a3b8 !important;
+                     &:hover { background: #273548 !important; } }
+  .cal-month-label { color: #e2e8f0 !important; }
+  .cal-dow         { color: #475569 !important; }
+  .cal-day-num     { color: #e2e8f0 !important; }
+  .cal-cell:hover  { background: #273548 !important; }
+  .cal-cell.selected { background: #082f49 !important; outline-color: #0891b2 !important; }
+  .cal-legend      { color: #475569 !important; }
+  .cal-cell.is-holiday {
+    background: #2e1065 !important;
+    .cal-day-num { color: #c4b5fd !important; }
+    &:hover { background: #3b1785 !important; }
+  }
+  .cal-tag--holiday { background: #8b5cf6 !important; }
+}
+:host-context(html[data-theme="midnight"]) {
+  .cal-nav-btn     { border-color: #21262d !important; color: #a6adc8 !important;
+                     &:hover { background: #161b22 !important; } }
+  .cal-month-label { color: #cdd6f4 !important; }
+  .cal-dow         { color: #30363d !important; }
+  .cal-day-num     { color: #cdd6f4 !important; }
+  .cal-cell:hover  { background: #161b22 !important; }
+  .cal-cell.selected { background: #041f30 !important; outline-color: #0891b2 !important; }
+  .cal-legend      { color: #30363d !important; }
+  .cal-cell.is-holiday {
+    background: #1e1233 !important;
+    .cal-day-num { color: #cba6f7 !important; }
+    &:hover { background: #2a1a47 !important; }
+  }
+  .cal-tag--holiday { background: #cba6f7 !important; color: #1e1e2e !important; }
+}
+:host-context(html[data-theme="warm"]) {
+  .cal-nav-btn     { border-color: #ddc9a8 !important; color: #7a5c4e !important;
+                     &:hover { background: #fef9f0 !important; } }
+  .cal-month-label { color: #3d2b1f !important; }
+  .cal-dow         { color: #9e8272 !important; }
+  .cal-day-num     { color: #3d2b1f !important; }
+  .cal-cell:hover  { background: #fef9f0 !important; }
+  .cal-cell.selected { background: #fdf3e3 !important; outline-color: #c47028 !important; }
+  .cal-legend      { color: #9e8272 !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .cal-nav-btn     { border-color: #334155 !important; color: #94a3b8 !important; }
+    .cal-month-label { color: #e2e8f0 !important; }
+    .cal-dow         { color: #475569 !important; }
+    .cal-day-num     { color: #e2e8f0 !important; }
+    .cal-cell:hover  { background: #273548 !important; }
+    .cal-cell.selected { background: #082f49 !important; }
+  }
+}

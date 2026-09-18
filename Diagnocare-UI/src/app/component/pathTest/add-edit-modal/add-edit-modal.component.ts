@@ -8,6 +8,11 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
+import {
+  TechniqueGroup,
+  TestTechniqueDto,
+  groupTechniques,
+} from 'src/app/models/path-test/technique/test-technique.model';
 
 type AddType = 'group' | 'subgroup' | 'test';
 
@@ -45,6 +50,42 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
 
   /** True while background code-list fetch is in progress. */
   codesLoading = false;
+  editSubGroups: GroupSubGroupModel[] = [];
+  editTests: TestItem[] = [];
+  editSubGroupsLoading = false;
+  editTestsLoading = false;
+
+  /**
+   * Per-group / per-subgroup response cache, keyed by code.
+   *
+   * The modal is created fresh on every open (*ngIf="showModal" in the parent),
+   * so the cache lives exactly one editing session — long enough to make
+   * toggling back and forth between dropdown values free, short enough that it
+   * can never serve data staled by an update the user just saved.
+   *
+   * Seeded in ngOnInit from the parent's already-fetched lists, so editing the
+   * group/subgroup that is currently highlighted in the background browser —
+   * the common case — costs no network call at all.
+   */
+  private subGroupCache = new Map<string, GroupSubGroupModel[]>();
+  private testCache     = new Map<string, TestItem[]>();
+
+  // ── Technique catalogue ────────────────────────────────────────────────────
+  /**
+   * The seeded techniques, grouped for the picker. Empty until the fetch returns, and empty
+   * for good if it fails — in which case the form still works, because "Other (specify)"
+   * and its free-text box do not depend on the catalogue.
+   */
+  techniqueGroups: TechniqueGroup[] = [];
+
+  /**
+   * The select's value for "a technique the catalogue does not carry".
+   *
+   * Negative so it can never collide with a real technique id, and converted back to null
+   * before the test is saved — the database stores "no catalogue technique" as null, not as
+   * a sentinel that would become a dangling foreign key.
+   */
+  readonly OTHER_TECHNIQUE = -1;
 
   formData = {
     group: new GroupSubGroupModel(),
@@ -86,6 +127,96 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (this.mode === 'add') {
       this.loadAllCodes();
+    } else {
+      this.seedEditCachesFromInputs();
+    }
+    this.loadTechniques();
+  }
+
+  // ── Technique catalogue ──────────────────────────────────────────────────────
+
+  /**
+   * Loads the seeded catalogue for the picker.
+   *
+   * A failure is swallowed on purpose: the technique is optional, and an empty dropdown with
+   * a working "Other (specify)" box is a far better outcome than a test form that refuses to
+   * open because a lookup was unavailable.
+   */
+  private loadTechniques(): void {
+    this._pathTest.getTechniques()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (techniques: TestTechniqueDto[]) => {
+          this.techniqueGroups = groupTechniques(techniques);
+        },
+        error: () => { this.techniqueGroups = []; }
+      });
+  }
+
+  /**
+   * True when the free-text box should be shown for this test.
+   *
+   * Either the operator explicitly chose "Other", or the test already carries free text from
+   * before the catalogue existed — that second case is what stops an old test's method
+   * disappearing from the form the first time somebody edits it.
+   */
+  showsCustomMethod(test: TestItem): boolean {
+    return test.techniqueId === this.OTHER_TECHNIQUE
+      || (!test.techniqueId && !!test.method);
+  }
+
+  /**
+   * Keeps the two fields from both being set at once.
+   *
+   * A test carrying a catalogue technique AND free text has two answers to one question, and
+   * whichever the reader happens to look at is the one they believe.
+   */
+  onTechniqueChange(test: TestItem): void {
+    if (test.techniqueId && test.techniqueId !== this.OTHER_TECHNIQUE) {
+      test.method = null;
+    }
+  }
+
+  /**
+   * Converts the picker's sentinel back to what the database stores, on a copy.
+   *
+   * Called for every test leaving this form. The parent submits whatever it is handed, so
+   * the sentinel has to be gone by then — sending -1 as a technique id would fail the
+   * foreign key, and doing it in place would blank the form under the user on a failed save.
+   */
+  private resolveTechnique(test: TestItem): TestItem {
+    const resolved = new TestItem(test);
+
+    if (resolved.techniqueId === this.OTHER_TECHNIQUE) {
+      resolved.techniqueId = null;
+    } else if (resolved.techniqueId) {
+      // The catalogue name is the method; keeping stale free text alongside it would
+      // resurface the moment somebody switched the test back to "Other".
+      resolved.method = null;
+    }
+
+    return resolved;
+  }
+
+  /**
+   * Populates the caches from the lists the parent already holds, so the most
+   * common edit (the group/subgroup currently selected in the background) needs
+   * no fetch. The parent's `subGroups` all share one parentGroupId and its
+   * `tests` all share one subGroupId, so we simply bucket by those keys.
+   */
+  private seedEditCachesFromInputs(): void {
+    for (const s of this.subGroups ?? []) {
+      if (!s?.parentGroupId || !s.testGroupId || !s.name) continue;
+      const bucket = this.subGroupCache.get(s.parentGroupId) ?? [];
+      bucket.push(s);
+      this.subGroupCache.set(s.parentGroupId, bucket);
+    }
+
+    for (const t of this.tests ?? []) {
+      if (!t?.subGroupId || !t.testCode) continue;
+      const bucket = this.testCache.get(t.subGroupId) ?? [];
+      bucket.push(t);
+      this.testCache.set(t.subGroupId, bucket);
     }
   }
 
@@ -242,8 +373,10 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     // testRegId is already set via onEditTestSelect
     
     this.submitted.emit({
-      formData: this.formData,
-      updatedFormData: this.updatedFormData,
+      // The technique sentinel is resolved out here, at the single point everything leaves
+      // this component, rather than in each of the four places a test can be edited.
+      formData: { ...this.formData, test: this.resolveTechnique(this.formData.test) },
+      updatedFormData: { ...this.updatedFormData, test: this.resolveTechnique(this.updatedFormData.test) },
       selected: this.selected,
       mode: this.mode,
       step: this.step,
@@ -302,6 +435,20 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
       subGroup: new GroupSubGroupModel(),
       test:     new TestItem()
     };
+    this.updatedFormData = {
+      group:    new GroupSubGroupModel(),
+      subGroup: new GroupSubGroupModel(),
+      test:     new TestItem()
+    };
+    // Clear cascading edit lists. Caches are dropped too — the next modal open
+    // creates a new component instance and must not reuse data that a just-saved
+    // update may have invalidated.
+    this.editSubGroups = [];
+    this.editTests = [];
+    this.editSubGroupsLoading = false;
+    this.editTestsLoading = false;
+    this.subGroupCache.clear();
+    this.testCache.clear();
     // Clear registration IDs
     this.groupRegId = 0;
     this.subGroupRegId = 0;
@@ -365,7 +512,7 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
    */
   onEditSubGroupSelect() {
     const code  = this.updatedFormData.subGroup.testGroupId;
-    const match = this.subGroups.find(s => s.testGroupId === code);
+    const match = this.editSubGroups.find(s => s.testGroupId === code);
     if (match) {
       this.updatedFormData.subGroup.name           = match.name;
       this.updatedFormData.subGroup.price          = match.price;
@@ -382,10 +529,16 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
    */
   onEditTestSelect() {
     const code  = this.updatedFormData.test.testCode;
-    const match = this.tests.find(t => t.testCode === code);
+    const match = this.editTests.find(t => t.testCode === code);
     if (match) {
       this.updatedFormData.test.testName  = match.testName;
       this.updatedFormData.test.price     = match.price;
+      this.updatedFormData.test.testRegId = match.testRegId;
+      // Loaded so the form shows what is stored. The update endpoint rebuilds the test from
+      // whatever the form sends, so a method left out here would be sent as null and wipe a
+      // recorded technique every time somebody edited the test's price.
+      this.updatedFormData.test.method      = match.method ?? null;
+      this.updatedFormData.test.techniqueId = match.techniqueId ?? null;
       this.testRegId = match.testRegId;
     }
   }
@@ -398,14 +551,76 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
   onEditGroupChangedForSub() {
     this.updatedFormData.subGroup = new GroupSubGroupModel();
     this.updatedFormData.test     = new TestItem();
+    this.editTests = [];
+    this.loadEditSubGroups(this.updatedFormData.group.testGroupId);
   }
 
   onEditGroupChangedForTest() {
     this.updatedFormData.subGroup = new GroupSubGroupModel();
     this.updatedFormData.test     = new TestItem();
+    this.editTests = [];
+    this.loadEditSubGroups(this.updatedFormData.group.testGroupId);
   }
 
   onEditSubGroupChangedForTest() {
     this.updatedFormData.test = new TestItem();
+    this.loadEditTests(this.updatedFormData.subGroup.testGroupId);
+  }
+
+  /** Fetches the subgroups belonging to the group chosen in the edit form. */
+  private loadEditSubGroups(groupId: string): void {
+    this.editSubGroups = [];
+    if (!groupId) return;
+
+    const cached = this.subGroupCache.get(groupId);
+    if (cached) {
+      this.editSubGroups = cached;
+      this.editSubGroupsLoading = false;
+      return;
+    }
+
+    this.editSubGroupsLoading = true;
+    this._pathTest.getAllSubGroupList(groupId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (subs) => {
+          // Backend may return placeholder rows with no code/name — drop them.
+          this.editSubGroups = (subs ?? []).filter(s => s && s.testGroupId && s.name);
+          this.subGroupCache.set(groupId, this.editSubGroups);
+          this.editSubGroupsLoading = false;
+        },
+        error: () => {
+          this.editSubGroups = [];
+          this.editSubGroupsLoading = false;
+        }
+      });
+  }
+
+  /** Fetches the tests belonging to the subgroup chosen in the edit form. */
+  private loadEditTests(subGroupId: string): void {
+    this.editTests = [];
+    if (!subGroupId) return;
+
+    const cached = this.testCache.get(subGroupId);
+    if (cached) {
+      this.editTests = cached;
+      this.editTestsLoading = false;
+      return;
+    }
+
+    this.editTestsLoading = true;
+    this._pathTest.getAllTestList(subGroupId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (tests) => {
+          this.editTests = (tests ?? []).filter((t: any) => t && t.testCode);
+          this.testCache.set(subGroupId, this.editTests);
+          this.editTestsLoading = false;
+        },
+        error: () => {
+          this.editTests = [];
+          this.editTestsLoading = false;
+        }
+      });
   }
 }

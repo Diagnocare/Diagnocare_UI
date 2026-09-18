@@ -3,14 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { TemplateService } from 'src/app/services/templateServices/template.service';
 import { TemplateListDTO } from 'src/app/models/template/template-list.dto';
 import { TemplateDetailDTO } from 'src/app/models/template/template-detail.dto';
-import { TokenService } from 'src/app/core/interceptors/token.service';
 
 export type DownloadFormat = 'pdf' | 'docx';
 
@@ -71,18 +69,8 @@ export class TemplateComponent implements OnInit, OnDestroy {
   constructor(
     private templateService: TemplateService,
     private sanitizer: DomSanitizer,
-    private toastr: ToastrService,
-    private router: Router,
-    private tokenService: TokenService
+    private toastr: ToastrService
   ) {}
-
-  get isSuperAdmin(): boolean {
-    return this.tokenService.isSuperAdmin();
-  }
-
-  openDesigner(): void {
-    this.router.navigate(['/template-designer']);
-  }
 
   ngOnInit(): void {
     this.loadTemplates();
@@ -117,7 +105,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
           this.isLoading         = false;
         },
         error: () => {
-          this.toastr.error('Failed to load templates.', 'Error');
+          // Message shown centrally by ErrorInterceptor.
           this.defaultLoaded = true;
           this.isLoading     = false;
         },
@@ -137,14 +125,10 @@ export class TemplateComponent implements OnInit, OnDestroy {
         next: () => {
           this.defaultTemplateId = newDefault;
           this.isSettingDefault  = false;
-          const msg = newDefault
-            ? `"${template.templateName}" is now the pathology default template`
-            : 'Pathology default template cleared';
-          this.toastr.success(msg, 'Updated');
         },
         error: () => {
+          // Message shown centrally by ErrorInterceptor.
           this.isSettingDefault = false;
-          this.toastr.error('Failed to update default template', 'Error');
         },
       });
   }
@@ -181,7 +165,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
       this.previewSrcdoc = this.sanitizer.bypassSecurityTrustHtml(this.buildFullHtml(detail));
       this.previewLoading = false;
     }).catch(() => {
-      this.toastr.error('Failed to load template preview.', 'Error');
+      // Message shown centrally by ErrorInterceptor.
       this.previewLoading = false;
       this.showPreview    = false;
     });
@@ -206,7 +190,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
     if (this.isDownloading) return;
     this.fetchDetail(template.templateId)
       .then(detail => this.triggerDownload(detail, format))
-      .catch(() => this.toastr.error('Failed to prepare download.', 'Error'));
+      .catch(() => { /* HTTP error shown centrally by ErrorInterceptor */ });
   }
 
   private async triggerDownload(detail: TemplateDetailDTO, format: DownloadFormat): Promise<void> {
@@ -216,7 +200,6 @@ export class TemplateComponent implements OnInit, OnDestroy {
       } else {
         await this.downloadAsDocx(detail);
       }
-      this.toastr.success('Download complete!', 'Done');
     } catch (err: any) {
       console.error('[TemplateComponent] download error', err);
       this.toastr.error('Download failed. Please try again.', 'Error');
