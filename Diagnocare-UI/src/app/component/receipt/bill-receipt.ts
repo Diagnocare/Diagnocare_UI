@@ -231,7 +231,6 @@ export class BillReceipt implements OnInit {
   onPaymentSaved(): void {
     this.showPaymentModal = false;
     this.activeGroup = null;
-    this.toastr.success('Payment recorded successfully.', 'Payment Saved');
     this.loadReceipts();
   }
 
@@ -280,7 +279,6 @@ export class BillReceipt implements OnInit {
       next: () => {
         this.showRefundModal = false;
         this.refundTargetReceipt = null;
-        this.toastr.success('Refund processed successfully.', 'Refund Issued');
         this.loadReceipts();
       },
       error: (err: Error) => {
@@ -326,7 +324,6 @@ export class BillReceipt implements OnInit {
         this.tpaSaving    = false;
         this.showTpaModal = false;
         this.tpaModalDetails = null;
-        this.toastr.success('TPA details updated successfully.', 'Saved');
         this.loadReceipts();
       },
       error: (err: Error) => {

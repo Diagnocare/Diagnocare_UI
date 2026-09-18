@@ -106,8 +106,13 @@
         <span>{{ errors[0] }}</span>
       </div>
 
-      <!-- Login form -->
-      <form [formGroup]="loginForm" (ngSubmit)="Login()" autocomplete="off" appFormKeyboard>
+      <!-- Login form.
+           This is the ONE screen where the browser's "Save password?" prompt is
+           wanted, so the form deliberately carries no autocomplete="off" and the
+           fields keep their real username / current-password hints. Every in-app
+           password or PIN field uses appMasked instead, which keeps the prompt
+           off those screens — see MaskedInputDirective. -->
+      <form [formGroup]="loginForm" (ngSubmit)="Login()" appFormKeyboard>
 
         <div class="lp-field">
           <label class="lp-label">User Name</label>

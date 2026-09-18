@@ -1,12 +1,13 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
-import { catchError, map, Observable, of, throwError } from 'rxjs';
+﻿import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { map, Observable, of } from 'rxjs';
 import { PatientCreateDto } from '../../models/patient/patient-create.dto';
 import { AddPatientTestDto } from '../../models/patient/add-patient-test.dto';
 import { PatientEditDto } from '../../models/patient/patient-edit.dto';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { KeyValuePair } from 'src/app/models/common/keyValuePair';
+import { BookingResultDto } from '../../models/patient/booking-result.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -24,43 +25,43 @@ export class PatientService {
 
   getPatientById(patientId: string): Observable<PatientEditDto> {
     const geturl = `${this.patienturl}${apiEndpoints.getById}?patientId=${encodeURIComponent(patientId)}`;
-    return this.httpClient.get<PatientEditDto>(geturl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<PatientEditDto>(geturl);
   }
 
   getSerialNPatientId(): Observable<KeyValuePair> {
     const geturl = this.patienturl + apiEndpoints.getSerialNPatientId;
     console.log(geturl);
-    return this.httpClient.get<KeyValuePair>(geturl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<KeyValuePair>(geturl);
   }
 
-  AddPatient(data: PatientCreateDto): Observable<PatientCreateDto> {
+  /**
+   * Registers a new patient and books their first test.
+   *
+   * Returns a BookingResultDto, NOT the payload that was sent — the response
+   * carries the server-generated patient id, the new booking's testRegId and one
+   * barcode per booked test, which is what lets the caller print sample labels.
+   * (It was previously typed as PatientCreateDto, which never matched what the
+   * API actually returned.)
+   */
+  AddPatient(data: PatientCreateDto): Observable<BookingResultDto> {
     const addurl = this.patienturl + apiEndpoints.add;
-    console.log(addurl);
-    return this.httpClient.post<PatientCreateDto>(addurl, data).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.post<BookingResultDto>(addurl, data);
   }
 
   /**
    * Adds a new test (and initial payment) for an already-registered patient.
-   * POST api/patient/AddTest
+   * Answers in the same shape as AddPatient, so a returning patient's booking can
+   * print labels through exactly the same code path.
+   * POST api/patient/AddTestWithReceipt
    */
-  addPatientTest(data: AddPatientTestDto): Observable<any> {
+  addPatientTest(data: AddPatientTestDto): Observable<BookingResultDto> {
     const url = this.patienturl + apiEndpoints.addTestWithReceipt;
-    return this.httpClient.post<any>(url, data).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.post<BookingResultDto>(url, data);
   }
 
   updatePatientDetails(patient: PatientEditDto): Observable<boolean> {
     const updateUrl = this.patienturl + apiEndpoints.update;
-    return this.httpClient.put<boolean>(updateUrl, patient).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<boolean>(updateUrl, patient);
   }
 
   /**
@@ -73,9 +74,7 @@ export class PatientService {
     if (reason) {
       deleteUrl += `&reason=${encodeURIComponent(reason)}`;
     }
-    return this.httpClient.delete<any>(deleteUrl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.delete<any>(deleteUrl);
   }
 
   /**
@@ -84,9 +83,7 @@ export class PatientService {
    */
   reactivatePatient(patientId: string): Observable<any> {
     const url = `${this.patienturl}${apiEndpoints.reactivate}?patientId=${encodeURIComponent(patientId)}`;
-    return this.httpClient.put<any>(url, null).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<any>(url, null);
   }
 
   /**
@@ -96,9 +93,7 @@ export class PatientService {
    */
   hardDeletePatient(patientId: string): Observable<any> {
     const url = `${this.patienturl}${apiEndpoints.hardDelete}?patientId=${encodeURIComponent(patientId)}`;
-    return this.httpClient.delete<any>(url).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.delete<any>(url);
   }
 
   searchPatients(searchTerm: string, pageNumber: number, pageSize: number, dateFrom?: string, dateTo?: string, status?: string): Observable<any> {
@@ -112,15 +107,12 @@ export class PatientService {
     if (status) {
       searchUrl += `&status=${encodeURIComponent(status)}`;
     }
-    return this.httpClient.get<any>(searchUrl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<any>(searchUrl);
   }
   getDistinctReferredBy(referredByType:string): Observable<string[]> {
     const getUrl = `${this.patienturl}${apiEndpoints.getDistinctReferredBy}?referred_By_Type=${referredByType}`;
     return this.httpClient.get<any[]>(getUrl).pipe(
-      map((response) => this.normalizeDistinctReferredBy(response)),
-      catchError(this.errorHandler)
+      map((response) => this.normalizeDistinctReferredBy(response))
     );
   }
 
@@ -148,9 +140,7 @@ export class PatientService {
    */
   cancelPatientTest(patientTestId: number, reason?: string): Observable<any> {
     const url = this.patienturl + apiEndpoints.cancelTest;
-    return this.httpClient.put<any>(url, { patientTestId, reason: reason ?? null }).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put<any>(url, { patientTestId, reason: reason ?? null });
   }
 
   /**
@@ -160,29 +150,13 @@ export class PatientService {
    */
   removeTestCodes(patientTestId: number, testCodes: string[], reason?: string): Observable<any> {
     const url = this.patienturl + apiEndpoints.removeTests;
-    return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null }).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null });
   }
 
-  /**
-   * Updates the status of a patient based on their test completion status.
-   * Called after booking cancellation or test completion to auto-update patient status.
-   * PUT api/patient/UpdatePatientStatus
-   *
-   * @param patientId The patient ID to update
-   * @param newStatus The new patient status ('Pending' | 'Partial' | 'Completed')
-   * @returns Observable indicating success
-   */
-  updatePatientStatus(patientId: string, newStatus: string): Observable<any> {
-    const url = `${this.patienturl}/UpdatePatientStatus`;
-    return this.httpClient.put<any>(url, { patientId, status: newStatus }).pipe(
-      catchError(this.errorHandler)
-    );
-  }
+  // NOTE: there is deliberately no updatePatientStatus() here.
+  // A patient's test status is derived server-side on every read
+  // (PatientService.ComputeTestStatus, which excludes cancelled bookings);
+  // it is not stored, and api/Patient has no UpdatePatientStatus action.
+  // The method that used to live here 404'd on every booking cancellation.
 
-  private errorHandler(error: HttpErrorResponse) {
-    console.error(error);
-    return throwError(() => new Error(error.message || "Server Error"));
-  }
 }

@@ -6,11 +6,18 @@ export enum AuthType {
 }
 
 // ─── Single unified role definition ───────────────────────────────────────────
+// IDs mirror the API's Enums/Roles.cs and are persisted in User.TypeUserId — never
+// renumber them. Labels are display-only and safe to change.
+//
+// The `User` role is the front desk. Its label reads "Receptionist" because the app
+// also has a "User Panel" nav section that EVERY non-admin role sees, and having a
+// role called "User" next to it made the two impossible to tell apart in support
+// conversations. The key stays `User` so no ID or token mapping shifts.
 export const Role = {
-  User:           { id: 1 as const, label: 'User'           as const },
-  Assistant:      { id: 2 as const, label: 'Assistant'      as const },
+  User:           { id: 1 as const, label: 'Receptionist'   as const },
+  Assistant:      { id: 2 as const, label: 'Lab Assistant'  as const },
   Admin:          { id: 3 as const, label: 'Admin'          as const },
-  Super_Admin:     { id: 4 as const, label: 'Super Admin'     as const },
+  Super_Admin:    { id: 4 as const, label: 'Super Admin'    as const },
   Collection_Boy: { id: 5 as const, label: 'Collection Boy' as const },
   Doctor:         { id: 6 as const, label: 'Doctor'         as const },
 } as const;

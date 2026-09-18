@@ -20,7 +20,6 @@ import { MemberDto } from 'src/app/models/member/member.dto';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
-import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
 
 type EditField = 'email' | 'phone' | null;
@@ -64,8 +63,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   constructor(
     private headerService: HeaderService,
     private common: CommonService,
-    private confirmModal: ConfirmModalService,
-    private toastr: ToastrService
+    private confirmModal: ConfirmModalService
   ) {
     const token = this.common.getAccessToken();
     const decoded = jwtDecode<any>(token || '');
@@ -372,10 +370,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
             if (this.editField === 'email') this.user.email = this.newEmail;
             else this.user.contactPhone = Number(this.newPhone);
           }
-          this.toastr.success(
-            this.editField === 'email' ? 'Email updated successfully.' : 'Phone number updated successfully.',
-            'Success'
-          );
           this.clearEditState();
         } else {
           this.errorMsg = res?.message || 'Update failed. Please try again.';

@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, map, Observable, throwError } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { patientTest } from 'src/app/models/patientTest/patientTestModel';
 import { testDetail, testDetailResponse } from 'src/app/models/patientTest/testDetailModel';
@@ -18,45 +18,32 @@ export class TestReportService {
   }
   getAllPatientTests(patientId: string): Observable<patientTest[]> {
     const geturl = `${this.url}${apiEndpoints.getAllList}?patientId=${patientId}`;
-    return this.httpClient.get<patientTest[]>(geturl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<patientTest[]>(geturl);
   }
 
   getTestDetails(patientTestId: string): Observable<testDetail[]> {
     const encodedTestId = patientTestId.replace(/,/g, '%2C');
     const geturl = `${this.url}${apiEndpoints.getById}?patientTestId=${encodedTestId}`;
     return this.httpClient.get<testDetailResponse>(geturl).pipe(
-      map((response: testDetailResponse) => response.tests || []),
-      catchError(this.errorHandler)
+      map((response: testDetailResponse) => response.tests || [])
     );
   }
 
   /** INSERT – called for parameters that have no existing row in the DB. */
   saveTestReport(reports: any[]): Observable<any> {
     const postUrl = `${this.url}${apiEndpoints.add}`;
-    return this.httpClient.post(postUrl, reports).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.post(postUrl, reports);
   }
 
   /** UPDATE – called for parameters that already have a row in the DB (id is known). */
   updateTestReport(reports: any[]): Observable<any> {
     const putUrl = `${this.url}${apiEndpoints.update}`;
-    return this.httpClient.put(putUrl, reports).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.put(putUrl, reports);
   }
 
   getSavedTestReport(patientTestId: number, testCode: string): Observable<any[]> {
     const geturl = `${this.url}${apiEndpoints.getSavedTestReport}?patientTestId=${patientTestId}&testCode=${encodeURIComponent(testCode)}`;
-    return this.httpClient.get<any[]>(geturl).pipe(
-      catchError(this.errorHandler)
-    );
+    return this.httpClient.get<any[]>(geturl);
   }
 
-  private errorHandler(error: HttpErrorResponse) {
-    console.error(error);
-    return throwError(() => new Error(error.message || "Server Error"));
-  }
 }

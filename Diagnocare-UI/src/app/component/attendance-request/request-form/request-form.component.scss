@@ -185,6 +185,57 @@ select.form-control.has-icon { cursor: pointer; }
   color: #4c3a72;
   margin-bottom: 1.4rem;
   i { color: #7c3aed; }
+
+  &--loading, &--muted {
+    background: rgba(100, 116, 139, 0.07);
+    border-color: rgba(100, 116, 139, 0.18);
+    color: var(--text-secondary, #64748b);
+    i { color: var(--text-secondary, #64748b); }
+  }
+
+  // This date already has a request awaiting a decision — submitting is off.
+  &--blocked {
+    align-items: flex-start;
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #7c4a03;
+    i { color: #b45309; margin-top: 0.15rem; }
+    span { flex: 1; }
+  }
+}
+
+// "View request" affordance inside the blocked note.
+.open-existing-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #b45309;
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+
+  i { color: inherit; margin-left: 0.25rem; }
+  &:hover { color: #92400e; }
+}
+
+// Sits under the Requested Status field — flags that this pick differs from
+// what's already on record and won't take effect until reviewed.
+.approval-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #92400e;
+  i { color: #b45309; margin-top: 0.15rem; }
 }
 
 // ── Actions ───────────────────────────────────────────────────────

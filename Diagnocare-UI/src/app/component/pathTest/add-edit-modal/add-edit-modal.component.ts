@@ -8,6 +8,11 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
+import {
+  TechniqueGroup,
+  TestTechniqueDto,
+  groupTechniques,
+} from 'src/app/models/path-test/technique/test-technique.model';
 
 type AddType = 'group' | 'subgroup' | 'test';
 
@@ -65,6 +70,23 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
   private subGroupCache = new Map<string, GroupSubGroupModel[]>();
   private testCache     = new Map<string, TestItem[]>();
 
+  // ── Technique catalogue ────────────────────────────────────────────────────
+  /**
+   * The seeded techniques, grouped for the picker. Empty until the fetch returns, and empty
+   * for good if it fails — in which case the form still works, because "Other (specify)"
+   * and its free-text box do not depend on the catalogue.
+   */
+  techniqueGroups: TechniqueGroup[] = [];
+
+  /**
+   * The select's value for "a technique the catalogue does not carry".
+   *
+   * Negative so it can never collide with a real technique id, and converted back to null
+   * before the test is saved — the database stores "no catalogue technique" as null, not as
+   * a sentinel that would become a dangling foreign key.
+   */
+  readonly OTHER_TECHNIQUE = -1;
+
   formData = {
     group: new GroupSubGroupModel(),
     subGroup: new GroupSubGroupModel(),
@@ -108,6 +130,72 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     } else {
       this.seedEditCachesFromInputs();
     }
+    this.loadTechniques();
+  }
+
+  // ── Technique catalogue ──────────────────────────────────────────────────────
+
+  /**
+   * Loads the seeded catalogue for the picker.
+   *
+   * A failure is swallowed on purpose: the technique is optional, and an empty dropdown with
+   * a working "Other (specify)" box is a far better outcome than a test form that refuses to
+   * open because a lookup was unavailable.
+   */
+  private loadTechniques(): void {
+    this._pathTest.getTechniques()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (techniques: TestTechniqueDto[]) => {
+          this.techniqueGroups = groupTechniques(techniques);
+        },
+        error: () => { this.techniqueGroups = []; }
+      });
+  }
+
+  /**
+   * True when the free-text box should be shown for this test.
+   *
+   * Either the operator explicitly chose "Other", or the test already carries free text from
+   * before the catalogue existed — that second case is what stops an old test's method
+   * disappearing from the form the first time somebody edits it.
+   */
+  showsCustomMethod(test: TestItem): boolean {
+    return test.techniqueId === this.OTHER_TECHNIQUE
+      || (!test.techniqueId && !!test.method);
+  }
+
+  /**
+   * Keeps the two fields from both being set at once.
+   *
+   * A test carrying a catalogue technique AND free text has two answers to one question, and
+   * whichever the reader happens to look at is the one they believe.
+   */
+  onTechniqueChange(test: TestItem): void {
+    if (test.techniqueId && test.techniqueId !== this.OTHER_TECHNIQUE) {
+      test.method = null;
+    }
+  }
+
+  /**
+   * Converts the picker's sentinel back to what the database stores, on a copy.
+   *
+   * Called for every test leaving this form. The parent submits whatever it is handed, so
+   * the sentinel has to be gone by then — sending -1 as a technique id would fail the
+   * foreign key, and doing it in place would blank the form under the user on a failed save.
+   */
+  private resolveTechnique(test: TestItem): TestItem {
+    const resolved = new TestItem(test);
+
+    if (resolved.techniqueId === this.OTHER_TECHNIQUE) {
+      resolved.techniqueId = null;
+    } else if (resolved.techniqueId) {
+      // The catalogue name is the method; keeping stale free text alongside it would
+      // resurface the moment somebody switched the test back to "Other".
+      resolved.method = null;
+    }
+
+    return resolved;
   }
 
   /**
@@ -285,8 +373,10 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     // testRegId is already set via onEditTestSelect
     
     this.submitted.emit({
-      formData: this.formData,
-      updatedFormData: this.updatedFormData,
+      // The technique sentinel is resolved out here, at the single point everything leaves
+      // this component, rather than in each of the four places a test can be edited.
+      formData: { ...this.formData, test: this.resolveTechnique(this.formData.test) },
+      updatedFormData: { ...this.updatedFormData, test: this.resolveTechnique(this.updatedFormData.test) },
       selected: this.selected,
       mode: this.mode,
       step: this.step,
@@ -444,6 +534,11 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
       this.updatedFormData.test.testName  = match.testName;
       this.updatedFormData.test.price     = match.price;
       this.updatedFormData.test.testRegId = match.testRegId;
+      // Loaded so the form shows what is stored. The update endpoint rebuilds the test from
+      // whatever the form sends, so a method left out here would be sent as null and wipe a
+      // recorded technique every time somebody edited the test's price.
+      this.updatedFormData.test.method      = match.method ?? null;
+      this.updatedFormData.test.techniqueId = match.techniqueId ?? null;
       this.testRegId = match.testRegId;
     }
   }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 
@@ -69,8 +69,16 @@ export class TokenService {
    */
   hasPendingCleanup = false;
 
+  private readonly zone = inject(NgZone);
+
   constructor() {
-    this.channel.onmessage = (evt) => this.handleBroadcast(evt.data);
+    // zone.js does not patch BroadcastChannel, so this callback fires OUTSIDE the
+    // Angular zone. Everything that continues from it — sessionKicked$ subscribers,
+    // tokenReceived$ subscribers, and any HTTP work they start — then runs outside
+    // the zone too, so component state can be updated without change detection ever
+    // being scheduled: the model changes and the view silently keeps the old value.
+    // Re-entering the zone here fixes that for every downstream consumer at once.
+    this.channel.onmessage = (evt) => this.zone.run(() => this.handleBroadcast(evt.data));
   }
 
   // ── UUID generation ────────────────────────────────────────────────────────
@@ -371,7 +379,14 @@ export class TokenService {
     return current !== null && roles.includes(current);
   }
 
-  isAdmin(): boolean    { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+  /** True for Admin OR Super Admin — i.e. "can see the Admin Panel". */
+  isAdmin(): boolean { return this.hasRole(Role.Admin.id, Role.Super_Admin.id); }
+
+  /**
+   * True only for Super Admin. Use this — not isAdmin() — to gate owner-level
+   * surfaces: lab profile writes, payroll, licence and role assignment.
+   */
+  isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
 

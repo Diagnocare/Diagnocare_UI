@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 export interface MethodDef {
   key:        string;               // internal key used for routing
@@ -21,7 +22,7 @@ export interface MethodDef {
   templateUrl: './otp-mfa-dialog.component.html',
   styleUrls: ['./otp-mfa-dialog.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent]
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, MaskedInputDirective]
 })
 export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
@@ -395,7 +396,12 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   // ── Events ────────────────────────────────────────────────────────
 
   onVerify(): void {
-    if (this.isLocked) return;
+    // Belt-and-braces guard: the template disables the input/button on
+    // expiry, but this stops a already-queued Enter/paste auto-submit (see
+    // the setTimeout(() => this.onVerify()) calls below) from slipping a
+    // verify through in the gap between the timer firing and onSessionExpired()
+    // actually navigating away.
+    if (this.isLocked || this.sessionExpiredFlag) return;
     this.verify.emit({ code: this.buildCode(), authType: this.currentAuthType });
   }
 
@@ -573,6 +579,16 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.clearResendTimer();
     this.sessionExpiredFlag = true;
     this.sessionExpired.emit();
+
+    // Close the dialog immediately — mirrors onClose() exactly (emit `close`
+    // plus the `closeMfaDialog` window event every consumer already listens
+    // for). Don't wait on the async logout call below to do this: on the
+    // login page this dialog IS rendered on /login, so router.navigate(['/login'])
+    // there is a same-URL no-op that never fires, and the overlay would
+    // otherwise stay stuck showing "Expired" forever instead of closing.
+    this.close.emit();
+    window.dispatchEvent(new CustomEvent('closeMfaDialog', { bubbles: true }));
+
     // Auto logout — call the service then navigate to login
     try {
       this.loginService.logout().subscribe({ complete: () => this.router.navigate(['/login']) });

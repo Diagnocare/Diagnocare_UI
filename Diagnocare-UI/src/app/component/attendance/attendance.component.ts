@@ -1,10 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, map } from 'rxjs/operators';
 import { isActiveByDate } from 'src/app/shared/member-utils';
-import { ToastrService } from 'ngx-toastr';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { UnsavedChangesModalComponent } from 'src/app/shared/unsaved-changes-modal/unsaved-changes-modal.component';
@@ -37,6 +37,16 @@ interface AttendanceCell {
   isHoliday:   boolean;   // true when the date falls on a registered holiday
   holidayName: string;    // display name of the holiday, e.g. 'Diwali'
   dateStr:     string;    // ISO 'YYYY-MM-DD' — lets helpers re-verify against holidayDates at render time
+  /**
+   * Set when this employee has a correction request for this day still awaiting a
+   * decision. The cell stays editable — the admin may well know better — but it is
+   * flagged so a day isn't marked in ignorance of a request sitting in the queue.
+   */
+  requestId:            number | null;
+  /** 'Pending' or 'Withdrawal Requested'. Empty when there's no open request. */
+  requestStatusLabel:   string;
+  /** The status the employee asked for, e.g. 'Half Day'. Empty when none. */
+  requestedStatusLabel: string;
 }
 
 interface AttendanceRow {
@@ -173,6 +183,93 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return rows;
   }
 
+  // ── Empty state ────────────────────────────────────────────────────────────
+  // The grid is hidden whenever displayRows is empty — a headers-only table with
+  // no body reads as a broken page. These getters describe *why* it is empty so
+  // the placeholder can say something useful (and, where possible, offer the one
+  // click that fixes it). All primitives, so change detection stays cheap.
+
+  /** Plural name of the active role tab, e.g. 'Collection Boys'. */
+  get roleNamePlural(): string {
+    switch (this.roleFilter) {
+      case 'doctor':         return 'Doctors';
+      case 'collection-boy': return 'Collection Boys';
+      case 'other':          return 'Users';
+      default:               return 'Staff Members';
+    }
+  }
+
+  /**
+   * Why the grid has nothing to show:
+   *   'none'     — no staff at all in this lab
+   *   'role'     — nobody holds the currently selected role
+   *   'inactive' — the role has members, but every one of them is deactivated
+   *   'filter'   — the selected staff member is filtered out of this view
+   */
+  get emptyReason(): 'none' | 'role' | 'inactive' | 'filter' {
+    if (this.rows.length === 0) return 'none';
+
+    const roleRows = this.roleFilteredRows();
+    if (roleRows.length === 0) return 'role';
+
+    const visible = this.showInactive
+      ? roleRows
+      : roleRows.filter(r => isActiveByDate(r.deactivatedAt));
+    if (visible.length === 0) return 'inactive';
+
+    return 'filter';
+  }
+
+  get emptyIcon(): string {
+    if (this.emptyReason === 'filter')   return 'fa-filter';
+    if (this.emptyReason === 'inactive') return 'fa-user-slash';
+    switch (this.roleFilter) {
+      case 'doctor':         return 'fa-user-md';
+      case 'collection-boy': return 'fa-motorcycle';
+      default:               return 'fa-users';
+    }
+  }
+
+  get emptyTitle(): string {
+    switch (this.emptyReason) {
+      case 'none':     return 'No Staff Records Yet';
+      case 'role':     return `No ${this.roleNamePlural} Added`;
+      case 'inactive': return `All ${this.roleNamePlural} Are Inactive`;
+      default:         return 'Nothing Matches This Filter';
+    }
+  }
+
+  get emptyMessage(): string {
+    switch (this.emptyReason) {
+      case 'none':
+        return 'Once team members are registered, their weekly and monthly attendance will appear here.';
+      case 'role':
+        return `There are no ${this.roleNamePlural.toLowerCase()} in this lab right now. Pick another tab above, or add them from Lab Setup → Staff.`;
+      case 'inactive':
+        return `Every ${this.roleNamePlural.toLowerCase().replace(/s$/, '')} in this group has been deactivated, and deactivated members are hidden by default.`;
+      default:
+        return 'The selected staff member isn’t part of this view. Clear the filter to see the full list again.';
+    }
+  }
+
+  /** Label for the one-click fix, or '' when there is nothing to offer. */
+  get emptyActionLabel(): string {
+    switch (this.emptyReason) {
+      case 'inactive': return 'Show Inactive Staff';
+      case 'filter':   return 'Clear Filter';
+      default:         return '';
+    }
+  }
+
+  get emptyActionIcon(): string {
+    return this.emptyReason === 'inactive' ? 'fa-user-check' : 'fa-rotate-left';
+  }
+
+  runEmptyAction(): void {
+    if (this.emptyReason === 'inactive') { this.toggleInactive(); return; }
+    if (this.emptyReason === 'filter')   { this.selectedUserId = null; this.recalcTotals(); }
+  }
+
   // ── Holiday data ───────────────────────────────────────────────────────────
   /** ISO date strings of all holidays in the currently displayed period's year(s). */
   holidayDates = new Set<string>();
@@ -194,15 +291,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   constructor(
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
-    private toastr:        ToastrService,
     private datePipe:      DatePipe,
     private unsavedModalSvc: UnsavedChangesModalService,
+    private router:        Router
   ) {}
 
   ngOnInit(): void {
     this.today.setHours(0, 0, 0, 0);
     this.editCutoff = this.calcEditCutoff();
     this.jumpToWeek(0);
+  }
+
+  /** Opens the shared attendance-correction review queue in this same tab,
+   *  going through the same unsaved-changes guard as switching views. */
+  openAttendanceRequests(): void {
+    this.withUnsavedGuard('before leaving Attendance', () => {
+      this.router.navigate(['/attendance-requests']);
+    });
   }
 
   // ── Edit cutoff ────────────────────────────────────────────────────────────
@@ -484,6 +589,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         const locked  = !future && date < this.editCutoff;
         const holiday = this.holidayDates.has(dateStr);
         const loaded  = (future || holiday) ? AttendanceStatus.None : mapBackendStatus(dayRec?.status);
+        // A correction request from this employee still awaiting a decision.
+        const open = u.openRequests?.[dateStr] ?? null;
         return {
           attendanceId:   dayRec?.attendanceId ?? 0,
           status:         loaded,
@@ -495,6 +602,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           isHoliday:      holiday,
           holidayName:    this.holidayNames.get(dateStr) ?? '',
           dateStr,
+          requestId:            open?.requestId ?? null,
+          requestStatusLabel:   open?.requestStatusLabel ?? '',
+          requestedStatusLabel: open?.requestedStatusLabel ?? '',
         };
       });
       return { userId: u.userId, fullName: u.fullName, typeUserId: u.typeUserId ?? 0, deactivatedAt: u.deactivatedAt ?? null, cells };
@@ -509,6 +619,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     // live holidayDates Set (same source the column header uses), so holidays
     // are always blocked even if the cell flag somehow didn't get stamped.
     if (cell.isFuture || cell.isLocked || cell.isHoliday || this.isHolidayDate(this.columnDates[cellIdx])) return;
+    // Only Present / Absent / Half Day / unmarked are in the cycle. A cell holding a
+    // status outside it (an admin-assigned Week Off, or a legacy value) yields idx -1,
+    // so the first click moves it to Present rather than getting stuck.
     const idx   = STATUS_CYCLE.indexOf(cell.status);
     cell.status  = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
     cell.isDirty = cell.status !== cell.originalStatus;
@@ -620,7 +733,6 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     );
 
     if (!records.length) {
-      this.toastr.info('No changes to save.', 'Info');
       onSuccess?.();
       return;
     }
@@ -637,7 +749,6 @@ export class AttendanceComponent implements OnInit, OnDestroy {
               if (c.isDirty) { c.originalStatus = c.status; c.isDirty = false; }
             })
           );
-          this.toastr.success(`${records.length} record(s) saved.`, 'Saved');
           this.isSaving = false;
           onSuccess?.();
         },
@@ -660,13 +771,20 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     if (cell.isFuture)          return 'cell-future';
     if (this.isCellHoliday(cell)) return 'cell-holiday';
     const base = this.statusMap[cell.status]?.cssClass ?? 'cell-unmarked';
-    if (cell.isLocked) return `${base} cell-locked`;
-    return cell.isDirty ? `${base} cell-dirty` : base;
+    const state = cell.isLocked ? `${base} cell-locked`
+                : cell.isDirty  ? `${base} cell-dirty`
+                : base;
+    // Matches cellLabel: an edited cell shows its new status, not the R.
+    return (cell.requestId && !cell.isDirty) ? `${state} cell-requested` : state;
   }
 
   cellLabel(cell: AttendanceCell): string {
     if (cell.isFuture)            return '—';
     if (this.isCellHoliday(cell)) return 'H';
+    // A day with a request in the queue reads as R — but only until the admin
+    // touches it. Once they've cycled the cell, the pending change they just made
+    // matters more than the request, and hiding it behind an R would lose it.
+    if (cell.requestId && !cell.isDirty) return 'R';
     return this.statusMap[cell.status]?.shortLabel ?? '·';
   }
 
@@ -677,14 +795,19 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return name ? `${name} — Holiday (read-only)` : 'Holiday — read-only';
     }
     const cfg = this.statusMap[cell.status];
+    // A request awaiting a decision is worth saying first — it changes what
+    // marking this cell by hand means.
+    const pending = cell.requestId
+      ? `${cell.requestStatusLabel || 'Pending'}: ${cell.requestedStatusLabel || 'a correction'} requested — `
+      : '';
     if (cell.isLocked) {
-      return cfg?.value !== AttendanceStatus.None
+      return pending + (cfg?.value !== AttendanceStatus.None
         ? `${cfg.label} — locked (only last 2 weeks editable)`
-        : 'Not marked — locked (only last 2 weeks editable)';
+        : 'Not marked — locked (only last 2 weeks editable)');
     }
-    return cfg?.value !== AttendanceStatus.None
+    return pending + (cfg?.value !== AttendanceStatus.None
       ? `${cfg.label} — click to change`
-      : 'Not marked — click to set status';
+      : 'Not marked — click to set status');
   }
 
   // ── Date utilities ─────────────────────────────────────────────────────────

@@ -31,8 +31,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
   summaryReportMenu = Object.values(summaryReportMenu);
   profileMenu = Object.values(profileMenu);
   adminOptions = Object.values(adminOptions);
+  /** Every possible User Panel item; `visibleUserOptions` is what renders. */
   userOptions = Object.values(userOptions);
   labSetupMenu =Object.values(labSetupMenu);
+
+  /**
+   * The User Panel items this role may actually open, filtered by each item's
+   * matching ModuleAccess flag. Recomputed in checkAdminPanelAccess() once the
+   * role is resolved. Never bind the raw `userOptions` list — that hands a role
+   * links its own route guard will bounce it off of.
+   */
+  visibleUserOptions: typeof this.userOptions = [];
 
   userName: string | null = null;
   profilePhotoUrl: string | null = null;
@@ -40,8 +49,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   /** Resolved from the JWT role claim — drives all nav visibility. */
   access: ModuleAccess = DEFAULT_ACCESS;
-  /** True only for Admin — controls admin-only items inside Admin Panel. */
+  /** True for Admin or Super Admin — controls whether the Admin Panel is shown. */
   isAdmin = false;
+  /** True only for Super Admin — hides owner-level items (payroll) from Admin. */
+  isSuperAdmin = false;
   /** Human-readable role label shown in the profile dropdown. */
   roleLabel = '';
 
@@ -131,12 +142,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
   checkAdminPanelAccess(): void {
     const role = this.tokenService.getUserRole();
     this.access      = role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
-    this.isAdmin = this.tokenService.isAdmin();
+    this.isAdmin      = this.tokenService.isAdmin();
+    this.isSuperAdmin = this.tokenService.isSuperAdmin();
 
     // Derive the readable role label directly from the Role config
     this.roleLabel = role !== null
       ? (Object.values(Role).find(r => r.id === role)?.label ?? '')
       : '';
+
+    // Filter the full User Panel item list down to what this role's ModuleAccess
+    // flags allow. Was never computed, so the User Panel dropdown always rendered
+    // empty (no My Attendance / My Salary / My Holidays / My Visits) for every role.
+    this.visibleUserOptions = this.userOptions.filter(item => this.access[item.access]);
   }
 
   fetchProfileImage() {

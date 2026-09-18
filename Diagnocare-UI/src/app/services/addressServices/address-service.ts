@@ -1,7 +1,7 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError, shareReplay } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { shareReplay } from 'rxjs/operators';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 
@@ -21,12 +21,6 @@ export class AddressService {
       getStateCityList(): Observable<string[]>
       {
         let geturl=this.url+apiEndpoints.getAllStateCityList;
-        return this.httpClient.get<string[]>(geturl).pipe(
-          catchError(this.errorHandler));
-      }
-      errorHandler(error:HttpErrorResponse)
-      {
-        console.error(error);
-          return throwError(() => new Error(error.message || "Server Error"));
+        return this.httpClient.get<string[]>(geturl);
       }
 }

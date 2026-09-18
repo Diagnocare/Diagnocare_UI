@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 
@@ -45,8 +45,7 @@ export class TestReportGenerationServices {
       apiUrl += `&pathBranch=${encodeURIComponent(pathBranch)}`;
     }
     return this.httpClient
-      .get(apiUrl, { responseType: 'text' })
-      .pipe(catchError(this.errorHandler));
+      .get(apiUrl, { responseType: 'text' });
   }
 
   /**
@@ -69,12 +68,7 @@ export class TestReportGenerationServices {
       apiUrl += `&pathBranch=${encodeURIComponent(pathBranch)}`;
     }
     return this.httpClient
-      .get(apiUrl, { responseType: 'blob' })
-      .pipe(catchError(this.errorHandler));
+      .get(apiUrl, { responseType: 'blob' });
   }
 
-  private errorHandler(error: HttpErrorResponse): Observable<never> {
-    console.error(error);
-    return throwError(() => new Error(error.message || 'Server Error'));
-  }
 }

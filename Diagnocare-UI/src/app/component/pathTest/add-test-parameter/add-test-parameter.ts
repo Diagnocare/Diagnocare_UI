@@ -203,7 +203,6 @@ export class AddTestParameter implements OnInit, OnDestroy {
     ).subscribe({
       next: (result: boolean) => {    
           if(result) {
-            this.toastr.success('Test parameters added successfully','Success');
             this.parameterform.reset();
             this.parameters.clear();
             this._route.navigate(['manage-tests']);

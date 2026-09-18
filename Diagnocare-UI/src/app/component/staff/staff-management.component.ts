@@ -2,8 +2,9 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { ToastrService } from 'ngx-toastr';
 
-import { MemberService }         from 'src/app/services/memberService/member.service';
+import { MemberService, StaffCapacity } from 'src/app/services/memberService/member.service';
 import { ConfirmModalService }   from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -12,7 +13,7 @@ import { SignaturePreviewModalComponent } from 'src/app/shared/signature-preview
 
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { Role }      from 'src/app/constant/enums';
-import { isMemberActive } from 'src/app/shared/member-utils';
+import { isMemberActive, filterActiveMembers, filterInactiveMembers } from 'src/app/shared/member-utils';
 
 export type SectionType = 'user' | 'collection-boy' | 'doctor';
 
@@ -50,14 +51,67 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
   collectionBoys: MemberDto[] = [];
   doctors:        MemberDto[] = [];
 
-  showInactive = false;
+  /**
+   * Which set of members the list shows. The two are never mixed.
+   *
+   * They used to be: "Show Inactive" appended the deactivated members into the same
+   * table, in whatever order the API returned them, so a deactivated member could sit
+   * between two active ones and read as active at a glance. The rows are not
+   * interchangeable — an active row offers Edit and Deactivate, an inactive one only
+   * Reactivate — so interleaving them made the actions column look arbitrary too.
+   */
+  viewMode: 'active' | 'inactive' = 'active';
+
+  get showingInactive(): boolean { return this.viewMode === 'inactive'; }
 
   /** Filtered lists exposed to the template. */
-  get visibleUsers():          MemberDto[] { return this.showInactive ? this.users          : this.users.filter(isMemberActive); }
-  get visibleCollectionBoys(): MemberDto[] { return this.showInactive ? this.collectionBoys : this.collectionBoys.filter(isMemberActive); }
-  get visibleDoctors():        MemberDto[] { return this.showInactive ? this.doctors        : this.doctors.filter(isMemberActive); }
+  get visibleUsers():          MemberDto[] { return this.forCurrentView(this.users); }
+  get visibleCollectionBoys(): MemberDto[] { return this.forCurrentView(this.collectionBoys); }
+  get visibleDoctors():        MemberDto[] { return this.forCurrentView(this.doctors); }
 
-  toggleInactive(): void { this.showInactive = !this.showInactive; }
+  private forCurrentView(members: MemberDto[]): MemberDto[] {
+    return this.showingInactive ? filterInactiveMembers(members) : filterActiveMembers(members);
+  }
+
+  /**
+   * Deactivated members in the tab currently on screen — shown on the toggle so the
+   * user can see whether switching will show anything before they switch.
+   */
+  get inactiveCount(): number {
+    return filterInactiveMembers(this.listFor(this.activeSection.type)).length;
+  }
+
+  private listFor(type: SectionType): MemberDto[] {
+    return type === 'user'           ? this.users
+         : type === 'collection-boy' ? this.collectionBoys
+         :                             this.doctors;
+  }
+
+  toggleView(): void {
+    this.viewMode = this.showingInactive ? 'active' : 'inactive';
+  }
+
+  /**
+   * Staff head-count, fetched from the API — the limit is server configuration
+   * (`Staff:MaxStaffCount`), never a constant here. Null until the first response,
+   * so a slow or failed call cannot wrongly block a legitimate add.
+   */
+  capacity: StaffCapacity | null = null;
+
+  get canAddStaff(): boolean { return this.capacity ? this.capacity.canAddMore : true; }
+
+  get addDisabledReason(): string {
+    return this.canAddStaff ? ''
+      : `Staff limit reached — all ${this.capacity?.max} slots are in use. ` +
+        'Deactivate a member to free one.';
+  }
+
+  /** Refreshed on load and after anything that frees or takes a slot. */
+  private loadCapacity(): void {
+    this.subs.add(this.memberService.getCapacity().subscribe({
+      next: c => this.capacity = c, error: () => {}
+    }));
+  }
 
   showSignatureModal   = false;
   signaturePreviewUrl: string | null = null;
@@ -69,6 +123,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     private confirmModal:  ConfirmModalService,
     private router:        Router,
     private route:         ActivatedRoute,
+    private toastr:        ToastrService,
   ) {}
 
   ngOnInit(): void {
@@ -76,6 +131,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     const initial = this.sections.find(s => s.type === tab) ?? this.sections[0];
     this.activeSection = initial;
     this.loadSection(initial.type);
+    this.loadCapacity();
   }
 
   // ── Tab selection ─────────────────────────────────────────────────────────
@@ -110,6 +166,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   add(type: SectionType): void {
+    if (!this.canAddStaff) return;   // button is disabled; this covers keyboard activation
     this.router.navigate(['/users/add'], { queryParams: { type } });
   }
 
@@ -121,35 +178,68 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     this.router.navigate(['/users/edit', id], { queryParams: { type } });
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── Deactivate / Reactivate ───────────────────────────────────────────────
 
-  deleteUser(userId: number): void {
+  /**
+   * Reloads one tab and refreshes the head-count. Called after anything that
+   * changes a member's active state.
+   */
+  private refreshSection(type: SectionType): void {
+    this.sections.find(s => s.type === type)!.loaded = false;
+    this.loadSection(type);
+    this.loadCapacity();
+  }
+
+  /**
+   * The API returns `{ success, message }` on a 200 even when it refused the
+   * operation — a staff limit, a self-deactivation, a visit schedule still
+   * assigned. Without this the row simply did not move and the user was left
+   * guessing, which is how "delete does nothing" gets reported as a bug.
+   */
+  private handleResult(type: SectionType, result: any, fallback: string): void {
+    if (result?.success === false) {
+      this.toastr.error(result.message || fallback, 'Error');
+      return;
+    }
+    if (result?.message) this.toastr.success(result.message);
+    this.refreshSection(type);
+  }
+
+  /**
+   * Deactivates a member — the API keeps the row and stamps DeactivatedAt.
+   * Their attendance, salary history and the approvals they signed off stay
+   * intact, and the slot they occupied is freed. Reversible.
+   */
+  deactivateMember(type: SectionType, id: number): void {
+    const label = type === 'user' ? 'User' : type === 'doctor' ? 'Doctor' : 'Collection Boy';
     this.subs.add(
       this.confirmModal.confirm({
-        title: 'Delete User',
-        message: 'Are you sure you want to delete this user? This cannot be undone.',
-        confirmText: 'Delete', cancelText: 'Cancel'
+        title: `Deactivate ${label}`,
+        message: `Deactivate this ${label.toLowerCase()}? They lose access immediately and drop out of this list, ` +
+                 'but their attendance and salary history is kept. You can reactivate them later from "Show Inactive".',
+        confirmText: 'Deactivate', cancelText: 'Cancel'
       }).subscribe(confirmed => {
         if (!confirmed) return;
-        this.memberService.delete(userId).subscribe({
-          next:  () => { this.sections.find(s => s.type === 'user')!.loaded = false; this.loadSection('user'); },
-          error: () => {}
+        this.memberService.delete(id).subscribe({
+          next:  r => this.handleResult(type, r, `Could not deactivate this ${label.toLowerCase()}.`),
+          error: () => {}   // HTTP/network errors are surfaced centrally by ErrorInterceptor
         });
       })
     );
   }
 
-  deleteStaff(type: 'doctor' | 'collection-boy', id: number): void {
-    const label = type === 'doctor' ? 'Doctor' : 'Collection Boy';
+  /** Restores a deactivated member. Refused by the API when the staff limit is reached. */
+  reactivateMember(type: SectionType, id: number): void {
+    const label = type === 'user' ? 'User' : type === 'doctor' ? 'Doctor' : 'Collection Boy';
     this.subs.add(
       this.confirmModal.confirm({
-        title: `Delete ${label}`,
-        message: `Are you sure you want to delete this ${label.toLowerCase()}?`,
-        confirmText: 'Delete', cancelText: 'Cancel'
+        title: `Reactivate ${label}`,
+        message: `Reactivate this ${label.toLowerCase()}? They will be able to sign in again and will take a staff slot.`,
+        confirmText: 'Reactivate', cancelText: 'Cancel'
       }).subscribe(confirmed => {
         if (!confirmed) return;
-        this.memberService.delete(id).subscribe({
-          next:  () => { this.sections.find(s => s.type === type)!.loaded = false; this.loadSection(type); },
+        this.memberService.reactivate(id).subscribe({
+          next:  r => this.handleResult(type, r, `Could not reactivate this ${label.toLowerCase()}.`),
           error: () => {}
         });
       })

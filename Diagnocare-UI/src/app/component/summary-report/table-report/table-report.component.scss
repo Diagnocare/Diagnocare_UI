@@ -6,15 +6,125 @@
 .tr-split { display: block; }
 
 .tr-split--with-chart {
+  // One height for both panels. Previously `align-items: flex-start` let each
+  // side take its natural height, so the table ran long past the bottom of the
+  // chart card (or fell short of it) and the two never lined up.
+  //
+  // A fixed height rather than `stretch`: with stretch, a 200-row table would
+  // drag the chart card to 4000px. The table scrolls inside its panel instead.
+  --tr-panel-h: 32rem;
+
   display: flex;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: stretch;
 
   .tr-split__table,
   .tr-split__chart {
     flex: 0 0 calc(50% - 0.5rem);
     max-width: calc(50% - 0.5rem);
     min-width: 0;
+    height: var(--tr-panel-h);
+  }
+
+  // The table panel becomes a column: fixed header strip, scrolling body.
+  .tr-split__table {
+    display: flex;
+    flex-direction: column;
+
+    .table-container {
+      flex: 1 1 auto;
+      min-height: 0;            // lets the child actually scroll inside a flex parent
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 0;
+    }
+    .table-responsive {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+    // The header row stays put while the body scrolls — otherwise a scrolled
+    // table is a grid of numbers with no column names.
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    tfoot td {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+      // A sticky cell paints nothing of its own, so without this the rows
+      // scrolling underneath show straight through the totals line. `inherit`
+      // takes the .tr-totals-row background, which each theme already sets —
+      // so this stays correct in all five without repeating the colours.
+      background: inherit;
+    }
+  }
+}
+
+// ── Grand totals strip ────────────────────────────────────────────────────────
+// One line, full width, above both panels. Label above value in each cell so a
+// long label never pushes its number out of alignment with its neighbours.
+.tr-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 1rem;
+  padding: .1rem 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(30, 91, 168, .06);
+  overflow: hidden;
+}
+
+.tr-summary__item {
+  flex: 1 1 auto;
+  min-width: 9rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .1rem;
+  padding: .7rem 1.1rem;
+  border-left: 1px solid #eef1f8;
+
+  &:first-child { border-left: 0; }
+}
+
+.tr-summary__label {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-summary__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Stacked layout: the panels go full width, so a fixed height would only
+// truncate them for no reason.
+@media (max-width: 64em) {
+  .tr-split--with-chart {
+    flex-direction: column;
+
+    .tr-split__table,
+    .tr-split__chart {
+      flex: 1 1 auto;
+      max-width: 100%;
+      height: auto;
+    }
+    .tr-split__chart { min-height: 22rem; }
   }
 }
 
@@ -125,6 +235,10 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 :host-context(html[data-theme="dark"]) {
+  .tr-summary       { background: #1e293b !important; border-color: #334155 !important; }
+  .tr-summary__item { border-left-color: #334155 !important; }
+  .tr-summary__label{ color: #64748b !important; }
+  .tr-summary__value{ color: #e2e8f0 !important; }
   .tr-split__chart  { background: #1e293b !important; border-color: #334155 !important; }
   .tr-chart-label   { color: #64748b !important; }
   .tr-chart-select  { background: #0f172a !important; color: #e2e8f0 !important;
@@ -141,6 +255,10 @@
 }
 
 :host-context(html[data-theme="midnight"]) {
+  .tr-summary       { background: #0d1117 !important; border-color: #21262d !important; }
+  .tr-summary__item { border-left-color: #21262d !important; }
+  .tr-summary__label{ color: #6b7c93 !important; }
+  .tr-summary__value{ color: #cdd6f4 !important; }
   .tr-split__chart  { background: #0d1117 !important; border-color: #21262d !important; }
   .tr-chart-label   { color: #6e7681 !important; }
   .tr-chart-select  { background: #020408 !important; color: #cdd6f4 !important;

@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, tap, throwError } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { FileToUpload } from 'src/app/models/pathology/fileToUpload';
 import { PathologyListDto } from 'src/app/models/pathology/pathology-list.dto';
@@ -40,8 +40,7 @@ export class PathologyService {
       getPathology(): Observable<PathologyListDto>
       {
         let geturl=this.url+apiEndpoints.getProfile;
-        return this.httpClient.get<PathologyListDto>(geturl).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<PathologyListDto>(geturl);
       }
 
       /**
@@ -52,28 +51,25 @@ export class PathologyService {
       getProfile(): Observable<PathologyProfileDto>
       {
         let geturl=this.url+apiEndpoints.getProfile;
-        return this.httpClient.get<PathologyProfileDto>(geturl).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<PathologyProfileDto>(geturl);
       }
 
       /** Cheap change-check: returns { version } for the lab's shared profile. */
       getProfileVersion(): Observable<{ version: number }>
       {
-        return this.httpClient.get<{ version: number }>(this.url + apiEndpoints.getProfileVersion).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<{ version: number }>(this.url + apiEndpoints.getProfileVersion);
       }
 
       updatePathology(path: FormData | PathologyEditDto): Observable<PathologyListDto>
       {
-        return this.httpClient.put<PathologyListDto>(this.url+apiEndpoints.update, path).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.put<PathologyListDto>(this.url+apiEndpoints.update, path);
       }
 
       /** Public endpoint — no auth token required */
       registerPathology(dto: PathologyRegisterDto): Observable<PathologyRegisterResponseDto> {
         return this.httpClient.post<PathologyRegisterResponseDto>(
           this.url + apiEndpoints.add, dto
-        ).pipe(catchError(this.errorHandler));
+        );
       }
 
       /**
@@ -98,7 +94,7 @@ export class PathologyService {
 
         return this.httpClient.get<PathologyPublicInfoDto>(
           this.url + apiEndpoints.getPublicInfo, { params }
-        ).pipe(catchError(this.errorHandler));
+        );
       }
 
       // Note: no extendLicense() here by design. Licence extension lives in the
@@ -119,8 +115,7 @@ export class PathologyService {
           // Keep the cached value in sync so callers don't need to (and so the
           // cache is fresh the next time AppComponent/interceptor reads it,
           // without another GET round-trip).
-          tap(() => this.tokenService.setGraceBufferMinutes(minutes)),
-          catchError(this.errorHandler));
+          tap(() => this.tokenService.setGraceBufferMinutes(minutes)));
       }
 
       /**
@@ -132,8 +127,7 @@ export class PathologyService {
           `${this.url}${apiEndpoints.updateMaxDiscount}?maxDiscountPercent=${maxDiscountPercent}`,
           null
         ).pipe(
-          tap(() => this.tokenService.setMaxDiscountPercent(maxDiscountPercent)),
-          catchError(this.errorHandler));
+          tap(() => this.tokenService.setMaxDiscountPercent(maxDiscountPercent)));
       }
 
       /**
@@ -145,8 +139,7 @@ export class PathologyService {
           `${this.url}${apiEndpoints.updateSessionLockout}?sessionLockoutMinutes=${sessionLockoutMinutes}`,
           null
         ).pipe(
-          tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)),
-          catchError(this.errorHandler));
+          tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)));
       }
 
       /**
@@ -158,19 +151,13 @@ export class PathologyService {
         return this.httpClient.post<any>(
           `${this.url}UploadLogo`,
           { logoBase64 }
-        ).pipe(catchError(this.errorHandler));
+        );
       }
 
       getPathologyExpiryDate(): Observable<any> {
         const geturl = this.url + apiEndpoints.getPathologyExpiryDate;
-        return this.httpClient.get<any>(geturl).pipe(
-          catchError(this.errorHandler));
+        return this.httpClient.get<any>(geturl);
       }
 
-      errorHandler(error:HttpErrorResponse)
-      {
-        const errorMessage = error.message || "Server Error";
-          return throwError(() => new Error(errorMessage));
-      }
 }
 

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { jwtDecode } from 'jwt-decode';
-import { ToastrService } from 'ngx-toastr';
 import { CommonService } from 'src/app/shared/common.service';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
@@ -42,9 +41,8 @@ export class SetupFingerprintComponent implements OnInit {
 
   constructor(
     private common: CommonService,
-    private toastr: ToastrService,
     private confirmModal: ConfirmModalService,
-    private fingerprint: FingerprintService,
+    private fingerprint: FingerprintService
   ) {
     const token = this.common.getAccessToken();
     if (token) {
@@ -85,7 +83,6 @@ export class SetupFingerprintComponent implements OnInit {
       next: (ok: boolean) => {
         this.registering = false;
         if (ok) {
-          this.toastr.success('Fingerprint registered successfully!', 'Fingerprint enabled');
           this.deviceLabel = '';
           this.statusChanged.emit(true);
           this.loadStatus();
@@ -112,7 +109,6 @@ export class SetupFingerprintComponent implements OnInit {
       this.fingerprint.disable(this.userName).subscribe({
         next: (res: any) => {
           if (res?.success) {
-            this.toastr.success('Fingerprint sign-in removed.', 'Success');
             this.statusChanged.emit(false);
             this.loadStatus();
           } else {

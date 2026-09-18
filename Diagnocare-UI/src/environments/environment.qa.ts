@@ -9,6 +9,9 @@ export const environment: AppEnvironment = {
   // ?product=&env= on the help URL, so reports can be routed/filtered).
   appName: 'Diagnocare',
   envName: 'qa',
+  // Never enabled outside local development.
+  devSkipSecondFactor: false,
+
   basicAuth: {
     username: 'Admin',
     password: 'ggDgc+q0Y4xNWOadnfALUOEEi/ijWn4I0fd06Keor5Y=',

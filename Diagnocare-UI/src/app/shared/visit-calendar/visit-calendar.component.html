@@ -18,12 +18,32 @@
           [class.today]="day.isToday"
           [class.selected]="isSelected(day)"
           [class.has-visits]="day.visitInfo && day.inMonth"
+          [class.is-holiday]="day.isHoliday && day.inMonth && showHolidays"
+          [class.has-conflict]="day.hasConflict && day.inMonth && showHolidays"
+          [attr.title]="dayTitle(day) || null"
           (click)="onSelect(day)">
+
         <span class="cal-day-num">{{ day.date.getDate() }}</span>
-        <span class="cal-badge" *ngIf="day.visitInfo && day.inMonth"
-              [class.cal-badge--all-done]="day.visitInfo.pendingCount === 0">
-          {{ day.visitInfo.count }}
+
+        <!-- Marker row — visit count and holiday label sit side by side -->
+        <span class="cal-markers">
+          <span class="cal-badge" *ngIf="day.visitInfo && day.inMonth"
+                [class.cal-badge--all-done]="day.visitInfo.pendingCount === 0"
+                [class.cal-badge--conflict]="day.hasConflict && showHolidays">
+            {{ day.visitInfo.count }}
+          </span>
+
+          <span class="cal-tag cal-tag--holiday"
+                *ngIf="day.isHoliday && day.inMonth && showHolidays"
+                [attr.title]="day.holidayName">
+            {{ day.holidayName || 'Holiday' }}
+          </span>
         </span>
+
+        <!-- Conflict marker: visits still scheduled on a holiday -->
+        <i class="fa fa-exclamation-triangle cal-conflict-icon"
+           *ngIf="day.hasConflict && day.inMonth && showHolidays"
+           title="Visit scheduled on a holiday"></i>
       </td>
     </tr>
   </tbody>
@@ -33,4 +53,8 @@
   <span class="leg-item"><span class="leg-dot leg-dot--pending"></span> Pending</span>
   <span class="leg-item"><span class="leg-dot leg-dot--done"></span> All Done</span>
   <span class="leg-item"><span class="leg-dot leg-dot--today"></span> Today</span>
+  <span class="leg-item" *ngIf="hasAnyHoliday"><span class="leg-dot leg-dot--holiday"></span> Holiday</span>
+  <span class="leg-item" *ngIf="hasAnyHoliday">
+    <i class="fa fa-exclamation-triangle leg-warn"></i> Visit on holiday
+  </span>
 </div>
