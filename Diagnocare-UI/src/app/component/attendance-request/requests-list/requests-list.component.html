@@ -21,14 +21,21 @@
     </button>
   </div>
 
+  <!-- Admin: the three views. Tabs rather than a status dropdown — the queue answers
+       "what needs me?" first, and the count says whether it is worth clicking. -->
+  <div *ngIf="isReviewer" class="bucket-tabs" role="tablist">
+    <button *ngFor="let b of buckets" class="bucket-tab" role="tab"
+            [class.active]="filter.bucket === b.value"
+            [attr.aria-selected]="filter.bucket === b.value"
+            [title]="b.hint" (click)="setBucket(b.value)">
+      {{ b.label }}
+      <span *ngIf="bucketCount(b.countKey) !== null" class="tab-count"
+            [class.zero]="bucketCount(b.countKey) === 0">{{ bucketCount(b.countKey) }}</span>
+    </button>
+  </div>
+
   <!-- Admin: filter panel -->
   <div *ngIf="isReviewer" class="card filter-panel">
-    <div class="filter-field">
-      <label>Status</label>
-      <select class="form-select" [(ngModel)]="filter.status">
-        <option *ngFor="let o of statusOptions" [ngValue]="o.value">{{ o.label }}</option>
-      </select>
-    </div>
     <div class="filter-field"><label>From</label>
       <app-date-picker [(ngModel)]="filter.fromDate" inputClass="form-control" placeholder="From"></app-date-picker>
     </div>
@@ -59,9 +66,11 @@
         </button>
       </ng-container>
       <ng-template #noneAtAll>
-        <h3>{{ isReviewer ? 'Nothing awaiting a decision' : 'No requests to show' }}</h3>
+        <h3>{{ isReviewer ? emptyBucketMessage : 'No requests to show' }}</h3>
         <p *ngIf="!isReviewer">Raise a correction request and it will appear here.</p>
-        <p *ngIf="isReviewer">The queue is clear — new requests will show up here.</p>
+        <p *ngIf="isReviewer && filter.bucket === 'needsaction'">The queue is clear — new requests will show up here.</p>
+        <p *ngIf="isReviewer && filter.bucket === 'decided'">Requests you approve, reject or revert will be listed here.</p>
+        <p *ngIf="isReviewer && filter.bucket === 'all'">No employee has raised a correction request yet.</p>
         <button *ngIf="!isReviewer" class="btn btn-primary" (click)="newRequest()">
           <i class="fa fa-plus"></i> Create your first request
         </button>

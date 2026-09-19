@@ -73,6 +73,57 @@ export const REQUEST_STATUS_CONFIG: {
   [RequestStatus.Withdrawn]: { label: 'Reverted', cssClass: 'badge-cancelled' },
 };
 
+// ── Admin queue buckets ──────────────────────────────────────────────────────
+//
+// Six lifecycle states are the right vocabulary for one request's history and the
+// wrong one for a queue. An admin opening this screen asks "what needs me?", then
+// occasionally "what did I decide about X?" — not "show me WithdrawalRequested".
+// Offering all six as filters meant three overlapping choices (awaiting decision IS
+// pending + withdrawal requested) and two nobody ever filters by. These buckets are
+// what the queue filters on; the per-row badge still names the exact state.
+
+export type RequestBucket = 'needsaction' | 'decided' | 'all';
+
+export const REQUEST_BUCKETS: {
+  value: RequestBucket;
+  label: string;
+  /** Key into AttendanceRequestCounts for this bucket's badge. */
+  countKey: keyof AttendanceRequestCounts;
+  /** Shown as the tab's tooltip, so the grouping is never a guess. */
+  hint: string;
+}[] = [
+  { value: 'needsaction', label: 'Needs action', countKey: 'needsAction',
+    hint: 'New corrections and withdrawal requests waiting on you' },
+  { value: 'decided', label: 'Decided', countKey: 'decided',
+    hint: 'Requests you approved, rejected, or reverted' },
+  { value: 'all', label: 'All', countKey: 'all',
+    hint: 'Every request, including ones employees withdrew themselves' },
+];
+
+/** Per-bucket totals for the queue tabs. Unfiltered by date range or search. */
+export interface AttendanceRequestCounts {
+  needsAction: number;
+  decided: number;
+  all: number;
+}
+
+/**
+ * Status chips for the employee's own list. Their list is personal and short, so
+ * every state is filterable — the crowding problem was only ever the admin queue's.
+ * 0 = no filter.
+ */
+export const USER_STATUS_FILTERS: { value: number; label: string }[] = [
+  { value: 0, label: 'All' },
+  { value: RequestStatus.Pending, label: 'Pending' },
+  { value: RequestStatus.Approved, label: 'Approved' },
+  { value: RequestStatus.WithdrawalRequested, label: 'Withdrawal requested' },
+  { value: RequestStatus.Rejected, label: 'Rejected' },
+  // Labels follow REQUEST_STATUS_CONFIG, where the enum names and the words shown
+  // to people deliberately differ — see the notes on that map.
+  { value: RequestStatus.Cancelled, label: 'Withdrawn' },
+  { value: RequestStatus.Withdrawn, label: 'Reverted' },
+];
+
 export function attendanceStatusLabel(value: number | null | undefined): string {
   const found = ALL_ATTENDANCE_STATUSES.find(s => s.value === value);
   return found ? found.label : '—';
@@ -177,8 +228,11 @@ export interface DecideWithdrawalDTO {
 
 export interface AttendanceRequestFilter {
   userId?: number;
+  /** Single lifecycle state — the employee's own list. The admin queue sends `bucket`. */
   status?: number;
-  /** Return everything awaiting a decision (Pending + WithdrawalRequested). Overrides status. */
+  /** Admin queue view: needsaction | decided | all. Overrides `status`. */
+  bucket?: RequestBucket;
+  /** @deprecated Superseded by `bucket: 'needsaction'`. Server still honours it. */
   awaitingDecision?: boolean;
   fromDate?: string;
   toDate?: string;
