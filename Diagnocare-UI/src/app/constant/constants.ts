@@ -39,6 +39,8 @@ export const controllerEndpoints = {
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
   sampleRejection: 'api/SampleRejection/',
+  /** Super Admin queue for discounts above the lab's max discount. */
+  discountApproval: 'api/DiscountApproval/',
 };
 
 export const apiEndpoints = {
@@ -340,6 +342,8 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
   // Payroll is owner-only — an Admin must not be able to edit their own pay.
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
+  // Discounts above the lab limit wait here for the owner's decision.
+  discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },

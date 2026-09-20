@@ -146,7 +146,8 @@
                    [ngClass]="{
                      'fa-check-circle': group.paymentStatus === 'Paid',
                      'fa-adjust':       group.paymentStatus === 'Partial',
-                     'fa-clock-o':      group.paymentStatus === 'Pending'
+                     'fa-clock-o':      group.paymentStatus === 'Pending',
+                     'fa-hourglass-half': group.paymentStatus === 'Awaiting Approval'
                    }"></i>
                 {{ group.paymentStatus }}
               </span>
@@ -263,8 +264,12 @@
               <span class="br-footer-remaining" *ngIf="group.remaining > 0">
                 Balance: <strong>₹{{ group.remaining | number:'1.2-2' }}</strong>
               </span>
+              <span class="br-cancelled-footer-chip" *ngIf="group.awaitingApproval"
+                    title="The discount on this booking is above the lab limit and is waiting for a Super Admin">
+                <i class="fa fa-hourglass-half"></i> Discount awaiting Super Admin approval — payment on hold
+              </span>
               <button class="btn-pay-now-card"
-                      *ngIf="group.remaining > 0"
+                      *ngIf="group.remaining > 0 && !group.awaitingApproval"
                       (click)="openGroupPaymentModal(group, $event)">
                 <i class="fa fa-credit-card"></i> Pay Now
               </button>

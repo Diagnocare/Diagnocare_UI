@@ -438,18 +438,45 @@
               <div class="form-group">
                 <label class="form-label">Discount (%)</label>
                   <input type="number" class="form-control" formControlName="discount"
-                    (input)="calculateNetAmount()" placeholder="0"
-                    min="0" [max]="maxDiscountPercent" step="0.01"
+                    (input)="calculateNetAmount($any($event.target).value)" placeholder="0"
+                    min="0" [max]="absoluteMaxDiscount" step="0.01"
                     [class.is-invalid]="!!patientForm.get('discount')?.invalid"
                     [attr.tabindex]="getTabIndex('discount')" />
-                <small class="text-danger"
+                <small class="text-danger discount-label"
                        *ngIf="patientForm.get('discount')?.errors?.['maxExceeded']">
-                  Discount cannot exceed {{ maxDiscountPercent }}%.
+                  Discount cannot exceed {{ absoluteMaxDiscount }}%.
                 </small>
-                <small class="text-danger"
+                <small class="text-muted discount-label" *ngIf="!isDiscountOverLimit && !patientForm.get('discount')?.invalid">
+                  Up to {{ maxDiscountPercent }}% without approval.
+                </small>
+                <small class="text-warning discount-label" *ngIf="isDiscountOverLimit && isSuperAdmin">
+                  <i class="fa fa-check-circle"></i>
+                  Above the {{ maxDiscountPercent }}% limit — approved automatically (you are a Super Admin).
+                </small>
+                <small class="text-danger discount-label"
                        *ngIf="patientForm.get('discount')?.errors?.['negative']">
                   Discount cannot be negative.
                 </small>
+              </div>
+            </div>
+
+            <!-- Over the lab limit → Super Admin approval. Billing is held until then. -->
+            <div class="tpa-required-note discount-approval-note" *ngIf="needsDiscountApproval">
+              <i class="fa fa-hourglass-half"></i>
+              <div>
+                <strong>This discount needs Super Admin approval.</strong>
+                It is above the lab limit of {{ maxDiscountPercent }}%. The booking will be saved and samples
+                can be collected, but payment and the bill are on hold until a Super Admin approves it.
+                If it is rejected, the discount drops to {{ maxDiscountPercent }}%.
+              </div>
+            </div>
+            <div class="form-row" *ngIf="isDiscountOverLimit">
+              <div class="form-group" style="flex: 1 1 100%;">
+                <label class="form-label" [class.required]="needsDiscountApproval">Reason for Discount</label>
+                <textarea class="form-control" formControlName="discount_Reason" rows="2" maxlength="500"
+                  placeholder="e.g. Staff family, senior citizen camp, repeat test…"
+                  [class.is-invalid]="isFieldInvalid('discount_Reason')"></textarea>
+                <app-field-error [control]="patientForm.get('discount_Reason')" label="Reason for Discount" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
@@ -457,7 +484,7 @@
               <div class="form-group">
                 <label class="form-label required">Net Amount (₹)</label>
                   <input type="text" class="form-control" formControlName="net_Amount"
-                    (input)="calculateDiscount()"
+                    (input)="calculateDiscount($any($event.target).value)"
                     [class.is-invalid]="isFieldInvalid('net_Amount')" [attr.tabindex]="getTabIndex('net_Amount')" />
                 <small class="text-danger"
                        *ngIf="patientForm.get('net_Amount')?.errors?.['aboveTestAmount']">
@@ -468,8 +495,11 @@
               <div class="form-group">
                 <label class="form-label required">Payment Type</label>
                 <div class="radio-pill-group">
-                  <label class="radio-pill" *ngFor="let entry of paymentType; let i = index">
+                  <label class="radio-pill" *ngFor="let entry of paymentType; let i = index"
+                         [class.radio-pill--disabled]="isPaymentTypeLocked(entry)"
+                         [title]="isPaymentTypeLocked(entry) ? 'Payment is on hold until the discount is approved' : ''">
                     <input type="radio" formControlName="payment_Type" [value]="entry"
+                           [attr.disabled]="isPaymentTypeLocked(entry) ? true : null"
                            (change)="onPaymentTypeChange(entry)" [attr.tabindex]="i === 0 ? getTabIndex('payment_Type') : -1" />
                     <span>{{ entry }}</span>
                   </label>
@@ -677,6 +707,11 @@
           </div>
 
           <!-- Amount Paid — live calculation on every keystroke -->
+          <!-- [attr.min], NOT a plain min="1": on a type=number input with formControlName,
+               a static min attribute makes Angular attach a Min validator to the
+               amount_Paid CONTROL itself. That control is shared with the main form,
+               so "No Payment" (amount_Paid = 0) could never pass validation.
+               confirmPayment() already rejects amounts <= 0 for Partial. -->
           <div class="form-group mb-3">
             <label class="form-label required">Amount Paid (₹)</label>
             <input
@@ -685,7 +720,7 @@
               [class.is-invalid]="!!amountPaidError"
               formControlName="amount_Paid"
               placeholder="Enter amount to pay now"
-              min="1"
+              [attr.min]="1"
               (input)="onAmountPaidInput($event)"
             />
             <div class="invalid-feedback" *ngIf="amountPaidError">{{ amountPaidError }}</div>

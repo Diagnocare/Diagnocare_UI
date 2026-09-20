@@ -1033,3 +1033,31 @@ textarea.form-control {
     max-height: 260px;
   }
 }
+
+.discount-label{
+    width:360%;
+    margin-left:10.5em;
+}
+// ─── Discount above the lab limit → Super Admin approval ───────────────────
+.discount-approval-note {
+  align-items: flex-start;
+  margin: 0 0 0.75rem;
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+
+  .fa {
+    margin-top: 0.15rem;
+  }
+
+  > div {
+    flex: 1 1 0;
+    min-width: 0;
+    line-height: 1.45;
+  }
+}
+
+.radio-pill--disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

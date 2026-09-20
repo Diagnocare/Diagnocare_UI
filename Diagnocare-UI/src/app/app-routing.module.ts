@@ -241,6 +241,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
+      // Discount approvals — Super Admin only (the API enforces SuperAdminOnly too).
+      { path: 'discount-approvals', title: 'Discount Approvals',
+        loadComponent: () => import('./component/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
+
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
       // requests; admins see all requests and can approve/reject. Order matters:

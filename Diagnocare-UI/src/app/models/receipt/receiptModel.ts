@@ -24,6 +24,8 @@ export interface Receipt {
   /** "Pending" | "Approved" | "Settled" */
   tpaPaymentStatus:   string | null;
   tpaSettledDate:     string | null;
+  /** 'NotRequired' | 'Pending' | 'Approved' | 'Rejected' — over-limit discount approval. */
+  discountApprovalStatus?: string;
 }
 
 /**
@@ -45,6 +47,8 @@ export interface ReceiptGroup {
   isCancelled: boolean;
   /** Sum of all refundAmount for refunded receipts in this group. */
   totalRefunded: number;
+  /** Discount is awaiting Super Admin approval — no payments or bill until decided. */
+  awaitingApproval?: boolean;
 }
 
 export interface ReceiptCount {

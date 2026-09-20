@@ -165,6 +165,8 @@
               [disabled]="isLicenceExpired"
               [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
         <i class="fa fa-cog"></i><span>Admin Panel</span>
+        <span class="dc-nav-badge" *ngIf="isSuperAdmin && discountPendingCount > 0"
+              [title]="discountPendingCount + ' discount(s) awaiting your approval'">{{ discountPendingCount }}</span>
         <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
         <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
       </button>
@@ -176,6 +178,7 @@
              [id]="item.id"
              (click)="redirectionToModule(item)">
             <i class="fas {{ item.icon }} dc-item-icon"></i> {{ item.label }}
+            <span class="dc-nav-badge" *ngIf="badgeFor(item) > 0">{{ badgeFor(item) }}</span>
           </a>
         </ng-container>
       </div>
@@ -356,6 +359,7 @@
            class="dc-mobile-item dc-mobile-sub"
            (click)="redirectionToModule(item); mobileNavOpen=false">
           <i class="fa {{ item.icon }}"></i> {{ item.label }}
+          <span class="dc-nav-badge" *ngIf="badgeFor(item) > 0">{{ badgeFor(item) }}</span>
         </a>
       </ng-container>
     </ng-container>
