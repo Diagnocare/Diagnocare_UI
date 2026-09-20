@@ -13,6 +13,8 @@ import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-moda
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { LicenceService } from 'src/app/services/licenceServices/licence.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
+import { DiscountApprovalService } from 'src/app/services/discountApprovalServices/discount-approval.service';
+import { Subscription, interval } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -58,6 +60,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   mobileNavOpen = false;
 
+  /** Super Admin only: discounts over the lab limit awaiting a decision (nav badge). */
+  discountPendingCount = 0;
+  private discountSubs = new Subscription();
+  /** How often the badge re-checks. A minute is plenty for a front-desk queue. */
+  private static readonly DISCOUNT_POLL_MS = 60_000;
+
   // ── Licence state ──────────────────────────────────────────────────────────
   isLicenceExpired   = false;
   isLicenceExpiringSoon = false;
@@ -81,6 +89,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private loginService: LoginService,
     private licenceSvc: LicenceService,
     private pinService: PinService,
+    private discountApprovals: DiscountApprovalService,
   ) {
     this.extractUserName();
     this.extractPathologyId();
@@ -98,6 +107,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.licenceExpiryDate     = this.licenceSvc.expiryDate;
     });
 
+    // ── Discount approvals badge (Super Admin) ───────────────────────────────
+    if (this.isSuperAdmin) {
+      this.discountSubs.add(
+        this.discountApprovals.pendingCount$.subscribe(n => this.discountPendingCount = n));
+      this.discountApprovals.refreshPendingCount();
+      this.discountSubs.add(
+        interval(HeaderComponent.DISCOUNT_POLL_MS).subscribe(() => this.discountApprovals.refreshPendingCount()));
+    }
+
     // ── PIN expiry banner ────────────────────────────────────────────────────
     if (this.userName) {
       this.isPinExpiringSoon = this.pinService.isPinExpiringSoon(this.userName);
@@ -107,6 +125,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
+    this.discountSubs.unsubscribe();
   }
 
   navigateToHome() {
@@ -182,6 +201,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  /** Badge count for an Admin Panel item — only Discount Approvals has one. */
+  badgeFor(item: { id: string }): number {
+    return item.id === 'discountApprovals' ? this.discountPendingCount : 0;
+  }
 
   redirectionToModule(item: any): void {
     if (this.isLicenceExpired) {
