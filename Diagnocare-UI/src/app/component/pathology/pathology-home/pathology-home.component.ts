@@ -5,6 +5,7 @@ import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
+import { buildPageSortRequest } from 'src/app/models/common/page-sort-request';
 import { SummaryReportService } from 'src/app/services/summaryServices/summary-report.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role, RoleId } from 'src/app/constant/enums';
@@ -154,10 +155,10 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
    *   3. revenue — today's collection
    *
    * Today's rows are a subset of the week's, so this could be two requests.
-   * It isn't, deliberately: the patient search returns pages ordered by
-   * Reg_Id ASCENDING, so page 1 of a busy week would be the OLDEST rows and
-   * today's registrations might not appear at all. Scoping one request to
-   * today keeps the tiles and the activity list correct regardless of volume.
+   * It isn't, deliberately: both requests ask for the oldest rows first, so
+   * page 1 of a busy week would not contain today's registrations at all.
+   * Scoping one request to today keeps the tiles and the activity list
+   * correct regardless of volume.
    *
    * Each request degrades on its own — a failing revenue report leaves the
    * other three tiles populated rather than blanking the whole hero.
@@ -167,12 +168,20 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     const weekStart = this.startOfWeek(today);
     const todayApi  = this.toApiDate(today);
 
+    // Oldest-first is requested explicitly: applyTodayStats() takes the LAST three
+    // rows as the newest registrations, and the API's default sort is newest-first.
     const todayPatients$ = this.patientService
-      .searchPatients('', 1, PathologyHomeComponent.TODAY_PAGE_SIZE, todayApi, todayApi, '')
+      .searchPatients({
+        paging: buildPageSortRequest(1, PathologyHomeComponent.TODAY_PAGE_SIZE, 'regDate', 'asc'),
+        filter: { searchTerm: '', dateFrom: todayApi, dateTo: todayApi, status: '' },
+      })
       .pipe(catchError(() => of(null)));
 
     const weekPatients$ = this.patientService
-      .searchPatients('', 1, PathologyHomeComponent.WEEK_PAGE_SIZE, this.toApiDate(weekStart), todayApi, '')
+      .searchPatients({
+        paging: buildPageSortRequest(1, PathologyHomeComponent.WEEK_PAGE_SIZE, 'regDate', 'asc'),
+        filter: { searchTerm: '', dateFrom: this.toApiDate(weekStart), dateTo: todayApi, status: '' },
+      })
       .pipe(catchError(() => of(null)));
 
     // Period 'day' resolves to (today, today) server-side — see PeriodResolver.

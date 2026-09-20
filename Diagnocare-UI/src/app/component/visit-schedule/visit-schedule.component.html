@@ -13,7 +13,7 @@
   <div class="vs-layout">
 
     <!-- ════════════════════════════════════════ CALENDAR ═══════════════════ -->
-    <div class="vs-calendar-panel">
+    <aside class="vs-panel vs-calendar-panel">
       <app-visit-calendar
         [calendarData]="calendarData"
         [viewYear]="viewYear"
@@ -23,91 +23,146 @@
         (nextMonth)="nextMonth()"
         (daySelected)="onDaySelected($event)">
       </app-visit-calendar>
-    </div>
+    </aside>
 
     <!-- ════════════════════════════════════════ DETAIL PANEL ════════════════ -->
-    <div class="vs-detail-panel" *ngIf="selectedDate">
+    <section class="vs-panel vs-detail-panel" *ngIf="selectedDate">
 
-      <div class="detail-header">
-        <div class="detail-title">
-          <i class="fa fa-calendar-day"></i>
-          <span>{{ selectedDate | date:'EEEE, d MMMM yyyy' }}</span>
-          <span class="holiday-pill" *ngIf="selectedDayHolidayName">
-            <i class="fa fa-umbrella-beach"></i> {{ selectedDayHolidayName }}
-          </span>
+      <!-- Day header -->
+      <header class="dp-header">
+        <div class="dp-date">
+          <div class="dp-eyebrow">
+            <span>{{ selectedDate | date:'EEEE' }}</span>
+            <span class="dp-today" *ngIf="isSelectedToday">Today</span>
+          </div>
+          <h2 class="dp-title">{{ selectedDate | date:'d MMMM yyyy' }}</h2>
         </div>
-        <button class="btn btn-primary btn-sm" (click)="openForm()">
-          <i class="fa fa-plus"></i> Assign Visit
+
+        <button type="button" class="dp-btn dp-btn--primary" (click)="openForm()" *ngIf="!showForm">
+          <i class="fa fa-plus"></i> Assign visit
         </button>
-      </div>
+      </header>
 
-      <!-- ── Holiday conflict banner ──────────────────────────────────────── -->
-      <!-- Visits already exist on a day that is registered as a holiday. -->
-      <div class="holiday-conflict-banner"
-           *ngIf="selectedDayHolidayName && dayVisits.length > 0">
-        <i class="fa fa-exclamation-triangle"></i>
-        <div>
-          <strong>{{ dayVisits.length }} visit{{ dayVisits.length === 1 ? '' : 's' }}
-            scheduled on a holiday</strong>
-          <span>This day is registered as <strong>{{ selectedDayHolidayName }}</strong>.
-            Consider rescheduling the visits below.</span>
-        </div>
+      <!-- Holiday notice (quiet when free, firm when visits clash) -->
+      <div class="dp-notice"
+           *ngIf="selectedDayHolidayName"
+           [class.dp-notice--conflict]="dayVisits.length > 0">
+        <span class="dp-notice-icon">
+          <i class="fa" [ngClass]="dayVisits.length > 0 ? 'fa-exclamation-triangle' : 'fa-umbrella-beach'"></i>
+        </span>
+        <p class="dp-notice-text" *ngIf="dayVisits.length > 0">
+          <strong>{{ selectedDayHolidayName }}</strong> is a registered holiday.
+          {{ dayVisits.length }} visit{{ dayVisits.length === 1 ? ' is' : 's are' }} still scheduled — consider rescheduling.
+        </p>
+        <p class="dp-notice-text" *ngIf="dayVisits.length === 0">
+          <strong>{{ selectedDayHolidayName }}</strong> — this day is a registered holiday.
+        </p>
       </div>
 
       <!-- ── Assignment form ─────────────────────────────────────────────── -->
-      <div class="assign-form-box" *ngIf="showForm" [formGroup]="assignForm">
-        <h4 class="form-box-title">New Visit Assignment</h4>
-
-        <!-- Row 1: Member type filter + Member select -->
-        <div class="form-group" style="margin-bottom:.65rem">
-          <label class="form-label required">Member</label>
-
-          <!-- Role filter chips -->
-          <div class="member-type-filter">
-            <button type="button"
-                    class="type-chip"
-                    [class.active]="memberTypeFilter === null"
-                    (click)="memberTypeFilter = null; onMemberTypeFilterChange()">
-              All
-            </button>
-            <button type="button"
-                    class="type-chip"
-                    *ngFor="let t of memberTypeOptions"
-                    [class.active]="memberTypeFilter === t.value"
-                    (click)="memberTypeFilter = t.value; onMemberTypeFilterChange()">
-              {{ t.label }}
-            </button>
+      <div class="af" *ngIf="showForm" [formGroup]="assignForm">
+        <div class="af-head">
+          <div>
+            <h3 class="af-title">New visit</h3>
+            <p class="af-sub">Assign a team member to visit a contact.</p>
           </div>
-
-          <!-- Member select filtered by chip -->
-          <select class="form-select" formControlName="assignedMemberId"
-                  [class.is-invalid]="isInvalid('assignedMemberId')">
-            <option [ngValue]="null" disabled>-- Select member --</option>
-            <option *ngFor="let m of displayMembers" [ngValue]="m.id">
-              {{ m.first_Name }} {{ m.last_Name }}
-            </option>
-          </select>
-          <small class="form-error" *ngIf="isInvalid('assignedMemberId')">Member is required.</small>
+          <button type="button" class="af-close" (click)="cancelForm()" aria-label="Close">
+            <i class="fa fa-times"></i>
+          </button>
         </div>
 
-        <!-- Row 2: Contact Type + Contact Name autocomplete -->
-        <div class="form-row">
+        <!-- Member -->
+        <div class="af-field">
+          <label class="af-label">Member <span class="af-req">*</span></label>
 
-          <!-- Contact Type DDL -->
-          <div class="form-group">
-            <label class="form-label required">Contact Type</label>
+          <!-- Loading -->
+          <div class="af-skeleton" *ngIf="!membersLoaded">
+            <i class="fa fa-spinner fa-spin"></i> Loading staff…
+          </div>
+
+          <!-- No staff at all -->
+          <div class="af-empty" *ngIf="membersLoaded && allMembers.length === 0">
+            <span class="af-empty-icon"><i class="fa fa-user-plus"></i></span>
+            <div class="af-empty-body">
+              <p class="af-empty-title">No active staff yet</p>
+              <p class="af-empty-text">Add a team member before assigning field visits.</p>
+            </div>
+            <a class="dp-btn dp-btn--ghost dp-btn--sm" routerLink="/users/add">
+              <i class="fa fa-plus"></i> Add staff
+            </a>
+          </div>
+
+          <ng-container *ngIf="membersLoaded && allMembers.length > 0">
+            <!-- Role filter with counts; empty roles are muted but still selectable -->
+            <div class="af-seg" role="tablist" aria-label="Filter members by role">
+              <button type="button" class="af-seg-item"
+                      [class.active]="memberTypeFilter === null"
+                      (click)="showAllMembers()">
+                All <span class="af-seg-count">{{ allMembers.length }}</span>
+              </button>
+              <button type="button" class="af-seg-item"
+                      *ngFor="let t of memberTypeOptions"
+                      [class.active]="memberTypeFilter === t.value"
+                      [class.is-empty]="memberCountFor(t.value) === 0"
+                      [attr.title]="memberCountFor(t.value) === 0 ? 'No ' + t.label.toLowerCase() + 's yet' : null"
+                      (click)="memberTypeFilter = t.value; onMemberTypeFilterChange()">
+                {{ t.label }} <span class="af-seg-count">{{ memberCountFor(t.value) }}</span>
+              </button>
+            </div>
+
+            <!-- Members available for the chosen role -->
+            <ng-container *ngIf="displayMembers.length > 0">
+              <select class="form-select" formControlName="assignedMemberId"
+                      [class.is-invalid]="isInvalid('assignedMemberId')">
+                <option [ngValue]="null" disabled>
+                  Select {{ memberTypeFilter === null ? 'member' : memberFilterPlural.slice(0, -1) }}
+                </option>
+                <option *ngFor="let m of displayMembers" [ngValue]="m.id">
+                  {{ m.first_Name }} {{ m.last_Name }}
+                </option>
+              </select>
+              <small class="af-error" *ngIf="isInvalid('assignedMemberId')">Member is required.</small>
+            </ng-container>
+
+            <!-- Chosen role has nobody in it -->
+            <div class="af-empty" *ngIf="displayMembers.length === 0"
+                 [class.af-empty--invalid]="isInvalid('assignedMemberId')">
+              <span class="af-empty-icon"><i class="fa fa-user-slash"></i></span>
+              <div class="af-empty-body">
+                <p class="af-empty-title">No {{ memberFilterPlural }} yet</p>
+                <p class="af-empty-text">
+                  Pick another role, or add one in Staff Management.
+                </p>
+              </div>
+              <div class="af-empty-actions">
+                <button type="button" class="dp-btn dp-btn--ghost dp-btn--sm" (click)="showAllMembers()">
+                  Show all
+                </button>
+                <a class="dp-btn dp-btn--ghost dp-btn--sm" routerLink="/users/add">
+                  <i class="fa fa-plus"></i> Add staff
+                </a>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Contact -->
+        <div class="af-grid">
+          <div class="af-field">
+            <label class="af-label">Contact type <span class="af-req">*</span></label>
             <select class="form-select" formControlName="contactType"
                     [class.is-invalid]="isInvalid('contactType')"
                     (change)="onContactTypeChange()">
-              <option [ngValue]="null" disabled>-- Select type --</option>
-              <option *ngFor="let t of contactTypeOptions" [ngValue]="t.value">{{ t.label }}</option>
+              <option [ngValue]="null" disabled>Select type</option>
+              <option *ngFor="let t of contactTypeOptions" [ngValue]="t.value">
+                {{ t.label }}{{ contactCountFor(t.value) === 0 ? ' — none saved' : ' (' + contactCountFor(t.value) + ')' }}
+              </option>
             </select>
-            <small class="form-error" *ngIf="isInvalid('contactType')">Contact type is required.</small>
+            <small class="af-error" *ngIf="isInvalid('contactType')">Contact type is required.</small>
           </div>
 
-          <!-- Contact Name autocomplete -->
-          <div class="form-group">
-            <label class="form-label required">Contact to Visit</label>
+          <div class="af-field">
+            <label class="af-label">Contact to visit <span class="af-req">*</span></label>
 
             <div class="contact-autocomplete-wrap">
               <input type="text"
@@ -121,7 +176,6 @@
                      (focus)="onContactNameFocus()"
                      (blur)="onContactNameBlur()" />
 
-              <!-- Suggestion dropdown -->
               <div class="contact-suggestions" *ngIf="showContactSuggestions">
                 <div class="contact-suggestion-item"
                      *ngFor="let c of filteredContactSuggestions"
@@ -137,112 +191,121 @@
               </div>
             </div>
 
-            <!-- New-contact hint -->
-            <small class="new-contact-hint" *ngIf="isNewContact">
-              <i class="fa fa-plus-circle"></i>
-              "{{ assignForm.get('contactName')?.value }}" will be added as a new
-              <strong>{{ selectedContactTypeName }}</strong> on save.
+            <small class="af-hint af-hint--muted" *ngIf="noContactsForType && !assignForm.get('contactName')?.value">
+              <i class="fa fa-info-circle"></i>
+              No saved {{ selectedContactTypeName.toLowerCase() }} contacts yet — type a name and it will be added on save.
             </small>
 
-            <small class="form-error" *ngIf="isInvalid('contactName')">Contact name is required.</small>
+            <small class="af-hint" *ngIf="isNewContact">
+              <i class="fa fa-plus-circle"></i>
+              “{{ assignForm.get('contactName')?.value }}” will be added as a new
+              <strong>{{ selectedContactTypeName }}</strong>.
+            </small>
+            <small class="af-error" *ngIf="isInvalid('contactName')">Contact name is required.</small>
           </div>
         </div>
 
-        <!-- Row 3: Date + Time -->
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label required">Visit Date</label>
+        <!-- When -->
+        <div class="af-grid">
+          <div class="af-field">
+            <label class="af-label">Date <span class="af-req">*</span></label>
             <app-date-picker formControlName="visitDate" inputClass="form-control"
                              [class.is-invalid]="isInvalid('visitDate')"
                              placeholder="Select visit date"></app-date-picker>
-            <small class="form-error" *ngIf="isInvalid('visitDate')">Date is required.</small>
+            <small class="af-error" *ngIf="isInvalid('visitDate')">Date is required.</small>
           </div>
 
-          <div class="form-group">
-            <label class="form-label required">Visit Time</label>
+          <div class="af-field">
+            <label class="af-label">Time <span class="af-req">*</span></label>
             <input type="time" class="form-control" formControlName="visitTime"
                    [class.is-invalid]="isInvalid('visitTime')" />
-            <small class="form-error" *ngIf="isInvalid('visitTime')">Valid time is required.</small>
+            <small class="af-error" *ngIf="isInvalid('visitTime')">Valid time is required.</small>
           </div>
         </div>
 
-        <!-- ── Holiday warning + override ─────────────────────────────────── -->
-        <div class="holiday-warning" *ngIf="formHolidayName">
-          <div class="hw-head">
-            <i class="fa fa-exclamation-triangle"></i>
-            <span>
+        <!-- Holiday warning + override -->
+        <div class="af-holiday" *ngIf="formHolidayName">
+          <i class="fa fa-exclamation-triangle"></i>
+          <div>
+            <p>
               {{ assignForm.get('visitDate')?.value | date:'d MMMM yyyy' }} is a holiday
-              — <strong>{{ formHolidayName }}</strong>.
-            </span>
+              (<strong>{{ formHolidayName }}</strong>).
+            </p>
+            <label class="af-check">
+              <input type="checkbox" [(ngModel)]="overrideHoliday" [ngModelOptions]="{ standalone: true }" />
+              <span>Schedule this visit anyway</span>
+            </label>
           </div>
-          <label class="hw-check">
-            <input type="checkbox" [(ngModel)]="overrideHoliday" [ngModelOptions]="{ standalone: true }" />
-            <span>Schedule this visit anyway</span>
-          </label>
         </div>
 
-        <!-- Purpose + Notes -->
-        <div class="form-group">
-          <label class="form-label">Purpose</label>
+        <!-- Details -->
+        <div class="af-field">
+          <label class="af-label">Purpose <span class="af-optional">Optional</span></label>
           <input type="text" class="form-control" formControlName="purpose"
                  placeholder="e.g. Introduce new test packages, follow up on referrals…" />
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Notes</label>
+        <div class="af-field">
+          <label class="af-label">Notes <span class="af-optional">Optional</span></label>
           <textarea class="form-control" formControlName="notes" rows="2"
                     placeholder="Any additional instructions…"></textarea>
         </div>
 
-        <div class="form-actions">
-          <button class="btn btn-cancel" type="button" (click)="cancelForm()">Cancel</button>
-          <button class="btn btn-primary" type="button" (click)="saveForm()"
+        <div class="af-actions">
+          <button type="button" class="dp-btn dp-btn--ghost" (click)="cancelForm()">Cancel</button>
+          <button type="button" class="dp-btn dp-btn--primary" (click)="saveForm()"
                   [disabled]="savingForm || holidayBlocksSave"
                   [title]="holidayBlocksSave ? 'Confirm the holiday warning to continue' : ''">
-            <i class="fa fa-save"></i> {{ savingForm ? 'Saving…' : 'Assign' }}
+            <i class="fa" [ngClass]="savingForm ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+            {{ savingForm ? 'Saving…' : 'Assign visit' }}
           </button>
         </div>
       </div>
 
-      <!-- ── Status filter + Visit list ───────────────────────────────────── -->
+      <!-- ── Visit list ────────────────────────────────────────────────────── -->
       <app-loading-spinner [isLoading]="loadingDay" message="Loading visits…"></app-loading-spinner>
 
-      <div *ngIf="!loadingDay">
+      <div *ngIf="!loadingDay" class="dp-list-wrap">
 
-        <!-- Status filter chips (only shown when there are visits) -->
-        <div class="vc-status-filter" *ngIf="dayVisits.length > 0">
-          <button class="vc-filter-chip" [class.active]="statusFilter === 'all'"
-                  (click)="statusFilter = 'all'">
-            All <span class="vc-filter-count">{{ dayVisits.length }}</span>
-          </button>
-          <button class="vc-filter-chip vc-filter-chip--pending"
-                  [class.active]="statusFilter === 'Pending'"
-                  (click)="statusFilter = 'Pending'">
-            Pending <span class="vc-filter-count">{{ pendingCount }}</span>
-          </button>
-          <button class="vc-filter-chip vc-filter-chip--done"
-                  [class.active]="statusFilter === 'Completed'"
-                  (click)="statusFilter = 'Completed'">
-            Completed <span class="vc-filter-count">{{ completedCount }}</span>
+        <div class="dp-toolbar" *ngIf="dayVisits.length > 0">
+          <div class="dp-seg" role="tablist" aria-label="Filter visits by status">
+            <button type="button" class="dp-seg-item" [class.active]="statusFilter === 'all'"
+                    (click)="statusFilter = 'all'">
+              All <span class="dp-seg-count">{{ dayVisits.length }}</span>
+            </button>
+            <button type="button" class="dp-seg-item" [class.active]="statusFilter === 'Pending'"
+                    (click)="statusFilter = 'Pending'">
+              <span class="dp-dot dp-dot--pending"></span>
+              Pending <span class="dp-seg-count">{{ pendingCount }}</span>
+            </button>
+            <button type="button" class="dp-seg-item" [class.active]="statusFilter === 'Completed'"
+                    (click)="statusFilter = 'Completed'">
+              <span class="dp-dot dp-dot--done"></span>
+              Completed <span class="dp-seg-count">{{ completedCount }}</span>
+            </button>
+          </div>
+
+          <span class="dp-progress" *ngIf="dayVisits.length > 0">
+            {{ completedCount }} of {{ dayVisits.length }} completed
+          </span>
+        </div>
+
+        <!-- Empty: nothing scheduled -->
+        <div *ngIf="dayVisits.length === 0 && !showForm" class="dp-empty">
+          <span class="dp-empty-icon"><i class="fa fa-calendar-plus"></i></span>
+          <h4>No visits on this day</h4>
+          <p>Assign a team member to a clinic, doctor or lab to get started.</p>
+          <button type="button" class="dp-btn dp-btn--primary" (click)="openForm()">
+            <i class="fa fa-plus"></i> Assign visit
           </button>
         </div>
 
-        <!-- Empty state (no visits at all) -->
-        <div *ngIf="dayVisits.length === 0 && !showForm" class="no-visits">
-          <i class="fa fa-calendar-times"></i>
-          <p>No visits scheduled for this day.</p>
-          <button class="btn btn-primary btn-sm" (click)="openForm()">
-            <i class="fa fa-plus"></i> Assign First Visit
-          </button>
+        <!-- Empty: filter has no matches -->
+        <div *ngIf="dayVisits.length > 0 && filteredDayVisits.length === 0" class="dp-empty dp-empty--compact">
+          <p>No {{ statusFilter === 'Pending' ? 'pending' : 'completed' }} visits on this day.</p>
         </div>
 
-        <!-- Empty state when filter has no results -->
-        <div *ngIf="dayVisits.length > 0 && filteredDayVisits.length === 0" class="no-visits" style="padding:1rem 0">
-          <i class="fa fa-filter"></i>
-          <p>No {{ statusFilter === 'Pending' ? 'pending' : 'completed' }} visits for this day.</p>
-        </div>
-
-        <div class="visit-card-grid">
+        <div class="visit-list">
           <app-visit-card
             *ngFor="let v of filteredDayVisits"
             [visit]="v"
@@ -253,17 +316,18 @@
             (edit)="openEditModal($event)"
             (remove)="deleteVisit($event)">
           </app-visit-card>
-        </div><!-- /visit-card-grid -->
+        </div>
       </div>
 
-    </div><!-- /detail-panel -->
+    </section>
 
-    <div class="vs-detail-panel vs-detail-panel--empty" *ngIf="!selectedDate">
-      <div class="empty-state">
-        <i class="fa fa-calendar-alt fa-3x"></i>
-        <p>Click a day on the calendar to view or schedule visits.</p>
+    <section class="vs-panel vs-detail-panel vs-detail-panel--empty" *ngIf="!selectedDate">
+      <div class="dp-empty">
+        <span class="dp-empty-icon"><i class="fa fa-calendar-alt"></i></span>
+        <h4>Select a day</h4>
+        <p>Pick a date on the calendar to view or schedule visits.</p>
       </div>
-    </div>
+    </section>
 
   </div><!-- /vs-layout -->
 </div>
