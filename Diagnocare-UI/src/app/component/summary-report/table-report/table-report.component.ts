@@ -557,6 +557,13 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
 
   formatCell(value: any, kind: ColDef['kind'], key = ''): string {
     if (value === null || value === undefined || value === '') return '—';
+    // Column kind is guessed from the key name, so a string can land in a numeric
+    // column (e.g. patientId = "DC-0001" matches /id$/). DecimalPipe throws on
+    // non-numeric input, which aborts change detection and leaves the loading
+    // spinner stuck on screen — so fall back to plain text instead.
+    if ((kind === 'currency' || kind === 'number') && !Number.isFinite(Number(value))) {
+      return String(value);
+    }
     switch (kind) {
       case 'currency': return '₹ ' + (this.decimal.transform(value, '1.2-2') ?? '0.00');
       case 'number': {

@@ -402,6 +402,19 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     // verify through in the gap between the timer firing and onSessionExpired()
     // actually navigating away.
     if (this.isLocked || this.sessionExpiredFlag) return;
+
+    // Do not emit while a verify is already in flight. The parent holds the
+    // authoritative re-entry guard, but the dialog has three independent ways to
+    // submit the same code — the 100 ms auto-submit after the sixth digit, the
+    // "Verify Code" button, and Enter on the form — and the OTP is single-use
+    // server-side. A second emit therefore lands on a code the first call has
+    // already consumed and comes back "OTP expired or not found. Please request
+    // a new OTP." on top of a login that actually succeeded.
+    //
+    // isSubmitting is the parent's (isSubmitting || isVerifyingOtp), so this
+    // clears again after a wrong code and the user can retry normally.
+    if (this.isSubmitting) return;
+
     this.verify.emit({ code: this.buildCode(), authType: this.currentAuthType });
   }
 

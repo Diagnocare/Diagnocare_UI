@@ -229,6 +229,7 @@
                 autocomplete="one-time-code"
                 [formControlName]="i"
                 [attr.disabled]="sessionExpiredFlag ? true : null"
+                [attr.readonly]="isSubmitting ? true : null"
                 (input)="onInput(i, $event)"
                 (keydown)="onKeydown(i, $event)"
                 (paste)="onPaste($event)"
