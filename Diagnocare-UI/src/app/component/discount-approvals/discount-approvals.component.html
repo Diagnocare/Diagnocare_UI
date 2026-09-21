@@ -1,0 +1,149 @@
+<div class="da-page">
+  <div class="da-hero">
+    <div>
+      <h1><i class="fa fa-percent"></i> Discount Approvals</h1>
+      <p class="subtitle">
+        Discounts above the lab limit wait here. Payment and the bill are on hold until you decide.
+        Rejecting resets the discount to the lab limit.
+      </p>
+    </div>
+    <button class="btn-light" type="button" (click)="refresh()" [disabled]="isLoading">
+      <i class="fa fa-sync" [class.fa-spin]="isLoading"></i> Refresh
+    </button>
+  </div>
+
+  <div class="da-tabs" role="tablist">
+    <button class="da-tab" role="tab" type="button" [class.active]="tab === 'pending'"
+            [attr.aria-selected]="tab === 'pending'" (click)="setTab('pending')">
+      Pending <span class="tab-count" [class.zero]="pending.length === 0">{{ pending.length }}</span>
+    </button>
+    <button class="da-tab" role="tab" type="button" [class.active]="tab === 'history'"
+            [attr.aria-selected]="tab === 'history'" (click)="setTab('history')">
+      Decided
+    </button>
+  </div>
+
+  <div class="da-error" *ngIf="loadError">
+    <i class="fa fa-exclamation-triangle"></i> {{ loadError }}
+    <button type="button" class="link-btn" (click)="refresh()">Try again</button>
+  </div>
+
+  <!-- ── Pending ─────────────────────────────────────────────────── -->
+  <ng-container *ngIf="tab === 'pending'">
+    <div class="da-empty" *ngIf="!isLoading && !loadError && pending.length === 0">
+      <i class="fa fa-check-circle"></i>
+      <p>Nothing waiting. Discounts above the lab limit will appear here.</p>
+    </div>
+
+    <div class="da-card" *ngFor="let item of pending; trackBy: trackById"
+         [class.da-card--cancelled]="item.bookingStatus === 'Cancelled'">
+      <div class="da-card-head">
+        <div>
+          <div class="da-patient">{{ item.patientName }}</div>
+          <div class="da-meta">
+            {{ item.patientId }} · Booking #{{ item.patientTestId }}
+            <span *ngIf="testList(item)"> · {{ testList(item) }}</span>
+          </div>
+        </div>
+        <span class="da-badge da-badge--cancelled" *ngIf="item.bookingStatus === 'Cancelled'">Booking cancelled</span>
+      </div>
+
+      <div class="da-figures">
+        <div class="da-fig">
+          <span class="lbl">Test amount</span>
+          <span class="val">₹{{ item.testAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="da-fig da-fig--ask">
+          <span class="lbl">Requested</span>
+          <span class="val">{{ item.requestedDiscount | number:'1.0-2' }}%</span>
+          <span class="sub">Net ₹{{ item.requestedNetAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="da-fig">
+          <span class="lbl">Lab limit</span>
+          <span class="val">{{ item.limitAtRequest }}%</span>
+          <span class="sub">Net ₹{{ item.netAmountAtLimit | number:'1.2-2' }}</span>
+        </div>
+        <div class="da-fig da-fig--gap">
+          <span class="lbl">Over the limit by</span>
+          <span class="val">₹{{ extraDiscount(item) | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="da-reason">
+        <span class="lbl">Reason</span>
+        <span>{{ item.reason || '—' }}</span>
+      </div>
+      <div class="da-meta da-requested">
+        Requested by <strong>{{ item.requestedByName }}</strong>
+        <span *ngIf="item.requestedAt"> · {{ item.requestedAt | date:'d MMM y, h:mm a' }}</span>
+      </div>
+
+      <div class="da-actions">
+        <textarea class="form-control da-remark" rows="1" maxlength="500"
+                  [(ngModel)]="remarks[item.receiptId]"
+                  [class.is-invalid]="remarkMissingId === item.receiptId"
+                  placeholder="Remark (required to reject)"></textarea>
+        <div class="da-buttons">
+          <button type="button" class="btn-link" (click)="openBooking(item)" title="Open this booking's receipts">
+            View booking
+          </button>
+          <button type="button" class="btn-reject" (click)="reject(item)" [disabled]="busyId === item.receiptId">
+            <i class="fa fa-times"></i> Reject — use {{ item.limitAtRequest }}%
+          </button>
+          <button type="button" class="btn-approve" (click)="approve(item)" [disabled]="busyId === item.receiptId">
+            <i class="fa" [ngClass]="busyId === item.receiptId ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+            Approve {{ item.requestedDiscount | number:'1.0-2' }}%
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ── Decided ─────────────────────────────────────────────────── -->
+  <ng-container *ngIf="tab === 'history'">
+    <div class="da-empty" *ngIf="!isLoading && !loadError && history.length === 0">
+      <i class="fa fa-history"></i>
+      <p>No decisions yet.</p>
+    </div>
+
+    <div class="da-table-wrap" *ngIf="history.length > 0">
+      <table class="da-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Requested</th>
+            <th>Granted</th>
+            <th>Status</th>
+            <th>Requested by</th>
+            <th>Decided by</th>
+            <th>Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of history; trackBy: trackById">
+            <td>
+              <div class="da-patient-sm">{{ item.patientName }}</div>
+              <div class="da-meta">Booking #{{ item.patientTestId }}</div>
+            </td>
+            <td>{{ item.requestedDiscount | number:'1.0-2' }}%</td>
+            <td>{{ item.grantedDiscount | number:'1.0-2' }}%</td>
+            <td>
+              <span class="da-badge"
+                    [class.da-badge--approved]="item.status === 'Approved'"
+                    [class.da-badge--rejected]="item.status === 'Rejected'">{{ item.status }}</span>
+            </td>
+            <td>
+              {{ item.requestedByName }}
+              <div class="da-meta" *ngIf="item.requestedAt">{{ item.requestedAt | date:'d MMM, h:mm a' }}</div>
+            </td>
+            <td>
+              {{ item.reviewedByName || '—' }}
+              <div class="da-meta" *ngIf="item.reviewedAt">{{ item.reviewedAt | date:'d MMM, h:mm a' }}</div>
+            </td>
+            <td class="da-remark-cell">{{ item.reviewRemark || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+</div>

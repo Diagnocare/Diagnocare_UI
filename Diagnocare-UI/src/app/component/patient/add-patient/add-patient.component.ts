@@ -74,7 +74,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       'relation', 'relative_Name', 'patient_Contact', 'patient_Email'
     ],
     3: ['test_Name', 'test_Amount', 'referred_By_Type', 'referred_By'],
-    4: ['net_Amount', 'payment_Type', 'amount_Paid', 'amount_Pending', 'payment_Mode']
+    4: ['discount', 'discount_Reason', 'net_Amount', 'payment_Type', 'amount_Paid', 'amount_Pending', 'payment_Mode']
     // Note: TPA sub-fields are validated separately via isTpaValid getter (not in stepFields)
     // because they are conditionally required only when payment_Mode === 'TPA'
   };
@@ -225,6 +225,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_By:         [''],
       sampling_Done:        [],
       discount:             [0],
+      // Required only while the discount is above the lab limit (it then goes to a
+      // Super Admin, who needs to know why) — toggled in syncDiscountApproval().
+      discount_Reason:      ['', [Validators.maxLength(500)]],
       net_Amount:           [0, Validators.required],
       payment_Type:         ['Full', Validators.required],
       amount_Paid:          ['', Validators.required],
@@ -238,8 +241,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.countryCodes = [{ code: DEFAULT_DIALING_CODE, label: `India (${DEFAULT_DIALING_CODE})` }];
       this.patientForm.patchValue({ country_Code: DEFAULT_DIALING_CODE });
 
-      // Load collection boys for "Collected By" dropdown
-      this._memberService.getAll(Role.Collection_Boy.id)
+      // Load collection boys for "Collected By" dropdown.
+      // Uses the LabOperations-scoped lookup, not api/User (Admin-only), so a
+      // Receptionist / Lab Assistant isn't 403'd off this page.
+      this._memberService.getCollectionBoysLookup()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
@@ -286,6 +291,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           this.paymentConfirmed = false;
           this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
         }
+        // Runs after the control holds the new value, whichever order the (input)
+        // handler and the value accessor fired in — so an over-limit discount
+        // always ends in a consistent No Payment state.
+        this.syncDiscountApproval();
       });
   }
 
@@ -950,6 +959,61 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   /** Maximum discount % allowed for this lab (admin-configured). */
   get maxDiscountPercent(): number { return this._token.getMaxDiscountPercent(); }
 
+  /** Hard ceiling regardless of approval — 100% would make the test free. The API enforces the same. */
+  readonly absoluteMaxDiscount = 99;
+
+  /** A Super Admin's own over-limit discount is self-approved by the API. */
+  get isSuperAdmin(): boolean { return this._token.isSuperAdmin(); }
+
+  /** Discount is above the lab limit (but still within the hard ceiling). */
+  get isDiscountOverLimit(): boolean {
+    const d = this.toNumber(this.patientForm.get('discount')?.value);
+    return d > this.maxDiscountPercent && d <= this.absoluteMaxDiscount;
+  }
+
+  /**
+   * This booking's discount will go to a Super Admin for approval. While it does,
+   * billing is held: no money may be taken now, and a reason is required.
+   */
+  get needsDiscountApproval(): boolean {
+    return this.isDiscountOverLimit && !this.isSuperAdmin;
+  }
+
+  /** Payment types the operator may pick right now. */
+  isPaymentTypeLocked(entry: string): boolean {
+    return this.needsDiscountApproval && entry !== paymentType.NoPayment;
+  }
+
+  /**
+   * Keeps the form consistent with whether the discount needs approval:
+   *  - over the limit → force "No Payment" and require a reason;
+   *  - back within it → drop the reason requirement (the operator picks payment again).
+   */
+  private syncDiscountApproval(): void {
+    const reason = this.patientForm.get('discount_Reason');
+    if (!reason) return;
+
+    if (this.needsDiscountApproval) {
+      reason.setValidators([Validators.required, Validators.maxLength(500)]);
+      // Always re-assert the No Payment state, not only when the type changes:
+      // a Partial payment cleared by a discount edit leaves amount_Paid blank
+      // even if payment_Type already reads "No Payment", and a blank
+      // amount_Paid fails `required` ("Please complete: Amount Paid").
+      this.paymentConfirmed = false;
+      this.amountPaidError  = '';
+      this.patientForm.patchValue({
+        payment_Type:   paymentType.NoPayment,
+        amount_Paid:    0,
+        amount_Pending: this.patientForm.get('net_Amount')?.value ?? 0,
+      }, { emitEvent: false });
+      this.patientForm.get('payment_Type')?.updateValueAndValidity({ emitEvent: false });
+      this.patientForm.get('amount_Paid')?.updateValueAndValidity({ emitEvent: false });
+    } else {
+      reason.setValidators([Validators.maxLength(500)]);
+    }
+    reason.updateValueAndValidity({ emitEvent: false });
+  }
+
   /** Parses a form value that may be a string, number, null or '' into a number. */
   private toNumber(value: any): number {
     const n = parseFloat(String(value ?? '').trim());
@@ -1006,11 +1070,14 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    */
   private validateDiscountLimit(discount: number): boolean {
     const negative = discount < 0;
-    const exceeded = discount > this.maxDiscountPercent;
+    // Only the hard ceiling is an error now. Above the LAB limit is allowed — it is
+    // sent to a Super Admin for approval (see syncDiscountApproval).
+    const exceeded = discount > this.absoluteMaxDiscount;
 
     this.setControlError('discount', 'negative',    negative);
     this.setControlError('discount', 'maxExceeded', !negative && exceeded);
 
+    this.syncDiscountApproval();
     return !negative && !exceeded;
   }
 
@@ -1023,9 +1090,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * Only net_Amount is patched here, so this can never ping-pong with
    * calculateDiscount().
    */
-  calculateNetAmount() {
+  calculateNetAmount(typed?: string | number) {
     const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
-    const discount   = this.toNumber(this.patientForm.get('discount')?.value);
+    // Prefer the value from the input event: a template (input) handler can run
+    // before the form control's own value accessor, so the control may still
+    // hold the previous keystroke's value here.
+    const discount   = this.toNumber(typed ?? this.patientForm.get('discount')?.value);
 
     // A net amount typed by hand may have been flagged as above the test amount;
     // recalculating from the discount always produces a valid one.
@@ -1046,9 +1116,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * sees "90.43%" rather than "90.43478260869566%", and so the value the API
    * stores is a sane percentage.
    */
-  calculateDiscount() {
+  calculateDiscount(typed?: string | number) {
     const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
-    const rawNet     = String(this.patientForm.get('net_Amount')?.value ?? '').trim();
+    const rawNet     = String(typed ?? this.patientForm.get('net_Amount')?.value ?? '').trim();
 
     if (testAmount <= 0) return;
 
@@ -1127,6 +1197,11 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * FormControl timing issues with the change event.
    */
   onPaymentTypeChange(selectedType: string): void {
+    // Over-limit discount awaiting approval: payment can't be taken yet.
+    if (this.isPaymentTypeLocked(selectedType)) {
+      this.patientForm.patchValue({ payment_Type: paymentType.NoPayment }, { emitEvent: false });
+      selectedType = paymentType.NoPayment;
+    }
     this.paymentConfirmed = false;
     this.amountPaidError  = '';
 
@@ -1250,6 +1325,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   // ── Register ───────────────────────────────────────────────────────────────
 
   registerPatient() {
+    // Over-limit discount → No Payment with amount_Paid 0, re-asserted here so a
+    // stale payment state can never block registration with "Amount Paid".
+    this.syncDiscountApproval();
+
     if (!this.patientForm.valid) {
       this.stepTouched[this.currentStep] = true;
       this.patientForm.markAllAsTouched();
@@ -1289,6 +1368,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     patient_Contact: 'Contact Number', patient_Email: 'Email',
     test_Name: 'Test', test_Amount: 'Test Amount', referred_By_Type: 'Referred By Type',
     referred_By: 'Referred By', discount: 'Discount (%)', net_Amount: 'Net Amount',
+    discount_Reason: 'Reason for Discount',
     payment_Type: 'Payment Type', amount_Paid: 'Amount Paid',
     amount_Pending: 'Amount Pending', payment_Mode: 'Payment Mode',
   };
@@ -1297,10 +1377,13 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   private describeInvalidFields(): string {
     const discount = this.patientForm.get('discount');
     if (discount?.errors?.['maxExceeded']) {
-      return `Discount cannot exceed ${this.maxDiscountPercent}%. Lower the discount or raise the net amount.`;
+      return `Discount cannot exceed ${this.absoluteMaxDiscount}%. Lower the discount or raise the net amount.`;
     }
     if (discount?.errors?.['negative']) {
       return 'Discount cannot be negative.';
+    }
+    if (this.patientForm.get('discount_Reason')?.errors?.['required']) {
+      return `The discount is above the lab limit of ${this.maxDiscountPercent}%. Enter a reason for the Super Admin.`;
     }
     if (this.patientForm.get('net_Amount')?.errors?.['aboveTestAmount']) {
       return 'Net amount cannot be more than the test amount.';
@@ -1319,6 +1402,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
     this.isLoading = true;
     const f = this.patientForm.getRawValue();
+    const sentForApproval = this.needsDiscountApproval;
 
     // ── Build test IDs comma string ────────────────────────────────────
     let testIds = '';
@@ -1346,6 +1430,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       amountPaid:    amtPaid,
       amountPending: amtPending,
       paymentMode:   isNoPayment ? '' : f.payment_Mode,
+      // Sent whenever typed; the API only requires it when the discount is over the limit.
+      ...(this.isDiscountOverLimit && f.discount_Reason?.trim() && {
+        discountReason: f.discount_Reason.trim(),
+      }),
       // TPA fields — only included when mode is TPA and details confirmed
       ...(isTpa && this.tpaDetails && {
         tpaName:            this.tpaDetails.tpaName            || undefined,
@@ -1405,6 +1493,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           // won't fire — surface it explicitly.
           this.toastr.error(res?.message || 'Failed to register patient. Please try again.', 'Error');
           return;
+        }
+
+        if (sentForApproval) {
+          this.toastr.info(
+            'The discount has been sent to the Super Admin for approval. Payment can be collected once it is approved.',
+            'Discount awaiting approval', { timeOut: 8000 });
         }
 
         this.printSampleLabels(res);

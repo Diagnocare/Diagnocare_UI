@@ -73,8 +73,13 @@ export class BillReceipt implements OnInit {
       // Cancelled bookings have no outstanding balance regardless of what was paid.
       const remaining = isCancelled ? 0 : Math.max(0, +(net - totalPaid - totalRefunded).toFixed(2));
 
-      const status = isCancelled ? 'Cancelled' : remaining === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending';
-      return { patientTestId: id, receipts: sorted, netAmount: net, totalPaid, remaining, paymentStatus: status, isCancelled, totalRefunded };
+      // Discount over the lab limit waiting on a Super Admin → billing is held.
+      const awaitingApproval = !isCancelled && sorted.some(r => r.discountApprovalStatus === 'Pending');
+
+      const status = isCancelled ? 'Cancelled'
+                   : awaitingApproval ? 'Awaiting Approval'
+                   : remaining === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending';
+      return { patientTestId: id, receipts: sorted, netAmount: net, totalPaid, remaining, paymentStatus: status, isCancelled, totalRefunded, awaitingApproval };
     });
   }
 

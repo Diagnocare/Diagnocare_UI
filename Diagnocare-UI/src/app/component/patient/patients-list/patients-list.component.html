@@ -98,6 +98,7 @@
                     Patient Reg Date
                     <i class="sort-icon" [class]="getSortIcon('patient_Reg_Date')"></i>
                     </th>
+                    <th class="col-patient-id">Patient ID</th>
                     <th (click)="sort('patient_Name')" class="sortable">
                     Patient Name / Father Name
                     <i class="sort-icon" [class]="getSortIcon('patient_Name')"></i>
@@ -135,21 +136,34 @@
         <tr *ngFor="let patient of filteredPatients; let i = index; trackBy: trackByPatientId" 
             [class]="getRowClass(patient)">
             
-            <td>{{patient.patient_Reg_Date}}</td>
-            <td>
+            <td data-label="Reg Date">{{patient.patient_Reg_Date}}</td>
+            <td data-label="Patient ID" class="col-patient-id">
+                <span class="patient-id-chip" *ngIf="patient.patient_Id; else noPatientId">
+                    <span class="patient-id-text" [title]="patient.patient_Id">{{ patient.patient_Id }}</span>
+                    <button type="button" class="patient-id-copy"
+                        [class.copied]="copiedPatientId === patient.patient_Id"
+                        [title]="copiedPatientId === patient.patient_Id ? 'Copied!' : 'Copy Patient ID'"
+                        [attr.aria-label]="'Copy Patient ID ' + patient.patient_Id"
+                        (click)="copyPatientId(patient.patient_Id, $event)">
+                        <i class="fa" [ngClass]="copiedPatientId === patient.patient_Id ? 'fa-check' : 'fa-copy'"></i>
+                    </button>
+                </span>
+                <ng-template #noPatientId><span class="text-muted">—</span></ng-template>
+            </td>
+            <td data-label="Patient">
                 <div class="patient-info">
                     <strong>{{patient.patient_Name}}</strong>
                     <small>{{patient.relative_Name}}</small>
                 </div>
             </td>
-            <td>{{patient.patient_DOB}}</td>
-            <td>
+            <td data-label="Date of Birth">{{patient.patient_DOB}}</td>
+            <td data-label="Age / Sex">
                 <div class="patient-info">
                     <strong>{{ getDisplayAge(patient.patient_Age) }}</strong>
                     <small>{{ patient.patient_Gender }}</small>
                 </div>
             </td>
-            <td>
+            <td data-label="Urg Rep">
               <span [ngClass]="getUrgentClass(patient.isUrgent)">
                 <span class="urgent-dot"></span>
                 {{ patient.isUrgent === 'Yes' ? 'Urgent' : 'Normal' }}
@@ -178,13 +192,13 @@
             <!-- <td class="amount">₹{{patient.total_Amount}}</td>
             <td class="amount">₹{{patient.discount}}</td> 
             -->
-            <td>
+            <td data-label="Status">
               <span class="status-badge" [ngClass]="getStatusClass(patient.status)">
                 <span class="status-dot"></span>
                 {{ patient.status || '—' }}
               </span>
             </td>
-            <td>
+            <td data-label="Actions" class="col-actions">
             <div class="action-buttons">
                 <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
                     <app-action-btn *ngIf="isCompletedView()" type="download" title="Download Completed Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></app-action-btn>

@@ -550,10 +550,17 @@
         </button>
         <!-- Pay Now — payment not yet complete -->
         <button class="btn btn-pay-now"
-                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) !== 'Paid'"
+                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) !== 'Paid'
+                       && getPaymentStatus(selectedPatientTest) !== 'Awaiting Approval'"
                 (click)="payNowFromReport($event)"
                 title="Complete payment to unlock report">
           <i class="fa fa-credit-card"></i> Pay Now
+        </button>
+        <!-- Discount above the lab limit → payment held until a Super Admin decides. -->
+        <button class="btn btn-pay-now" disabled
+                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) === 'Awaiting Approval'"
+                title="The discount on this booking is above the lab limit and is waiting for Super Admin approval. Payment can be taken once it is decided.">
+          <i class="fa fa-hourglass-half"></i> Discount awaiting approval
         </button>
         <!-- Report actions — only when fully paid AND every result is saved.
              Both buttons stay visible but disabled while results are missing, so
