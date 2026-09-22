@@ -158,7 +158,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       test_Amount:       ['', Validators.required],
       referred_By_Type:  ['Doctor', Validators.required],
       referred_By:       ['', Validators.required],
-      sampling_Done:     [''],
+      sampling_Done:     [this._sampling.getDefault()],
       collected_Outside: [false],
       area:              [''],
       collected_By:      [''],
@@ -777,7 +777,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         collected_Outside: f.collected_Outside ?? false,
         area:              f.area              ?? '',
         collected_By:      f.collected_By      ?? '',
-        sampling_Done:     f.sampling_Done     ?? '',
+        // API property is Sampling_Done_At; 'sampling_Done' was silently dropped.
+        sampling_Done_At:  f.sampling_Done     ?? '',
       },
       receipt,
     };
@@ -824,6 +825,14 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
    * slot would read as though the booking had failed.
    */
   private printSampleLabels(booking: BookingResultDto): void {
+    if (booking.testRegId && booking.labelsReady === false) {
+      this.toastr.info(
+        'Barcode not generated because "Sampling Done At" was not selected. ' +
+        'Select it on this booking in the test list to generate the barcode.',
+        'Barcode pending', { timeOut: 8000 });
+      return;
+    }
+
     if (!booking.testRegId || !booking.labels?.length) {
       return;
     }
@@ -888,7 +897,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       test_Amount:       '',
       referred_By_Type:  'Doctor',
       referred_By:       '',
-      sampling_Done:     '',
+      sampling_Done:     this._sampling.getDefault(),
       collected_Outside: false,
       area:              '',
       collected_By:      '',

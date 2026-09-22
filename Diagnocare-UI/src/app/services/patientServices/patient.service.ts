@@ -61,6 +61,16 @@ export class PatientService {
     return this.httpClient.post<BookingResultDto>(url, data);
   }
 
+  /**
+   * Sets "Sampling Done At" on a booking saved without one. The response carries
+   * the booking's barcodes — they are only generated once the location is set.
+   * PUT api/patient/UpdateSamplingLocation
+   */
+  updateSamplingLocation(patientTestId: number, samplingDoneAt: string): Observable<BookingResultDto> {
+    const url = this.patienturl + apiEndpoints.updateSamplingLocation;
+    return this.httpClient.put<BookingResultDto>(url, { patientTestId, samplingDoneAt });
+  }
+
   updatePatientDetails(patient: PatientEditDto): Observable<boolean> {
     const updateUrl = this.patienturl + apiEndpoints.update;
     return this.httpClient.put<boolean>(updateUrl, patient);
