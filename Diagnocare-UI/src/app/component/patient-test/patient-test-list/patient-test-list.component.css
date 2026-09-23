@@ -2055,3 +2055,20 @@
   align-items: center;
   gap: 0.35em;
 }
+
+/* ── Sampling location picker (booking saved without one) ── */
+.sampling-missing {
+  color: #b45309;
+  font-style: italic;
+}
+.sampling-picker {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.sampling-picker .form-select {
+  flex: 1 1 160px;
+  min-width: 0;
+}
