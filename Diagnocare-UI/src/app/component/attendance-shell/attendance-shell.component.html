@@ -1,0 +1,19 @@
+<!--
+  A tab strip and nothing else.
+
+  Each tab's component brings its own page header, so the shell deliberately does not add
+  a second one — that keeps the two pre-existing screens (the marking grid and the
+  requests list) working here with no changes inside them at all.
+-->
+<nav class="shell-tabs" aria-label="Attendance sections">
+  <a class="shell-tab"
+     *ngFor="let tab of tabs"
+     [routerLink]="tab.path"
+     routerLinkActive="active"
+     [attr.aria-label]="tab.label">
+    <i class="fa" [ngClass]="tab.icon"></i>
+    <span class="shell-tab-label">{{ tab.label }}</span>
+  </a>
+</nav>
+
+<router-outlet></router-outlet>

@@ -34,6 +34,34 @@ export const routes: Routes = [
   { path: 'licence-expired', title: 'Licence Expired',
     loadComponent: () => import('./component/pathology/licence-expired/licence-expired.component').then(m => m.LicenceExpiredComponent) },
 
+  // ── Device-verified attendance ──────────────────────────────────────────────
+  // Public on purpose, and the reason needs stating because it looks like an omission.
+  //
+  // These three run on an enrolled handset or a kiosk screen that has deliberately never
+  // signed in. The application allows one active session per user, so an employee
+  // logging in on their phone to check in would terminate their session on the lab
+  // workstation — twenty staff, twice a day. The device credential exists to avoid
+  // exactly that, and putting authGuard here would force the login it was built to skip.
+  //
+  // Nothing is unprotected: every endpoint behind these pages requires either the device
+  // token or a Bearer session, checked server-side on each call. A browser with neither
+  // reaches these pages and is told to ask an administrator for an enrolment link, which
+  // is the correct and useful answer rather than a redirect to a login they must not use.
+  //
+  // Named 'check-in' rather than 'attendance' because that path is already the
+  // administrator's attendance grid inside the authenticated shell. The backend builds
+  // its QR deep link from AttendanceQrCodeGenerator.EmployeeRoute, which must match.
+  { path: 'check-in', title: 'Attendance',
+    loadComponent: () => import('./component/attendance-checkin/attendance-checkin.component').then(m => m.AttendanceCheckinComponent) },
+
+  // Installs a device token from a link an administrator sends. Seen once per handset.
+  { path: 'check-in/enrol', title: 'Set Up Attendance',
+    loadComponent: () => import('./component/attendance-enrol/attendance-enrol.component').then(m => m.AttendanceEnrolComponent) },
+
+  // The laboratory wall display. Left running unattended, so it has no navigation.
+  { path: 'attendance-kiosk', title: 'Attendance Kiosk',
+    loadComponent: () => import('./component/attendance-kiosk/attendance-kiosk.component').then(m => m.AttendanceKioskComponent) },
+
   // Authenticated (header shown via LayoutComponent)
   {
     path: '',
@@ -186,14 +214,55 @@ export const routes: Routes = [
         loadComponent: () => import('./component/lab-profile/lab-profile.component').then(m => m.LabProfileComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
-      // Attendance / Salary / Holidays — Admin+
-      // Attendance administration — Super Admin ONLY. An Admin records their own
-      // attendance and raises corrections through the User Panel like any other
-      // staff member; the Super Admin approves them. Letting an Admin open the
-      // all-staff module would also let them approve their own corrections.
-      { path: 'attendance', title: 'Attendance',
-        loadComponent: () => import('./component/attendance/attendance.component').then(m => m.AttendanceComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      // ── Attendance administration — one entry, four tabs ────────────────────
+      //
+      // The four administrative attendance screens live under a shell component
+      // with a tab strip, because they are four views of one subject and four
+      // separate Admin Panel entries told nobody which to open for a given
+      // question.
+      //
+      // Each tab is still its own lazily-loaded component behind its own URL, not
+      // a branch inside one large component. That keeps three things a merged
+      // component would give up: per-tab lazy loading, bookmarkable and
+      // back-button-able tab URLs, and authorisation that lives on the route
+      // rather than in an *ngIf.
+      //
+      // Guarded Admin + Super Admin, unchanged from what each route carried
+      // before and matching the API: 'AttendanceCorrection' is SuperAdmin + Admin
+      // with a server-side block on correcting your own day, and
+      // AttendanceSetupController is 'AdminOrSuperAdmin'.
+      //
+      // The three device-facing screens (check-in, kiosk, enrolment) are
+      // deliberately NOT tabs here — see the top of this file. They authenticate
+      // with a device token instead of a login and must stay outside this shell.
+      { path: 'attendance',
+        loadComponent: () => import('./component/attendance-shell/attendance-shell.component').then(m => m.AttendanceShellComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)],
+        children: [
+          { path: '', redirectTo: 'marking', pathMatch: 'full' },
+
+          // The existing marking grid, unchanged — only its URL moved.
+          { path: 'marking', title: 'Attendance',
+            loadComponent: () => import('./component/attendance/attendance.component').then(m => m.AttendanceComponent) },
+
+          // Device-verified attendance: the evidence behind the grid. Who was
+          // proved present by GPS and a scanned code, who was typed in by hand,
+          // and what was refused.
+          { path: 'verified', title: 'Verified Attendance',
+            loadComponent: () => import('./component/attendance-dashboard/attendance-dashboard.component').then(m => m.AttendanceDashboardComponent) },
+
+          { path: 'setup', title: 'Attendance Setup',
+            loadComponent: () => import('./component/attendance-setup/attendance-setup.component').then(m => m.AttendanceSetupComponent) },
+
+          // The same list component the User Panel route below renders. Drilling
+          // into one request navigates to the top-level '/attendance-requests/:id'
+          // — the list uses absolute links — so the detail and edit screens open
+          // full-width outside the tab strip. That is deliberate: those screens
+          // are a task, not a view, and re-pointing them would mean editing a
+          // pre-existing component this change has no other reason to touch.
+          { path: 'requests', title: 'Attendance Requests',
+            loadComponent: () => import('./component/attendance-request/requests-list/requests-list.component').then(m => m.RequestsListComponent) },
+        ] },
       // Payroll is owner-only: an Admin with salary access could edit their own pay.
       // Mirrors SalaryController, where every administrative action is SuperAdminOnly.
       { path: 'salary', title: 'Salary',

@@ -1,0 +1,749 @@
+<div class="page-container">
+  <div class="page-inner">
+
+    <!-- ══════════════════════════════════════════════════
+         PAGE HEADER
+    ══════════════════════════════════════════════════ -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title"><i class="fa fa-map-pin"></i> Attendance Setup</h2>
+        <p class="page-subtitle">
+          Locations, shifts, who works which shift, and the phones and kiosks that are allowed to mark attendance
+        </p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB SWITCHER
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-switcher">
+      <button class="tab-btn" [class.active]="activeTab === 'locations'" (click)="switchTab('locations')">
+        <i class="fa fa-map-marker-alt"></i> Locations
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'shifts'" (click)="switchTab('shifts')">
+        <i class="fa fa-clock"></i> Shifts
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'assignments'" (click)="switchTab('assignments')">
+        <i class="fa fa-users"></i> Assignments
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'devices'" (click)="switchTab('devices')">
+        <i class="fa fa-mobile-alt"></i> Devices
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB: LOCATIONS
+    ══════════════════════════════════════════════════ -->
+    <ng-container *ngIf="activeTab === 'locations'">
+      <div class="config-card">
+        <div class="config-card-header">
+          <i class="fa fa-map-marker-alt"></i>
+          <div>
+            <h4 class="config-card-title">Attendance Locations</h4>
+            <p class="config-card-sub">
+              Each location is a point on the map and a radius around it. An employee has to be inside that
+              circle — as their own phone reports it — before the server will accept a check-in.
+            </p>
+          </div>
+        </div>
+        <div class="config-card-body">
+
+          <div class="list-meta">
+            <span class="list-count">
+              {{ locations.length }} location{{ locations.length !== 1 ? 's' : '' }}
+            </span>
+            <div class="meta-actions">
+              <label class="inline-check">
+                <input type="checkbox" [checked]="showInactiveLocations" (change)="toggleInactiveLocations()" />
+                Show inactive
+              </label>
+              <button class="btn-primary-sm" (click)="newLocation()" *ngIf="!locationFormOpen">
+                <i class="fa fa-plus"></i> Add Location
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Form ───────────────────────────────────────────────────── -->
+          <div class="inline-form" *ngIf="locationFormOpen">
+            <h5 class="inline-form-title">
+              {{ locationForm.locationId ? 'Edit Location' : 'New Location' }}
+            </h5>
+
+            <div class="field-grid">
+              <div class="field field-wide">
+                <label>Name</label>
+                <input type="text" [(ngModel)]="locationForm.name" name="locName"
+                       placeholder="Main Laboratory, Reception, Collection Centre…" maxlength="100" />
+              </div>
+
+              <div class="field field-wide">
+                <label>Address <span class="opt">(optional)</span></label>
+                <input type="text" [(ngModel)]="locationForm.address" name="locAddress" maxlength="250" />
+              </div>
+
+              <div class="field">
+                <label>Latitude</label>
+                <input type="number" step="0.000001" [(ngModel)]="locationForm.latitude" name="locLat" />
+              </div>
+
+              <div class="field">
+                <label>Longitude</label>
+                <input type="number" step="0.000001" [(ngModel)]="locationForm.longitude" name="locLng" />
+              </div>
+
+              <div class="field">
+                <label>Radius in metres</label>
+                <input type="number" step="1" min="0" max="5000"
+                       [(ngModel)]="locationForm.radiusMetres" name="locRadius" />
+                <small class="field-hint">0 uses the lab-wide default.</small>
+              </div>
+
+              <div class="field">
+                <label>Status</label>
+                <label class="inline-check">
+                  <input type="checkbox" [(ngModel)]="locationForm.isActive" name="locActive" />
+                  Active — staff may check in here
+                </label>
+              </div>
+            </div>
+
+            <div class="gps-row">
+              <button class="btn-ghost" (click)="useCurrentLocation()" [disabled]="locating">
+                <i class="fa" [ngClass]="locating ? 'fa-spinner fa-spin' : 'fa-crosshairs'"></i>
+                {{ locating ? 'Locating…' : 'Use my current location' }}
+              </button>
+              <span class="gps-note" *ngIf="locatingMessage">{{ locatingMessage }}</span>
+              <span class="gps-error" *ngIf="locateError">{{ locateError }}</span>
+            </div>
+            <p class="gps-advice">
+              Stand where staff will stand when they check in, then capture the position. Coordinates copied from
+              a map are usually a rooftop, which is not where anybody is holding a phone.
+            </p>
+
+            <div class="form-error" *ngIf="locationError">
+              <i class="fa fa-exclamation-circle"></i> {{ locationError }}
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" (click)="saveLocation()" [disabled]="locationSaving">
+                <i class="fa" [ngClass]="locationSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ locationSaving ? 'Saving…' : 'Save Location' }}
+              </button>
+              <button class="btn-ghost" (click)="cancelLocation()" [disabled]="locationSaving">Cancel</button>
+            </div>
+          </div>
+
+          <!-- ── Table ──────────────────────────────────────────────────── -->
+          <div class="loading-msg" *ngIf="locationsLoading">
+            <i class="fa fa-spinner fa-spin"></i> Loading locations…
+          </div>
+
+          <div class="table-wrap" *ngIf="!locationsLoading && locations.length > 0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Coordinates</th>
+                  <th class="num">Radius</th>
+                  <th class="num">Staff</th>
+                  <th>Status</th>
+                  <th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let loc of locations" [class.is-inactive]="!loc.isActive">
+                  <td>
+                    <span class="cell-title">{{ loc.name }}</span>
+                    <small class="cell-sub" *ngIf="loc.address">{{ loc.address }}</small>
+                  </td>
+                  <td class="mono">{{ loc.latitude }}, {{ loc.longitude }}</td>
+                  <td class="num">
+                    {{ loc.radiusMetres }} m
+                    <small class="cell-sub" *ngIf="loc.usingDefaultRadius">default</small>
+                  </td>
+                  <td class="num">{{ loc.assignedEmployeeCount }}</td>
+                  <td>
+                    <span class="pill" [class.pill-ok]="loc.isActive" [class.pill-off]="!loc.isActive">
+                      {{ loc.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                  <td class="actions-col">
+                    <button class="ibtn ibtn-qr" (click)="previewQr(loc)" title="Preview the kiosk code"
+                            [disabled]="!loc.isActive">
+                      <i class="fa fa-qrcode"></i>
+                    </button>
+                    <button class="ibtn ibtn-edit" (click)="editLocation(loc)" title="Edit">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <button class="ibtn ibtn-delete" (click)="deactivateLocation(loc)" title="Deactivate"
+                            *ngIf="loc.isActive">
+                      <i class="fa fa-ban"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-msg" *ngIf="!locationsLoading && locations.length === 0">
+            <i class="fa fa-map-marker-alt"></i>
+            No locations yet. Nobody can check in until at least one exists.
+          </div>
+
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB: SHIFTS
+    ══════════════════════════════════════════════════ -->
+    <ng-container *ngIf="activeTab === 'shifts'">
+      <div class="config-card">
+        <div class="config-card-header">
+          <i class="fa fa-clock"></i>
+          <div>
+            <h4 class="config-card-title">Shifts</h4>
+            <p class="config-card-sub">
+              A shift is what "on time" means. Without one assigned, an employee's check-in has nothing to be
+              measured against and the server refuses it.
+            </p>
+          </div>
+        </div>
+        <div class="config-card-body">
+
+          <div class="list-meta">
+            <span class="list-count">{{ shifts.length }} shift{{ shifts.length !== 1 ? 's' : '' }}</span>
+            <div class="meta-actions">
+              <label class="inline-check">
+                <input type="checkbox" [checked]="showInactiveShifts" (change)="toggleInactiveShifts()" />
+                Show inactive
+              </label>
+              <button class="btn-primary-sm" (click)="newShift()" *ngIf="!shiftFormOpen">
+                <i class="fa fa-plus"></i> Add Shift
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Form ───────────────────────────────────────────────────── -->
+          <div class="inline-form" *ngIf="shiftFormOpen">
+            <h5 class="inline-form-title">{{ shiftForm.shiftId ? 'Edit Shift' : 'New Shift' }}</h5>
+
+            <div class="field-grid">
+              <div class="field field-wide">
+                <label>Name</label>
+                <input type="text" [(ngModel)]="shiftForm.name" name="shiftName"
+                       placeholder="General, Morning, Evening…" maxlength="80" />
+              </div>
+
+              <div class="field">
+                <label>Starts at</label>
+                <input type="time" [(ngModel)]="shiftForm.startTime" name="shiftStart" />
+              </div>
+
+              <div class="field">
+                <label>Ends at</label>
+                <input type="time" [(ngModel)]="shiftForm.endTime" name="shiftEnd" />
+              </div>
+
+              <div class="field">
+                <label>Grace period</label>
+                <input type="number" min="0" [(ngModel)]="shiftForm.graceMinutes" name="shiftGrace" />
+                <small class="field-hint">Minutes after the start that still count as on time.</small>
+              </div>
+
+              <div class="field">
+                <label>Late after</label>
+                <input type="number" min="0" [(ngModel)]="shiftForm.lateAfterMinutes" name="shiftLate" />
+                <small class="field-hint">Minutes after the start before the day is flagged late.</small>
+              </div>
+
+              <div class="field">
+                <label>Half day after</label>
+                <input type="number" min="0" [(ngModel)]="shiftForm.halfDayAfterMinutes" name="shiftHalf" />
+                <small class="field-hint">Arriving this late makes the day a half day.</small>
+              </div>
+
+              <div class="field">
+                <label>Minimum work</label>
+                <input type="number" min="0" [(ngModel)]="shiftForm.minimumWorkMinutes" name="shiftMin" />
+                <small class="field-hint">Minutes needed between check-in and check-out for a full day.</small>
+              </div>
+
+              <div class="field">
+                <label>Status</label>
+                <label class="inline-check">
+                  <input type="checkbox" [(ngModel)]="shiftForm.isActive" name="shiftActive" />
+                  Active — may be assigned
+                </label>
+              </div>
+            </div>
+
+            <div class="form-error" *ngIf="shiftError">
+              <i class="fa fa-exclamation-circle"></i> {{ shiftError }}
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" (click)="saveShift()" [disabled]="shiftSaving">
+                <i class="fa" [ngClass]="shiftSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ shiftSaving ? 'Saving…' : 'Save Shift' }}
+              </button>
+              <button class="btn-ghost" (click)="cancelShift()" [disabled]="shiftSaving">Cancel</button>
+            </div>
+          </div>
+
+          <!-- ── Table ──────────────────────────────────────────────────── -->
+          <div class="loading-msg" *ngIf="shiftsLoading">
+            <i class="fa fa-spinner fa-spin"></i> Loading shifts…
+          </div>
+
+          <div class="table-wrap" *ngIf="!shiftsLoading && shifts.length > 0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Hours</th>
+                  <th class="num">Grace</th>
+                  <th class="num">Late after</th>
+                  <th class="num">Half day after</th>
+                  <th class="num">Min. work</th>
+                  <th class="num">Staff</th>
+                  <th>Status</th>
+                  <th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let shift of shifts" [class.is-inactive]="!shift.isActive">
+                  <td><span class="cell-title">{{ shift.name }}</span></td>
+                  <td class="mono">{{ shift.startTime }} – {{ shift.endTime }}</td>
+                  <td class="num">{{ shift.graceMinutes }} min</td>
+                  <td class="num">{{ shift.lateAfterMinutes }} min</td>
+                  <td class="num">{{ shift.halfDayAfterMinutes }} min</td>
+                  <td class="num">{{ shift.minimumWorkMinutes }} min</td>
+                  <td class="num">{{ shift.assignedEmployeeCount }}</td>
+                  <td>
+                    <span class="pill" [class.pill-ok]="shift.isActive" [class.pill-off]="!shift.isActive">
+                      {{ shift.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                  <td class="actions-col">
+                    <button class="ibtn ibtn-edit" (click)="editShift(shift)" title="Edit">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <button class="ibtn ibtn-delete" (click)="deactivateShift(shift)" title="Deactivate"
+                            *ngIf="shift.isActive">
+                      <i class="fa fa-ban"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-msg" *ngIf="!shiftsLoading && shifts.length === 0">
+            <i class="fa fa-clock"></i> No shifts yet.
+          </div>
+
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB: ASSIGNMENTS
+    ══════════════════════════════════════════════════ -->
+    <ng-container *ngIf="activeTab === 'assignments'">
+
+      <!-- ── Shift assignment ─────────────────────────────────────────── -->
+      <div class="config-card">
+        <div class="config-card-header">
+          <i class="fa fa-user-clock"></i>
+          <div>
+            <h4 class="config-card-title">Who Works Which Shift</h4>
+            <p class="config-card-sub">
+              Assignments are dated, not replaced. Changing somebody's shift from next Monday leaves every day
+              before it measured against the shift they were actually on.
+            </p>
+          </div>
+        </div>
+        <div class="config-card-body">
+
+          <div class="inline-form">
+            <div class="field-grid">
+              <div class="field field-wide">
+                <label>Employee</label>
+                <select [(ngModel)]="assignUserId" name="assignUser">
+                  <option [ngValue]="null">Choose an employee…</option>
+                  <option *ngFor="let emp of employees" [ngValue]="emp.userId">{{ emp.name }}</option>
+                </select>
+              </div>
+
+              <div class="field field-wide">
+                <label>Shift</label>
+                <select [(ngModel)]="assignShiftId" name="assignShift">
+                  <option [ngValue]="null">Choose a shift…</option>
+                  <option *ngFor="let shift of shifts" [ngValue]="shift.shiftId">
+                    {{ shift.name }} ({{ shift.startTime }}–{{ shift.endTime }})
+                  </option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Applies from</label>
+                <input type="date" [(ngModel)]="assignEffectiveFrom" name="assignFrom" />
+              </div>
+            </div>
+
+            <div class="form-error" *ngIf="assignError">
+              <i class="fa fa-exclamation-circle"></i> {{ assignError }}
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" (click)="assignShift()" [disabled]="assignSaving">
+                <i class="fa" [ngClass]="assignSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ assignSaving ? 'Assigning…' : 'Assign Shift' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Unassigned warning — the single most common reason check-in refuses somebody -->
+          <div class="warn-box" *ngIf="!employeesLoading && unassignedEmployees.length > 0">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div>
+              <strong>{{ unassignedEmployees.length }} employee{{ unassignedEmployees.length !== 1 ? 's have' : ' has' }}
+                no shift today.</strong>
+              They cannot check in until they do.
+              <div class="warn-names">
+                <span class="name-chip" *ngFor="let emp of unassignedEmployees">{{ emp.name }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="loading-msg" *ngIf="assignmentsLoading">
+            <i class="fa fa-spinner fa-spin"></i> Loading assignments…
+          </div>
+
+          <div class="table-wrap" *ngIf="!assignmentsLoading && assignments.length > 0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Shift</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>In force</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of assignments">
+                  <td><span class="cell-title">{{ row.fullName }}</span></td>
+                  <td>{{ row.shiftName }}</td>
+                  <td class="mono">{{ row.effectiveFrom }}</td>
+                  <td class="mono">{{ row.effectiveTo || '—' }}</td>
+                  <td>
+                    <span class="pill" [class.pill-ok]="row.isCurrent" [class.pill-off]="!row.isCurrent">
+                      {{ row.isCurrent ? 'Current' : 'Scheduled' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-msg" *ngIf="!assignmentsLoading && assignments.length === 0">
+            <i class="fa fa-user-clock"></i> Nobody is assigned to a shift yet.
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Location access ──────────────────────────────────────────── -->
+      <div class="config-card spaced">
+        <div class="config-card-header">
+          <i class="fa fa-map-signs"></i>
+          <div>
+            <h4 class="config-card-title">Where Each Employee May Check In</h4>
+            <p class="config-card-sub">
+              A collection boy who works out of two centres needs both. Anyone left with none can check in
+              nowhere, which is the point — access is granted, not assumed.
+            </p>
+          </div>
+        </div>
+        <div class="config-card-body">
+
+          <div class="inline-form">
+            <div class="field field-wide">
+              <label>Employee</label>
+              <select [(ngModel)]="locAssignUserId" name="locAssignUser" (ngModelChange)="onLocAssignUserChange()">
+                <option [ngValue]="null">Choose an employee…</option>
+                <option *ngFor="let emp of employees" [ngValue]="emp.userId">{{ emp.name }}</option>
+              </select>
+            </div>
+
+            <div class="loc-picker" *ngIf="locAssignUserId">
+              <p class="picker-label">Tick every location this employee may check in at:</p>
+
+              <div class="loc-option" *ngFor="let loc of locations">
+                <label class="inline-check">
+                  <input type="checkbox" [checked]="isLocAssigned(loc.locationId)"
+                         (change)="toggleLocAssign(loc.locationId)" [disabled]="!loc.isActive" />
+                  {{ loc.name }}
+                  <span class="opt" *ngIf="!loc.isActive">(inactive)</span>
+                </label>
+
+                <label class="inline-check primary-pick" *ngIf="isLocAssigned(loc.locationId)">
+                  <input type="radio" name="primaryLoc" [value]="loc.locationId"
+                         [(ngModel)]="locAssignPrimaryId" />
+                  Primary
+                </label>
+              </div>
+
+              <p class="field-hint">
+                The primary location is the one the check-in screen offers first. It does not restrict anything.
+              </p>
+            </div>
+
+            <div class="form-error" *ngIf="locAssignError">
+              <i class="fa fa-exclamation-circle"></i> {{ locAssignError }}
+            </div>
+
+            <div class="form-actions" *ngIf="locAssignUserId">
+              <button class="btn-primary" (click)="saveLocationAccess()" [disabled]="locAssignSaving">
+                <i class="fa" [ngClass]="locAssignSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ locAssignSaving ? 'Saving…' : 'Save Location Access' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="note-box">
+            <i class="fa fa-info-circle"></i>
+            Saving replaces this employee's whole list — tick everything they should have, not just what is new.
+          </div>
+
+        </div>
+      </div>
+
+    </ng-container>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB: DEVICES
+    ══════════════════════════════════════════════════ -->
+    <ng-container *ngIf="activeTab === 'devices'">
+
+      <!-- ── The one-time token ───────────────────────────────────────── -->
+      <div class="token-card" *ngIf="enrolResult">
+        <div class="token-card-header">
+          <i class="fa fa-key"></i>
+          <div>
+            <h4 class="token-card-title">Enrolment code — shown once</h4>
+            <p class="token-card-sub">
+              Only a hash of this code is stored. Once this panel is closed it cannot be shown again, and the
+              device would have to be enrolled from scratch.
+            </p>
+          </div>
+        </div>
+        <div class="token-card-body">
+
+          <div class="token-field">
+            <label>Send this link to the device</label>
+            <div class="copy-row">
+              <input type="text" class="copy-input" [value]="enrolLink" readonly
+                     (focus)="$any($event.target).select()" />
+              <button class="btn-primary-sm" (click)="copyEnrolLink()">
+                <i class="fa" [ngClass]="copied === 'link' ? 'fa-check' : 'fa-copy'"></i>
+                {{ copied === 'link' ? 'Copied' : 'Copy link' }}
+              </button>
+            </div>
+            <small class="field-hint">
+              Opening it on the phone enrols it and drops straight onto the check-in screen. Nothing else is
+              needed — no login, no app.
+            </small>
+          </div>
+
+          <div class="token-field">
+            <label>Or the raw code, to type in by hand</label>
+            <div class="copy-row">
+              <input type="text" class="copy-input mono" [value]="enrolResult.token" readonly
+                     (focus)="$any($event.target).select()" />
+              <button class="btn-ghost-sm" (click)="copyEnrolToken()">
+                <i class="fa" [ngClass]="copied === 'token' ? 'fa-check' : 'fa-copy'"></i>
+                {{ copied === 'token' ? 'Copied' : 'Copy code' }}
+              </button>
+            </div>
+          </div>
+
+          <p class="token-expiry"><i class="fa fa-calendar"></i> Valid until {{ enrolResult.expiresAt }}</p>
+
+          <div class="form-actions">
+            <button class="btn-ghost" (click)="dismissEnrolResult()">
+              <i class="fa fa-times"></i> I have sent it — close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-card" [class.spaced]="enrolResult">
+        <div class="config-card-header">
+          <i class="fa fa-mobile-alt"></i>
+          <div>
+            <h4 class="config-card-title">Enrolled Devices</h4>
+            <p class="config-card-sub">
+              A device credential lets a phone reach the attendance screen without signing in — which matters,
+              because signing in on a phone would end that employee's session on the lab workstation.
+            </p>
+          </div>
+        </div>
+        <div class="config-card-body">
+
+          <div class="list-meta">
+            <span class="list-count">{{ devices.length }} device{{ devices.length !== 1 ? 's' : '' }}</span>
+            <div class="meta-actions">
+              <label class="inline-check">
+                <input type="checkbox" [checked]="showRevokedDevices" (change)="toggleRevokedDevices()" />
+                Show revoked
+              </label>
+              <button class="btn-primary-sm" (click)="newEnrolment()" *ngIf="!enrolFormOpen">
+                <i class="fa fa-plus"></i> Enrol Device
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Form ───────────────────────────────────────────────────── -->
+          <div class="inline-form" *ngIf="enrolFormOpen">
+            <h5 class="inline-form-title">Enrol a device</h5>
+
+            <div class="field-grid">
+              <div class="field field-wide">
+                <label>Employee</label>
+                <select [(ngModel)]="enrolForm.userId" name="enrolUser">
+                  <option [ngValue]="0">Choose an employee…</option>
+                  <option *ngFor="let emp of employees" [ngValue]="emp.userId">{{ emp.name }}</option>
+                </select>
+              </div>
+
+              <div class="field field-wide">
+                <label>Label <span class="opt">(optional)</span></label>
+                <input type="text" [(ngModel)]="enrolForm.label" name="enrolLabel"
+                       placeholder="Ramesh's phone, Reception tablet…" maxlength="100" />
+              </div>
+
+              <div class="field field-wide">
+                <label>Type</label>
+                <label class="inline-check">
+                  <input type="checkbox" [(ngModel)]="enrolForm.isKiosk" name="enrolKiosk"
+                         (ngModelChange)="onKioskChange()" />
+                  This is a kiosk display, not a personal phone
+                </label>
+                <small class="field-hint">
+                  A kiosk shows the rotating code on the wall. It cannot check anybody in.
+                </small>
+              </div>
+
+              <div class="field field-wide" *ngIf="enrolForm.isKiosk">
+                <label>Location it displays</label>
+                <select [(ngModel)]="enrolForm.locationId" name="enrolLocation">
+                  <option [ngValue]="null">Choose a location…</option>
+                  <option *ngFor="let loc of locations" [ngValue]="loc.locationId">{{ loc.name }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-error" *ngIf="enrolError">
+              <i class="fa fa-exclamation-circle"></i> {{ enrolError }}
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" (click)="enrolDevice()" [disabled]="enrolSaving">
+                <i class="fa" [ngClass]="enrolSaving ? 'fa-spinner fa-spin' : 'fa-key'"></i>
+                {{ enrolSaving ? 'Enrolling…' : 'Enrol and show the code' }}
+              </button>
+              <button class="btn-ghost" (click)="cancelEnrolment()" [disabled]="enrolSaving">Cancel</button>
+            </div>
+          </div>
+
+          <!-- ── Table ──────────────────────────────────────────────────── -->
+          <div class="loading-msg" *ngIf="devicesLoading">
+            <i class="fa fa-spinner fa-spin"></i> Loading devices…
+          </div>
+
+          <div class="table-wrap" *ngIf="!devicesLoading && devices.length > 0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Label</th>
+                  <th>Type</th>
+                  <th>Last used</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let device of devices" [class.is-inactive]="!device.isActive">
+                  <td><span class="cell-title">{{ device.fullName }}</span></td>
+                  <td>
+                    {{ device.label || '—' }}
+                    <small class="cell-sub" *ngIf="device.revokedReason">{{ device.revokedReason }}</small>
+                  </td>
+                  <td>
+                    <span class="pill pill-kiosk" *ngIf="device.isKiosk">
+                      Kiosk<span *ngIf="device.locationName"> · {{ device.locationName }}</span>
+                    </span>
+                    <span class="pill pill-phone" *ngIf="!device.isKiosk">Phone</span>
+                  </td>
+                  <td class="mono">{{ device.lastUsedAt || 'never' }}</td>
+                  <td class="mono">{{ device.expiresAt }}</td>
+                  <td>
+                    <span class="pill" [class.pill-ok]="device.isActive" [class.pill-off]="!device.isActive">
+                      {{ device.isActive ? 'Active' : 'Revoked' }}
+                    </span>
+                  </td>
+                  <td class="actions-col">
+                    <button class="ibtn ibtn-delete" (click)="revokeDevice(device)" title="Revoke"
+                            *ngIf="device.isActive">
+                      <i class="fa fa-ban"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-msg" *ngIf="!devicesLoading && devices.length === 0">
+            <i class="fa fa-mobile-alt"></i> No devices enrolled yet.
+          </div>
+
+        </div>
+      </div>
+
+    </ng-container>
+
+    <!-- ══════════════════════════════════════════════════
+         QR PREVIEW OVERLAY
+    ══════════════════════════════════════════════════ -->
+    <div class="qr-overlay" *ngIf="qrPreview" (click)="closeQrPreview()">
+      <div class="qr-panel" (click)="$event.stopPropagation()">
+        <h4 class="qr-title">{{ qrPreview.locationName }}</h4>
+        <p class="qr-sub">This is the code a kiosk here is showing right now.</p>
+
+        <img class="qr-image" [src]="qrPreview.qrDataUri" alt="Attendance QR code" />
+
+        <p class="qr-manual">
+          Typed fallback: <span class="mono">{{ qrPreview.manualCode }}</span>
+        </p>
+        <p class="qr-countdown" [class.expiring]="qrSecondsLeft === 0">
+          <span *ngIf="qrSecondsLeft > 0">Rotates in {{ qrSecondsLeft }}s</span>
+          <span *ngIf="qrSecondsLeft === 0">Rotated — reopen to see the current code</span>
+        </p>
+
+        <button class="btn-ghost" (click)="closeQrPreview()">Close</button>
+      </div>
+    </div>
+
+    <div class="loading-msg" *ngIf="qrPreviewLoading">
+      <i class="fa fa-spinner fa-spin"></i> Fetching the current code…
+    </div>
+
+  </div>
+</div>
+
+<app-confirm-modal></app-confirm-modal>

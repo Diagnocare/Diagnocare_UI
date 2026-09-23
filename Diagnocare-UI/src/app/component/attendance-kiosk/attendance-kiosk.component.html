@@ -1,0 +1,75 @@
+<!--
+  The laboratory wall display.
+
+  Meant to be left running for months on a tablet or a spare monitor, so it carries no
+  navigation, no controls and nothing to accidentally press. Everything on screen is
+  either the code or an instruction for the person standing in front of it.
+-->
+<div class="kiosk">
+
+  <!-- Loading, only ever on the very first paint -->
+  <div class="kiosk-state" *ngIf="loading">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">Loading</span>
+    </div>
+    <p class="state-text">Loading the attendance code…</p>
+  </div>
+
+  <!--
+    Hard error — no code has ever loaded, so there is nothing useful to show. This is the
+    only state that blanks the display, and it names the fix rather than just failing.
+  -->
+  <div class="kiosk-state" *ngIf="!loading && !showCode">
+    <i class="fas fa-triangle-exclamation state-icon"></i>
+    <p class="state-text">{{ errorMessage }}</p>
+  </div>
+
+  <!-- The code -->
+  <ng-container *ngIf="showCode && qr">
+
+    <header class="kiosk-head">
+      <h1 class="lab-name">{{ qr.locationName }}</h1>
+      <p class="instruction">Scan this code with the Attendance app to check in or out</p>
+    </header>
+
+    <div class="code-area">
+      <div class="qr-frame">
+        <img class="qr-image" [src]="qr.qrDataUri" alt="Attendance QR code" />
+      </div>
+
+      <!-- Countdown ring. A number alone reads as decoration; a ring emptying
+           is legible from across a room and makes "wait for the next one" obvious. -->
+      <div class="countdown">
+        <svg class="ring" viewBox="0 0 60 60" aria-hidden="true">
+          <circle class="ring-track" cx="30" cy="30" r="26"></circle>
+          <circle class="ring-value"
+                  cx="30" cy="30" r="26"
+                  [attr.stroke]="ringColour"
+                  [attr.stroke-dasharray]="ringCircumference"
+                  [attr.stroke-dashoffset]="ringOffset"></circle>
+        </svg>
+        <span class="countdown-number" [style.color]="ringColour">{{ secondsLeft }}</span>
+      </div>
+
+      <!-- Static text on purpose. A comparison operator inside an interpolation puts a
+           bare "<" into the template, which the HTML parser sees before Angular does. -->
+      <p class="countdown-label">This code changes automatically</p>
+    </div>
+
+    <!--
+      The typed fallback, given equal billing rather than hidden away. Cameras fail —
+      permission refused, a cracked lens, a handset too old for the scanner — and an
+      employee who cannot see an alternative goes to find an administrator instead.
+    -->
+    <footer class="kiosk-foot">
+      <p class="manual-label">Cannot scan? Enter this code in the app</p>
+      <p class="manual-code">{{ qr.manualCode }}</p>
+
+      <p class="inline-warning" *ngIf="showInlineWarning">
+        <i class="fas fa-circle-info me-2"></i>{{ errorMessage }}
+      </p>
+    </footer>
+
+  </ng-container>
+
+</div>

@@ -1,0 +1,181 @@
+/*
+  The wall display.
+
+  Dark, high contrast, and sized to be read and scanned from a couple of metres away.
+  Everything scales with viewport units rather than fixed pixels, because this runs on
+  whatever the lab had spare — a wall-mounted tablet, an old monitor, a laptop propped on
+  the reception desk — and a layout tuned to one of those is wrong on the other two.
+*/
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.kiosk {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2vh 4vw;
+  text-align: center;
+  gap: 2vh;
+}
+
+/* ── States ───────────────────────────────────────────────────────────────── */
+
+.kiosk-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 32rem;
+}
+
+.state-icon {
+  font-size: 3.5rem;
+  color: #f59e0b;
+}
+
+.state-text {
+  font-size: 1.25rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.kiosk-head {
+  margin: 0;
+}
+
+.lab-name {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 600;
+  margin: 0;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}
+
+.instruction {
+  font-size: clamp(0.95rem, 1.8vw, 1.25rem);
+  color: #94a3b8;
+  margin: 0.5rem 0 0;
+}
+
+/* ── The code ─────────────────────────────────────────────────────────────── */
+
+.code-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vh;
+}
+
+/*
+  White surround, not just a white image. A QR code needs a quiet zone to scan
+  reliably, and on a dark background a borderless code loses it — the symbol reads as
+  running to the edge and older phone cameras fail to lock on.
+*/
+.qr-frame {
+  background: #fff;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  border-radius: 1rem;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 60px rgba(0, 0, 0, 0.5);
+  line-height: 0;
+}
+
+.qr-image {
+  display: block;
+  width: clamp(200px, 38vh, 380px);
+  height: clamp(200px, 38vh, 380px);
+  /* The PNG is a crisp grid of squares; smoothing it on upscale is what makes a
+     blown-up QR fail to scan. */
+  image-rendering: pixelated;
+}
+
+/* ── Countdown ────────────────────────────────────────────────────────────── */
+
+.countdown {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+
+.ring {
+  width: 100%;
+  height: 100%;
+  /* Start the sweep at twelve o'clock rather than three. */
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.25);
+  stroke-width: 5;
+}
+
+.ring-value {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  /* Matches the one-second tick, so the ring glides instead of stepping. */
+  transition: stroke-dashoffset 1s linear, stroke 0.4s ease;
+}
+
+.countdown-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-label {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Footer / typed fallback ──────────────────────────────────────────────── */
+
+.kiosk-foot {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  padding-top: 2vh;
+  width: 100%;
+  max-width: 34rem;
+}
+
+.manual-label {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0 0 0.35rem;
+}
+
+/*
+  Wide tracking and tabular figures so each character is unambiguous read from a
+  distance. The alphabet already excludes 0/O and 1/I/L for the same reason.
+*/
+.manual-code {
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  /* Compensates the trailing letter-space so the string stays optically centred. */
+  text-indent: 0.35em;
+  font-variant-numeric: tabular-nums;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.inline-warning {
+  margin: 1.5vh 0 0;
+  font-size: 0.85rem;
+  color: #fbbf24;
+}

@@ -1,0 +1,315 @@
+<!--
+  Employee attendance — one screen, one decision.
+
+  Deliberately not inside the app's LayoutComponent shell: this runs on a phone held at a
+  door, often on a handset that has never signed in, and a nav header would be both
+  useless and a route back into screens the employee is not authenticated for.
+
+  Note for anyone editing the bindings below: never put an HTML entity inside a
+  [binding]="..." expression. Angular decodes entities before parsing the expression, so
+  &#39; becomes a real apostrophe and terminates the string — the NG5002 that cost a day
+  in the worklist module. Use plain characters in text, and keep quotes out of bindings.
+-->
+<div class="attendance-screen">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       LOADING
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-panel" *ngIf="phase === 'loading'">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading</span>
+    </div>
+    <p class="state-text">Loading your attendance…</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       COULD NOT LOAD
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-panel" *ngIf="phase === 'error'">
+    <i class="fas fa-triangle-exclamation state-icon text-warning"></i>
+    <p class="state-text">{{ loadError }}</p>
+    <button type="button" class="btn btn-outline-primary" (click)="loadToday()">
+      <i class="fas fa-rotate-right me-2"></i>Try again
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       THE CARD
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="attendance-card" *ngIf="today && (phase === 'ready' || phase === 'result')">
+
+    <header class="card-head">
+      <div class="who">
+        <h1 class="name">{{ today.fullName }}</h1>
+        <p class="date">{{ today.dayName }}, {{ today.date }}</p>
+      </div>
+      <span class="badge status-chip" [ngClass]="'text-bg-' + toneFor(today.displayStatus)">
+        {{ today.displayStatusLabel }}
+      </span>
+    </header>
+
+    <!-- Shift -->
+    <div class="shift-row" *ngIf="today.shiftName">
+      <i class="fas fa-clock"></i>
+      <span>{{ today.shiftName }}</span>
+      <span class="shift-times" *ngIf="today.shiftStart">
+        {{ today.shiftStart }} to {{ today.shiftEnd }}
+      </span>
+    </div>
+    <div class="shift-row muted" *ngIf="!today.shiftName">
+      <i class="fas fa-clock"></i>
+      <span>No shift assigned — your arrival time will not be judged as late.</span>
+    </div>
+
+    <!-- Today's times -->
+    <div class="times">
+      <div class="time-cell">
+        <span class="time-label">Check in</span>
+        <span class="time-value" [class.set]="today.hasCheckedIn">
+          {{ today.checkInAt || '—' }}
+        </span>
+        <span class="time-note text-warning" *ngIf="today.lateMinutes > 0">
+          {{ today.lateMinutes }} min late
+        </span>
+      </div>
+
+      <div class="time-divider"></div>
+
+      <div class="time-cell">
+        <span class="time-label">Check out</span>
+        <span class="time-value" [class.set]="today.hasCheckedOut">
+          {{ today.checkOutAt || '—' }}
+        </span>
+        <span class="time-note" *ngIf="today.workedMinutes !== null && today.workedMinutes !== undefined">
+          {{ formatWorked(today.workedMinutes) }} worked
+        </span>
+      </div>
+    </div>
+
+    <!-- Non-working day -->
+    <div class="notice info" *ngIf="today.isNonWorkingDay">
+      <i class="fas fa-circle-info"></i>
+      <span>{{ today.nonWorkingDayLabel }} — attendance is not recorded today.</span>
+    </div>
+
+    <!-- Location picker, only when there is genuinely something to pick -->
+    <div class="location-picker" *ngIf="hasLocationChoice && !today.isNonWorkingDay">
+      <label class="form-label" for="locationSelect">Location</label>
+      <select id="locationSelect"
+              class="form-select"
+              [(ngModel)]="selectedLocationId"
+              name="locationSelect">
+        <option *ngFor="let loc of today.locations; trackBy: trackLocation" [ngValue]="loc.locationId">
+          {{ loc.name }}
+        </option>
+      </select>
+    </div>
+
+    <div class="single-location" *ngIf="!hasLocationChoice && selectedLocation">
+      <i class="fas fa-location-dot"></i>
+      <span>{{ selectedLocation.name }}</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button type="button"
+              class="btn btn-lg btn-success action-btn"
+              *ngIf="!today.hasCheckedIn"
+              [disabled]="!today.canCheckIn || selectedLocationId === null"
+              (click)="start('in')">
+        <i class="fas fa-right-to-bracket me-2"></i>Check In
+      </button>
+
+      <button type="button"
+              class="btn btn-lg btn-primary action-btn"
+              *ngIf="today.hasCheckedIn && !today.hasCheckedOut"
+              [disabled]="!today.canCheckOut"
+              (click)="start('out')">
+        <i class="fas fa-right-from-bracket me-2"></i>Check Out
+      </button>
+
+      <div class="notice done" *ngIf="today.hasCheckedIn && today.hasCheckedOut">
+        <i class="fas fa-circle-check"></i>
+        <span>Today is complete. Thank you.</span>
+      </div>
+    </div>
+
+    <p class="blocked-reason" *ngIf="today.blockedReason && !today.hasCheckedOut">
+      {{ today.blockedReason }}
+    </p>
+
+    <p class="no-location" *ngIf="selectedLocationId === null && !today.isNonWorkingDay">
+      No attendance location has been set up yet. Ask your administrator to add one.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       LOCATING
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-panel" *ngIf="phase === 'locating'">
+    <i class="fas fa-location-crosshairs state-icon pulse text-primary"></i>
+    <p class="state-text">{{ locatingMessage }}</p>
+    <p class="state-hint" *ngIf="currentAccuracy !== null">
+      Accuracy improves if you stand still, or step near a window.
+    </p>
+    <button type="button" class="btn btn-link" (click)="cancel()">Cancel</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SCANNING
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="scan-panel" *ngIf="phase === 'scanning'">
+    <h2 class="scan-title">Scan the code at the laboratory</h2>
+
+    <!-- The scanner library renders the camera preview into this element. -->
+    <div [id]="scannerElementId" class="scan-frame"></div>
+
+    <p class="scan-error" *ngIf="scannerError">
+      <i class="fas fa-triangle-exclamation me-2"></i>{{ scannerError }}
+    </p>
+
+    <!--
+      The typed fallback. Cameras fail — permission refused, a cracked lens, a handset too
+      old for the scanner — and without this every one of those becomes a manual
+      correction, which is the work this module exists to remove.
+    -->
+    <div class="manual-entry" *ngIf="showManualEntry">
+      <label class="form-label" for="manualCode">
+        Enter the code shown under the QR code
+      </label>
+      <div class="input-group">
+        <input id="manualCode"
+               type="text"
+               class="form-control text-uppercase manual-input"
+               maxlength="8"
+               autocomplete="off"
+               autocapitalize="characters"
+               placeholder="ABC123"
+               [(ngModel)]="manualCode"
+               name="manualCode"
+               (keyup.enter)="submitManualCode()" />
+        <button type="button" class="btn btn-primary" (click)="submitManualCode()">
+          Continue
+        </button>
+      </div>
+    </div>
+
+    <div class="scan-actions">
+      <button type="button" class="btn btn-link" (click)="toggleManualEntry()">
+        {{ showManualEntry ? 'Use the camera instead' : 'Cannot scan? Type the code' }}
+      </button>
+      <button type="button" class="btn btn-link text-secondary" (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SELFIE
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-panel" *ngIf="phase === 'selfie'">
+    <i class="fas fa-camera state-icon text-primary"></i>
+    <h2 class="scan-title">Take a photo to finish</h2>
+
+    <!--
+      A file input with capture, not an inline video stream: the native camera handles
+      orientation, focus and the permission prompt far better, and works on iOS Safari
+      where an inline stream has a long history of trouble.
+    -->
+    <label class="btn btn-lg btn-primary selfie-btn">
+      <i class="fas fa-camera me-2"></i>Open camera
+      <input type="file"
+             accept="image/*"
+             capture="user"
+             class="visually-hidden"
+             (change)="onSelfieSelected($event)" />
+    </label>
+
+    <button type="button" class="btn btn-link" (click)="skipSelfie()">Continue without a photo</button>
+    <button type="button" class="btn btn-link text-secondary" (click)="cancel()">Cancel</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SUBMITTING
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-panel" *ngIf="phase === 'submitting'">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Recording</span>
+    </div>
+    <p class="state-text">Recording your {{ actionLabel | lowercase }}…</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       RESULT
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="result-overlay" *ngIf="phase === 'result' && result">
+    <div class="result-card" [class.ok]="result.success" [class.bad]="!result.success">
+
+      <i class="fas result-icon"
+         [class.fa-circle-check]="result.success"
+         [class.fa-circle-xmark]="!result.success"></i>
+
+      <h2 class="result-title">
+        {{ result.success ? actionLabel + ' recorded' : actionLabel + ' not recorded' }}
+      </h2>
+
+      <p class="result-message">{{ result.message }}</p>
+
+      <!-- Facts worth showing on success: the employee can sanity-check them themselves -->
+      <ul class="result-facts" *ngIf="result.success">
+        <li *ngIf="result.checkInAt">
+          <span>Checked in</span><strong>{{ result.checkInAt }}</strong>
+        </li>
+        <li *ngIf="result.checkOutAt">
+          <span>Checked out</span><strong>{{ result.checkOutAt }}</strong>
+        </li>
+        <li *ngIf="result.lateMinutes > 0">
+          <span>Late by</span><strong>{{ result.lateMinutes }} min</strong>
+        </li>
+        <li *ngIf="result.workedMinutes !== null && result.workedMinutes !== undefined">
+          <span>Worked</span><strong>{{ formatWorked(result.workedMinutes) }}</strong>
+        </li>
+        <li *ngIf="result.distanceMetres !== null && result.distanceMetres !== undefined">
+          <span>Distance</span><strong>{{ result.distanceMetres }} m</strong>
+        </li>
+      </ul>
+
+      <!--
+        Shown rather than hidden. The check-in was accepted because the QR proved presence,
+        but the fix was too imprecise to confirm it — the employee should know that is what
+        happened, and the administrator sees the same thing in the audit trail.
+      -->
+      <p class="result-note" *ngIf="result.success && result.acceptedWithPoorAccuracy">
+        <i class="fas fa-circle-info me-2"></i>
+        Your location was imprecise, so the code you scanned was used to confirm you were here.
+      </p>
+
+      <!-- On failure, show the distance so "outside the area" is a fact, not an opinion -->
+      <ul class="result-facts" *ngIf="!result.success && result.distanceMetres !== null && result.distanceMetres !== undefined">
+        <li>
+          <span>You appear to be</span><strong>{{ result.distanceMetres }} m away</strong>
+        </li>
+        <li *ngIf="result.accuracyMetres !== null && result.accuracyMetres !== undefined">
+          <span>Location accuracy</span><strong>about {{ result.accuracyMetres }} m</strong>
+        </li>
+      </ul>
+
+      <p class="result-note" *ngIf="shouldRescan">
+        <i class="fas fa-rotate-right me-2"></i>
+        The code on the display changes every minute. Scan the one showing now.
+      </p>
+
+      <div class="result-actions">
+        <button type="button" class="btn btn-primary btn-lg" *ngIf="canRetry" (click)="retry()">
+          <i class="fas fa-rotate-right me-2"></i>Try again
+        </button>
+        <button type="button"
+                class="btn btn-lg"
+                [class.btn-success]="result.success"
+                [class.btn-outline-secondary]="!result.success"
+                (click)="dismissResult()">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

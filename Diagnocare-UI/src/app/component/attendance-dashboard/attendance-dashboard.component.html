@@ -1,0 +1,358 @@
+<div class="page-container">
+  <div class="page-inner">
+
+    <!-- ══════════════════════════════════════════════════
+         PAGE HEADER
+    ══════════════════════════════════════════════════ -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title"><i class="fa fa-shield-alt"></i> Verified Attendance</h2>
+        <p class="page-subtitle">
+          Who was in, when, and how it was proved — location, scanned code, or an administrator's correction
+        </p>
+      </div>
+
+      <div class="header-right">
+        <button class="btn-ghost-sm" (click)="exportCsv()" [disabled]="!view || view.rows.length === 0">
+          <i class="fa fa-file-csv"></i> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         DAY PICKER
+    ══════════════════════════════════════════════════ -->
+    <div class="day-bar">
+      <button class="day-nav" (click)="shiftDay(-1)" title="Previous day">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+
+      <input type="date" class="day-input" [(ngModel)]="selectedDate" name="day" (ngModelChange)="load()" />
+
+      <button class="day-nav" (click)="shiftDay(1)" title="Next day">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+
+      <button class="btn-ghost-sm" (click)="goToToday()" *ngIf="!isToday">Today</button>
+
+      <span class="day-label" *ngIf="view">
+        {{ view.dayName }}
+        <span class="day-badge day-badge-holiday" *ngIf="view.isHoliday">
+          <i class="fa fa-calendar-day"></i> {{ view.holidayName || 'Holiday' }}
+        </span>
+        <span class="day-badge day-badge-today" *ngIf="view.isToday">Today — still in progress</span>
+      </span>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         SUMMARY TILES
+    ══════════════════════════════════════════════════ -->
+    <div class="tile-row" *ngIf="view">
+      <button class="tile" *ngFor="let tile of tiles"
+              [ngClass]="'tone-' + tile.tone"
+              [class.is-active]="tile.status !== null && filterStatus === tile.status"
+              [class.is-static]="tile.status === null"
+              (click)="applyTile(tile)">
+        <span class="tile-value">{{ tile.value }}</span>
+        <span class="tile-label">{{ tile.label }}</span>
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         FILTERS
+    ══════════════════════════════════════════════════ -->
+    <div class="filter-bar">
+      <div class="filter">
+        <label>Location</label>
+        <select [(ngModel)]="filterLocationId" name="fLoc" (ngModelChange)="load()">
+          <option [ngValue]="null">All locations</option>
+          <option *ngFor="let loc of locations" [ngValue]="loc.locationId">{{ loc.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter">
+        <label>Shift</label>
+        <select [(ngModel)]="filterShiftId" name="fShift" (ngModelChange)="load()">
+          <option [ngValue]="null">All shifts</option>
+          <option *ngFor="let shift of shifts" [ngValue]="shift.shiftId">{{ shift.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter filter-grow">
+        <label>Employee</label>
+        <input type="text" [(ngModel)]="filterSearch" name="fSearch" placeholder="Search by name…"
+               (keyup.enter)="load()" />
+      </div>
+
+      <button class="btn-primary-sm" (click)="load()"><i class="fa fa-search"></i> Apply</button>
+      <button class="btn-ghost-sm" (click)="clearFilters()" *ngIf="hasFilters">Clear</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         ROSTER
+    ══════════════════════════════════════════════════ -->
+    <div class="roster-card">
+      <div class="loading-msg" *ngIf="loading">
+        <i class="fa fa-spinner fa-spin"></i> Loading the day…
+      </div>
+
+      <div class="table-wrap" *ngIf="!loading && view && view.rows.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Shift</th>
+              <th>Status</th>
+              <th>In</th>
+              <th>Out</th>
+              <th class="num">Worked</th>
+              <th>Verified by</th>
+              <th>Location</th>
+              <th class="actions-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of view.rows" (click)="openRow(row)"
+                [class.is-selected]="selectedRow && selectedRow.userId === row.userId">
+              <td>
+                <span class="cell-title">{{ row.fullName }}</span>
+                <small class="cell-sub">{{ row.role }}</small>
+              </td>
+
+              <td>
+                <span *ngIf="row.shiftName">{{ row.shiftName }}</span>
+                <span class="no-shift" *ngIf="!row.shiftName" title="Cannot check in without a shift">
+                  <i class="fa fa-exclamation-triangle"></i> No shift
+                </span>
+              </td>
+
+              <td>
+                <span class="pill" [ngClass]="'pill-' + statusTone(row.displayStatus)">
+                  {{ row.displayStatusLabel }}
+                </span>
+                <small class="cell-sub" *ngIf="row.lateMinutes > 0">{{ row.lateMinutes }} min late</small>
+              </td>
+
+              <td class="mono">{{ row.checkInAt || '—' }}</td>
+              <td class="mono">{{ row.checkOutAt || '—' }}</td>
+              <td class="num">{{ formatMinutes(row.workedMinutes) }}</td>
+
+              <td>
+                <span class="method">{{ row.verificationMethod }}</span>
+                <small class="cell-sub flag" *ngIf="row.wasCorrected">
+                  <i class="fa fa-pen"></i> corrected
+                </small>
+                <small class="cell-sub flag" *ngIf="row.acceptedWithPoorAccuracy">
+                  <i class="fa fa-satellite-dish"></i> weak GPS
+                </small>
+              </td>
+
+              <td>
+                <span *ngIf="row.locationName">{{ row.locationName }}</span>
+                <small class="cell-sub" *ngIf="row.checkInDistanceMetres !== null && row.checkInDistanceMetres !== undefined">
+                  {{ formatDistance(row.checkInDistanceMetres) }} away
+                </small>
+                <span *ngIf="!row.locationName">—</span>
+              </td>
+
+              <td class="actions-col">
+                <i class="fa fa-chevron-right row-chevron"></i>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-msg" *ngIf="!loading && view && view.rows.length === 0">
+        <i class="fa fa-filter"></i>
+        <span *ngIf="hasFilters">Nothing matches these filters.</span>
+        <span *ngIf="!hasFilters">No employees are on the roster for this day.</span>
+      </div>
+
+      <div class="empty-msg" *ngIf="!loading && !view">
+        <i class="fa fa-exclamation-circle"></i> Could not load this day.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DETAIL DRAWER
+══════════════════════════════════════════════════ -->
+<div class="drawer-scrim" *ngIf="selectedRow" (click)="closeDrawer()"></div>
+
+<aside class="drawer" *ngIf="selectedRow">
+  <header class="drawer-header">
+    <div>
+      <h3 class="drawer-title">{{ selectedRow.fullName }}</h3>
+      <p class="drawer-sub">
+        {{ view?.date }} · {{ selectedRow.role }}
+        <span *ngIf="selectedRow.shiftName"> · {{ selectedRow.shiftName }} {{ selectedRow.shiftStart }}</span>
+      </p>
+    </div>
+    <button class="drawer-close" (click)="closeDrawer()" title="Close"><i class="fa fa-times"></i></button>
+  </header>
+
+  <!-- ── At a glance ─────────────────────────────────────────────── -->
+  <div class="drawer-facts">
+    <div class="fact">
+      <span class="fact-label">Status</span>
+      <span class="pill" [ngClass]="'pill-' + statusTone(selectedRow.displayStatus)">
+        {{ selectedRow.displayStatusLabel }}
+      </span>
+    </div>
+    <div class="fact">
+      <span class="fact-label">Checked in</span>
+      <span class="fact-value mono">{{ selectedRow.checkInAt || '—' }}</span>
+    </div>
+    <div class="fact">
+      <span class="fact-label">Checked out</span>
+      <span class="fact-value mono">{{ selectedRow.checkOutAt || '—' }}</span>
+    </div>
+    <div class="fact">
+      <span class="fact-label">Worked</span>
+      <span class="fact-value">{{ formatMinutes(selectedRow.workedMinutes) }}</span>
+    </div>
+    <div class="fact">
+      <span class="fact-label">Late by</span>
+      <span class="fact-value">{{ selectedRow.lateMinutes }} min</span>
+    </div>
+    <div class="fact">
+      <span class="fact-label">Verified by</span>
+      <span class="fact-value">{{ selectedRow.verificationMethod }}</span>
+    </div>
+    <div class="fact" *ngIf="selectedRow.locationName">
+      <span class="fact-label">Location</span>
+      <span class="fact-value">{{ selectedRow.locationName }}</span>
+    </div>
+    <div class="fact" *ngIf="selectedRow.checkInDistanceMetres !== null && selectedRow.checkInDistanceMetres !== undefined">
+      <span class="fact-label">Distance</span>
+      <span class="fact-value">{{ formatDistance(selectedRow.checkInDistanceMetres) }} from the centre</span>
+    </div>
+  </div>
+
+  <!-- ── Tabs ────────────────────────────────────────────────────── -->
+  <div class="drawer-tabs">
+    <button class="drawer-tab" [class.active]="drawerTab === 'trail'" (click)="switchDrawerTab('trail')">
+      <i class="fa fa-list"></i> Audit trail
+    </button>
+    <button class="drawer-tab" [class.active]="drawerTab === 'correct'" (click)="switchDrawerTab('correct')">
+      <i class="fa fa-pen"></i> Correct
+    </button>
+  </div>
+
+  <!-- ── Trail ───────────────────────────────────────────────────── -->
+  <div class="drawer-body" *ngIf="drawerTab === 'trail'">
+    <div class="loading-msg" *ngIf="trailLoading">
+      <i class="fa fa-spinner fa-spin"></i> Loading the trail…
+    </div>
+
+    <p class="trail-intro" *ngIf="!trailLoading && trail.length > 0">
+      Every attempt on this day, newest first — including the ones that were refused.
+    </p>
+
+    <ul class="trail" *ngIf="!trailLoading && trail.length > 0">
+      <li class="trail-item" *ngFor="let event of trail" [ngClass]="'tone-' + eventTone(event.eventType)">
+        <div class="trail-head">
+          <span class="trail-type">{{ event.eventTypeLabel }}</span>
+          <span class="trail-time mono">{{ event.occurredAt }}</span>
+        </div>
+
+        <p class="trail-reason" *ngIf="event.failureReasonLabel">
+          <i class="fa fa-ban"></i> {{ event.failureReasonLabel }}
+        </p>
+
+        <p class="trail-meta" *ngIf="event.locationName || event.distanceMetres !== null">
+          <span *ngIf="event.locationName">{{ event.locationName }}</span>
+          <span *ngIf="event.distanceMetres !== null && event.distanceMetres !== undefined">
+            · {{ formatDistance(event.distanceMetres) }} away
+          </span>
+          <span *ngIf="event.accuracyMetres !== null && event.accuracyMetres !== undefined">
+            · GPS ±{{ formatDistance(event.accuracyMetres) }}
+          </span>
+        </p>
+
+        <p class="trail-meta" *ngIf="event.actedByName">
+          By {{ event.actedByName }}
+        </p>
+
+        <p class="trail-correction" *ngIf="event.reason">
+          <span class="trail-correction-label">Reason</span> {{ event.reason }}
+        </p>
+
+        <div class="trail-diff" *ngIf="event.oldValue || event.newValue">
+          <p class="diff-line" *ngIf="event.oldValue"><span class="diff-tag">was</span> {{ event.oldValue }}</p>
+          <p class="diff-line" *ngIf="event.newValue"><span class="diff-tag">now</span> {{ event.newValue }}</p>
+        </div>
+      </li>
+    </ul>
+
+    <div class="empty-msg" *ngIf="!trailLoading && trail.length === 0">
+      <i class="fa fa-list"></i> Nothing recorded for this employee on this day.
+    </div>
+  </div>
+
+  <!-- ── Correction ──────────────────────────────────────────────── -->
+  <div class="drawer-body" *ngIf="drawerTab === 'correct'">
+
+    <div class="note-box warn" *ngIf="!canCorrect">
+      <i class="fa fa-info-circle"></i> {{ correctionBlockedReason }}
+    </div>
+
+    <ng-container *ngIf="canCorrect">
+      <div class="note-box">
+        <i class="fa fa-info-circle"></i>
+        The previous values are kept. This adds a correction record to the audit trail with your name and
+        your reason against it — nothing is overwritten silently.
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label>Check in</label>
+          <input type="time" [(ngModel)]="correctCheckIn" name="cIn" />
+        </div>
+
+        <div class="field">
+          <label>Check out</label>
+          <input type="time" [(ngModel)]="correctCheckOut" name="cOut" />
+        </div>
+
+        <div class="field field-wide">
+          <label>Status</label>
+          <select [(ngModel)]="correctStatus" name="cStatus">
+            <option value="">Let the times decide</option>
+            <option value="P">Present</option>
+            <option value="A">Absent</option>
+            <option value="HD">Half day</option>
+            <option value="WO">Week off</option>
+          </select>
+        </div>
+
+        <div class="field field-wide">
+          <label>Remarks <span class="opt">(optional, shown on the record)</span></label>
+          <input type="text" [(ngModel)]="correctRemarks" name="cRemarks" maxlength="500" />
+        </div>
+
+        <div class="field field-wide">
+          <label>Reason <span class="req">required</span></label>
+          <textarea rows="3" [(ngModel)]="correctReason" name="cReason"
+                    placeholder="Forgot to check out — confirmed with the shift supervisor"></textarea>
+        </div>
+      </div>
+
+      <div class="form-error" *ngIf="correctError">
+        <i class="fa fa-exclamation-circle"></i> {{ correctError }}
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" (click)="applyCorrection()" [disabled]="correctSaving">
+          <i class="fa" [ngClass]="correctSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ correctSaving ? 'Applying…' : 'Apply Correction' }}
+        </button>
+        <button class="btn-ghost" (click)="closeDrawer()" [disabled]="correctSaving">Cancel</button>
+      </div>
+    </ng-container>
+
+  </div>
+</aside>

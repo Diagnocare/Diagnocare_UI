@@ -379,14 +379,6 @@ export const labSetupMenu = {
  */
 export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; superAdminOnly?: boolean }> = {
   userDetails:   { id: 'userDetails',   label: 'User details',      route: 'users',           icon: 'fa-user-cog' },
-  // One entry for all four administrative attendance screens. '/attendance' is the
-  // tab shell and redirects to its first tab, so this route is unchanged from what
-  // it always was and any existing link to /attendance still lands on the marking
-  // grid — Angular carries query parameters through a redirect.
-  //
-  // Verified Attendance, Attendance Setup and Attendance Requests are tabs inside
-  // it, not entries here. Four entries named around the word "attendance" told
-  // nobody which one answered their question.
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
   // Payroll is owner-only — an Admin must not be able to edit their own pay.
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
