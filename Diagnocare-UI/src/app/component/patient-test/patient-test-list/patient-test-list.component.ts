@@ -28,6 +28,9 @@ import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.c
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
+import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
 import {
   resolvePaymentStatus,
   getPaymentBadgeLabel as paymentBadgeLabel,
@@ -177,8 +180,81 @@ export class PatientTestListComponent implements OnInit {
     private sampleRejectionService: SampleRejectionService,
     private reportPrintStatusService: ReportPrintStatusService,
     private location: Location,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private sampleLabelService: SampleLabelService,
+    private samplingLocationService: SamplingLocationService,
   ) {}
+
+  // ── Sampling location & barcode ──────────────────────────────────────────
+  /**
+   * A barcode is generated only once a booking has "Sampling Done At". Bookings
+   * saved without one show a picker here; saving it generates the barcode.
+   */
+  get samplingLocations(): string[] { return this.samplingLocationService.getAll(); }
+
+  /** patient_Test_Id → location picked in the card, not yet saved. */
+  samplingDraft: Record<string, string> = {};
+  // Hold the raw id (the API sends a number despite the string typing) so the
+  // template's === comparisons against test.patient_Test_Id match.
+  savingSamplingFor: patientTest['patient_Test_Id'] | null = null;
+  printingLabelFor:  patientTest['patient_Test_Id'] | null = null;
+
+  hasSamplingLocation(test: patientTest): boolean {
+    return !!(test.sampling_Done_At || '').trim();
+  }
+
+  saveSamplingLocation(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    const id = String(test.patient_Test_Id);
+    const location = (this.samplingDraft[id] || '').trim();
+    if (!location) {
+      this.toastr.warning('Select a sampling location first.', 'Sampling Done At');
+      return;
+    }
+
+    this.savingSamplingFor = test.patient_Test_Id;
+    this.patientService.updateSamplingLocation(Number(test.patient_Test_Id), location).subscribe({
+      next: (res: BookingResultDto) => {
+        this.savingSamplingFor = null;
+        if (!res?.success) {
+          this.toastr.error(res?.message || 'Could not save the sampling location.', 'Error');
+          return;
+        }
+        test.sampling_Done_At = res.samplingDoneAt || location;
+        delete this.samplingDraft[id];
+        this.toastr.success('Sampling location saved. Barcode generated.', 'Saved');
+        if (res.labelsReady) {
+          this.printBarcode(test);
+        }
+      },
+      error: (err: any) => {
+        this.savingSamplingFor = null;
+        this.toastr.error(err?.error?.message || 'Could not save the sampling location.', 'Error');
+      },
+    });
+  }
+
+  printBarcode(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.hasSamplingLocation(test)) {
+      this.toastr.warning('Select "Sampling Done At" before generating the barcode.', 'Barcode pending');
+      return;
+    }
+    this.printingLabelFor = test.patient_Test_Id;
+    this.sampleLabelService.printLabels(Number(test.patient_Test_Id)).subscribe({
+      next: (opened: boolean) => {
+        this.printingLabelFor = null;
+        if (!opened) {
+          this.toastr.warning('The label window was blocked. Allow pop-ups for this site and try again.',
+            'Labels not shown');
+        }
+      },
+      error: (err: any) => {
+        this.printingLabelFor = null;
+        this.toastr.error(err?.error?.error || 'The barcode could not be generated.', 'Labels not printed');
+      },
+    });
+  }
 
   ngOnInit(): void {
     // Pre-fetch pathology details so path_Branch is available when generating reports.

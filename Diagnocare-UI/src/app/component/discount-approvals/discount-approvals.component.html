@@ -4,6 +4,7 @@
       <h1><i class="fa fa-percent"></i> Discount Approvals</h1>
       <p class="subtitle">
         Discounts above the lab limit wait here. Payment and the bill are on hold until you decide.
+        Approve the rate asked for, or edit it down to any rate you are willing to allow.
         Rejecting resets the discount to the lab limit.
       </p>
     </div>
@@ -78,11 +79,30 @@
         <span *ngIf="item.requestedAt"> · {{ item.requestedAt | date:'d MMM y, h:mm a' }}</span>
       </div>
 
+      <!-- Grant a rate of your own: pre-filled with what was asked, editable down to 0. -->
+      <div class="da-grant">
+        <label class="lbl" [attr.for]="'grant-' + item.receiptId">Approve at</label>
+        <div class="da-grant-input">
+          <input type="number" class="form-control" [id]="'grant-' + item.receiptId"
+                 [(ngModel)]="grants[item.receiptId]"
+                 [class.is-invalid]="grantInvalidId === item.receiptId"
+                 min="0" [max]="item.requestedDiscount" step="0.5" inputmode="decimal" />
+          <span class="suffix">%</span>
+        </div>
+        <span class="da-grant-hint">
+          Anything from 0% up to the {{ item.requestedDiscount | number:'1.0-2' }}% requested
+          &nbsp;·&nbsp; Net <strong>₹{{ grantNetAmount(item) | number:'1.2-2' }}</strong>
+        </span>
+        <span class="da-grant-warn" *ngIf="isReducedGrant(item)">
+          <i class="fa fa-exclamation-circle"></i> Below the request — a remark is required
+        </span>
+      </div>
+
       <div class="da-actions">
         <textarea class="form-control da-remark" rows="1" maxlength="500"
                   [(ngModel)]="remarks[item.receiptId]"
                   [class.is-invalid]="remarkMissingId === item.receiptId"
-                  placeholder="Remark (required to reject)"></textarea>
+                  placeholder="Remark (required to reject or to approve a lower rate)"></textarea>
         <div class="da-buttons">
           <button type="button" class="btn-link" (click)="openBooking(item)" title="Open this booking's receipts">
             View booking
@@ -92,7 +112,7 @@
           </button>
           <button type="button" class="btn-approve" (click)="approve(item)" [disabled]="busyId === item.receiptId">
             <i class="fa" [ngClass]="busyId === item.receiptId ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-            Approve {{ item.requestedDiscount | number:'1.0-2' }}%
+            Approve {{ grantValue(item) | number:'1.0-2' }}%
           </button>
         </div>
       </div>

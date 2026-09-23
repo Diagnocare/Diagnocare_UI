@@ -204,7 +204,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Marital_Status: [''],
       // Optional: walk-in patients often register without giving an address.
       patient_Address:      [''],
-      relation:             ['S/O'],
+      relation:             [''],
       // Optional, but still letters-only when something IS typed — stringOnly()
       // returns null for an empty value, so a blank field is valid.
       relative_Name:        ['', [AppValidators.stringOnly()]],
@@ -223,14 +223,14 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_Outside:    [false],
       area:                 [''],
       collected_By:         [''],
-      sampling_Done:        [],
+      sampling_Done:        [this._sampling.getDefault(), Validators.required],   // index 0 of the list
       discount:             [0],
       // Required only while the discount is above the lab limit (it then goes to a
       // Super Admin, who needs to know why) — toggled in syncDiscountApproval().
       discount_Reason:      ['', [Validators.maxLength(500)]],
-      net_Amount:           [0, Validators.required],
+      net_Amount:           ['0', Validators.required],
       payment_Type:         ['Full', Validators.required],
-      amount_Paid:          ['', Validators.required],
+      amount_Paid:          ['0', Validators.required],
       amount_Pending:       ['0', Validators.required],
       payment_Mode:         ['Cash', Validators.required]
     });
@@ -1457,7 +1457,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_Outside: f.collected_Outside ?? false,
       area:              f.area             ?? '',
       collected_By:      f.collected_By     ?? '',
-      sampling_Done:     f.sampling_Done    ?? '',
+      // Must be sampling_Done_At — the API property is Sampling_Done_At, and the
+      // old key 'sampling_Done' matched nothing, so the location was never saved.
+      sampling_Done_At:  f.sampling_Done    ?? '',
     };
 
     // ── Root patient payload — matches backend PatientModel ────────────
@@ -1525,6 +1527,16 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * remain available from the patient's test list.
    */
   private printSampleLabels(booking: BookingResultDto): void {
+    if (booking.testRegId && booking.labelsReady === false) {
+      // No sampling location → no barcode. It is generated once the location is
+      // selected and saved from the patient's test list.
+      this.toastr.info(
+        'Barcode not generated because "Sampling Done At" was not selected. ' +
+        'Select it from the patient\'s tests to generate the barcode.',
+        'Barcode pending', { timeOut: 8000 });
+      return;
+    }
+
     if (!booking.testRegId || !booking.labels?.length) {
       return;
     }

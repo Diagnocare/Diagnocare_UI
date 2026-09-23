@@ -190,7 +190,28 @@
 
               <div class="detail-row">
                 <span class="detail-label">Sampling Done:</span>
-                <span class="detail-value">{{ test.sampling_Done || 'N/A' }}</span>
+                <span class="detail-value" *ngIf="hasSamplingLocation(test)">{{ test.sampling_Done_At }}</span>
+                <span class="detail-value sampling-missing" *ngIf="!hasSamplingLocation(test)">
+                  Not selected — barcode not generated
+                </span>
+              </div>
+
+              <!-- Booking saved without a sampling location: pick one here; saving it
+                   generates the barcode. -->
+              <div class="sampling-picker" *ngIf="!hasSamplingLocation(test) && !isCancelled(test)"
+                   (click)="$event.stopPropagation()">
+                <select class="form-select form-select-sm"
+                        [(ngModel)]="samplingDraft[test.patient_Test_Id]"
+                        [disabled]="savingSamplingFor === test.patient_Test_Id">
+                  <option [ngValue]="undefined" disabled>-- Select Sampling Done At --</option>
+                  <option *ngFor="let loc of samplingLocations" [ngValue]="loc">{{ loc }}</option>
+                </select>
+                <button class="btn btn-sm btn-primary"
+                        (click)="saveSamplingLocation(test, $event)"
+                        [disabled]="!samplingDraft[test.patient_Test_Id] || savingSamplingFor === test.patient_Test_Id">
+                  <i class="fa" [ngClass]="savingSamplingFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
+                  {{ savingSamplingFor === test.patient_Test_Id ? 'Saving…' : 'Save & Generate Barcode' }}
+                </button>
               </div>
             </div>
 
@@ -257,6 +278,14 @@
                     title="View the sample collection protocol for the tests on this booking">
               <i class="fa" [ngClass]="loadingProtocolFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-info-circle'"></i>
               {{ loadingProtocolFor === test.patient_Test_Id ? 'Loading…' : 'Sample Protocol' }}
+            </button>
+            <button class="btn btn-sm btn-protocol"
+                    *ngIf="!isCancelled(test) && hasSamplingLocation(test)"
+                    (click)="printBarcode(test, $event)"
+                    [disabled]="printingLabelFor === test.patient_Test_Id"
+                    title="Print the sample barcode labels for this booking">
+              <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
+              {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print Barcode' }}
             </button>
             <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
                     title="View payment receipts for this test">
