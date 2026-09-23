@@ -76,6 +76,30 @@
 }
 .da-requested { margin-bottom: 0.75rem; }
 
+.da-grant {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.5rem;
+  background: var(--bg-subtle, #f8fafc);
+
+  .lbl { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary, #64748b); }
+}
+.da-grant-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  input { width: 6rem; text-align: right; }
+  .suffix { font-weight: 600; color: var(--text-secondary, #64748b); }
+}
+.da-grant-hint { font-size: 0.8rem; color: var(--text-secondary, #64748b); }
+.da-grant-warn { font-size: 0.8rem; font-weight: 600; color: #b45309; }
+
 .da-actions { display: flex; gap: 0.75rem; align-items: flex-start; flex-wrap: wrap; }
 .da-remark { flex: 1 1 260px; min-height: 2.4rem; resize: vertical; font-size: 0.875rem; }
 .da-buttons { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }

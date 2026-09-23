@@ -41,9 +41,16 @@ export class DiscountApprovalService {
     ).subscribe(n => this.pendingCountSubject.next(n));
   }
 
-  approve(receiptId: number, remark?: string): Observable<DiscountApprovalItem> {
-    return this.http.post<DiscountApprovalItem>(`${this.apiUrl}${receiptId}/Approve`, { remark: remark || null })
-      .pipe(tap(() => this.refreshPendingCount()));
+  /**
+   * Approves a request. `grantedDiscount` settles it below what was asked — a 60%
+   * request against a 30% limit can be approved at 45%; omit it to grant the request
+   * in full. The API requires a remark whenever the granted rate is lower.
+   */
+  approve(receiptId: number, remark?: string, grantedDiscount?: number | null): Observable<DiscountApprovalItem> {
+    return this.http.post<DiscountApprovalItem>(`${this.apiUrl}${receiptId}/Approve`, {
+      remark: remark || null,
+      grantedDiscount: grantedDiscount ?? null,
+    }).pipe(tap(() => this.refreshPendingCount()));
   }
 
   reject(receiptId: number, remark: string): Observable<DiscountApprovalItem> {
