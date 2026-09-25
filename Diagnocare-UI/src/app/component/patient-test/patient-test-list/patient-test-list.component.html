@@ -287,6 +287,14 @@
               <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
               {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print Barcode' }}
             </button>
+            <button class="btn btn-sm btn-protocol"
+                    *ngIf="!isCancelled(test) && reportStatus(test) !== 'Pending'"
+                    (click)="openSmartReport(test, $event)"
+                    [disabled]="openingSmartReportFor === test.patient_Test_Id"
+                    title="Open the Smart Health Report (health score, summary and roadmap) for all tests on this booking">
+              <i class="fa" [ngClass]="openingSmartReportFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-heartbeat'"></i>
+              {{ openingSmartReportFor === test.patient_Test_Id ? 'Preparing…' : 'Smart Report' }}
+            </button>
             <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
                     title="View payment receipts for this test">
               <i class="fa fa-file-text"></i> View Receipts

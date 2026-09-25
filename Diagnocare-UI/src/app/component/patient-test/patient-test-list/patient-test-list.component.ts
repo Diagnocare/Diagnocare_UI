@@ -204,6 +204,8 @@ export class PatientTestListComponent implements OnInit {
   // template's === comparisons against test.patient_Test_Id match.
   savingSamplingFor: patientTest['patient_Test_Id'] | null = null;
   printingLabelFor:  patientTest['patient_Test_Id'] | null = null;
+  /** Booking whose Smart Health Report is being generated (button spinner). */
+  openingSmartReportFor: patientTest['patient_Test_Id'] | null = null;
 
   hasSamplingLocation(test: patientTest): boolean {
     return !!(test.sampling_Done_At || '').trim();
@@ -258,6 +260,30 @@ export class PatientTestListComponent implements OnInit {
       error: (err: any) => {
         this.printingLabelFor = null;
         this.toastr.error(err?.error?.error || 'The barcode could not be generated.', 'Labels not printed');
+      },
+    });
+  }
+
+  /**
+   * Opens the Smart Health Report for the whole booking in a new tab.
+   * Blocked cases (cancelled, no results, nothing scoreable) come back as a 400
+   * whose message the ErrorInterceptor already shows, so nothing is toasted here.
+   */
+  openSmartReport(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    this.openingSmartReportFor = test.patient_Test_Id;
+    this.testReportGenerationService.generateSmartReport(Number(test.patient_Test_Id)).subscribe({
+      next: (html: string) => {
+        this.openingSmartReportFor = null;
+        if (!html || !html.trim()) {
+          this.toastr.warning('The Smart Report came back empty.', 'Warning');
+          return;
+        }
+        this.openHtmlReportTab(html, undefined, `${this.patientName || 'Patient'} | Smart Health Report`);
+      },
+      error: (err: unknown) => {
+        this.openingSmartReportFor = null;
+        console.error('generateSmartReport error:', err);
       },
     });
   }
