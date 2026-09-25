@@ -535,6 +535,11 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
       this.mode = "edit";
       this.openModal();
   }
+  /** Bulk upload of groups, subgroups, tests and parameters from a spreadsheet. */
+  importFromExcel(): void {
+    this._route.navigate(['/manage-tests/import']);
+  }
+
   manageTestParameter()
   {
     if(this.selectedTest!=null)

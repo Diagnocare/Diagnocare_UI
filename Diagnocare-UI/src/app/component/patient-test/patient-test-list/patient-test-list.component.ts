@@ -97,6 +97,12 @@ export class PatientTestListComponent implements OnInit {
   /** True while a PDF download is in progress. */
   isDownloadingPdf: boolean = false;
 
+  /** True while the PDF is being prepared for sending on WhatsApp. */
+  isSendingWhatsApp: boolean = false;
+
+  /** Patient's contact number as stored (e.g. "+91-9876543210"), used for WhatsApp. */
+  patientContact: string = '';
+
   showPatientIdInput: boolean = false;
   enteredPatientId: string = '';
   private navigatedViaQueryParam: boolean = false;
@@ -317,6 +323,8 @@ export class PatientTestListComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
+    this.loadPatientContact();
+
     this.testReportService.getAllPatientTests(this.patientId).subscribe({
       next: (data: patientTest[]) => {
         this.allPatientTests = data;
@@ -333,6 +341,23 @@ export class PatientTestListComponent implements OnInit {
 
   refreshList(): void {
     this.loadPatientTests();
+  }
+
+  /**
+   * Loads the patient's name and contact number. The name is used for report
+   * file names; the number is the WhatsApp chat the report is sent to.
+   * Non-critical: if it fails, the WhatsApp button explains the number is missing.
+   */
+  private loadPatientContact(): void {
+    this.patientContact = '';
+    if (!this.patientId) return;
+    this.patientService.getPatientById(this.patientId).subscribe({
+      next: (p) => {
+        this.patientContact = p?.patientContact || '';
+        if (p?.patientName) this.patientName = p.patientName;
+      },
+      error: () => { /* non-critical — WhatsApp button will report the missing number */ }
+    });
   }
 
   // ── Filtering ──────────────────────────────────────────────────────────
@@ -1180,6 +1205,101 @@ export class PatientTestListComponent implements OnInit {
           this.isDownloadingPdf = false;
           this.errorMessage = 'Failed to download PDF. Please try again.';
           console.error('downloadReportPdf error:', err);
+        }
+      });
+  }
+
+  // ── WhatsApp ───────────────────────────────────────────────────────────
+
+  /**
+   * WhatsApp chat number for the patient in international form without "+"
+   * (e.g. "919876543210"), or null when there is no usable number.
+   * Bare 10-digit numbers are treated as Indian mobiles.
+   */
+  get patientWhatsAppNumber(): string | null {
+    const raw = (this.patientContact || '').trim();
+    if (!raw) return null;
+    const hasCountryCode = raw.startsWith('+') || raw.startsWith('00');
+    let digits = raw.replace(/\D/g, '');
+    if (raw.startsWith('00')) digits = digits.slice(2);
+    if (!hasCountryCode) {
+      digits = digits.replace(/^0+/, '');
+      if (digits.length === 10) return '91' + digits;
+      if (digits.length === 12 && digits.startsWith('91')) return digits;
+      return null;
+    }
+    return digits.length >= 11 && digits.length <= 15 ? digits : null;
+  }
+
+  /**
+   * Sends the current report on WhatsApp as a link.
+   *
+   * Asks the backend for the report's patient link (the same verified URL the
+   * printed QR carries), then opens the patient's WhatsApp chat with a message
+   * containing it. The operator only presses send; the patient taps the link to
+   * see the verified report and open the full copy. No file changes hands.
+   *
+   * The WhatsApp tab is opened synchronously inside the click, before the API
+   * call, so pop-up blockers do not stop it; it is pointed at the chat once the
+   * link arrives, or closed if it cannot be created.
+   */
+  sendReportOnWhatsApp(): void {
+    if (!this.selectedPatientTest || !this.selectedTestDetail) return;
+
+    const phone = this.patientWhatsAppNumber;
+    if (!phone) {
+      this.toastr.warning(
+        'This patient has no valid mobile number. Add one in the patient details and try again.',
+        'WhatsApp');
+      return;
+    }
+
+    const patientTestId = Number(this.selectedPatientTest.patient_Test_Id);
+    const testCode      = this.selectedTestDetail.testCode;
+    const testName      = this.selectedTestDetail.testName || testCode;
+
+    const waWindow = window.open('', '_blank');
+    if (!waWindow) {
+      this.toastr.warning('The WhatsApp window was blocked. Allow pop-ups for this site and try again.',
+        'WhatsApp');
+      return;
+    }
+    waWindow.opener = null; // WhatsApp page must not be able to reach back into the app
+    waWindow.document.title = 'Opening WhatsApp…';
+    waWindow.document.body.innerHTML =
+      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the report link, then opening WhatsApp…</p>';
+
+    this.isSendingWhatsApp = true;
+
+    this.testReportGenerationService
+      .getReportShareLink(patientTestId, testCode)
+      .subscribe({
+        next: (link) => {
+          this.isSendingWhatsApp = false;
+
+          if (!link?.url) {
+            waWindow.close();
+            this.toastr.error('The report link could not be created.', 'WhatsApp');
+            return;
+          }
+
+          // Nothing but a line break after the link, so WhatsApp's link detection
+          // never folds trailing punctuation into it.
+          const greeting = this.patientName ? `Dear ${this.patientName},` : 'Dear Patient,';
+          const message  = `${greeting}\n\n`
+                         + `Your ${testName} test report is ready.\n\n`
+                         + `👉 View your report: ${link.url}\n\n`
+                         + `Report No: ${link.reportNumber}\n`
+                         + `Thank you.`;
+
+          waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        },
+        error: (err: any) => {
+          this.isSendingWhatsApp = false;
+          waWindow.close();
+          this.toastr.error(err?.error?.error || 'The report link could not be created. Please try again.',
+            'WhatsApp');
+          console.error('sendReportOnWhatsApp error:', err);
         }
       });
   }

@@ -42,6 +42,8 @@ export class LabProfileComponent implements OnInit, OnDestroy {
 
   /** Preview URL for the logo — loaded via GetProfile, updated on upload. */
   logoPreview: string | null = null;
+  /** True while a logo upload or removal is in flight. */
+  isSavingLogo = false;
 
   // Identity + license — read-only display, sourced from the shared PathologyManager
   // API (see PathologyService.getProfile). Editing these here would be silently
@@ -238,25 +240,55 @@ export class LabProfileComponent implements OnInit, OnDestroy {
       this.toastr.warning('Logo must be smaller than 2 MB.');
       return;
     }
+    const previous = this.logoPreview;
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
       this.logoPreview = dataUrl;
+      this.isSavingLogo = true;
       // Upload logo to the database via the dedicated endpoint
       this.pathologyService.uploadLogo(dataUrl)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next:  () => {
+            this.isSavingLogo = false;
             this.profileCache.clear(); // Next load should reflect the new logo.
+            this.toastr.success('Logo updated.');
           },
-          error: () => { /* message shown centrally by ErrorInterceptor */ },
+          error: () => {
+            // Put back what is actually stored; message shown by ErrorInterceptor.
+            this.isSavingLogo = false;
+            this.logoPreview = previous;
+          },
         });
     };
     reader.readAsDataURL(file);
+    input.value = ''; // lets the same file be picked again after a removal
   }
 
+  /**
+   * Deletes the logo from the database. Until this existed the button only
+   * cleared the preview, and the stored logo kept printing on every report.
+   */
   removeLogo(): void {
+    if (this.isSavingLogo) return;
+    const previous = this.logoPreview;
     this.logoPreview = null;
+    this.isSavingLogo = true;
+
+    this.pathologyService.removeLogo()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isSavingLogo = false;
+          this.profileCache.clear();
+          this.toastr.success('Logo removed.');
+        },
+        error: () => {
+          this.isSavingLogo = false;
+          this.logoPreview = previous; // still stored — show it again
+        },
+      });
   }
 
   // ── Save (local-only fields only — identity/address/contact/license are

@@ -154,6 +154,11 @@ export class PathologyService {
         );
       }
 
+      /** DELETE — removes the pathology logo from the database. */
+      removeLogo(): Observable<any> {
+        return this.httpClient.delete<any>(`${this.url}Logo`);
+      }
+
       getPathologyExpiryDate(): Observable<any> {
         const geturl = this.url + apiEndpoints.getPathologyExpiryDate;
         return this.httpClient.get<any>(geturl);
