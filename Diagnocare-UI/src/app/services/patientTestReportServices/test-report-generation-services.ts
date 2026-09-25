@@ -56,6 +56,19 @@ export class TestReportGenerationServices {
    *
    * @param pathBranch  Optional pathology branch name passed as a query param.
    */
+  /**
+   * Smart Health Report for a whole booking (every test on it): health score,
+   * health-area scores, personalised summary and roadmap. Returns a standalone
+   * HTML page; the caller opens it in a new tab like the lab report. The page's
+   * own "Print / Save as PDF" button produces the PDF.
+   */
+  generateSmartReport(patientTestId: number): Observable<string> {
+    const apiUrl =
+      `${getDiagnocareApiUrl()}${controllerEndpoints.smartReport}${apiEndpoints.generateSmartReport}` +
+      `?patientTestId=${patientTestId}`;
+    return this.httpClient.get(apiUrl, { responseType: 'text' });
+  }
+
   downloadTestReport(
     patientTestId: number,
     testCode: string,
