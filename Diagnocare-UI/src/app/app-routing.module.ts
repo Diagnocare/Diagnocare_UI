@@ -115,6 +115,11 @@ export const routes: Routes = [
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter',
         loadComponent: () => import('./component/pathTest/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
         canActivate: [roleGuard(Role.Admin.id, Role.Assistant.id, Role.Super_Admin.id)] },
+      // Bulk import is a structural write like Add/Edit — Admin and Super Admin only,
+      // mirroring the API's AdminOrSuperAdmin policy on TestImportController.
+      { path: 'manage-tests/import', title: 'Import Tests',
+        loadComponent: () => import('./component/pathTest/import-tests/import-tests.component').then(m => m.ImportTestsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id', title: 'Edit Test',
         loadComponent: () => import('./component/pathTest/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },

@@ -611,6 +611,17 @@
             <i class="fa" [ngClass]="isDownloadingPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf-o'"></i>
             {{ isDownloadingPdf ? 'Preparing…' : 'PDF' }}
           </button>
+          <!-- WhatsApp: opens the patient's chat with a message carrying the report's
+               verified link (same URL as the printed QR); the operator presses send. -->
+          <button class="btn btn-info"
+                  (click)="sendReportOnWhatsApp()"
+                  [disabled]="isSendingWhatsApp || !canIssueReport"
+                  [title]="!canIssueReport ? reportBlockedReason
+                            : (!patientWhatsAppNumber ? 'No valid mobile number on this patient'
+                            : (isSendingWhatsApp ? 'Preparing link…' : 'Send the report link on WhatsApp'))">
+            <i class="fa" [ngClass]="isSendingWhatsApp ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+            {{ isSendingWhatsApp ? 'Preparing…' : 'WhatsApp' }}
+          </button>
           <span class="report-blocked-note"
                 *ngIf="!canIssueReport && !isLoadingParameters">
             <i class="fa fa-exclamation-circle"></i> {{ reportBlockedReason }}
