@@ -82,10 +82,10 @@ export enum referredByType
   Other='Other'
 };
 
-export enum licenceFilter{
-    Trial="Trial",
-    License="License"
-}
+// export enum licenceFilter{
+//     Trial="Trial",
+//     License="License"
+// }
 
 // Enum matching backend InstitutionType
 export enum InstitutionType {
