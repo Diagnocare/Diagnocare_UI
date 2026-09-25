@@ -21,6 +21,15 @@ export interface TestReportResponse {
   templateName: string;
 }
 
+/** Response of GET TestReportGeneration/ShareLink. */
+export interface ReportShareLink {
+  /** Short link for messages (…/r/Ab3kP9xQ2m); the full QR link if a short one could not be made. */
+  url: string;
+  /** The full QR verification link — same report, same token. */
+  longUrl?: string;
+  reportNumber: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -69,6 +78,17 @@ export class TestReportGenerationServices {
     }
     return this.httpClient
       .get(apiUrl, { responseType: 'blob' });
+  }
+
+  /**
+   * The patient-facing link for a report — the same verified URL the printed QR
+   * carries. Used to send the report over WhatsApp as a link instead of a file.
+   * Staff-only on the backend; the link itself opens without a login.
+   */
+  getReportShareLink(patientTestId: number, testCode: string): Observable<ReportShareLink> {
+    const apiUrl = `${this.url}${apiEndpoints.reportShareLink}`
+      + `?patientTestId=${patientTestId}&testCode=${encodeURIComponent(testCode)}`;
+    return this.httpClient.get<ReportShareLink>(apiUrl);
   }
 
 }

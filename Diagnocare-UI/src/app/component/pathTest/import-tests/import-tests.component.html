@@ -1,0 +1,185 @@
+<div class="page-container import-tests">
+  <header class="it-header">
+    <div>
+      <h1>Import tests from Excel</h1>
+      <p class="subtitle">Add many groups, subgroups, tests and parameters at once. Nothing is saved until you press Import.</p>
+    </div>
+    <button type="button" class="btn btn-outline-secondary" (click)="goToManageTests()">
+      <i class="fa fa-arrow-left" aria-hidden="true"></i> Back to Manage Tests
+    </button>
+  </header>
+
+  <!-- ── Done ─────────────────────────────────────────────────────────── -->
+  <section class="it-card it-done" *ngIf="result && result.success; else steps">
+    <i class="fa fa-check-circle it-done__icon" aria-hidden="true"></i>
+    <h2>Import complete</h2>
+    <p>{{ result.message }}</p>
+    <div class="it-counts">
+      <div class="it-count"><strong>{{ result.created.groups }}</strong><span>groups added</span></div>
+      <div class="it-count"><strong>{{ result.created.subGroups }}</strong><span>subgroups added</span></div>
+      <div class="it-count"><strong>{{ result.created.tests }}</strong><span>tests added</span></div>
+      <div class="it-count"><strong>{{ result.created.parameters }}</strong><span>parameters added</span></div>
+      <div class="it-count" *ngIf="result.updated.total > 0"><strong>{{ result.updated.total }}</strong><span>existing records updated</span></div>
+    </div>
+    <div class="it-actions">
+      <button type="button" class="btn btn-primary" (click)="goToManageTests()">
+        <i class="fa fa-list" aria-hidden="true"></i> Open Manage Tests
+      </button>
+      <button type="button" class="btn btn-outline-secondary" (click)="startOver()">
+        <i class="fa fa-upload" aria-hidden="true"></i> Import another file
+      </button>
+    </div>
+  </section>
+
+  <ng-template #steps>
+    <!-- ── Step 1 ─────────────────────────────────────────────────────── -->
+    <section class="it-card">
+      <h2><span class="it-step">1</span> Get the template</h2>
+      <p>One row per parameter. Repeat the group, subgroup and test on each row; type each price once. The Instructions sheet explains every column and has an example.</p>
+      <button type="button" class="btn btn-outline-primary" (click)="downloadTemplate()" [disabled]="downloadingTemplate">
+        <i class="fa" [ngClass]="downloadingTemplate ? 'fa-spinner fa-spin' : 'fa-download'" aria-hidden="true"></i>
+        Download template (.xlsx)
+      </button>
+    </section>
+
+    <!-- ── Step 2 ─────────────────────────────────────────────────────── -->
+    <section class="it-card">
+      <h2><span class="it-step">2</span> Upload your file</h2>
+      <label class="it-drop" [class.it-drop--over]="dragOver" [class.it-drop--busy]="uploading"
+             (dragover)="onDragOver($event)" (dragleave)="dragOver = false" (drop)="onDrop($event)">
+        <input type="file" accept=".xlsx,.csv" (change)="onFileInput($event)" [disabled]="uploading" hidden>
+        <i class="fa it-drop__icon" [ngClass]="uploading ? 'fa-spinner fa-spin' : 'fa-file-excel-o'" aria-hidden="true"></i>
+        <span class="it-drop__title" *ngIf="!uploading">Drop the file here, or click to choose it</span>
+        <span class="it-drop__title" *ngIf="uploading">Checking {{ file?.name }}…</span>
+        <span class="it-drop__hint">Excel (.xlsx) or CSV, up to {{ maxFileMb }} MB and 5,000 rows</span>
+      </label>
+      <p class="it-file" *ngIf="file && !uploading">
+        <i class="fa fa-paperclip" aria-hidden="true"></i> {{ file.name }}
+        <button type="button" class="btn btn-link btn-sm" (click)="upload()">Check again</button>
+      </p>
+    </section>
+
+    <!-- ── Step 3 ─────────────────────────────────────────────────────── -->
+    <section class="it-card" *ngIf="preview">
+      <h2><span class="it-step">3</span> Check what will happen</h2>
+
+      <dc-note tone="danger" title="This file could not be read" *ngIf="preview.fileErrors.length > 0">
+        <div *ngFor="let e of preview.fileErrors">{{ e }}</div>
+      </dc-note>
+
+      <ng-container *ngIf="preview.fileErrors.length === 0">
+        <div class="it-counts">
+          <div class="it-count it-count--ok"><strong>{{ preview.toCreate.groups }}</strong><span>new groups</span></div>
+          <div class="it-count it-count--ok"><strong>{{ preview.toCreate.subGroups }}</strong><span>new subgroups</span></div>
+          <div class="it-count it-count--ok"><strong>{{ preview.toCreate.tests }}</strong><span>new tests</span></div>
+          <div class="it-count it-count--ok"><strong>{{ preview.toCreate.parameters }}</strong><span>new parameters</span></div>
+          <div class="it-count it-count--info"><strong>{{ preview.toUpdate.total }}</strong><span>existing records that differ</span></div>
+          <div class="it-count" [class.it-count--danger]="preview.errorRows > 0"><strong>{{ preview.errorRows }}</strong><span>rows with errors</span></div>
+        </div>
+
+        <dc-note tone="danger" title="Fix these rows first" *ngIf="preview.errorRows > 0">
+          Nothing is imported while any row has an error. Download the problem report, fix the rows in it, and upload it again — it is already in the right format.
+        </dc-note>
+        <dc-note tone="warn" title="Some tests have no parameters" *ngIf="preview.warningRows > 0 && preview.errorRows === 0">
+          They will be imported, but can't be booked until parameters are added in Manage Parameter.
+        </dc-note>
+
+        <div class="it-toolbar">
+          <div class="it-filters" role="group" aria-label="Show rows">
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'all' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('all')">All {{ preview.totalRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'problems' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('problems')" [disabled]="problemRows === 0">Problems {{ problemRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'New' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('New')">New {{ preview.newRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'Update' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('Update')">Changes {{ preview.updateRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'Unchanged' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('Unchanged')">Already there {{ preview.unchangedRows }}</button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger" *ngIf="problemRows > 0 && preview.importToken"
+                  (click)="downloadErrorReport()" [disabled]="downloadingReport">
+            <i class="fa" [ngClass]="downloadingReport ? 'fa-spinner fa-spin' : 'fa-download'" aria-hidden="true"></i>
+            Download problem report
+          </button>
+        </div>
+
+        <div class="it-table-wrap">
+          <table class="table table-sm it-table">
+            <thead>
+              <tr>
+                <th scope="col">Row</th>
+                <th scope="col">Status</th>
+                <th scope="col">Group</th>
+                <th scope="col">SubGroup</th>
+                <th scope="col">Test</th>
+                <th scope="col">Parameter</th>
+                <th scope="col">What happens</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of visibleRows; trackBy: trackRow" [class.it-row--error]="row.status === 'Error'">
+                <td class="it-num">{{ row.rowNumber }}</td>
+                <td><dc-status [status]="row.status" [tone]="statusTone(row.status)" [icon]="statusIcon(row.status)"></dc-status></td>
+                <td><span class="it-code" *ngIf="row.groupCode">{{ row.groupCode }}</span> {{ row.groupName }}</td>
+                <td><span class="it-code" *ngIf="row.subGroupCode">{{ row.subGroupCode }}</span> {{ row.subGroupName }}</td>
+                <td><span class="it-code" *ngIf="row.testCode">{{ row.testCode }}</span> {{ row.testName }}</td>
+                <td>{{ row.parameterName || '—' }}</td>
+                <td>
+                  <ul class="it-errors" *ngIf="row.errors.length > 0">
+                    <li *ngFor="let e of row.errors">{{ e }}</li>
+                  </ul>
+                  <span *ngIf="row.errors.length === 0">{{ row.detail }}</span>
+                  <ul class="it-warnings" *ngIf="row.warnings.length > 0">
+                    <li *ngFor="let w of row.warnings">{{ w }}</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr *ngIf="filteredRows.length === 0">
+                <td colspan="7" class="it-empty">No rows in this view.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="it-more" *ngIf="filteredRows.length > visibleRows.length">
+          <button type="button" class="btn btn-link" (click)="showMore()">
+            Show {{ pageSize }} more ({{ filteredRows.length - visibleRows.length }} not shown)
+          </button>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- ── Step 4 ─────────────────────────────────────────────────────── -->
+    <section class="it-card" *ngIf="preview && preview.fileErrors.length === 0">
+      <h2><span class="it-step">4</span> Import</h2>
+
+      <fieldset class="it-mode" [disabled]="committing">
+        <legend>When a row matches something already in the catalogue</legend>
+        <label class="it-mode__option" [class.it-mode__option--on]="mode === TestImportMode.SkipExisting">
+          <input type="radio" name="mode" [(ngModel)]="mode" [value]="TestImportMode.SkipExisting">
+          <span>
+            <strong>Keep what is there</strong>
+            <small>Only add new groups, subgroups, tests and parameters. Existing prices and ranges are not touched.</small>
+          </span>
+        </label>
+        <label class="it-mode__option" [class.it-mode__option--on]="mode === TestImportMode.UpdateExisting">
+          <input type="radio" name="mode" [(ngModel)]="mode" [value]="TestImportMode.UpdateExisting">
+          <span>
+            <strong>Update from the file</strong>
+            <small>Also overwrite price, method, unit and range on {{ preview.toUpdate.total }} existing record(s) that differ. Nothing is ever deleted.</small>
+          </span>
+        </label>
+      </fieldset>
+
+      <dc-note tone="danger" title="Import failed — nothing was saved" *ngIf="result && !result.success">
+        {{ result.message }}
+      </dc-note>
+
+      <div class="it-actions">
+        <button type="button" class="btn btn-primary btn-lg" (click)="commit()" [disabled]="!!blockReason || committing">
+          <i class="fa" [ngClass]="committing ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
+          Import {{ changesForMode }} record{{ changesForMode === 1 ? '' : 's' }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="startOver()" [disabled]="committing">Start over</button>
+      </div>
+      <p class="it-block-reason" *ngIf="blockReason">
+        <i class="fa fa-info-circle" aria-hidden="true"></i> {{ blockReason }}
+      </p>
+    </section>
+  </ng-template>
+</div>
