@@ -59,10 +59,11 @@
             </label>
             <input id="logoInput" type="file" accept="image/*" class="hidden-file-input"
                    (change)="onLogoChange($event)" />
-            <button *ngIf="logoPreview" type="button" class="btn-remove-logo" (click)="removeLogo()">
+            <button *ngIf="logoPreview" type="button" class="btn-remove-logo" (click)="removeLogo()"
+                    [disabled]="isSavingLogo">
               <i class="fas fa-trash-alt"></i> Remove
             </button>
-            <p class="logo-hint">PNG or JPG, max 2 MB. Appears on printed reports and portal header.</p>
+            <p class="logo-hint">PNG or JPG, max 2 MB. Appears on test reports, payment receipts and WhatsApp report links.</p>
           </div>
         </div>
 
