@@ -23,6 +23,8 @@ export const controllerEndpoints = {
   receipt: 'api/receipt/',
   summaryReport:'api/summaryReport/',
   pathologyTest:'api/pathologyTest/',
+  /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
+  testImport:    'api/TestImport/',
   template:   'api/template/',
   attendance: 'api/attendance/',
   salary:     'api/salary/',
@@ -71,6 +73,7 @@ export const apiEndpoints = {
   getReceiptCount:"GetReceiptCount",
   updatePathologyTest:"UpdatePathologyTest",
   generateTestReportPDF:"GenerateTestReportPDF",
+  reportShareLink:"ShareLink",
   updateAuthType:"UpdateAuthType",
   updateUserEmail:"UpdateUserEmail",
   updateUserPhone:"UpdateUserPhone",
@@ -144,6 +147,11 @@ export const apiEndpoints = {
   /** Manually marks one report printed or not-printed. */
   setPrinted:"SetPrinted",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
+  // Test catalogue import (TestImport controller)
+  testImportTemplate:    'Template',
+  testImportPreview:     'Preview',
+  testImportCommit:      'Commit',
+  testImportErrorReport: 'ErrorReport',
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",
   dropTest:"Delete",
