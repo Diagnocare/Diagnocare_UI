@@ -44,6 +44,8 @@ export const controllerEndpoints = {
   sampleRejection: 'api/SampleRejection/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
+  /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
+  testReminder: 'api/TestReminder/',
 };
 
 export const apiEndpoints = {
@@ -75,6 +77,7 @@ export const apiEndpoints = {
   updatePathologyTest:"UpdatePathologyTest",
   generateTestReportPDF:"GenerateTestReportPDF",
   generateSmartReport:"Generate",
+  reportShareLink:"ShareLink",
   updateAuthType:"UpdateAuthType",
   updateUserEmail:"UpdateUserEmail",
   updateUserPhone:"UpdateUserPhone",
@@ -330,6 +333,8 @@ export const labOperationMenu = {
     patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },
     pathTest:       { id: 'pathTest',       label: 'Master Test details',     route: `manage-tests`,  icon: 'fa-vials' },
     contact:        { id: 'contact',        label: 'Contact Address Manager', route: `contacts`,      icon: 'fa-map-marker-alt' },
+    // Patients due to repeat a regular test (HbA1c, lipid profile, sugar…), sent on WhatsApp.
+    testReminders:  { id: 'testReminders',  label: 'Test Reminders',          route: `test-reminders`, icon: 'fa-bell' },
 };
 
 export const labSetupMenu = {

@@ -206,6 +206,8 @@ export class PatientTestListComponent implements OnInit {
   printingLabelFor:  patientTest['patient_Test_Id'] | null = null;
   /** Booking whose Smart Health Report is being generated (button spinner). */
   openingSmartReportFor: patientTest['patient_Test_Id'] | null = null;
+  /** Booking whose Smart Report link is being prepared for WhatsApp (button spinner). */
+  sendingSmartWhatsAppFor: patientTest['patient_Test_Id'] | null = null;
 
   hasSamplingLocation(test: patientTest): boolean {
     return !!(test.sampling_Done_At || '').trim();
@@ -1229,6 +1231,74 @@ export class PatientTestListComponent implements OnInit {
       return null;
     }
     return digits.length >= 11 && digits.length <= 15 ? digits : null;
+  }
+
+  /**
+   * Sends the booking's Smart Health Report on WhatsApp as a link.
+   *
+   * Same flow as {@link sendReportOnWhatsApp}: the WhatsApp tab is opened inside
+   * the click (so pop-up blockers allow it), the backend issues the signed short
+   * link, then the tab is pointed at the patient's chat with the message filled
+   * in. The operator presses send. The patient's link opens a verification page
+   * (name masked) with a button to the full Smart Report — no login needed.
+   */
+  sendSmartReportOnWhatsApp(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+
+    const phone = this.patientWhatsAppNumber;
+    if (!phone) {
+      this.toastr.warning(
+        'This patient has no valid mobile number. Add one in the patient details and try again.',
+        'WhatsApp');
+      return;
+    }
+
+    const waWindow = window.open('', '_blank');
+    if (!waWindow) {
+      this.toastr.warning('The WhatsApp window was blocked. Allow pop-ups for this site and try again.',
+        'WhatsApp');
+      return;
+    }
+    waWindow.opener = null;
+    waWindow.document.title = 'Opening WhatsApp…';
+    waWindow.document.body.innerHTML =
+      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the health report link, then opening WhatsApp…</p>';
+
+    this.sendingSmartWhatsAppFor = test.patient_Test_Id;
+
+    this.testReportGenerationService
+      .getSmartReportShareLink(Number(test.patient_Test_Id))
+      .subscribe({
+        next: (link) => {
+          this.sendingSmartWhatsAppFor = null;
+
+          if (!link?.url) {
+            waWindow.close();
+            this.toastr.error('The health report link could not be created.', 'WhatsApp');
+            return;
+          }
+
+          // Nothing but a line break after the link, so WhatsApp's link detection
+          // never folds trailing punctuation into it.
+          const greeting = this.patientName ? `Dear ${this.patientName},` : 'Dear Patient,';
+          const message  = `${greeting}\n\n`
+                         + `Your Health Insights report is ready. It explains your test results in simple words, `
+                         + `with your health score and a personal action plan.\n\n`
+                         + `👉 View your report: ${link.url}\n\n`
+                         + `Report No: ${link.reportNumber}\n`
+                         + `Please discuss your results with your doctor.\n`
+                         + `Thank you.`;
+
+          waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        },
+        error: (err: any) => {
+          this.sendingSmartWhatsAppFor = null;
+          waWindow.close();
+          this.toastr.error(err?.error?.error || 'The health report link could not be created. Please try again.',
+            'WhatsApp');
+          console.error('sendSmartReportOnWhatsApp error:', err);
+        }
+      });
   }
 
   /**
