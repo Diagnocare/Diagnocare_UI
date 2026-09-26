@@ -326,6 +326,10 @@
                               [class.fa-chevron-down]="!showSelectedProtocols"></i>
                 {{ showSelectedProtocols ? 'Hide' : 'Show' }}
               </button>
+              <span class="ap-protocol-chip" *ngIf="!showSelectedProtocols && fastingTests.length > 0"
+                    title="Open the protocol to see which tests need fasting">
+                <i class="fa fa-hourglass-half"></i> Fasting required
+              </span>
             </div>
 
             <div class="ap-protocol-block" *ngIf="selectedTests.length > 0 && showSelectedProtocols">
@@ -880,8 +884,21 @@
              Full width under the four columns rather than as a fifth column: the
              procedure and rejection criteria are paragraphs, and a column that narrow
              would make them unreadable at exactly the moment they matter. -->
-        <div class="ap-catalog-protocol">
-          <app-test-protocol-panel
+        <div class="ap-catalog-protocol" [class.ap-catalog-protocol--collapsed]="!showFocusedProtocol">
+          <div class="ap-catalog-protocol-bar">
+            <span class="ap-catalog-protocol-title">
+              <i class="fa fa-flask"></i> Sample Collection Protocol
+              <span class="ap-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
+            </span>
+            <button type="button" class="ap-protocol-toggle"
+                    [attr.aria-expanded]="showFocusedProtocol"
+                    (click)="showFocusedProtocol = !showFocusedProtocol">
+              <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
+                            [class.fa-chevron-down]="!showFocusedProtocol"></i>
+              {{ showFocusedProtocol ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          <app-test-protocol-panel *ngIf="showFocusedProtocol"
             [protocols]="focusedProtocols"
             [testName]="focusedProtocolTestName"
             [testCode]="focusedProtocolTestCode"

@@ -150,7 +150,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
   selectedTestProtocols: TestBookingProtocolsDto[] = [];
   selectedProtocolsLoading = false;
-  showSelectedProtocols = true;
+  /** Collapsed by default so selecting tests stays uncluttered; the operator opens it with the toggle. */
+  showSelectedProtocols = false;
+  /** Catalogue protocol panel for the last-clicked test — hidden until the operator asks for it. */
+  showFocusedProtocol = false;
 
   /** Upper bound for the DOB picker — today in YYYY-MM-DD format. */
   readonly todayIso = new Date().toISOString().split('T')[0];
