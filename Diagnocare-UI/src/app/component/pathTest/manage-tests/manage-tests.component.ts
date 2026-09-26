@@ -151,6 +151,11 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
       SubGroupId: test.subGroupId,
       GroupId:    test.GroupId,
       TemplateId: test.templateId ?? null,
+      // The update endpoint rebuilds the test from what is sent, so every editable field
+      // must be here — anything left out is saved as null on each edit.
+      Method:             test.method ?? null,
+      TechniqueId:        test.techniqueId ?? null,
+      RepeatIntervalDays: test.repeatIntervalDays ?? null,
     };
   }
 

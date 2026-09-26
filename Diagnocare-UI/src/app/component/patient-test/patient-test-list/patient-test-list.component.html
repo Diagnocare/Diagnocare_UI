@@ -295,6 +295,15 @@
               <i class="fa" [ngClass]="openingSmartReportFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-heartbeat'"></i>
               {{ openingSmartReportFor === test.patient_Test_Id ? 'Preparing…' : 'Smart Report' }}
             </button>
+            <button class="btn btn-sm btn-protocol"
+                    *ngIf="!isCancelled(test) && reportStatus(test) !== 'Pending'"
+                    (click)="sendSmartReportOnWhatsApp(test, $event)"
+                    [disabled]="sendingSmartWhatsAppFor === test.patient_Test_Id || !patientWhatsAppNumber"
+                    [title]="!patientWhatsAppNumber ? 'No valid mobile number on this patient'
+                              : 'Send the Smart Report link to the patient on WhatsApp'">
+              <i class="fa" [ngClass]="sendingSmartWhatsAppFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+              {{ sendingSmartWhatsAppFor === test.patient_Test_Id ? 'Preparing…' : 'Send Smart Report' }}
+            </button>
             <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
                     title="View payment receipts for this test">
               <i class="fa fa-file-text"></i> View Receipts

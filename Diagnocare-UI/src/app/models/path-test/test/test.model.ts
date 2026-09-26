@@ -43,6 +43,13 @@ export class TestItem {
      */
     effectiveMethod: string | null = null;
 
+    /**
+     * How often a patient should repeat this test, in days (90 for HbA1c, 180 for a lipid
+     * profile…). When set, the patient appears on Test Reminders shortly before it is due and
+     * can be reminded on WhatsApp. Null = never remind (the default for every test).
+     */
+    repeatIntervalDays: number | null = null;
+
     constructor(init?: Partial<TestItem>) {
         if (init) {
             Object.assign(this, init);
