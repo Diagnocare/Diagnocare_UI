@@ -68,21 +68,68 @@ export class NumericOnlyDirective {
     }
   }
 
-  /** Inserts only the digits of `raw` at the caret, honouring maxlength. */
+  /**
+   * Puts the digits of `raw` into the field, honouring maxlength.
+   *
+   * A paste that is a whole value on its own REPLACES the field instead of being inserted
+   * into it — pasting a mobile number into a box that already holds one must give the new
+   * number, not the old one with digits stuck on (which maxlength then cut back off, so the
+   * paste looked like it did nothing). That is the case when:
+   *   - the pasted digits fill maxlength (a complete 10-digit number), or
+   *   - the field cannot report a caret (type="number"), or
+   *   - the whole current value is selected.
+   * Anything shorter is inserted at the caret, as typing would.
+   *
+   * When a maxlength is set and more digits are pasted than fit, the LAST ones are kept:
+   * "+91 98765 43210" or "098765 43210" becomes "9876543210" rather than "9198765432".
+   */
   private insertDigits(raw: string): void {
-    const digits = (raw ?? '').replace(/\D/g, '');
+    let digits = (raw ?? '').replace(/\D/g, '');
     if (!digits) return;
 
     const input = this.el.nativeElement;
-    const max = input.maxLength && input.maxLength > 0 ? input.maxLength : Number.MAX_SAFE_INTEGER;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
+    const hasMax = input.maxLength > 0;
+    const max = hasMax ? input.maxLength : Number.MAX_SAFE_INTEGER;
+    if (hasMax && digits.length > max) digits = digits.slice(-max);
 
-    const next = (input.value.slice(0, start) + digits + input.value.slice(end)).slice(0, max);
+    const current = input.value ?? '';
+    const { start, end } = NumericOnlyDirective.selectionOf(input);
+    const wholeSelected = start === 0 && end === current.length && current.length > 0;
+    const replace = start === null || wholeSelected || (hasMax && digits.length >= max);
+
+    let next: string;
+    let caret: number;
+    if (replace) {
+      next = digits.slice(0, max);
+      caret = next.length;
+    } else {
+      next = (current.slice(0, start!) + digits + current.slice(end!)).slice(0, max);
+      caret = Math.min(start! + digits.length, next.length);
+    }
+
     input.value = next;
-
-    const caret = Math.min(start + digits.length, next.length);
-    input.setSelectionRange?.(caret, caret);
+    NumericOnlyDirective.setCaret(input, caret);
     input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /**
+   * Caret / selection of the field, or nulls when the input type has none. type="number"
+   * (and email) report null in Chrome and throw in some older engines.
+   */
+  private static selectionOf(input: HTMLInputElement): { start: number | null; end: number | null } {
+    try {
+      return { start: input.selectionStart, end: input.selectionEnd };
+    } catch {
+      return { start: null, end: null };
+    }
+  }
+
+  /** setSelectionRange throws InvalidStateError on type="number" — it is cosmetic, so skip it there. */
+  private static setCaret(input: HTMLInputElement, caret: number): void {
+    try {
+      input.setSelectionRange(caret, caret);
+    } catch {
+      /* input type without selection support */
+    }
   }
 }
