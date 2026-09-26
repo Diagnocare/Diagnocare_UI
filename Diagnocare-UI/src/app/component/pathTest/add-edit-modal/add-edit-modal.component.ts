@@ -8,6 +8,7 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
+import { REPEAT_INTERVAL_PRESETS } from 'src/app/models/testReminder/test-reminder.model';
 import {
   TechniqueGroup,
   TestTechniqueDto,
@@ -86,6 +87,20 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
    * a sentinel that would become a dangling foreign key.
    */
   readonly OTHER_TECHNIQUE = -1;
+
+  /**
+   * Choices for "Remind patient to repeat". A test that already carries an interval not in
+   * the presets (set through the API or an import) gets it as an extra option, so opening
+   * the form never silently changes it.
+   */
+  repeatOptions(test: TestItem): { days: number; label: string }[] {
+    const current = test?.repeatIntervalDays;
+    if (current && !REPEAT_INTERVAL_PRESETS.some(p => p.days === current)) {
+      return [...REPEAT_INTERVAL_PRESETS, { days: current, label: `Every ${current} days` }]
+        .sort((a, b) => a.days - b.days);
+    }
+    return REPEAT_INTERVAL_PRESETS;
+  }
 
   formData = {
     group: new GroupSubGroupModel(),
@@ -539,6 +554,7 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
       // recorded technique every time somebody edited the test's price.
       this.updatedFormData.test.method      = match.method ?? null;
       this.updatedFormData.test.techniqueId = match.techniqueId ?? null;
+      this.updatedFormData.test.repeatIntervalDays = match.repeatIntervalDays ?? null;
       this.testRegId = match.testRegId;
     }
   }

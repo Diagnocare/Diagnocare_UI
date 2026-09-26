@@ -246,6 +246,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
+      // Repeat-test reminders on WhatsApp — the Lab Operations roles (API: LabOperations policy).
+      { path: 'test-reminders', title: 'Test Reminders',
+        loadComponent: () => import('./component/test-reminders/test-reminders.component').then(m => m.TestRemindersComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+
       // Discount approvals — Super Admin only (the API enforces SuperAdminOnly too).
       { path: 'discount-approvals', title: 'Discount Approvals',
         loadComponent: () => import('./component/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),

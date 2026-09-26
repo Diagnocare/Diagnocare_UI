@@ -1,0 +1,172 @@
+<div class="tr-page">
+  <div class="tr-hero">
+    <div>
+      <h1><i class="fa fa-whatsapp"></i> Test Reminders</h1>
+      <p class="subtitle">
+        Patients due to repeat a regular test — HbA1c, lipid profile, blood sugar and other lifestyle tests.
+        Reminders appear {{ settings?.leadDays ?? 3 }} days before the due date.
+        Open WhatsApp, press send, then mark it as sent.
+      </p>
+    </div>
+    <div class="tr-hero-actions">
+      <button *ngIf="isAdmin && settings?.whatsAppApiConfigured && tab === 'due'"
+              class="btn-light" type="button" (click)="sendAutomatic()"
+              [disabled]="isAutoSending || due.length === 0"
+              title="Send every reminder below through the WhatsApp Business API">
+        <i class="fa" [ngClass]="isAutoSending ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i> Send all automatically
+      </button>
+      <button class="btn-light" type="button" (click)="refresh()" [disabled]="isLoading">
+        <i class="fa fa-sync" [class.fa-spin]="isLoading"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- No test has an interval yet — nothing can ever show up. Say how to fix it. -->
+  <div class="tr-note" *ngIf="settings && settings.testsWithInterval === 0">
+    <i class="fa fa-info-circle"></i>
+    <span>
+      No test is set up for reminders yet. Open <strong>Lab Operations → Master Test details</strong>,
+      edit a test such as HbA1c or Lipid Profile, and choose <strong>Remind patient to repeat</strong>
+      (for example every 3 months).
+    </span>
+  </div>
+
+  <div class="tr-note tr-note--auto" *ngIf="settings?.autoSend && settings?.whatsAppApiConfigured">
+    <i class="fa fa-robot"></i>
+    <span>Automatic sending is on — reminders go out by themselves once a day. Anything left here could not be sent automatically.</span>
+  </div>
+
+  <div class="tr-tabs" role="tablist">
+    <button class="tr-tab" role="tab" type="button" [class.active]="tab === 'due'"
+            [attr.aria-selected]="tab === 'due'" (click)="setTab('due')">
+      Due <span class="tab-count" [class.zero]="due.length === 0">{{ due.length }}</span>
+    </button>
+    <button class="tr-tab" role="tab" type="button" [class.active]="tab === 'history'"
+            [attr.aria-selected]="tab === 'history'" (click)="setTab('history')">
+      Sent &amp; skipped
+    </button>
+  </div>
+
+  <div class="tr-error" *ngIf="loadError">
+    <i class="fa fa-exclamation-triangle"></i> {{ loadError }}
+    <button type="button" class="link-btn" (click)="refresh()">Try again</button>
+  </div>
+
+  <!-- ── Due ─────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="tab === 'due'">
+    <div class="tr-toolbar" *ngIf="due.length > 0">
+      <div class="tr-chips">
+        <button type="button" class="tr-chip" [class.active]="filter === 'all'" (click)="filter = 'all'">
+          All <span>{{ due.length }}</span>
+        </button>
+        <button type="button" class="tr-chip tr-chip--overdue" [class.active]="filter === 'overdue'" (click)="filter = 'overdue'">
+          Overdue <span>{{ overdueCount }}</span>
+        </button>
+        <button type="button" class="tr-chip" [class.active]="filter === 'upcoming'" (click)="filter = 'upcoming'">
+          Coming up <span>{{ upcomingCount }}</span>
+        </button>
+      </div>
+      <input type="search" class="form-control tr-search" [(ngModel)]="search"
+             placeholder="Search patient, mobile or test" />
+    </div>
+
+    <div class="tr-empty" *ngIf="!isLoading && !loadError && due.length === 0">
+      <i class="fa fa-check-circle"></i>
+      <p>No reminders due right now.</p>
+    </div>
+
+    <div class="tr-empty tr-empty--muted" *ngIf="!isLoading && due.length > 0 && visibleDue.length === 0">
+      <p>No reminders match this filter.</p>
+    </div>
+
+    <div class="tr-card" *ngFor="let item of visibleDue; trackBy: trackByPatient"
+         [class.tr-card--overdue]="item.daysUntilDue < 0"
+         [class.tr-card--opened]="opened.has(item.patientId)">
+      <div class="tr-card-head">
+        <div>
+          <div class="tr-patient">{{ item.patientName }}</div>
+          <div class="tr-meta">
+            {{ item.patientId }}
+            <span *ngIf="item.contact"> · <i class="fa fa-phone-alt"></i> {{ item.contact }}</span>
+            <span class="tr-bad-number" *ngIf="!item.whatsAppNumber"> · No valid mobile number</span>
+          </div>
+        </div>
+        <span class="tr-badge" [class.tr-badge--overdue]="item.daysUntilDue < 0"
+              [class.tr-badge--today]="item.daysUntilDue === 0">{{ dueLabel(item) }}</span>
+      </div>
+
+      <ul class="tr-tests">
+        <li *ngFor="let t of item.tests">
+          <span class="tr-test-name">{{ t.testName }}</span>
+          <span class="tr-test-meta">
+            last done {{ t.lastTestDate | date:'d MMM y' }} · repeat {{ intervalLabel(t.repeatIntervalDays) }}
+            · due <strong>{{ t.dueDate | date:'d MMM y' }}</strong>
+          </span>
+        </li>
+      </ul>
+
+      <button type="button" class="link-btn tr-preview-toggle" (click)="togglePreview(item)">
+        <i class="fa" [ngClass]="preview.has(item.patientId) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        {{ preview.has(item.patientId) ? 'Hide message' : 'Preview message' }}
+      </button>
+      <pre class="tr-message" *ngIf="preview.has(item.patientId)">{{ item.message }}</pre>
+
+      <div class="tr-actions">
+        <button type="button" class="btn-skip" (click)="skip(item)" [disabled]="busyId === item.patientId">
+          Skip
+        </button>
+        <button type="button" class="btn-wa" (click)="openWhatsApp(item)"
+                [disabled]="!item.whatsAppNumber || busyId === item.patientId"
+                [class.btn-wa--secondary]="opened.has(item.patientId)">
+          <i class="fa fa-whatsapp"></i> {{ opened.has(item.patientId) ? 'Open again' : 'WhatsApp' }}
+        </button>
+        <button type="button" class="btn-sent" *ngIf="opened.has(item.patientId)"
+                (click)="markSent(item)" [disabled]="busyId === item.patientId">
+          <i class="fa" [ngClass]="busyId === item.patientId ? 'fa-spinner fa-spin' : 'fa-check'"></i> Mark as sent
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ── History ─────────────────────────────────────────────────── -->
+  <ng-container *ngIf="tab === 'history'">
+    <div class="tr-empty" *ngIf="!isLoading && !loadError && history.length === 0">
+      <i class="fa fa-history"></i>
+      <p>No reminders sent yet.</p>
+    </div>
+
+    <div class="tr-table-wrap" *ngIf="history.length > 0">
+      <table class="tr-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Test</th>
+            <th>Due</th>
+            <th>Status</th>
+            <th>When</th>
+            <th>By</th>
+            <th>Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let h of history; trackBy: trackById">
+            <td>
+              <div class="tr-patient-sm">{{ h.patientName }}</div>
+              <div class="tr-meta">{{ h.patientId }}<span *ngIf="h.phone"> · {{ h.phone }}</span></div>
+            </td>
+            <td>{{ h.testName }}</td>
+            <td>{{ h.dueDate | date:'d MMM y' }}</td>
+            <td>
+              <span class="tr-badge" [class.tr-badge--sent]="h.status === 'Sent'"
+                    [class.tr-badge--skipped]="h.status === 'Skipped'">{{ h.status }}</span>
+              <div class="tr-meta" *ngIf="h.channel === 'WhatsAppApi'">Automatic</div>
+            </td>
+            <td>{{ h.actionedAt | date:'d MMM, h:mm a' }}</td>
+            <td>{{ h.actionedBy || '—' }}</td>
+            <td class="tr-remark-cell">{{ h.remark || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+</div>

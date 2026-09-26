@@ -292,14 +292,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     return (this.statusFilter || '').toLowerCase() === 'completed';
   }
 
-  /**
-   * Opens the completed patient's test view where the report can be
-   * viewed/downloaded. Reuses the existing patient-tests navigation.
-   */
-  downloadCompletedReport(patientId: string) {
-    this.viewPatientTest(patientId);
-  }
-
   applyFilters() {
     this.filteredPatients = this.paginatedPatients.filter(patient => {
       const matchesSearch = !this.searchTerm ||
