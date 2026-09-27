@@ -18,6 +18,10 @@
           <span class="legend-chip chip-h">H</span>
           <span class="legend-lbl">Holiday</span>
         </span>
+        <span class="legend-item">
+          <span class="legend-chip chip-req">R</span>
+          <span class="legend-lbl">Requested — awaiting approval</span>
+        </span>
       </div>
     </div>
 
@@ -137,10 +141,11 @@
                   [ngClass]="cellClass(cell)"
                   [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
                   [class.requestable]="!cell.isFuture && !cell.isHoliday"
-                  [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                  [title]="cellActionTitle(cell)"
                   (click)="requestCorrection(cell)">
                   {{ cellLabel(cell) }}
-                  <i class="fa fa-pen req-pen" *ngIf="!cell.isFuture && !cell.isHoliday"></i>
+                  <i class="fa fa-pen req-pen"
+                     *ngIf="!cell.isFuture && !cell.isHoliday && !hasOpenRequest(cell)"></i>
                 </span>
               </td>
 
@@ -211,7 +216,7 @@
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
                       [class.requestable]="!cell.isFuture && !cell.isHoliday"
-                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      [title]="cellActionTitle(cell)"
                       (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
                     </span>
@@ -279,7 +284,7 @@
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
                       [class.requestable]="!cell.isFuture && !cell.isHoliday"
-                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      [title]="cellActionTitle(cell)"
                       (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
                     </span>

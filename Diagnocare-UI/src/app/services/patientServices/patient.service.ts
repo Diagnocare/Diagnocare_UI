@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { map, Observable, of } from 'rxjs';
 import { PatientCreateDto } from '../../models/patient/patient-create.dto';
@@ -7,6 +7,9 @@ import { PatientEditDto } from '../../models/patient/patient-edit.dto';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { KeyValuePair } from 'src/app/models/common/keyValuePair';
+import { BookingResultDto } from '../../models/patient/booking-result.dto';
+import { PagedRequest, PagedResponse } from '../../models/common/page-sort-request';
+import { PatientSearchFilter } from '../../models/patient/patient-search-filter';
 
 @Injectable({
   providedIn: 'root'
@@ -33,19 +36,39 @@ export class PatientService {
     return this.httpClient.get<KeyValuePair>(geturl);
   }
 
-  AddPatient(data: PatientCreateDto): Observable<PatientCreateDto> {
+  /**
+   * Registers a new patient and books their first test.
+   *
+   * Returns a BookingResultDto, NOT the payload that was sent — the response
+   * carries the server-generated patient id, the new booking's testRegId and one
+   * barcode per booked test, which is what lets the caller print sample labels.
+   * (It was previously typed as PatientCreateDto, which never matched what the
+   * API actually returned.)
+   */
+  AddPatient(data: PatientCreateDto): Observable<BookingResultDto> {
     const addurl = this.patienturl + apiEndpoints.add;
-    console.log(addurl);
-    return this.httpClient.post<PatientCreateDto>(addurl, data);
+    return this.httpClient.post<BookingResultDto>(addurl, data);
   }
 
   /**
    * Adds a new test (and initial payment) for an already-registered patient.
-   * POST api/patient/AddTest
+   * Answers in the same shape as AddPatient, so a returning patient's booking can
+   * print labels through exactly the same code path.
+   * POST api/patient/AddTestWithReceipt
    */
-  addPatientTest(data: AddPatientTestDto): Observable<any> {
+  addPatientTest(data: AddPatientTestDto): Observable<BookingResultDto> {
     const url = this.patienturl + apiEndpoints.addTestWithReceipt;
-    return this.httpClient.post<any>(url, data);
+    return this.httpClient.post<BookingResultDto>(url, data);
+  }
+
+  /**
+   * Sets "Sampling Done At" on a booking saved without one. The response carries
+   * the booking's barcodes — they are only generated once the location is set.
+   * PUT api/patient/UpdateSamplingLocation
+   */
+  updateSamplingLocation(patientTestId: number, samplingDoneAt: string): Observable<BookingResultDto> {
+    const url = this.patienturl + apiEndpoints.updateSamplingLocation;
+    return this.httpClient.put<BookingResultDto>(url, { patientTestId, samplingDoneAt });
   }
 
   updatePatientDetails(patient: PatientEditDto): Observable<boolean> {
@@ -85,18 +108,13 @@ export class PatientService {
     return this.httpClient.delete<any>(url);
   }
 
-  searchPatients(searchTerm: string, pageNumber: number, pageSize: number, dateFrom?: string, dateTo?: string, status?: string): Observable<any> {
-    let searchUrl = `${this.patienturl}${apiEndpoints.searchPatients}?searchTerm=${encodeURIComponent(searchTerm)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-    if (dateFrom) {
-      searchUrl += `&dateFrom=${dateFrom}`;
-    }
-    if (dateTo) {
-      searchUrl += `&dateTo=${dateTo}`;
-    }
-    if (status) {
-      searchUrl += `&status=${encodeURIComponent(status)}`;
-    }
-    return this.httpClient.get<any>(searchUrl);
+  /**
+   * Searches patients. Filtering, sorting and paging all run on the server.
+   * POST api/Patient/SearchPatients
+   */
+  searchPatients(request: PagedRequest<PatientSearchFilter>): Observable<PagedResponse<any>> {
+    const searchUrl = `${this.patienturl}${apiEndpoints.searchPatients}`;
+    return this.httpClient.post<PagedResponse<any>>(searchUrl, request);
   }
   getDistinctReferredBy(referredByType:string): Observable<string[]> {
     const getUrl = `${this.patienturl}${apiEndpoints.getDistinctReferredBy}?referred_By_Type=${referredByType}`;
@@ -142,18 +160,10 @@ export class PatientService {
     return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null });
   }
 
-  /**
-   * Updates the status of a patient based on their test completion status.
-   * Called after booking cancellation or test completion to auto-update patient status.
-   * PUT api/patient/UpdatePatientStatus
-   *
-   * @param patientId The patient ID to update
-   * @param newStatus The new patient status ('Pending' | 'Partial' | 'Completed')
-   * @returns Observable indicating success
-   */
-  updatePatientStatus(patientId: string, newStatus: string): Observable<any> {
-    const url = `${this.patienturl}/UpdatePatientStatus`;
-    return this.httpClient.put<any>(url, { patientId, status: newStatus });
-  }
+  // NOTE: there is deliberately no updatePatientStatus() here.
+  // A patient's test status is derived server-side on every read
+  // (PatientService.ComputeTestStatus, which excludes cancelled bookings);
+  // it is not stored, and api/Patient has no UpdatePatientStatus action.
+  // The method that used to live here 404'd on every booking cancellation.
 
 }

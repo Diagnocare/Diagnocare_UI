@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChangeDetectorRef,
   Component,
   EventEmitter,
@@ -16,8 +16,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Subject, forkJoin, of } from 'rxjs';
-import { takeUntil, switchMap, catchError, map } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { ToastrService } from 'ngx-toastr';
 
 import {
@@ -31,6 +31,8 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
 import { ReceiptCreateDto }   from 'src/app/models/receipt/receipt-create.dto';
 import { AddPatientTestDto }  from 'src/app/models/patient/add-patient-test.dto';
 import { PatientService }     from 'src/app/services/patientServices/patient.service';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { BookingResultDto }   from 'src/app/models/patient/booking-result.dto';
 import { PathTestService }    from 'src/app/services/pathTestServices/path-test-service';
 import { CommonService }      from 'src/app/shared/common.service';
 import { AutocompleteInputDirective } from 'src/app/shared/directives/autocomplete-input.directive';
@@ -43,19 +45,16 @@ import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-d
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
-
-// ── Simple UI kit ────────────────────────────────────────────────────────────
-// The new test picker and payment panel render instead of the catalogue and the
-// payment step when USE_NEW_UI is on. The old markup stays in the template
-// behind *ngIf="!useNewUi" so the two can be compared with the same patient.
-import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
-import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
-import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
+import {
+  TestBookingProtocolsDto,
+  TestProtocolDto,
+} from 'src/app/models/path-test/protocol/test-protocol.model';
 
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, DcTestPickerComponent, DcPaymentPanelComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -97,24 +96,26 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   selectedTests:  TestItem[] = [];
   focusedTestId:  string | null = null;
 
-  // ── Simple UI kit ───────────────────────────────────────────────────────────
-  /** Flip in shared/simple/simple-ui.flags.ts to compare old and new. */
-  readonly useNewUi = USE_NEW_UI;
-
+  // ── Sample collection protocols ───────────────────────────────────────────
   /**
-   * The whole catalogue, flat. The old picker loads tests one sub-group at a
-   * time because that is all it can show; the new one searches everything, so
-   * it needs the lot. Loaded once per modal open and cached for the session.
+   * Protocols for the test the operator last clicked in the catalogue. A list, because a
+   * test can be collected under several. Null until something has been clicked; an empty
+   * array means the test has none linked, which the panel states in words.
    */
-  allTests: TestItem[] = [];
-  isLoadingAllTests = false;
+  focusedProtocols: TestProtocolDto[] | null = null;
+  focusedProtocolTestName = '';
+  focusedProtocolTestCode = '';
+  focusedProtocolLoading = false;
+  /** Guards against an earlier, slower protocol response overwriting a later one. */
+  private protocolRequestSeq = 0;
 
-  /**
-   * The same catalogue as a tree — group → sub-group → tests — which is what
-   * the picker browses. `allTests` above is the flat view of exactly this, kept
-   * so a code from the picker can be resolved back to its TestItem.
-   */
-  testGroups: DcTestGroup[] = [];
+  /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
+  selectedTestProtocols: TestBookingProtocolsDto[] = [];
+  selectedProtocolsLoading = false;
+  /** Collapsed by default so selecting tests stays uncluttered; the operator opens it with the toggle. */
+  showSelectedProtocols = false;
+  /** Catalogue protocol panel for the last-clicked test — hidden until the operator asks for it. */
+  showFocusedProtocol = false;
 
   // ── Referred By autocomplete ──────────────────────────────────────────────
   referredByOptions:         string[] = [];
@@ -151,6 +152,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private _sampling:       SamplingLocationService,
     private _contactService: ContactAddressService,
     private _token:          TokenService,
+    private _sampleLabelService: SampleLabelService,
   ) {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
@@ -158,7 +160,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       test_Amount:       ['', Validators.required],
       referred_By_Type:  ['Doctor', Validators.required],
       referred_By:       ['', Validators.required],
-      sampling_Done:     [''],
+      sampling_Done:     [this._sampling.getDefault()],
       collected_Outside: [false],
       area:              [''],
       collected_By:      [''],
@@ -189,24 +191,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   get totalAmount(): number {
     return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0);
-  }
-
-  // ── Simple UI kit adapters ──────────────────────────────────────────────────
-  // The picker knows nothing about TestItem or the API — these two getters are
-  // the entire coupling, which is what lets it be previewed without a backend.
-
-  private toPickable(t: TestItem, groupName: string): DcPickableTest {
-    return {
-      code:     t.testCode,
-      name:     t.testName,
-      price:    Number(t.price || 0),
-      bookable: this.isTestBookable(t),
-      group:    groupName,
-    };
-  }
-
-  get selectedTestCodes(): string[] {
-    return this.selectedTests.map(t => t.testCode);
   }
 
   get isStep1Valid(): boolean {
@@ -270,15 +254,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   openTestCatalog(event: Event): void {
     event.preventDefault();
-
-    // The new picker searches the whole catalogue, so it opens immediately and
-    // fills in as the list arrives — no group has to be chosen first.
-    if (this.useNewUi) {
-      this.showTestCatalog = true;
-      this.loadAllTests();
-      return;
-    }
-
     this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: GroupSubGroupModel[]) => {
         this.groupedTests = res ?? [];
@@ -327,8 +302,100 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return (t?.parameterCount ?? 0) > 0;
   }
 
+  /**
+   * Loads the protocol for the test the operator just clicked.
+   *
+   * Clicking a row in the catalogue both selects the test and focuses it, so this rides
+   * along with the existing click rather than adding a second gesture — the operator sees
+   * the requirements for whatever they last touched, without hunting for an info button.
+   *
+   * Responses are sequence-checked: a fast click through several tests can return out of
+   * order, and showing the wrong test's sample requirements is worse than showing none.
+   */
+  private loadFocusedProtocol(t: TestItem): void {
+    const testRegId = t?.testRegId ?? 0;
+    this.focusedProtocolTestName = t?.testName ?? '';
+    this.focusedProtocolTestCode = t?.testCode ?? '';
+
+    if (!testRegId) {
+      this.focusedProtocols = null;
+      this.focusedProtocolLoading = false;
+      return;
+    }
+
+    const seq = ++this.protocolRequestSeq;
+    this.focusedProtocolLoading = true;
+
+    this._testService.getTestProtocols(testRegId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (protocols) => {
+        if (seq !== this.protocolRequestSeq) return;
+        this.focusedProtocols = protocols ?? [];
+        this.focusedProtocolLoading = false;
+      },
+      // Message shown centrally by ErrorInterceptor. Leaving the protocol null makes the
+      // panel say the requirements are unknown, which is the truthful outcome here.
+      error: () => {
+        if (seq !== this.protocolRequestSeq) return;
+        this.focusedProtocols = null;
+        this.focusedProtocolLoading = false;
+      },
+    });
+  }
+
+  /**
+   * Loads protocols for everything currently in the basket, for the summary on step 1.
+   * One request for the whole selection rather than one per test.
+   */
+  private loadSelectedProtocols(): void {
+    const codes = this.selectedTests.map(t => t.testCode).filter(c => !!c);
+    if (!codes.length) {
+      this.selectedTestProtocols = [];
+      this.selectedProtocolsLoading = false;
+      return;
+    }
+
+    this.selectedProtocolsLoading = true;
+    this._testService.getTestProtocolsByCodes(codes).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (grouped) => {
+        this.selectedTestProtocols = grouped ?? [];
+        this.selectedProtocolsLoading = false;
+      },
+      error: () => {
+        this.selectedTestProtocols = [];
+        this.selectedProtocolsLoading = false;
+      },
+    });
+  }
+
+  /** Tests in the basket with no protocol linked at all. */
+  get testsMissingProtocol(): TestBookingProtocolsDto[] {
+    return this.selectedTestProtocols.filter(t => !t.protocols?.length);
+  }
+
+  /**
+   * Tests in the basket that need the patient to fast, with the longest fast each one
+   * demands — the one requirement that has to reach the patient before they leave.
+   *
+   * The longest, not the first: a test collected under two protocols with 8 and 12 hours
+   * needs 12, and telling the patient the shorter number wastes their second trip.
+   */
+  get fastingTests(): { testName: string; hours: number | null }[] {
+    return this.selectedTestProtocols
+      .map(t => {
+        const fasting = (t.protocols ?? []).filter(p => p.fastingRequired);
+        if (!fasting.length) return null;
+        const hours = fasting.reduce<number | null>(
+          (max, p) => (p.fastingHours != null && (max == null || p.fastingHours > max) ? p.fastingHours : max),
+          null,
+        );
+        return { testName: t.testName, hours };
+      })
+      .filter((x): x is { testName: string; hours: number | null } => x !== null);
+  }
+
   toggleTestSelection(t: TestItem): void {
     this.focusedTestId = t.testCode;
+    this.loadFocusedProtocol(t);
 
     // Selecting is blocked, but de-selecting must always work — otherwise a test
     // whose last parameter was deleted after it was picked would be stuck in the
@@ -354,6 +421,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     if (!t) return;
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
+    this.selectedTestProtocols = this.selectedTestProtocols.filter(t => t.testCode !== testId);
   }
 
   confirmTestSelection(): void {
@@ -376,117 +444,17 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     });
     this.showTestCatalog = false;
     this.calculateNetAmount();
+    // Bring the requirements back to the form step, where the operator is still with the
+    // patient and can tell them about fasting before they leave.
+    this.loadSelectedProtocols();
   }
 
   cancelTestCatalog(): void {
     this.showTestCatalog = false;
-  }
-
-  // ── Simple UI kit: whole-catalogue load ─────────────────────────────────────
-
-  /**
-   * Loads the whole catalogue once, as a tree: group → sub-group → tests.
-   *
-   * The original screen fetched one sub-group's tests at a time because that is
-   * all it could show. The picker browses the same three levels AND searches
-   * across every test, so it needs the lot up front.
-   *
-   * Built from the three endpoints that already exist — no API change is needed
-   * to try the new screen. Every request fails soft: one bad sub-group costs its
-   * own tests, not the whole catalogue. The result is cached for the life of the
-   * component.
-   */
-  private loadAllTests(): void {
-    if (this.testGroups.length > 0 || this.isLoadingAllTests) return;
-    this.isLoadingAllTests = true;
-
-    this._testService.getTestGroupList().pipe(
-      switchMap((groups: GroupSubGroupModel[]) => {
-        if (!groups || groups.length === 0) return of([] as DcTestGroup[]);
-
-        return forkJoin(groups.map(group =>
-          this._testService.getTestSubGroupList(group.testGroupId).pipe(
-            catchError(() => of([] as GroupSubGroupModel[])),
-            switchMap((subs: GroupSubGroupModel[]) => {
-              if (!subs || subs.length === 0) {
-                return of({ id: group.testGroupId, name: group.name, subGroups: [] } as DcTestGroup);
-              }
-              return forkJoin(subs.map(sub =>
-                this._testService.getMedicalTestList(sub.testGroupId).pipe(
-                  catchError(() => of([] as any[])),
-                  map((tests: any[]) => ({
-                    id:    sub.testGroupId,
-                    name:  sub.name,
-                    tests: (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
-                    rawTests: (tests ?? []) as TestItem[],
-                  })),
-                )
-              )).pipe(map(subGroups => ({
-                id:        group.testGroupId,
-                name:      group.name,
-                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
-                rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
-              })));
-            }),
-          )
-        ));
-      }),
-      takeUntil(this.destroy$),
-    ).subscribe({
-      next: (groups: any[]) => {
-        this.testGroups = (groups ?? []).map(g => ({
-          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
-        }));
-
-        // Flat view, de-duplicated: a test can appear under more than one
-        // sub-group, and the picker hands back a code we must resolve.
-        const seen = new Set<string>();
-        this.allTests = ([] as TestItem[])
-          .concat(...(groups ?? []).map((g: any) => g.rawTests ?? []))
-          .filter((t: TestItem) => {
-            const code = String(t?.testCode ?? '');
-            if (!code || seen.has(code)) return false;
-            seen.add(code);
-            return true;
-          });
-
-        this.isLoadingAllTests = false;
-      },
-      // Message shown centrally by ErrorInterceptor.
-      error: () => { this.isLoadingAllTests = false; },
-    });
-  }
-
-  /** Bridges the picker's plain shape back to the existing selection logic,
-   *  so every rule already in toggleTestSelection still applies. */
-  onPickerToggled(picked: DcPickableTest): void {
-    const test = this.allTests.find(t => t.testCode === picked.code);
-    if (test) this.toggleTestSelection(test);
-  }
-
-  /**
-   * Applies a decision from the new payment panel to the existing form, so
-   * submit(), isStep2Valid and the DTO builders are untouched.
-   *
-   * `paymentConfirmed` exists because the old flow confirms a partial payment
-   * in its own dialog; the new panel has no dialog, so a complete decision IS
-   * the confirmation.
-   */
-  onPaymentDecision(decision: DcPaymentDecision): void {
-    this.form.patchValue({
-      payment_Type:   decision.type || this.form.get('payment_Type')?.value,
-      payment_Mode:   decision.mode || this.form.get('payment_Mode')?.value,
-      amount_Paid:    decision.amountPaid,
-      amount_Pending: decision.amountPending,
-    });
-
-    this.paymentConfirmed =
-      decision.complete && decision.type === paymentType.Partial;
-
-    // TPA still needs its own details; open the existing modal on demand.
-    if (decision.mode === paymentMode.TPA && !this.tpaDetails) {
-      this.showTpaModal = true;
-    }
+    // The basket survives "Back to Form", so the summary on step 1 has to be refreshed
+    // here too. Without this, backing out after changing the selection leaves the fasting
+    // and missing-protocol alerts describing a basket that no longer exists.
+    this.loadSelectedProtocols();
   }
 
   isTestSelected(t: TestItem): boolean {
@@ -811,7 +779,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         collected_Outside: f.collected_Outside ?? false,
         area:              f.area              ?? '',
         collected_By:      f.collected_By      ?? '',
-        sampling_Done:     f.sampling_Done     ?? '',
+        // API property is Sampling_Done_At; 'sampling_Done' was silently dropped.
+        sampling_Done_At:  f.sampling_Done     ?? '',
       },
       receipt,
     };
@@ -820,14 +789,71 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.saveError = '';
 
     this._patientService.addPatientTest(payload).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
+      next: (res: BookingResultDto) => {
         this.isSaving = false;
+
+        // The API answers 200 with success:false when the booking was rejected
+        // for a business reason (an unbookable test, say). Treating any 200 as a
+        // success would close the modal on a booking that never happened.
+        if (!res?.success) {
+          this.saveError = res?.message || 'Failed to add test. Please try again.';
+          return;
+        }
+
+        this.printSampleLabels(res);
         this.saved.emit();
       },
-      error: (err: Error) => {
+      error: (err: any) => {
         this.isSaving  = false;
-        this.saveError = err.message || 'Failed to add test. Please try again.';
+        // A rejected booking now comes back as 400 carrying a BookingResultDto,
+        // so the useful message is in err.error.message — err.message alone would
+        // only ever say "Http failure response ...".
+        this.saveError = err?.error?.message || err?.message || 'Failed to add test. Please try again.';
       },
+    });
+  }
+
+  /**
+   * Opens the sample collection labels for a just-created booking — one sticker
+   * per booked test, with the print dialog opening by itself.
+   *
+   * Deliberately NOT piped through takeUntil(this.destroy$): saved.emit() closes
+   * this modal, which destroys the component and completes destroy$. A label
+   * request bound to that would be cancelled mid-flight and the labels would
+   * silently never appear.
+   *
+   * Failures are non-fatal and reported through toastr rather than saveError: the
+   * test IS booked by this point, and putting the message in the modal's error
+   * slot would read as though the booking had failed.
+   */
+  private printSampleLabels(booking: BookingResultDto): void {
+    if (booking.testRegId && booking.labelsReady === false) {
+      this.toastr.info(
+        'Barcode not generated because "Sampling Done At" was not selected. ' +
+        'Select it on this booking in the test list to generate the barcode.',
+        'Barcode pending', { timeOut: 8000 });
+      return;
+    }
+
+    if (!booking.testRegId || !booking.labels?.length) {
+      return;
+    }
+
+    this._sampleLabelService.printLabels(booking.testRegId).subscribe({
+      next: (opened: boolean) => {
+        if (!opened) {
+          this.toastr.warning(
+            'Test booked, but the label window was blocked. ' +
+            'Allow pop-ups for this site, then reprint from the patient\'s tests.',
+            'Labels not shown');
+        }
+      },
+      error: () => {
+        this.toastr.warning(
+          'Test booked, but the sample labels could not be fetched. ' +
+          'You can reprint them from the patient\'s tests.',
+          'Labels not printed');
+      }
     });
   }
 
@@ -850,6 +876,19 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.query                = '';
     this.selectedTestIds      = new Set<string>();
     this.selectedTests        = [];
+    this.focusedTestId             = null;
+    this.focusedProtocols          = null;
+    this.focusedProtocolTestName   = '';
+    this.focusedProtocolTestCode   = '';
+    this.focusedProtocolLoading    = false;
+    // protocolRequestSeq is deliberately NOT reset. The modal is reused across opens, and
+    // rewinding the counter would let a response still in flight from the previous session
+    // match a sequence number issued after the reset — writing one test's sample
+    // requirements onto another, which is the exact failure the counter exists to prevent.
+    this.selectedTestProtocols     = [];
+    this.selectedProtocolsLoading  = false;
+    this.showSelectedProtocols     = false;
+    this.showFocusedProtocol       = false;
     this.referredByContacts        = [];
     this.referredByOptions         = [];
     this.filteredReferredByOptions = [];
@@ -861,7 +900,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       test_Amount:       '',
       referred_By_Type:  'Doctor',
       referred_By:       '',
-      sampling_Done:     '',
+      sampling_Done:     this._sampling.getDefault(),
       collected_Outside: false,
       area:              '',
       collected_By:      '',

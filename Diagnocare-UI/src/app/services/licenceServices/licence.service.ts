@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, finalize, map, shareReplay, tap, timeout } from 'rxjs/operators';
 import { PathologyService } from '../pathologyServices/pathology.service';
 
 /**
@@ -22,6 +22,26 @@ export class LicenceService {
   /** True once the API has been called (prevents duplicate requests). */
   private loaded = false;
 
+  /**
+   * The in-flight request, shared by every caller until it settles.
+   *
+   * `loaded` is only set once the response arrives, so without this every
+   * navigation that happens while the first call is still outstanding fired its
+   * own duplicate request — and each one blocked its navigation independently.
+   */
+  private inFlight$: Observable<void> | null = null;
+
+  /**
+   * Hard ceiling on how long a navigation may wait for the licence check.
+   *
+   * licenceGuard runs on every authenticated route, so this request sits
+   * directly in the path of the post-login redirect.  A backend that is slow to
+   * wake (the UAT app pool after an idle period) used to stall that navigation
+   * indefinitely with no feedback anywhere in the UI.  Past this deadline the
+   * guard fails open, exactly as it already does for a network error.
+   */
+  private static readonly LOAD_TIMEOUT_MS = 8_000;
+
   readonly isExpired$  = this._expired$.asObservable();
   readonly daysLeft$   = this._daysLeft$.asObservable();
   readonly expiryDate$ = this._expiryDate$.asObservable();
@@ -36,8 +56,12 @@ export class LicenceService {
     if (this.loaded) {
       return of(undefined);
     }
+    if (this.inFlight$) {
+      return this.inFlight$;
+    }
 
-    return this.pathologyService.getPathologyExpiryDate().pipe(
+    this.inFlight$ = this.pathologyService.getPathologyExpiryDate().pipe(
+      timeout(LicenceService.LOAD_TIMEOUT_MS),
       tap((response: any) => {
         if (response?.pathologyExpiryDate) {
           const expiry = new Date(response.pathologyExpiryDate);
@@ -56,11 +80,16 @@ export class LicenceService {
       }),
       map(() => undefined),
       catchError(() => {
-        // Fail open: a network error must not lock users out
+        // Fail open: a network error (or the timeout above) must not lock users
+        // out — and, more importantly, must not hold a navigation hostage.
         this.loaded = true;
         return of(undefined);
-      })
+      }),
+      finalize(() => { this.inFlight$ = null; }),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+
+    return this.inFlight$;
   }
 
   /**
@@ -69,7 +98,8 @@ export class LicenceService {
    * captured on the first load keeps being served for the rest of the session.
    */
   reset(): void {
-    this.loaded = false;
+    this.loaded   = false;
+    this.inFlight$ = null;
   }
 
   // ── Synchronous accessors (valid after load() has completed) ──────────────

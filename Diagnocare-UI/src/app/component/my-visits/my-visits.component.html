@@ -32,6 +32,9 @@
         <div class="detail-title">
           <i class="fa fa-calendar-day"></i>
           <span>{{ selectedDate | date:'EEEE, d MMMM yyyy' }}</span>
+          <span class="holiday-pill" *ngIf="selectedDayHolidayName">
+            <i class="fa fa-umbrella-beach"></i> {{ selectedDayHolidayName }}
+          </span>
         </div>
         <button class="btn btn-outline btn-sm" (click)="loadVisits()" [disabled]="isLoading">
           <i class="fa fa-sync-alt" [class.fa-spin]="isLoading"></i> Refresh

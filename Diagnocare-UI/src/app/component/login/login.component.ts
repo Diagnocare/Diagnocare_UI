@@ -4,7 +4,10 @@ import { ToastrService } from 'ngx-toastr';
 import { LoginModel } from '../../models/auth/loginModel';
 import { CommonModule } from '@angular/common';
 import { OtpMfaDialogComponent } from '../../shared/otp-mfa/otp-mfa-dialog.component';
-import { ActivatedRoute, NavigationEnd, NavigationExtras, Router, RouterModule } from '@angular/router';
+import {
+  ActivatedRoute, NavigationCancel, NavigationCancellationCode, NavigationEnd,
+  NavigationError, NavigationExtras, Router, RouterModule,
+} from '@angular/router';
 import { CommonService } from '../../shared/common.service';
 import { Role } from '../../constant/enums';
 import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
@@ -268,6 +271,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.loginForm.invalid) return;
 
     const raw = this.loginForm.value as LoginModel;
+    raw.userId = raw.userId.trim();
     this.isSubmitting = true;
 
     this._loginService.getUserDetails(raw).subscribe({
@@ -435,12 +439,24 @@ export class LoginComponent implements OnInit, OnDestroy {
    *   id = 0 for TOTP (backend loads user by userId); numeric user-id for OTP flows.
    */
   onOtpVerify(event: { code: string; authType: number }): void {
-    const userId = this.loginForm.get('userId')?.value as string;
+    const userId = this.loginForm.get('userId')?.value.trim() as string;
     if (!userId || !event.code || event.code.length !== 6) {
       this.toastr.warning('Please enter all 6 digits of the code.');
       return;
     }
 
+    // Re-entry guard.  The dialog auto-submits 100 ms after the sixth digit is
+    // entered AND leaves the "Verify Code" button clickable, so a user who types
+    // the last digit and then clicks Verify fires the request twice.  The OTP is
+    // single-use in the backend cache: the first request consumes it, the second
+    // comes back "Invalid OTP" and burns one of the three attempts that trigger
+    // the 15-minute lockout.
+    if (this.isVerifyingOtp) return;
+
+    // Drives [isSubmitting] on the dialog — spinner up, Verify disabled — for the
+    // whole round-trip AND, via navigateAfterLogin(), for the navigation that
+    // follows it.  Without this the submit has no visible effect whatsoever.
+    this.isVerifyingOtp = true;
 
     this._loginService.verifyAuth({
       authType: event.authType,
@@ -449,10 +465,15 @@ export class LoginComponent implements OnInit, OnDestroy {
       code: event.code,
     }).subscribe({
       next: (resp) => {
-        // Clear the verifying spinner first, before any early return below —
-        // an invalid code is still a completed request, so the dialog must go
-        // back to an editable state instead of spinning forever.
         if (!resp?.success) {
+          // An invalid code is still a completed request, so drop the spinner
+          // here — the dialog must go back to an editable state instead of
+          // spinning forever. This is deliberately INSIDE the failure branch:
+          // clearing it before the success handler ran left a window in which a
+          // queued auto-submit could fire a second verify against an OTP the
+          // first call had already consumed, and the backend answered that with
+          // "OTP expired or not found" on top of a perfectly good login.
+          this.isVerifyingOtp = false;
           const msg = (resp as any)?.message || 'Invalid code. Please try again.';
           // Lockout detected from verification response — close dialog, show lockout banner
           if (msg.toLowerCase().includes('locked')) {
@@ -465,8 +486,12 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.toastr.error(msg);
           return;
         }
+        // NOTE: isVerifyingOtp stays TRUE here.  handleSuccessfulLogin() hands off
+        // to navigateAfterLogin(), which keeps the dialog's spinner up until the
+        // router promise settles.  It is also what keeps the re-entry guard at the
+        // top of this method closed for the whole success path, so nothing can slip
+        // a second verify through while we navigate.
         this.handleSuccessfulLogin(resp);
-        this.isVerifyingOtp = false;
       },
       error: () => {
         this.isVerifyingOtp = false;
@@ -585,11 +610,70 @@ export class LoginComponent implements OnInit, OnDestroy {
    */
   private navigateAfterLogin(commands: any[], extras?: NavigationExtras): void {
     this.isVerifyingOtp = true;   // spinner stays until the route actually changes
+
+    // Router.navigate() resolving false only tells us the navigation did not
+    // stick — not why. These events carry the reason, and they are the fastest
+    // way to tell the real causes apart on a deployed environment:
+    //   • NavigationCancel  → a guard returned a UrlTree, or a second
+    //                         navigation (interceptor redirect to /login,
+    //                         session-terminated kick) superseded this one.
+    //   • NavigationError   → a guard threw, or a lazy chunk failed to load.
+    const events: any[] = [];
+    const diag = this._router.events
+      .pipe(filter(e => e instanceof NavigationCancel ||
+                        e instanceof NavigationError ||
+                        e instanceof NavigationEnd))
+      .subscribe(e => events.push(e));
+
+    // A guard that returns a UrlTree CANCELS our navigation and starts its own,
+    // so navigate() resolves false even though the login succeeded and the user
+    // lands somewhere perfectly valid:
+    //   licenceGuard   → /licence-expired  (note: 'patients' and 'patient-tests',
+    //                    two of our landing routes, are not in its EXEMPT_PATHS)
+    //   roleGuard      → /access-denied
+    //   pinExpiryGuard → /change-pin?reason=expired
+    // Retrying that is pointless — the guard redirects again — and the second
+    // false used to surface a "Navigation failed" toast on top of a successful
+    // login. A cancel carrying NavigationCancellationCode.Redirect is therefore
+    // a success, not a failure.
+    const wasRedirected = () => events.some(
+      e => e instanceof NavigationCancel && e.code === NavigationCancellationCode.Redirect);
+
+    // Second, independent check for the same situation, used after the retry has
+    // had a macrotask to settle: wherever we ended up, if it is not /login then
+    // the user is signed in and looking at a page, so there is nothing to report.
+    const landedOffLogin = () => {
+      const url = this._router.url ?? '';
+      return url !== '' && !url.startsWith('/login');
+    };
+
     this._router.navigate(commands, extras)
-      .catch(() => false)
+      .catch((err) => { events.push(err); return false; })
       .then((ok) => {
         this.isVerifyingOtp = false;
-        if (!ok) this.closeOtpDialog();
+        if (ok || wasRedirected()) { diag.unsubscribe(); return; }
+
+        console.warn('[post-login nav] blocked →', commands, events);
+
+        // One retry on the next macrotask. The usual blocker is transient: a
+        // guard's first-call HTTP (licenceGuard) still settling, or a redirect
+        // that has since finished. Retrying costs nothing when it was a real
+        // guard rejection — the second attempt is rejected the same way, and
+        // the user is left on /login exactly as before, but now with a logged
+        // reason instead of silence.
+        setTimeout(() => {
+          this._router.navigate(commands, extras)
+            .catch(() => false)
+            .then((retryOk) => {
+              diag.unsubscribe();
+              if (retryOk || wasRedirected() || landedOffLogin()) return;
+              console.error('[post-login nav] retry also blocked →', commands, events);
+              this.closeOtpDialog();
+              this.toastr.error(
+                'Signed in, but the page could not be opened. Please try again.',
+                'Navigation failed');
+            });
+        }, 0);
       });
   }
 

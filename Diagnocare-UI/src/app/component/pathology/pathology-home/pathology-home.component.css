@@ -260,6 +260,17 @@
 .vb-prog { background: rgba(30,136,229,.25); color: #90caf9; }
 .vb-wait { background: rgba(255,193,7,.2);   color: #ffd54f; }
 
+/* Shown instead of the rows when no one has registered yet today. Keeps the
+   card at a stable height so the hero doesn't reflow once data arrives. */
+.ph-vis-empty {
+  padding: 14px 10px;
+  text-align: center;
+  font-size: .74rem;
+  color: rgba(255,255,255,.45);
+  background: rgba(255,255,255,.04);
+  border-radius: 8px;
+}
+
 .ph-vis-spark { }
 .ph-spark-lbl {
   font-size: .63rem; color: rgba(255,255,255,.4);

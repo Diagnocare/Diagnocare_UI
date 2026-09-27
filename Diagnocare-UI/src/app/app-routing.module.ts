@@ -130,6 +130,11 @@ export const routes: Routes = [
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter',
         loadComponent: () => import('./component/pathTest/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
         canActivate: [roleGuard(Role.Admin.id, Role.Assistant.id, Role.Super_Admin.id)] },
+      // Bulk import is a structural write like Add/Edit — Admin and Super Admin only,
+      // mirroring the API's AdminOrSuperAdmin policy on TestImportController.
+      { path: 'manage-tests/import', title: 'Import Tests',
+        loadComponent: () => import('./component/pathTest/import-tests/import-tests.component').then(m => m.ImportTestsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id', title: 'Edit Test',
         loadComponent: () => import('./component/pathTest/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -255,6 +260,16 @@ export const routes: Routes = [
       { path: 'my-salary', title: 'My Salary',
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Repeat-test reminders on WhatsApp — the Lab Operations roles (API: LabOperations policy).
+      { path: 'test-reminders', title: 'Test Reminders',
+        loadComponent: () => import('./component/test-reminders/test-reminders.component').then(m => m.TestRemindersComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+
+      // Discount approvals — Super Admin only (the API enforces SuperAdminOnly too).
+      { path: 'discount-approvals', title: 'Discount Approvals',
+        loadComponent: () => import('./component/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
 
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own

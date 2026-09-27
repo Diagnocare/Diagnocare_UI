@@ -1,0 +1,697 @@
+/*
+ * Admin screen for a test's sample-collection protocols — associating protocols from the
+ * library, and writing new ones.
+ *
+ * Long-form work in a dialog: the body scrolls, the header and footer stay put, so Save is
+ * reachable without scrolling back up from the rejection-criteria field at the bottom.
+ * Styling follows the pathology theme used across Manage Tests rather than introducing a
+ * new one.
+ */
+
+.tpm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 1060;
+}
+
+.tpm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1065;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  pointer-events: none;
+}
+
+.tpm-content {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 820px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.tpm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+
+  h3 {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  p {
+    margin: 0.15rem 0 0;
+    font-size: 0.85rem;
+    color: #475569;
+  }
+}
+
+.tpm-code {
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.tpm-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+
+.tpm-body {
+  padding: 1.1rem 1.25rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.tpm-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+/* ── State banners ────────────────────────────────────────────────────────── */
+
+.tpm-banner {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+
+  > i {
+    font-size: 1.05rem;
+    margin-top: 0.1rem;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  &--none {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-left: 4px solid #ea580c;
+    color: #7c2d12;
+
+    > i { color: #ea580c; }
+  }
+
+  &--lab {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #16a34a;
+    color: #14532d;
+
+    > i { color: #16a34a; }
+  }
+}
+
+.tpm-banner-body {
+  min-width: 0;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────────────── */
+
+.tpm-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 1.1rem 0 0.55rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #e2e8f0;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.tpm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.tpm-field {
+  flex: 1 1 240px;
+  min-width: 0;
+
+  &--wide { flex-basis: 100%; }
+  &--narrow { flex: 0 1 200px; }
+}
+
+.tpm-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.28rem;
+
+  &--required::after {
+    content: ' *';
+    color: #dc2626;
+  }
+}
+
+.tpm-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  &--invalid {
+    border-color: #dc2626;
+    background: #fef2f2;
+  }
+}
+
+.tpm-textarea {
+  resize: vertical;
+  line-height: 1.55;
+  min-height: 62px;
+}
+
+.tpm-hint {
+  display: block;
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.tpm-error {
+  display: block;
+  margin-top: 0.22rem;
+  font-size: 0.74rem;
+  color: #dc2626;
+}
+
+.tpm-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0;
+
+  input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  label {
+    margin: 0;
+    font-size: 0.84rem;
+    color: #334155;
+    cursor: pointer;
+  }
+}
+
+/* ── Preview ──────────────────────────────────────────────────────────────── */
+
+.tpm-preview {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+
+.tpm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.tpm-footer-right {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.tpm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.48rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    background: #2563eb;
+    color: #ffffff;
+
+    &:hover:not(:disabled) { background: #1d4ed8; }
+  }
+
+  &--cancel {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #475569;
+
+    &:hover:not(:disabled) { background: #f1f5f9; }
+  }
+
+  &--danger {
+    background: #ffffff;
+    border-color: #fecaca;
+    color: #b91c1c;
+
+    &:hover:not(:disabled) {
+      background: #fef2f2;
+      border-color: #fca5a5;
+    }
+  }
+
+  &--ghost {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #334155;
+
+    &:hover:not(:disabled) { background: #f1f5f9; }
+  }
+
+  &--sm {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.74rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .tpm-modal {
+    padding: 0;
+  }
+
+  .tpm-content {
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .tpm-footer {
+    flex-wrap: wrap;
+  }
+
+  .tpm-footer-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Association pane
+   Two columns: the library on the left, what this test is linked to on the
+   right. Side by side because the whole task is comparing one against the
+   other, and a wizard would hide half of it at every step.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.tpm-content {
+  max-width: 1040px;
+}
+
+.tpm-columns {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.tpm-col {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.tpm-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+
+  h4 {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+}
+
+.tpm-col-count {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.tpm-col-body {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 0.4rem;
+}
+
+.tpm-empty {
+  padding: 1.1rem 0.9rem;
+  color: #64748b;
+  font-size: 0.79rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+/* ── Search ───────────────────────────────────────────────────────────────── */
+
+.tpm-search {
+  position: relative;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #f1f5f9;
+
+  i {
+    position: absolute;
+    left: 1.05rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.78rem;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.4rem 0.6rem 0.4rem 1.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.81rem;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+  }
+}
+
+/* ── Library rows ─────────────────────────────────────────────────────────── */
+
+.tpm-lib-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: #f8fafc;
+  }
+
+  /* A linked protocol is tinted so the two columns read as one state, not two lists. */
+  &--linked {
+    background: #f0fdf4;
+
+    &:hover { background: #ecfdf5; }
+  }
+}
+
+.tpm-lib-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    margin-top: 0.15rem;
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    cursor: pointer;
+  }
+}
+
+.tpm-lib-text {
+  min-width: 0;
+}
+
+.tpm-lib-name {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.tpm-lib-meta {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.71rem;
+  color: #64748b;
+  word-break: break-word;
+}
+
+.tpm-lib-fasting {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.tpm-lib-usage {
+  color: #94a3b8;
+}
+
+.tpm-lib-actions,
+.tpm-link-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+}
+
+.tpm-icon-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &--danger:hover:not(:disabled) {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+/* Inline full-content preview, so choosing a protocol does not mean guessing from
+   its name. */
+.tpm-preview {
+  grid-column: 1 / -1;
+  margin-top: 0.4rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+/* ── Linked rows ──────────────────────────────────────────────────────────── */
+
+.tpm-link-item {
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+
+  & + & {
+    margin-top: 0.45rem;
+  }
+}
+
+.tpm-link-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* The step number is the sequence the collector will work through. */
+.tpm-step {
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.tpm-link-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.tpm-link-code {
+  margin-left: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.tpm-link-sample {
+  margin: 0.25rem 0 0.4rem 1.65rem;
+  font-size: 0.73rem;
+  color: #64748b;
+}
+
+.tpm-input--sm {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.77rem;
+}
+
+/* ── Suggestion banner ────────────────────────────────────────────────────── */
+
+.tpm-banner--suggestion {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-left: 4px solid #6366f1;
+  color: #3730a3;
+
+  > i { color: #4f46e5; }
+}
+
+.tpm-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
+.tpm-tag--standard {
+  background: #fef3c7;
+  color: #a16207;
+  border: 1px solid #fde68a;
+}
+
+/* ── Footer hint ──────────────────────────────────────────────────────────── */
+
+.tpm-footer-hint {
+  font-size: 0.73rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .tpm-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .tpm-col-body {
+    max-height: 260px;
+  }
+}

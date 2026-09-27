@@ -157,6 +157,67 @@
   letter-spacing: 0.01em;
 }
 
+/* ── Header label, which is also the view switch (days → years → months) ──── */
+/*
+ * It is a <button> now, so the UA button look has to be undone while keeping
+ * .dp-month-year's typography — including every theme colour rule further down
+ * this file, which is why it keeps that class.
+ */
+.dp-view-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.dp-view-switch:hover,
+.dp-view-switch:focus-visible {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #1E5BA8;
+}
+
+.dp-view-caret {
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+
+.dp-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: transparent;
+  border-color: transparent;
+}
+
+/* ── Month and year grids ────────────────────────────────────────────────── */
+/*
+ * The cells reuse .dp-day, so every theme override already in this file covers
+ * them too — hover, selected, today and disabled all come for free. Only the
+ * taller, wider box is new.
+ */
+.dp-grid {
+  margin-top: 2px;
+}
+
+/* Two classes, deliberately: .dp-day is defined further down the file and would
+   otherwise win the height with its 32px. */
+.dp-day.dp-cell {
+  height: 40px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
 /* ── Weekday row ─────────────────────────────────────────────────────────── */
 .dp-weekdays {
   display: grid;
@@ -620,6 +681,30 @@ html[data-theme="warm"] .dp-close-btn:hover  { background: #ddc9a8; border-color
   html[data-theme="system"] .dp-today-btn:hover  { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
   html[data-theme="system"] .dp-clear-btn   { background: #3b0f0f; border-color: #7f1d1d; color: #fca5a5; }
   html[data-theme="system"] .dp-close-btn   { background: #273548; border-color: #475569; color: #94a3b8; }
+}
+
+/* ── View-switch hover, per theme ──────────────────────────────────────────
+   The themed `.dp-month-year` colour rules above out-specify the plain
+   `.dp-view-switch:hover`, so each theme restates the hover the same way it
+   already does for .dp-nav-btn — otherwise a dark panel gets pale-blue hover
+   behind pale text. */
+html[data-theme="dark"] .dp-view-switch:hover,
+html[data-theme="dark"] .dp-view-switch:focus-visible {
+  background: #273548; border-color: #475569; color: #60a5fa;
+}
+html[data-theme="midnight"] .dp-view-switch:hover,
+html[data-theme="midnight"] .dp-view-switch:focus-visible {
+  background: #161b22; border-color: #30363d; color: #4d9ef0;
+}
+html[data-theme="warm"] .dp-view-switch:hover,
+html[data-theme="warm"] .dp-view-switch:focus-visible {
+  background: #f5e9d6; border-color: #c4ad8e; color: #7a4f2d;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .dp-view-switch:hover,
+  html[data-theme="system"] .dp-view-switch:focus-visible {
+    background: #273548; border-color: #475569; color: #60a5fa;
+  }
 }
 
 /* ── .dp-display is a <span> ────────────────────────────────────────────────

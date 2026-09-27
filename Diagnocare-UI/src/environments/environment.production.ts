@@ -2,8 +2,8 @@ import { AppEnvironment } from './environment.model';
 
 export const environment: AppEnvironment = {
   production: true,
-  diagnocareApiURL: 'https://your-prod-api/',
-  loginUIUrl: 'http://diagnocareprod/',
+  diagnocareApiURL: 'https://diagnocare-prod.runasp.net/',
+  loginUIUrl: 'https://diagnocare-ui.vercel.app/',
   helpUrl: 'https://feedback-system-rosy.vercel.app/',
   // Identifies this app + environment to the feedback portal (sent as
   // ?product=&env= on the help URL, so reports can be routed/filtered).
@@ -14,6 +14,6 @@ export const environment: AppEnvironment = {
 
   basicAuth: {
     username: 'Admin',
-    password: 'OwJ3dA38hJuNHsEBTxXju6JB5qAZNNiTvWDrnZOBSXY=',
+    password: 'ggDgc+q0Y4xNWOadnfALUOEEi/ijWn4I0fd06Keor5Y=',
   },
 };

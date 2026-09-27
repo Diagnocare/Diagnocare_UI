@@ -9,6 +9,7 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 /** sessionStorage key for the cached profile photo data-URL. */
 const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${userName}`;
@@ -18,7 +19,7 @@ const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${
   templateUrl: './change-password.component.html',
   styleUrls: ['../account-pages.shared.css', './change-password.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, FormKeyboardDirective]
+  imports: [CommonModule, FormsModule, FormKeyboardDirective, MaskedInputDirective]
 })
 export class ChangePasswordComponent {
   oldPassword = '';

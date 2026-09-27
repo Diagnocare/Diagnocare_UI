@@ -58,12 +58,29 @@
       </div>
     </div>
 
+    <!-- ── Holiday warning + override ───────────────────────────────────── -->
+    <div class="vem-holiday-warning" *ngIf="holidayWarning">
+      <div class="vem-hw-head">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>
+          {{ form.get('visitDate')?.value | date:'d MMMM yyyy' }} is a holiday
+          — <strong>{{ holidayWarning }}</strong>.
+        </span>
+      </div>
+      <label class="vem-hw-check">
+        <input type="checkbox" [(ngModel)]="overrideHoliday" [ngModelOptions]="{ standalone: true }" />
+        <span>Move this visit there anyway</span>
+      </label>
+    </div>
+
   </div>
 
   <!-- Footer -->
   <div class="vem-footer">
     <button class="dc-btn dc-btn--cancel" type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
-    <button class="dc-btn dc-btn--save"   type="button" (click)="save()"   [disabled]="saving">
+    <button class="dc-btn dc-btn--save"   type="button" (click)="save()"
+            [disabled]="saving || blocked"
+            [title]="blocked ? 'Confirm the holiday warning to continue' : ''">
       <i class="fa" [class.fa-save]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
       {{ saving ? 'Saving…' : 'Save Changes' }}
     </button>

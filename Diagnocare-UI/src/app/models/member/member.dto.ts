@@ -38,8 +38,21 @@ export interface MemberDto {
   signatureImage?:  string;
 
   // ── Employment dates ──────────────────────────────────────────────────────
-  /** ISO date (YYYY-MM-DD). User appears in attendance/salary from this month. */
+  /**
+   * Join date as **dd-MM-yyyy** (the API's DateOnly format — NOT ISO).
+   * User appears in attendance/salary from this month.
+   */
   effectiveFrom?:  string | null;
-  /** ISO date (YYYY-MM-DD). Set to deactivate; hides user from attendance/salary. */
+  /**
+   * Deactivation date as **dd-MM-yyyy** (the API's DateOnly format — NOT ISO).
+   * Never pass this to `new Date()`, which reads it as MM-dd-yyyy; use
+   * `parseApiDate` from shared/member-utils.
+   */
   deactivatedAt?:  string | null;
+
+  /**
+   * Whether the member is currently active, decided server-side so no client has to
+   * interpret the date format. Prefer this over `deactivatedAt` — see `isMemberActive`.
+   */
+  isActive?: boolean;
 }

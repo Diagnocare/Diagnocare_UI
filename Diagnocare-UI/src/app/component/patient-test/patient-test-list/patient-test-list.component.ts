@@ -15,13 +15,23 @@ import { PathologyService } from 'src/app/services/pathologyServices/pathology.s
 import { PaymentModalComponent } from 'src/app/shared/payment-modal/payment-modal.component';
 import { AddTestModalComponent }  from 'src/app/shared/add-test-modal/add-test-modal.component';
 import { CancelBookingModalComponent, CancelConfirmPayload } from 'src/app/shared/cancel-booking-modal/cancel-booking-modal.component';
+import { ProtocolViewModalComponent } from 'src/app/shared/protocol-view-modal/protocol-view-modal.component';
+import { TestRunModalComponent } from 'src/app/shared/test-run-modal/test-run-modal.component';
+import { TestRunService } from 'src/app/services/testRunServices/test-run.service';
+import { TestRunCountDto } from 'src/app/models/test-run/test-run.model';
+import { SampleRejectionModalComponent } from 'src/app/shared/sample-rejection-modal/sample-rejection-modal.component';
+import { SampleRejectionService } from 'src/app/services/sampleRejectionServices/sample-rejection.service';
+import { SampleRejectionSummaryDto } from 'src/app/models/sample-rejection/sample-rejection.model';
+import { ReportPrintStatusService } from 'src/app/services/patientTestReportServices/report-print-status.service';
+import { ReportPrintStatusDto } from 'src/app/models/report-print-status/report-print-status.model';
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
+import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
 import {
-  calculatePatientStatus,
-  hasPendingTests,
   resolvePaymentStatus,
   getPaymentBadgeLabel as paymentBadgeLabel,
   getPaymentStatusClass as paymentStatusClass
@@ -30,7 +40,7 @@ import {
 @Component({
   selector: 'app-patient-test-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent],
   templateUrl: './patient-test-list.component.html',
   styleUrls: ['./patient-test-list.component.css']
 })
@@ -87,9 +97,76 @@ export class PatientTestListComponent implements OnInit {
   /** True while a PDF download is in progress. */
   isDownloadingPdf: boolean = false;
 
+  /** True while the PDF is being prepared for sending on WhatsApp. */
+  isSendingWhatsApp: boolean = false;
+
+  /** Patient's contact number as stored (e.g. "+91-9876543210"), used for WhatsApp. */
+  patientContact: string = '';
+
   showPatientIdInput: boolean = false;
   enteredPatientId: string = '';
   private navigatedViaQueryParam: boolean = false;
+
+  // ── Sample collection protocol (read-only, post-booking) ───────────────
+  /**
+   * The protocol viewer is opened from a booking that already exists, so it never edits
+   * anything — it answers "how is this sample collected?" for a booking that was made
+   * yesterday, or is being collected right now, without sending anyone back through the
+   * booking screen to find out.
+   */
+  showProtocolModal: boolean = false;
+  protocolModalSubtitle: string = '';
+  protocolTestCodes: string[] = [];
+  /**
+   * The booking whose test list is being fetched to open the viewer. Held by id rather
+   * than as a boolean so only the clicked card's button shows a spinner.
+   */
+  loadingProtocolFor: string | null = null;
+
+  // ── Repeat testing ─────────────────────────────────────────────────────
+  /**
+   * How many times each test on the open booking has been run, keyed by test code.
+   *
+   * Fetched once when the detail overlay opens rather than per test row: a booking with a
+   * dozen tests would otherwise fire a dozen requests to draw a badge most of them will not
+   * show. A missing key means no repeat has been recorded, which is one run, not zero.
+   */
+  runCounts = new Map<string, TestRunCountDto>();
+
+  showRunModal: boolean = false;
+  runModalTestRegId: number = 0;
+  runModalTestCode: string = '';
+  runModalTestName: string = '';
+
+  // ── Sample rejection ───────────────────────────────────────────────────
+  /**
+   * Which tests on the open booking have had a sample rejected, keyed by test code.
+   *
+   * Fetched once when the detail overlay opens, alongside the run counts. A test waiting on
+   * a fresh sample is why no result has appeared, so the flag has to be visible on the test
+   * itself rather than only inside a modal somebody has to think to open.
+   */
+  rejectionSummary = new Map<string, SampleRejectionSummaryDto>();
+
+  showRejectionModal: boolean = false;
+  rejectionModalTestRegId: number = 0;
+  rejectionModalTestCode: string = '';
+  rejectionModalTestName: string = '';
+
+  // ── Report print status ─────────────────────────────────────────────────
+  /**
+   * "Has this report been printed?" flag for each test on the open booking, keyed
+   * by test code. Read-only here — the flag is set automatically by the Print
+   * button on the generated report itself (a different tab/window), never by
+   * clicking anything in this list. See ReportPrintStatusService.
+   *
+   * Fetched when the detail overlay opens, alongside the run counts and rejection
+   * summary, and refreshed when the report screen is closed so a print that just
+   * happened in the other tab shows up without reopening the booking. A test code
+   * never printed has no entry here — treated the same as not printed, matching
+   * how the API omits it too.
+   */
+  printStatus = new Map<string, ReportPrintStatusDto>();
 
   // ── Filter state ───────────────────────────────────────────────────────
   /** When true the full history is shown; false = only last 15 days / pending reports. */
@@ -105,9 +182,113 @@ export class PatientTestListComponent implements OnInit {
     private pathologyService: PathologyService,
     private patientService: PatientService,
     private receiptService: ReceiptService,
+    private testRunService: TestRunService,
+    private sampleRejectionService: SampleRejectionService,
+    private reportPrintStatusService: ReportPrintStatusService,
     private location: Location,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private sampleLabelService: SampleLabelService,
+    private samplingLocationService: SamplingLocationService,
   ) {}
+
+  // ── Sampling location & barcode ──────────────────────────────────────────
+  /**
+   * A barcode is generated only once a booking has "Sampling Done At". Bookings
+   * saved without one show a picker here; saving it generates the barcode.
+   */
+  get samplingLocations(): string[] { return this.samplingLocationService.getAll(); }
+
+  /** patient_Test_Id → location picked in the card, not yet saved. */
+  samplingDraft: Record<string, string> = {};
+  // Hold the raw id (the API sends a number despite the string typing) so the
+  // template's === comparisons against test.patient_Test_Id match.
+  savingSamplingFor: patientTest['patient_Test_Id'] | null = null;
+  printingLabelFor:  patientTest['patient_Test_Id'] | null = null;
+  /** Booking whose Smart Health Report is being generated (button spinner). */
+  openingSmartReportFor: patientTest['patient_Test_Id'] | null = null;
+  /** Booking whose Smart Report link is being prepared for WhatsApp (button spinner). */
+  sendingSmartWhatsAppFor: patientTest['patient_Test_Id'] | null = null;
+
+  hasSamplingLocation(test: patientTest): boolean {
+    return !!(test.sampling_Done_At || '').trim();
+  }
+
+  saveSamplingLocation(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    const id = String(test.patient_Test_Id);
+    const location = (this.samplingDraft[id] || '').trim();
+    if (!location) {
+      this.toastr.warning('Select a sampling location first.', 'Sampling Done At');
+      return;
+    }
+
+    this.savingSamplingFor = test.patient_Test_Id;
+    this.patientService.updateSamplingLocation(Number(test.patient_Test_Id), location).subscribe({
+      next: (res: BookingResultDto) => {
+        this.savingSamplingFor = null;
+        if (!res?.success) {
+          this.toastr.error(res?.message || 'Could not save the sampling location.', 'Error');
+          return;
+        }
+        test.sampling_Done_At = res.samplingDoneAt || location;
+        delete this.samplingDraft[id];
+        this.toastr.success('Sampling location saved. Barcode generated.', 'Saved');
+        if (res.labelsReady) {
+          this.printBarcode(test);
+        }
+      },
+      error: (err: any) => {
+        this.savingSamplingFor = null;
+        this.toastr.error(err?.error?.message || 'Could not save the sampling location.', 'Error');
+      },
+    });
+  }
+
+  printBarcode(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.hasSamplingLocation(test)) {
+      this.toastr.warning('Select "Sampling Done At" before generating the barcode.', 'Barcode pending');
+      return;
+    }
+    this.printingLabelFor = test.patient_Test_Id;
+    this.sampleLabelService.printLabels(Number(test.patient_Test_Id)).subscribe({
+      next: (opened: boolean) => {
+        this.printingLabelFor = null;
+        if (!opened) {
+          this.toastr.warning('The label window was blocked. Allow pop-ups for this site and try again.',
+            'Labels not shown');
+        }
+      },
+      error: (err: any) => {
+        this.printingLabelFor = null;
+        this.toastr.error(err?.error?.error || 'The barcode could not be generated.', 'Labels not printed');
+      },
+    });
+  }
+
+  /**
+   * Opens the Smart Health Report for the whole booking in a new tab.
+   * Blocked cases (cancelled, no results, nothing scoreable) come back as a 400
+   * whose message the ErrorInterceptor already shows, so nothing is toasted here.
+   */
+  openSmartReport(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    this.openingSmartReportFor = test.patient_Test_Id;
+    this.testReportGenerationService.generateSmartReport(Number(test.patient_Test_Id)).subscribe({
+      next: (html: string) => {
+        this.openingSmartReportFor = null;
+        if (!html || !html.trim()) {
+          this.toastr.warning('The Smart Report came back empty.', 'Warning');
+          return;
+        }
+        this.openHtmlReportTab(html, undefined, `${this.patientName || 'Patient'} | Smart Health Report`);
+      },
+      error: (err: unknown) => {
+        this.openingSmartReportFor = null;
+        console.error('generateSmartReport error:', err);
+      },
+    });
+  }
 
   ngOnInit(): void {
     // Pre-fetch pathology details so path_Branch is available when generating reports.
@@ -144,6 +325,8 @@ export class PatientTestListComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
+    this.loadPatientContact();
+
     this.testReportService.getAllPatientTests(this.patientId).subscribe({
       next: (data: patientTest[]) => {
         this.allPatientTests = data;
@@ -160,6 +343,23 @@ export class PatientTestListComponent implements OnInit {
 
   refreshList(): void {
     this.loadPatientTests();
+  }
+
+  /**
+   * Loads the patient's name and contact number. The name is used for report
+   * file names; the number is the WhatsApp chat the report is sent to.
+   * Non-critical: if it fails, the WhatsApp button explains the number is missing.
+   */
+  private loadPatientContact(): void {
+    this.patientContact = '';
+    if (!this.patientId) return;
+    this.patientService.getPatientById(this.patientId).subscribe({
+      next: (p) => {
+        this.patientContact = p?.patientContact || '';
+        if (p?.patientName) this.patientName = p.patientName;
+      },
+      error: () => { /* non-critical — WhatsApp button will report the missing number */ }
+    });
   }
 
   // ── Filtering ──────────────────────────────────────────────────────────
@@ -461,6 +661,9 @@ export class PatientTestListComponent implements OnInit {
     this.showDetailView = true;
     this.activeDetailIndex = 0;
     this.loadTestDetails(test.test_Id);
+    this.loadRunCounts(Number(test.patient_Test_Id));
+    this.loadRejectionSummary(Number(test.patient_Test_Id));
+    this.loadPrintStatus(Number(test.patient_Test_Id));
   }
 
   loadTestDetails(patientTestId: string): void {
@@ -486,6 +689,9 @@ export class PatientTestListComponent implements OnInit {
     this.selectedPatientTest = null;
     this.testDetails = [];
     this.activeDetailIndex = 0;
+    this.runCounts.clear();
+    this.rejectionSummary.clear();
+    this.printStatus.clear();
   }
 
   selectDetailCard(index: number): void { this.activeDetailIndex = index; }
@@ -493,6 +699,248 @@ export class PatientTestListComponent implements OnInit {
   getDetailCardZIndex(index: number): number {
     if (index === this.activeDetailIndex) return this.testDetails.length + 1;
     return this.testDetails.length - Math.abs(index - this.activeDetailIndex);
+  }
+
+  // ── Sample collection protocol ─────────────────────────────────────────
+
+  /**
+   * Opens the protocol viewer for every test on a booking.
+   *
+   * The card knows how many tests it has but not which ones, so the test list is fetched
+   * first — unless the detail overlay for this same booking is already open, in which case
+   * the codes are already in hand and a second round trip would only add a delay.
+   */
+  openBookingProtocols(test: patientTest, event: Event): void {
+    event.stopPropagation();
+
+    const alreadyLoaded =
+      this.selectedPatientTest?.patient_Test_Id === test.patient_Test_Id
+        ? this.collectTestCodes(this.testDetails)
+        : [];
+
+    if (alreadyLoaded.length > 0) {
+      this.openProtocolModal(alreadyLoaded, `Booking ${test.patient_Test_Id}`);
+      return;
+    }
+
+    this.loadingProtocolFor = test.patient_Test_Id;
+    this.testReportService.getTestDetails(test.test_Id).subscribe({
+      next: (details: testDetail[]) => {
+        this.loadingProtocolFor = null;
+        const codes = this.collectTestCodes(details);
+        if (codes.length === 0) {
+          this.toastr.info('No tests found on this booking.');
+          return;
+        }
+        this.openProtocolModal(codes, `Booking ${test.patient_Test_Id}`);
+      },
+      error: () => {
+        this.loadingProtocolFor = null;
+        this.toastr.error('Could not load the tests on this booking.');
+      }
+    });
+  }
+
+  /** Opens the protocol viewer for a single test inside the detail overlay. */
+  openDetailProtocol(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    if (!detail?.testCode) {
+      this.toastr.info('This test has no code, so its protocol cannot be looked up.');
+      return;
+    }
+    this.openProtocolModal([detail.testCode], detail.testName);
+  }
+
+  closeProtocolModal(): void {
+    this.showProtocolModal = false;
+    this.protocolTestCodes = [];
+    this.protocolModalSubtitle = '';
+  }
+
+  private openProtocolModal(codes: string[], subtitle: string): void {
+    this.protocolTestCodes = codes;
+    this.protocolModalSubtitle = subtitle;
+    this.showProtocolModal = true;
+  }
+
+  private collectTestCodes(details: testDetail[]): string[] {
+    // The detail rows are per parameter as often as per test, so the same code arrives
+    // several times; the viewer would otherwise render the same protocol twice.
+    return Array.from(new Set((details ?? []).map(d => d.testCode).filter(c => !!c)));
+  }
+
+  // ── Repeat testing ─────────────────────────────────────────────────────
+
+  /**
+   * How many times each test on this booking has been run.
+   *
+   * One request for the whole booking. Failure is silent: the badge is extra information
+   * beside the result, and losing it must not put an error banner over a screen the
+   * operator opened to read a value.
+   */
+  private loadRunCounts(patientTestId: number): void {
+    this.runCounts.clear();
+    if (!patientTestId) return;
+
+    this.testRunService.getBookingCounts(patientTestId).subscribe({
+      next: (counts: TestRunCountDto[]) => {
+        this.runCounts = new Map((counts ?? []).map(c => [c.testCode, c]));
+      },
+      error: () => { /* badge simply does not appear */ }
+    });
+  }
+
+  /**
+   * How many times this test has been run.
+   *
+   * A test with no recorded runs has been run once — rows are written from the first repeat
+   * onwards, so an absent entry means "never repeated", not "never done".
+   */
+  runCount(detail: testDetail): number {
+    const entry = this.runCounts.get(detail?.testCode ?? '');
+    return entry && entry.runCount > 0 ? entry.runCount : 1;
+  }
+
+  runCountTooltip(detail: testDetail): string {
+    const entry = this.runCounts.get(detail?.testCode ?? '');
+    const times = `Run ${this.runCount(detail)} times on the collected sample`;
+    return entry?.latestReason ? `${times} — latest reason: ${entry.latestReason}` : times;
+  }
+
+  openRunHistory(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    if (!this.selectedPatientTest) return;
+
+    this.runModalTestRegId = Number(this.selectedPatientTest.patient_Test_Id);
+    this.runModalTestCode = detail?.testCode ?? '';
+    this.runModalTestName = detail?.testName ?? '';
+    this.showRunModal = true;
+  }
+
+  closeRunHistory(): void {
+    this.showRunModal = false;
+  }
+
+  /** A repeat was recorded or the accepted run moved — the badge is now out of date. */
+  onRunsChanged(): void {
+    if (this.selectedPatientTest) {
+      this.loadRunCounts(Number(this.selectedPatientTest.patient_Test_Id));
+    }
+  }
+
+  // ── Sample rejection ───────────────────────────────────────────────────
+
+  /**
+   * Which tests on this booking are waiting on a fresh sample.
+   *
+   * One request for the whole booking, and a silent failure: losing the flag is worse than
+   * an error banner over a screen someone opened to read a value, but not by enough to
+   * justify one.
+   */
+  private loadRejectionSummary(patientTestId: number): void {
+    this.rejectionSummary.clear();
+    if (!patientTestId) return;
+
+    this.sampleRejectionService.getBookingSummary(patientTestId).subscribe({
+      next: (rows: SampleRejectionSummaryDto[]) => {
+        this.rejectionSummary = new Map((rows ?? []).map(r => [r.testCode, r]));
+      },
+      error: () => { /* flag simply does not appear */ }
+    });
+  }
+
+  /** True while this test is waiting on a fresh sample — the state that blocks a result. */
+  hasOpenRejection(detail: testDetail): boolean {
+    return this.rejectionSummary.get(detail?.testCode ?? '')?.hasOpenRejection === true;
+  }
+
+  /** True when a sample was rejected at some point, whether or not it is still open. */
+  wasEverRejected(detail: testDetail): boolean {
+    return (this.rejectionSummary.get(detail?.testCode ?? '')?.rejectionCount ?? 0) > 0;
+  }
+
+  /**
+   * The rejection reason to show on the test.
+   *
+   * The open one where there is one; otherwise the most recent, so a test that was rejected
+   * and re-collected still says what went wrong the first time.
+   */
+  rejectionReason(detail: testDetail): string {
+    return this.rejectionSummary.get(detail?.testCode ?? '')?.latestReasonLabel ?? '';
+  }
+
+  rejectionCategory(detail: testDetail): string {
+    return this.rejectionSummary.get(detail?.testCode ?? '')?.latestCategoryLabel ?? '';
+  }
+
+  openRejectionView(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    if (!this.selectedPatientTest) return;
+
+    this.rejectionModalTestRegId = Number(this.selectedPatientTest.patient_Test_Id);
+    this.rejectionModalTestCode = detail?.testCode ?? '';
+    this.rejectionModalTestName = detail?.testName ?? '';
+    this.showRejectionModal = true;
+  }
+
+  closeRejectionView(): void {
+    this.showRejectionModal = false;
+  }
+
+  /** A rejection was recorded or closed — the flag on the test is now out of date. */
+  onRejectionsChanged(): void {
+    if (this.selectedPatientTest) {
+      this.loadRejectionSummary(Number(this.selectedPatientTest.patient_Test_Id));
+    }
+  }
+
+  // ── Report print status ─────────────────────────────────────────────────
+
+  /**
+   * The printed flag for every test on this booking.
+   *
+   * One request for the whole booking, and a silent failure: losing the badge is
+   * worse than an error banner over a screen someone opened to read a value, but
+   * not by enough to justify one.
+   */
+  private loadPrintStatus(patientTestId: number): void {
+    this.printStatus.clear();
+    if (!patientTestId) return;
+
+    this.reportPrintStatusService.getBookingSummary(patientTestId).subscribe({
+      next: (rows: ReportPrintStatusDto[]) => {
+        this.printStatus = new Map((rows ?? []).map(r => [r.testCode, r]));
+      },
+      error: () => { /* badge simply does not appear */ }
+    });
+  }
+
+  /** True once this test's report has been marked printed. A missing entry means not printed. */
+  isPrinted(detail: testDetail): boolean {
+    return this.printStatus.get(detail?.testCode ?? '')?.isPrinted === true;
+  }
+
+  printedTooltip(detail: testDetail): string {
+    const entry = this.printStatus.get(detail?.testCode ?? '');
+    if (!entry?.isPrinted) return 'Not printed yet — set automatically when the report is printed';
+
+    const when = entry.printedAt ? new Date(entry.printedAt).toLocaleString() : '';
+    const who = entry.printedBy ? ` by ${entry.printedBy}` : '';
+    return when ? `Printed ${when}${who}` : `Printed${who}`;
+  }
+
+  /**
+   * Re-reads the printed flag for the open booking.
+   *
+   * The flag itself is set from the generated report page in its own tab, so this
+   * screen has no way to know when that happened — refreshing when the operator
+   * comes back to it (closing the report view) is the closest this list gets to
+   * "live".
+   */
+  private refreshPrintStatus(): void {
+    if (this.selectedPatientTest) {
+      this.loadPrintStatus(Number(this.selectedPatientTest.patient_Test_Id));
+    }
   }
 
   // ── Parameter view ─────────────────────────────────────────────────────
@@ -591,6 +1039,10 @@ export class PatientTestListComponent implements OnInit {
     this.selectedTestDetail = null;
     this.testParameters = [];
     this.activeParameterIndex = 0;
+    // Whichever report action the operator just used (View Report / PDF) opened in
+    // its own tab and prints from there — refresh so a print that happened while
+    // this overlay was open is reflected as soon as they come back to it.
+    this.refreshPrintStatus();
   }
 
   /**
@@ -763,6 +1215,169 @@ export class PatientTestListComponent implements OnInit {
       });
   }
 
+  // ── WhatsApp ───────────────────────────────────────────────────────────
+
+  /**
+   * WhatsApp chat number for the patient in international form without "+"
+   * (e.g. "919876543210"), or null when there is no usable number.
+   * Bare 10-digit numbers are treated as Indian mobiles.
+   */
+  get patientWhatsAppNumber(): string | null {
+    const raw = (this.patientContact || '').trim();
+    if (!raw) return null;
+    const hasCountryCode = raw.startsWith('+') || raw.startsWith('00');
+    let digits = raw.replace(/\D/g, '');
+    if (raw.startsWith('00')) digits = digits.slice(2);
+    if (!hasCountryCode) {
+      digits = digits.replace(/^0+/, '');
+      if (digits.length === 10) return '91' + digits;
+      if (digits.length === 12 && digits.startsWith('91')) return digits;
+      return null;
+    }
+    return digits.length >= 11 && digits.length <= 15 ? digits : null;
+  }
+
+  /**
+   * Sends the booking's Smart Health Report on WhatsApp as a link.
+   *
+   * Same flow as {@link sendReportOnWhatsApp}: the WhatsApp tab is opened inside
+   * the click (so pop-up blockers allow it), the backend issues the signed short
+   * link, then the tab is pointed at the patient's chat with the message filled
+   * in. The operator presses send. The patient's link opens a verification page
+   * (name masked) with a button to the full Smart Report — no login needed.
+   */
+  sendSmartReportOnWhatsApp(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+
+    const phone = this.patientWhatsAppNumber;
+    if (!phone) {
+      this.toastr.warning(
+        'This patient has no valid mobile number. Add one in the patient details and try again.',
+        'WhatsApp');
+      return;
+    }
+
+    const waWindow = window.open('', '_blank');
+    if (!waWindow) {
+      this.toastr.warning('The WhatsApp window was blocked. Allow pop-ups for this site and try again.',
+        'WhatsApp');
+      return;
+    }
+    waWindow.opener = null;
+    waWindow.document.title = 'Opening WhatsApp…';
+    waWindow.document.body.innerHTML =
+      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the health report link, then opening WhatsApp…</p>';
+
+    this.sendingSmartWhatsAppFor = test.patient_Test_Id;
+
+    this.testReportGenerationService
+      .getSmartReportShareLink(Number(test.patient_Test_Id))
+      .subscribe({
+        next: (link) => {
+          this.sendingSmartWhatsAppFor = null;
+
+          if (!link?.url) {
+            waWindow.close();
+            this.toastr.error('The health report link could not be created.', 'WhatsApp');
+            return;
+          }
+
+          // Nothing but a line break after the link, so WhatsApp's link detection
+          // never folds trailing punctuation into it.
+          const greeting = this.patientName ? `Dear ${this.patientName},` : 'Dear Patient,';
+          const message  = `${greeting}\n\n`
+                         + `Your Health Insights report is ready. It explains your test results in simple words, `
+                         + `with your health score and a personal action plan.\n\n`
+                         + `👉 View your report: ${link.url}\n\n`
+                         + `Report No: ${link.reportNumber}\n`
+                         + `Please discuss your results with your doctor.\n`
+                         + `Thank you.`;
+
+          waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        },
+        error: (err: any) => {
+          this.sendingSmartWhatsAppFor = null;
+          waWindow.close();
+          this.toastr.error(err?.error?.error || 'The health report link could not be created. Please try again.',
+            'WhatsApp');
+          console.error('sendSmartReportOnWhatsApp error:', err);
+        }
+      });
+  }
+
+  /**
+   * Sends the current report on WhatsApp as a link.
+   *
+   * Asks the backend for the report's patient link (the same verified URL the
+   * printed QR carries), then opens the patient's WhatsApp chat with a message
+   * containing it. The operator only presses send; the patient taps the link to
+   * see the verified report and open the full copy. No file changes hands.
+   *
+   * The WhatsApp tab is opened synchronously inside the click, before the API
+   * call, so pop-up blockers do not stop it; it is pointed at the chat once the
+   * link arrives, or closed if it cannot be created.
+   */
+  sendReportOnWhatsApp(): void {
+    if (!this.selectedPatientTest || !this.selectedTestDetail) return;
+
+    const phone = this.patientWhatsAppNumber;
+    if (!phone) {
+      this.toastr.warning(
+        'This patient has no valid mobile number. Add one in the patient details and try again.',
+        'WhatsApp');
+      return;
+    }
+
+    const patientTestId = Number(this.selectedPatientTest.patient_Test_Id);
+    const testCode      = this.selectedTestDetail.testCode;
+    const testName      = this.selectedTestDetail.testName || testCode;
+
+    const waWindow = window.open('', '_blank');
+    if (!waWindow) {
+      this.toastr.warning('The WhatsApp window was blocked. Allow pop-ups for this site and try again.',
+        'WhatsApp');
+      return;
+    }
+    waWindow.opener = null; // WhatsApp page must not be able to reach back into the app
+    waWindow.document.title = 'Opening WhatsApp…';
+    waWindow.document.body.innerHTML =
+      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the report link, then opening WhatsApp…</p>';
+
+    this.isSendingWhatsApp = true;
+
+    this.testReportGenerationService
+      .getReportShareLink(patientTestId, testCode)
+      .subscribe({
+        next: (link) => {
+          this.isSendingWhatsApp = false;
+
+          if (!link?.url) {
+            waWindow.close();
+            this.toastr.error('The report link could not be created.', 'WhatsApp');
+            return;
+          }
+
+          // Nothing but a line break after the link, so WhatsApp's link detection
+          // never folds trailing punctuation into it.
+          const greeting = this.patientName ? `Dear ${this.patientName},` : 'Dear Patient,';
+          const message  = `${greeting}\n\n`
+                         + `Your ${testName} test report is ready.\n\n`
+                         + `👉 View your report: ${link.url}\n\n`
+                         + `Report No: ${link.reportNumber}\n`
+                         + `Thank you.`;
+
+          waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        },
+        error: (err: any) => {
+          this.isSendingWhatsApp = false;
+          waWindow.close();
+          this.toastr.error(err?.error?.error || 'The report link could not be created. Please try again.',
+            'WhatsApp');
+          console.error('sendReportOnWhatsApp error:', err);
+        }
+      });
+  }
+
   /**
    * Opens a backend-generated HTML report in a new browser tab via a short-lived Blob URL.
    *
@@ -856,15 +1471,28 @@ export class PatientTestListComponent implements OnInit {
     // ── Step 1: Cancel or partially remove test codes per booking ─────────
     // Full cancel  → all test codes in the booking are selected → use CancelTest
     // Partial remove → only some codes selected → use RemoveTests (keeps booking active)
-    const cancelCalls = bookingCancels.map(item => {
+    //
+    // Decided up front rather than inside the request map, so the success toast
+    // can say which of the two actually happened.
+    const decisions = bookingCancels.map(item => {
       const totalCodesInBooking = (item.booking.test_Id || '')
         .split(',').map(c => c.trim()).filter(Boolean).length;
-      const isFullCancel = item.selectedCodes.length >= totalCodesInBooking;
-
-      return isFullCancel
-        ? this.patientService.cancelPatientTest(Number(item.booking.patient_Test_Id), reason ?? undefined)
-        : this.patientService.removeTestCodes(Number(item.booking.patient_Test_Id), item.selectedCodes, reason ?? undefined);
+      return {
+        item,
+        isFullCancel: item.selectedCodes.length >= totalCodesInBooking
+      };
     });
+
+    const fullCancelCount = decisions.filter(d => d.isFullCancel).length;
+    const removedTestCount = decisions
+      .filter(d => !d.isFullCancel)
+      .reduce((sum, d) => sum + d.item.selectedCodes.length, 0);
+
+    const cancelCalls = decisions.map(({ item, isFullCancel }) =>
+      isFullCancel
+        ? this.patientService.cancelPatientTest(Number(item.booking.patient_Test_Id), reason ?? undefined)
+        : this.patientService.removeTestCodes(Number(item.booking.patient_Test_Id), item.selectedCodes, reason ?? undefined)
+    );
 
     forkJoinRxjs(cancelCalls).subscribe({
       next: () => {
@@ -877,9 +1505,15 @@ export class PatientTestListComponent implements OnInit {
         );
 
         if (refundItems.length === 0) {
-          this.updatePatientStatusAfterCancellation();
+          this.toastr.success(
+            this.buildCancelSuccessMessage(fullCancelCount, removedTestCount),
+            'Success'
+          );
+          this.refreshAfterCancellation();
           return;
         }
+
+        const totalRefund = refundItems.reduce((sum, item) => sum + item.refundAmount, 0);
 
         const refundCalls = refundItems.map(item =>
           this.receiptService.refundReceipt(
@@ -891,14 +1525,19 @@ export class PatientTestListComponent implements OnInit {
 
         forkJoinRxjs(refundCalls).subscribe({
           next: () => {
-            this.updatePatientStatusAfterCancellation();
+            this.toastr.success(
+              `${this.buildCancelSuccessMessage(fullCancelCount, removedTestCount)} ` +
+              `Refund of ₹${totalRefund.toFixed(2)} issued.`,
+              'Success'
+            );
+            this.refreshAfterCancellation();
           },
           error: () => {
             this.toastr.warning(
               'Booking(s) cancelled but refund failed. Please retry from the Receipts page.',
               'Partial Success'
             );
-            this.updatePatientStatusAfterCancellation();
+            this.refreshAfterCancellation();
           }
         });
       },
@@ -909,36 +1548,44 @@ export class PatientTestListComponent implements OnInit {
   }
 
   /**
-   * Updates the patient status after booking cancellation.
-   * If there are no pending tests remaining, automatically updates patient status to "Completed".
-   * Refreshes the UI without requiring a manual page reload.
+   * Wording for the post-cancellation success toast.
+   *
+   * A confirm can do both things at once: cancel some bookings outright and
+   * strip individual test codes from others, so both halves are reported.
    */
-  private updatePatientStatusAfterCancellation(): void {
+  private buildCancelSuccessMessage(fullCancelCount: number, removedTestCount: number): string {
+    const parts: string[] = [];
+
+    if (fullCancelCount > 0) {
+      parts.push(`${fullCancelCount} booking${fullCancelCount === 1 ? '' : 's'} cancelled`);
+    }
+    if (removedTestCount > 0) {
+      parts.push(`${removedTestCount} test${removedTestCount === 1 ? '' : 's'} removed`);
+    }
+
+    return parts.length ? `${parts.join(' and ')} successfully.` : 'Cancellation completed successfully.';
+  }
+
+  /**
+   * Refreshes the list after a booking cancellation.
+   *
+   * The patient's status is NOT pushed to the server here. It is derived
+   * server-side on every read (PatientService.ComputeTestStatus), which already
+   * excludes cancelled bookings — there is no stored status column to update and
+   * no api/Patient/UpdatePatientStatus endpoint. The call that used to live here
+   * 404'd on every successful cancellation, and the global ErrorInterceptor
+   * surfaced it as "The requested resource was not found." on top of a
+   * cancellation that had in fact succeeded.
+   *
+   * Reloading the tests is enough: the next read of the patient returns the
+   * recomputed status.
+   */
+  private refreshAfterCancellation(): void {
     // Reload patient tests to get updated data
     this.testReportService.getAllPatientTests(this.patientId).subscribe({
       next: (updatedTests: patientTest[]) => {
         this.allPatientTests = updatedTests;
-
-        // Calculate new patient status based on updated tests
-        const newStatus = calculatePatientStatus(updatedTests);
-
-        // Only update if there are no pending tests (status should be Completed)
-        if (newStatus === 'Completed' && hasPendingTests(updatedTests) === false) {
-          this.patientService.updatePatientStatus(this.patientId, newStatus).subscribe({
-            next: () => {
-              // Status updated successfully
-              this.filterTests();
-            },
-            error: (err) => {
-              // Log error but continue (status update is non-critical)
-              console.warn('Failed to update patient status:', err);
-              this.filterTests();
-            }
-          });
-        } else {
-          // Just refresh the view without updating status
-          this.filterTests();
-        }
+        this.filterTests();
       },
       error: (error) => {
         console.error('Failed to reload patient tests:', error);

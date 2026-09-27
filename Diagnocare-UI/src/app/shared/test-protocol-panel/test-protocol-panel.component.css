@@ -1,0 +1,394 @@
+/*
+ * Sample-collection protocol panel.
+ *
+ * Deliberately high-contrast and dense: this is read standing at a collection counter,
+ * often at a glance, so the headline facts (sample type, container, quantity, fasting)
+ * are sized to be legible without leaning in, and the detail sections sit below in a
+ * calmer register. Colours follow the pathology theme already used across the booking
+ * screens rather than introducing a new palette.
+ */
+
+.tpp {
+  font-size: 0.86rem;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+/* ── States ─────────────────────────────────────────────────────────────── */
+
+.tpp-state {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 1.15rem 1rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.tpp-state i {
+  font-size: 1rem;
+  color: #94a3b8;
+}
+
+/* ── Heading ────────────────────────────────────────────────────────────── */
+
+.tpp-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tpp-heading-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.tpp-heading-icon {
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.tpp-heading-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+}
+
+.tpp-heading-test {
+  font-size: 0.82rem;
+  color: #475569;
+  margin-top: 0.1rem;
+  word-break: break-word;
+}
+
+.tpp-heading-code {
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+
+
+
+
+/* ── Fallback: no protocol on file ──────────────────────────────────────── */
+
+.tpp-fallback {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #fed7aa;
+  border-left: 4px solid #ea580c;
+  border-radius: 8px;
+  background: #fff7ed;
+}
+
+.tpp-fallback-icon i {
+  color: #ea580c;
+  font-size: 1.05rem;
+}
+
+.tpp-fallback-body strong {
+  display: block;
+  color: #9a3412;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.tpp-fallback-body p {
+  margin: 0;
+  color: #7c2d12;
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
+/* ── Headline facts ─────────────────────────────────────────────────────── */
+
+.tpp-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.tpp-fact {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+/* The sample type is the instruction the collector acts on first, so it is the one
+   fact that is picked out rather than sitting level with the others. */
+.tpp-fact--sample {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.tpp-fact-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.tpp-fact-value {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.tpp-fact--sample .tpp-fact-value {
+  color: #1d4ed8;
+}
+
+/* ── Fasting badge ──────────────────────────────────────────────────────── */
+
+.tpp-fasting {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.tpp-fasting--required {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.tpp-fasting--none {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* ── Detail sections ────────────────────────────────────────────────────── */
+
+.tpp-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tpp-section {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #94a3b8;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.tpp-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.3rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  color: #334155;
+}
+
+.tpp-section h4 i {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.tpp-section p {
+  margin: 0;
+  font-size: 0.81rem;
+  color: #334155;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+/* Precautions and rejection criteria carry consequences — a rejected sample means a
+   second needle for the patient — so they read as warnings, not as more prose. */
+.tpp-section--caution {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.tpp-section--caution h4,
+.tpp-section--caution h4 i {
+  color: #a16207;
+}
+
+.tpp-section--caution p {
+  color: #78350f;
+}
+
+.tpp-section--reject {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+.tpp-section--reject h4,
+.tpp-section--reject h4 i {
+  color: #b91c1c;
+}
+
+.tpp-section--reject p {
+  color: #7f1d1d;
+}
+
+/* ── Footnotes ──────────────────────────────────────────────────────────── */
+
+.tpp-compact-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.73rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+
+@media (max-width: 640px) {
+  .tpp-heading {
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .tpp-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+
+/* ── Per-protocol blocks ────────────────────────────────────────────────── */
+
+/* Count of protocols on this test, shown only when there is more than one. */
+.tpp-count {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tpp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+/* Each protocol is a card, so a test with three of them reads as three things to do
+   rather than one long undifferentiated block. */
+.tpp-item {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.tpp-list .tpp-item + .tpp-item {
+  border-top-width: 1px;
+}
+
+.tpp-item-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* The step number is the sequence the collector works through. */
+.tpp-step {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.tpp-item-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.tpp-item-code {
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.tpp-tag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tpp-tag--standard {
+  background: #fef3c7;
+  color: #a16207;
+  border: 1px solid #fde68a;
+}
+
+/* The lab's reason for attaching this protocol to this test. Distinct from the protocol's
+   own content, which is shared with every other test that links it. */
+.tpp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border-left: 3px solid #6366f1;
+  border-radius: 0 6px 6px 0;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.tpp-note i {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+}

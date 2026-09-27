@@ -5,8 +5,8 @@
     <div class="header-left">
       <h1>Patient Test Results</h1>
       <p class="subtitle" *ngIf="!showPatientIdInput">
-        <span *ngIf="!showAllTests">Orders with results still to enter</span>
-        <span *ngIf="showAllTests">Every order, including finished ones</span>
+        <span *ngIf="!showAllTests">Pending &amp; partial reports</span>
+        <span *ngIf="showAllTests">Full test history (incl. completed)</span>
         <span *ngIf="patientId"> &mdash; Patient&nbsp;<strong>{{ patientId }}</strong></span>
       </p>
       <p class="subtitle" *ngIf="showPatientIdInput">View all patient test records</p>
@@ -19,28 +19,29 @@
       </button>
 
       <!-- Filter mode segmented toggle -->
-      <div class="filter-mode-toggle" *ngIf="!showPatientIdInput">
-        <!-- These two tabs filter on one thing: whether the results are finished.
-             They used to say "Recent & Pending" and claim a 15-day window that
-             filterTests() never applied, so a 2019 order with results outstanding
-             appeared under "Recent". People built a date-based model of the filter,
-             were contradicted by it, and concluded the filters were unpredictable.
-             The labels now say what the code does. -->
-        <button class="filter-mode-btn"
-                [class.filter-mode-btn--active]="!showAllTests"
-                (click)="showRecentOnly()"
-                title="Orders that still have results to enter">
-          <i class="fa fa-clock-o"></i>
-          <span>Needs work</span>
-        </button>
-        <button class="filter-mode-btn"
-                [class.filter-mode-btn--active]="showAllTests"
-                (click)="showOldReports()"
-                title="Every order for this patient">
-          <i class="fa fa-history"></i>
-          <span>All orders</span>
-          <span class="filter-mode-count" *ngIf="!showAllTests && hasOldTests">+{{ oldTestCount }}</span>
-        </button>
+      <div class="filter-mode-wrap" *ngIf="!showPatientIdInput">
+        <div class="filter-mode-toggle" role="group" aria-label="Choose which tests to show">
+          <button class="filter-mode-btn"
+                  type="button"
+                  [class.filter-mode-btn--active]="!showAllTests"
+                  [attr.aria-pressed]="!showAllTests"
+                  (click)="showRecentOnly()"
+                  title="Show only recent and pending tests">
+            <i class="fa fa-check filter-mode-check" aria-hidden="true"></i>
+            <i class="fa fa-clock-o filter-mode-icon" aria-hidden="true"></i>
+            <span>Recent &amp; Pending</span>
+          </button>
+          <button class="filter-mode-btn"
+                  type="button"
+                  [class.filter-mode-btn--active]="showAllTests"
+                  [attr.aria-pressed]="showAllTests"
+                  (click)="showOldReports()"
+                  title="Show full test history">
+            <i class="fa fa-check filter-mode-check" aria-hidden="true"></i>
+            <i class="fa fa-history filter-mode-icon" aria-hidden="true"></i>
+            <span>All Reports</span>
+          </button>
+        </div>
       </div>
 
       <button class="btn btn-outline" (click)="refreshList()" [disabled]="showPatientIdInput">
@@ -95,15 +96,15 @@
     <!-- ── Empty: has history but nothing passes recent filter ──── -->
     <div *ngIf="noRecentTests && !errorMessage" class="no-recent-state">
       <div class="no-recent-icon"><i class="fa fa-check-circle"></i></div>
-      <h3 class="no-recent-title">Nothing left to do for this patient</h3>
+      <h3 class="no-recent-title">All Reports Up to Date</h3>
       <p class="no-recent-message">
-        Every order has all of its results entered.<br>
-        {{ oldTestCount === 1 ? 'There is' : 'There are' }}
-        <strong>{{ oldTestCount }}</strong> finished order{{ oldTestCount !== 1 ? 's' : '' }} to look back at.
+        No tests in the last <strong>{{ RECENT_DAYS }} days</strong> with pending reports.<br>
+        There {{ oldTestCount === 1 ? 'is' : 'are' }}
+        <strong>{{ oldTestCount }}</strong> older record{{ oldTestCount !== 1 ? 's' : '' }} in the archive.
       </p>
       <div class="no-data-actions">
         <button class="btn btn-outline btn-lg" (click)="showOldReports()">
-          <i class="fa fa-history"></i> View all orders
+          <i class="fa fa-history"></i> View All Reports
         </button>
       </div>
     </div>
@@ -189,7 +190,28 @@
 
               <div class="detail-row">
                 <span class="detail-label">Sampling Done:</span>
-                <span class="detail-value">{{ test.sampling_Done || 'N/A' }}</span>
+                <span class="detail-value" *ngIf="hasSamplingLocation(test)">{{ test.sampling_Done_At }}</span>
+                <span class="detail-value sampling-missing" *ngIf="!hasSamplingLocation(test)">
+                  Not selected — barcode not generated
+                </span>
+              </div>
+
+              <!-- Booking saved without a sampling location: pick one here; saving it
+                   generates the barcode. -->
+              <div class="sampling-picker" *ngIf="!hasSamplingLocation(test) && !isCancelled(test)"
+                   (click)="$event.stopPropagation()">
+                <select class="form-select form-select-sm"
+                        [(ngModel)]="samplingDraft[test.patient_Test_Id]"
+                        [disabled]="savingSamplingFor === test.patient_Test_Id">
+                  <option [ngValue]="undefined" disabled>-- Select Sampling Done At --</option>
+                  <option *ngFor="let loc of samplingLocations" [ngValue]="loc">{{ loc }}</option>
+                </select>
+                <button class="btn btn-sm btn-primary"
+                        (click)="saveSamplingLocation(test, $event)"
+                        [disabled]="!samplingDraft[test.patient_Test_Id] || savingSamplingFor === test.patient_Test_Id">
+                  <i class="fa" [ngClass]="savingSamplingFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
+                  {{ savingSamplingFor === test.patient_Test_Id ? 'Saving…' : 'Save & Generate Barcode' }}
+                </button>
               </div>
             </div>
 
@@ -247,6 +269,40 @@
                     *ngIf="!isCancelled(test)"
                     (click)="viewDetails(test, $event)">
               <i class="fa fa-eye"></i> View Test Details
+            </button>
+            <!-- Sample collection protocol for everything on this booking. Read-only —
+                 the same instructions shown while booking, available afterwards. -->
+            <button class="btn btn-sm btn-protocol"
+                    (click)="openBookingProtocols(test, $event)"
+                    [disabled]="loadingProtocolFor === test.patient_Test_Id"
+                    title="View the sample collection protocol for the tests on this booking">
+              <i class="fa" [ngClass]="loadingProtocolFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-info-circle'"></i>
+              {{ loadingProtocolFor === test.patient_Test_Id ? 'Loading…' : 'Sample Protocol' }}
+            </button>
+            <button class="btn btn-sm btn-protocol"
+                    *ngIf="!isCancelled(test) && hasSamplingLocation(test)"
+                    (click)="printBarcode(test, $event)"
+                    [disabled]="printingLabelFor === test.patient_Test_Id"
+                    title="Print the sample barcode labels for this booking">
+              <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
+              {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print Barcode' }}
+            </button>
+            <button class="btn btn-sm btn-protocol"
+                    *ngIf="!isCancelled(test) && reportStatus(test) !== 'Pending'"
+                    (click)="openSmartReport(test, $event)"
+                    [disabled]="openingSmartReportFor === test.patient_Test_Id"
+                    title="Open the Smart Health Report (health score, summary and roadmap) for all tests on this booking">
+              <i class="fa" [ngClass]="openingSmartReportFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-heartbeat'"></i>
+              {{ openingSmartReportFor === test.patient_Test_Id ? 'Preparing…' : 'Smart Report' }}
+            </button>
+            <button class="btn btn-sm btn-protocol"
+                    *ngIf="!isCancelled(test) && reportStatus(test) !== 'Pending'"
+                    (click)="sendSmartReportOnWhatsApp(test, $event)"
+                    [disabled]="sendingSmartWhatsAppFor === test.patient_Test_Id || !patientWhatsAppNumber"
+                    [title]="!patientWhatsAppNumber ? 'No valid mobile number on this patient'
+                              : 'Send the Smart Report link to the patient on WhatsApp'">
+              <i class="fa" [ngClass]="sendingSmartWhatsAppFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+              {{ sendingSmartWhatsAppFor === test.patient_Test_Id ? 'Preparing…' : 'Send Smart Report' }}
             </button>
             <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
                     title="View payment receipts for this test">
@@ -326,6 +382,50 @@
           <div class="card-header">
             <div class="header-title">
               <h3>Test {{ i + 1 }}: {{ detail.testName }}</h3>
+              <!-- Per-test protocol. Sits beside the name because that is where someone
+                   looks when they are about to collect this particular sample. -->
+              <button type="button"
+                      class="protocol-info-btn"
+                      (click)="openDetailProtocol(detail, $event)"
+                      [title]="'Sample collection protocol for ' + detail.testName"
+                      aria-label="View sample collection protocol">
+                <i class="fa fa-info-circle"></i>
+              </button>
+
+              <!-- How many times this test was run on the sample. Shown only once it has
+                   actually been repeated: a "×1" on every test would be noise, and the
+                   whole signal here is that this one was questioned. -->
+              <button type="button"
+                      class="run-count-chip"
+                      *ngIf="runCount(detail) > 1"
+                      (click)="openRunHistory(detail, $event)"
+                      [title]="runCountTooltip(detail)">
+                <i class="fa fa-repeat"></i> Run &times;{{ runCount(detail) }}
+              </button>
+
+              <!-- A rejected sample is why no result appeared. It belongs on the test
+                   itself, not only inside a modal somebody has to think to open. -->
+              <button type="button"
+                      class="rejection-chip"
+                      *ngIf="wasEverRejected(detail)"
+                      [class.rejection-chip--open]="hasOpenRejection(detail)"
+                      (click)="openRejectionView(detail, $event)"
+                      [title]="rejectionCategory(detail) + ' — ' + rejectionReason(detail)">
+                <i class="fa fa-ban"></i>
+                {{ hasOpenRejection(detail) ? 'Sample rejected' : 'Was rejected' }}
+              </button>
+
+              <!-- "Has this report been printed?" — read-only. Always shown, unlike the
+                   run/rejection chips which only appear when something out of the
+                   ordinary happened: whether a report was printed is worth knowing at a
+                   glance for every test. Set automatically by the Print button on the
+                   generated report itself — there is nothing to click here. -->
+              <span class="print-status-chip"
+                    [class.print-status-chip--printed]="isPrinted(detail)"
+                    [title]="printedTooltip(detail)">
+                <i class="fa" [ngClass]="isPrinted(detail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
+                {{ isPrinted(detail) ? 'Printed' : 'Not Printed' }}
+              </span>
             </div>
             <span class="badge" [ngClass]="detail.isAbnormal ? 'badge-danger' : 'badge-success'">
               {{ detail.isAbnormal ? 'Abnormal' : 'Normal' }}
@@ -333,6 +433,21 @@
           </div>
 
           <div class="card-body">
+
+            <!-- The reason, in full, where the result would be. A test whose sample was
+                 refused has no result to show and the blank space is what confuses people —
+                 so the space says what happened and what is being waited on. -->
+            <div class="rejection-banner" *ngIf="hasOpenRejection(detail)"
+                 (click)="openRejectionView(detail, $event)">
+              <i class="fa fa-exclamation-triangle"></i>
+              <div class="rejection-banner-body">
+                <strong>Sample rejected — awaiting re-collection</strong>
+                <span class="rejection-banner-reason">{{ rejectionReason(detail) }}</span>
+                <span class="rejection-banner-cat">{{ rejectionCategory(detail) }}</span>
+              </div>
+              <span class="rejection-banner-link">Details</span>
+            </div>
+
             <div class="test-details">
               <div class="detail-row">
                 <span class="detail-label">Test Code:</span>
@@ -362,9 +477,20 @@
                 <span class="detail-label">Unit:</span>
                 <span class="detail-value">{{ detail.unit }}</span>
               </div>
-              <div class="detail-row" *ngIf="detail.method">
+              <!-- Always rendered, never hidden when empty. A missing row reads as "no
+                   particular method"; a row that says "Not recorded" is the truth, and it is
+                   what tells an admin the test still needs its technique entered. -->
+              <div class="detail-row">
                 <span class="detail-label">Method:</span>
-                <span class="detail-value">{{ detail.method }}</span>
+                <!-- effectiveMethod first: it resolves a linked catalogue technique, which a
+                     test can carry with no free-text method at all. -->
+                <span class="detail-value" *ngIf="detail.effectiveMethod || detail.method">
+                  {{ detail.effectiveMethod || detail.method }}
+                </span>
+                <span class="detail-value detail-value--absent"
+                      *ngIf="!detail.effectiveMethod && !detail.method">
+                  Not recorded
+                </span>
               </div>
               <div class="detail-row" *ngIf="detail.status">
                 <span class="detail-label">Status:</span>
@@ -382,6 +508,26 @@
                       *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
                       (click)="openParameterView(detail, $event)">
                 <i class="fa fa-file-text"></i> Test Result
+              </button>
+
+              <!-- Opening the runs and ordering a repeat are the same action in practice:
+                   whoever doubts a result wants to see whether it has already been
+                   questioned before adding another run. -->
+              <button class="btn btn-runs"
+                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
+                      (click)="openRunHistory(detail, $event)"
+                      title="How many times this test was run on the sample, and why">
+                <i class="fa fa-repeat"></i> Test Runs
+              </button>
+
+              <!-- Recording a rejection and reading one are the same screen: whoever is
+                   about to refuse a sample wants to see whether it has already been
+                   refused once. -->
+              <button class="btn btn-rejection"
+                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
+                      (click)="openRejectionView(detail, $event)"
+                      title="Record or review a rejected sample for this test">
+                <i class="fa fa-ban"></i> Sample Rejection
               </button>
             </div>
           </div>
@@ -436,6 +582,13 @@
         <p class="subtitle" *ngIf="selectedTestDetail">
           {{ selectedTestDetail.testCode }} — {{ selectedTestDetail.testName }}
         </p>
+        <!-- "Glucose 96" means different things by GOD-POD and by hexokinase, so the
+             technique sits with the values rather than one screen away. -->
+        <p class="method-subtitle"
+           *ngIf="selectedTestDetail?.effectiveMethod || selectedTestDetail?.method">
+          <i class="fa fa-cogs"></i>
+          Method: {{ selectedTestDetail!.effectiveMethod || selectedTestDetail!.method }}
+        </p>
       </div>
       <div class="header-actions">
         <button class="btn btn-primary" (click)="saveTestReport()">
@@ -443,10 +596,17 @@
         </button>
         <!-- Pay Now — payment not yet complete -->
         <button class="btn btn-pay-now"
-                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) !== 'Paid'"
+                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) !== 'Paid'
+                       && getPaymentStatus(selectedPatientTest) !== 'Awaiting Approval'"
                 (click)="payNowFromReport($event)"
                 title="Complete payment to unlock report">
           <i class="fa fa-credit-card"></i> Pay Now
+        </button>
+        <!-- Discount above the lab limit → payment held until a Super Admin decides. -->
+        <button class="btn btn-pay-now" disabled
+                *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) === 'Awaiting Approval'"
+                title="The discount on this booking is above the lab limit and is waiting for Super Admin approval. Payment can be taken once it is decided.">
+          <i class="fa fa-hourglass-half"></i> Discount awaiting approval
         </button>
         <!-- Report actions — only when fully paid AND every result is saved.
              Both buttons stay visible but disabled while results are missing, so
@@ -468,9 +628,32 @@
             <i class="fa" [ngClass]="isDownloadingPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf-o'"></i>
             {{ isDownloadingPdf ? 'Preparing…' : 'PDF' }}
           </button>
+          <!-- WhatsApp: opens the patient's chat with a message carrying the report's
+               verified link (same URL as the printed QR); the operator presses send. -->
+          <button class="btn btn-info"
+                  (click)="sendReportOnWhatsApp()"
+                  [disabled]="isSendingWhatsApp || !canIssueReport"
+                  [title]="!canIssueReport ? reportBlockedReason
+                            : (!patientWhatsAppNumber ? 'No valid mobile number on this patient'
+                            : (isSendingWhatsApp ? 'Preparing link…' : 'Send the report link on WhatsApp'))">
+            <i class="fa" [ngClass]="isSendingWhatsApp ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+            {{ isSendingWhatsApp ? 'Preparing…' : 'WhatsApp' }}
+          </button>
           <span class="report-blocked-note"
                 *ngIf="!canIssueReport && !isLoadingParameters">
             <i class="fa fa-exclamation-circle"></i> {{ reportBlockedReason }}
+          </span>
+
+          <!-- Same read-only printed flag as the test list, surfaced here too since
+               this is the screen the operator is looking at right after printing.
+               Set automatically by the Print button inside the generated report —
+               there is nothing to click here. -->
+          <span class="print-status-chip print-status-chip--lg"
+                *ngIf="selectedTestDetail"
+                [class.print-status-chip--printed]="isPrinted(selectedTestDetail)"
+                [title]="printedTooltip(selectedTestDetail)">
+            <i class="fa" [ngClass]="isPrinted(selectedTestDetail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
+            {{ isPrinted(selectedTestDetail) ? 'Printed' : 'Not Printed' }}
           </span>
         </ng-container>
         <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">
@@ -533,3 +716,37 @@
 </div>
 
 
+
+<!-- ══ Sample Collection Protocol (read-only) ══════════════════════════════
+     Opened from a booking card, or from a single test in the detail overlay.
+     Reads only: nothing here links, edits or clears a protocol. -->
+<app-protocol-view-modal
+  [visible]="showProtocolModal"
+  [testCodes]="protocolTestCodes"
+  [subtitle]="protocolModalSubtitle"
+  (closed)="closeProtocolModal()">
+</app-protocol-view-modal>
+
+<!-- ══ Test Runs ═══════════════════════════════════════════════════════════
+     How many times this test was run on the collected sample, why each repeat
+     was ordered, and which run the lab stands behind. -->
+<app-test-run-modal
+  [visible]="showRunModal"
+  [testRegId]="runModalTestRegId"
+  [testCode]="runModalTestCode"
+  [testName]="runModalTestName"
+  (closed)="closeRunHistory()"
+  (changed)="onRunsChanged()">
+</app-test-run-modal>
+
+<!-- ══ Sample Rejection ════════════════════════════════════════════════════
+     Why a collected sample could not be used, whether a fresh one is still
+     awaited, and the place a rejection is recorded or closed. -->
+<app-sample-rejection-modal
+  [visible]="showRejectionModal"
+  [testRegId]="rejectionModalTestRegId"
+  [testCode]="rejectionModalTestCode"
+  [testName]="rejectionModalTestName"
+  (closed)="closeRejectionView()"
+  (changed)="onRejectionsChanged()">
+</app-sample-rejection-modal>

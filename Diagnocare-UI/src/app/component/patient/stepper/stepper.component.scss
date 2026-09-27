@@ -66,13 +66,14 @@
   white-space: nowrap;
 
   &.active {
-    color: #1E5BA8; /* primary accent */
+    /*color: #1E5BA8;*/ /* primary accent */
+    font-weight: 700;
   }
 }
 
 .stepper-description {
   font-size: 0.7rem;
-  color: #374151; /* medium-dark for readable secondary text */
+  color: #c5c224; /* medium-dark for readable secondary text */
   margin: 0.15rem 0 0 0;
 }
 

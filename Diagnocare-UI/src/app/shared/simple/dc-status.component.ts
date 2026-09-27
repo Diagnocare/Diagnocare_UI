@@ -11,24 +11,6 @@ export type DcTone = 'ok' | 'wait' | 'info' | 'danger' | 'idle';
  * pill — never to an unlabelled colour.
  */
 const STATUS_MAP: Record<string, { tone: DcTone; icon: string }> = {
-  // ── Work queues (see utilities/work-queue.util.ts) ────────────────────────
-  // The worklist vocabulary. Note that none of these words is "Pending",
-  // "Partial" or "Completed": those three were doing duty as patient status,
-  // report status and payment status at the same time, so a badge could only be
-  // read by knowing which column it sat in. Every word below means exactly one
-  // thing, everywhere in the app.
-  'to collect':        { tone: 'idle',   icon: 'fa-flask' },
-  'awaiting results':  { tone: 'info',   icon: 'fa-hourglass-half' },
-  'partly entered':    { tone: 'wait',   icon: 'fa-adjust' },
-  'to verify':         { tone: 'wait',   icon: 'fa-user-md' },
-  'ready to print':    { tone: 'ok',     icon: 'fa-print' },
-  'needs attention':   { tone: 'danger', icon: 'fa-exclamation-triangle' },
-  issued:              { tone: 'ok',     icon: 'fa-check-circle' },
-  verified:            { tone: 'ok',     icon: 'fa-check-circle' },
-
-  // Payment, in words that cannot be confused with result progress.
-  'part-paid':         { tone: 'wait',   icon: 'fa-adjust' },
-
   // Report / booking progress
   completed:   { tone: 'ok',     icon: 'fa-check-circle' },
   complete:    { tone: 'ok',     icon: 'fa-check-circle' },

@@ -1075,6 +1075,96 @@
   flex-wrap: wrap;
 }
 
+// ── User-type selector ────────────────────────────────────────────
+// Sits on its own row above the employee search. Deliberately does NOT reuse
+// .tab-btn from the monthly toolbar: those buttons are white-on-blue, so on
+// this white card every unselected option would be invisible.
+.staff-type-row {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+  padding-bottom: 1em;
+  margin-bottom: 0.15em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.staff-type-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 14em;
+
+  // Leading role icon
+  .staff-type-icon {
+    position: absolute;
+    left: 0.85em;
+    font-size: 0.85em;
+    color: var(--primary-color, #1e5ba8);
+    pointer-events: none;
+  }
+
+  // Chevron — the native arrow is hidden so the control matches the app's inputs
+  .staff-type-caret {
+    position: absolute;
+    right: 0.85em;
+    font-size: 0.72em;
+    color: #6b7280;
+    pointer-events: none;
+    transition: transform 0.18s;
+  }
+
+  &:hover .staff-type-caret { color: var(--primary-color, #1e5ba8); }
+}
+
+.staff-type-select {
+  width: 100%;
+  padding: 0.6em 2.4em 0.6em 2.4em;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--text-primary, #2c3e50);
+  background: #fff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 0.5em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+
+  &:hover {
+    border-color: var(--primary-color, #1e5ba8);
+    background: #f8fbff;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color, #1e5ba8);
+    box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.15);
+  }
+
+  // Every option stays legible in the native popup, selected or not.
+  option {
+    color: var(--text-primary, #2c3e50);
+    background: #fff;
+    font-weight: 500;
+  }
+}
+
+// How many members the chosen type has — sets expectations before the
+// dropdown is opened, and explains an empty picker at a glance.
+.staff-type-count {
+  font-size: 0.82em;
+  font-weight: 600;
+  color: #4b5563;
+  background: #eef2f7;
+  border: 1px solid #dfe5ec;
+  border-radius: 999px;
+  padding: 0.3em 0.8em;
+  white-space: nowrap;
+}
+
 .picker-label {
   font-size: 0.88em;
   font-weight: 700;
@@ -2452,5 +2542,125 @@
     .payment-item { background: #0f172a !important; border-color: #273548 !important; }
     .form-input  { background: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
     .btn-cancel  { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   User-type segmented tabs (config tab employee picker)
+   Scoped to .staff-type-tabs / .staff-type-tab only — deliberately does
+   NOT reuse .role-filter-tabs / .tab-btn from the monthly toolbar, which
+   are white-on-blue and would be invisible on this white card.
+   ══════════════════════════════════════════════════════════════════ */
+.staff-type-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 0.28em;
+  background: #eef2f7;
+  border: 1.5px solid #d3dce7;
+  border-radius: 0.65em;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  flex-wrap: wrap;
+}
+
+.staff-type-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.52em 1.05em;
+  font-size: 0.86em;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: #4b5563;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 0.5em;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s;
+
+  i {
+    font-size: 0.95em;
+    color: #7c8797;
+    transition: color 0.18s;
+  }
+
+  // Unselected, pointer over it — lifts to white so it reads as clickable.
+  &:hover:not(.active) {
+    background: #ffffff;
+    color: var(--primary-color, #1e5ba8);
+    border-color: #bcd0e8;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10);
+
+    i { color: var(--primary-color, #1e5ba8); }
+  }
+
+  // Keyboard focus ring — visible on both selected and unselected.
+  &:focus-visible {
+    outline: none;
+    border-color: var(--primary-color, #1e5ba8);
+    box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.28);
+  }
+
+  &:active:not(.active) { transform: translateY(1px); }
+
+  // Selected — solid brand fill, the only filled chip in the row.
+  &.active {
+    background: var(--primary-color, #1e5ba8);
+    color: #ffffff;
+    font-weight: 700;
+    border-color: var(--primary-color, #1e5ba8);
+    box-shadow: 0 2px 6px rgba(30, 91, 168, 0.35);
+
+    i { color: #ffffff; }
+
+    &:hover {
+      background: var(--primary-color-dark, #17497f);
+      border-color: var(--primary-color-dark, #17497f);
+    }
+  }
+}
+
+// ── Theme variants ────────────────────────────────────────────────
+:host-context(html[data-theme="dark"]) {
+  .staff-type-tabs { background: #16202f !important; border-color: #2c3a4d !important;
+                     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45) !important; }
+  .staff-type-tab  { color: #a8b4c4 !important;
+                     i { color: #7f8ea3 !important; }
+                     &:hover:not(.active) { background: #22304a !important; color: #dbeafe !important;
+                                            border-color: #3b567f !important; }
+                     &.active { background: #2563eb !important; border-color: #2563eb !important;
+                                color: #ffffff !important; i { color: #ffffff !important; } } }
+}
+
+:host-context(html[data-theme="midnight"]) {
+  .staff-type-tabs { background: #0a0e14 !important; border-color: #1c2430 !important; }
+  .staff-type-tab  { color: #9aa5b5 !important;
+                     i { color: #6f7d90 !important; }
+                     &:hover:not(.active) { background: #131c28 !important; color: #cdd6f4 !important;
+                                            border-color: #24405f !important; }
+                     &.active { background: #1d4ed8 !important; border-color: #1d4ed8 !important;
+                                color: #ffffff !important; i { color: #ffffff !important; } } }
+}
+
+:host-context(html[data-theme="warm"]) {
+  .staff-type-tabs { background: #f5ede0 !important; border-color: #ddc9a8 !important; }
+  .staff-type-tab  { color: #7a5c4e !important;
+                     i { color: #a3866f !important; }
+                     &:hover:not(.active) { background: #fffdf7 !important; color: #8a5a2b !important;
+                                            border-color: #d9b98c !important; }
+                     &.active { background: #a9631f !important; border-color: #a9631f !important;
+                                color: #fffdf7 !important; i { color: #fffdf7 !important; } } }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host-context(html[data-theme="system"]) {
+    .staff-type-tabs { background: #16202f !important; border-color: #2c3a4d !important; }
+    .staff-type-tab  { color: #a8b4c4 !important;
+                       i { color: #7f8ea3 !important; }
+                       &:hover:not(.active) { background: #22304a !important; color: #dbeafe !important;
+                                              border-color: #3b567f !important; }
+                       &.active { background: #2563eb !important; border-color: #2563eb !important;
+                                  color: #ffffff !important; i { color: #ffffff !important; } } }
   }
 }

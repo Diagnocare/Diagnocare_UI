@@ -1,9 +1,8 @@
-/* ── Inactive row / badge ─────────────────────────────────────────────────── */
-.row-inactive {
-  opacity: 0.55;
-  background: #fafafa;
-}
-
+/* ── Inactive badge ───────────────────────────────────────────────────────── */
+/* The active and inactive lists are shown separately and never merged, so there is
+   no per-row dimming any more: fading every row of a table reads as "disabled" or
+   "still loading", not as "deactivated". The badge stays, so a single row is still
+   self-describing out of context (a screenshot, a bug report). */
 .badge-inactive {
   display: inline-block;
   font-size: 0.65rem;
@@ -16,6 +15,40 @@
   vertical-align: middle;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* ── Inactive-view notice ─────────────────────────────────────────────────── */
+/* Sits above the table whenever the list is filtered to deactivated members, so a
+   short or empty table is never read as "our staff have vanished". */
+.view-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md, 8px);
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-size: 0.82rem;
+}
+
+.view-notice .fa { opacity: 0.75; }
+
+/* Count of deactivated members, shown on the "Show Inactive" button so the user
+   can tell whether switching will show anything. */
+.toggle-count {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
 }
 
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */

@@ -35,5 +35,6 @@ export interface PatientTestCreateDto {
   collected_Outside: boolean;
   area:              string;
   collected_By:      string;
-  sampling_Done:     string;
+  /** Maps to AddPatientTestDTO.Sampling_Done_At. Empty = no barcode until set later. */
+  sampling_Done_At:  string;
 }

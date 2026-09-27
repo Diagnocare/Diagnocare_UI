@@ -133,6 +133,19 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
   get pendingCount():   number { return this.visits.filter(v => v.status === 'Pending').length; }
   get completedCount(): number { return this.visits.filter(v => v.status === 'Completed').length; }
 
+  // ── Holiday awareness ──────────────────────────────────────────────────────
+
+  /**
+   * Holiday name for the day on screen, or null on a normal working day.
+   * The calendar response carries holidays alongside visit counts, so staff
+   * see the same holiday markers the admin does.
+   */
+  get selectedDayHolidayName(): string | null {
+    if (!this.selectedDate) return null;
+    return this.calendarData.find(d => d.date === this.selectedDate && d.isHoliday)
+                            ?.holidayName ?? null;
+  }
+
   // ── Completion ─────────────────────────────────────────────────────────────
 
   openCompleteModal(visit: VisitScheduleGetDto): void { this.completingVisit = visit; }

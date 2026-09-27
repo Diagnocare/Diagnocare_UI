@@ -14,22 +14,54 @@ import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { PatientListDto } from 'src/app/models/patient/patient-list.dto';
 import { SortDirection, SortPatientField } from 'src/app/models/common/sort';
+import { buildPageSortRequest, PagedRequest } from 'src/app/models/common/page-sort-request';
+import { PatientSearchFilter } from 'src/app/models/patient/patient-search-filter';
+
+/**
+ * Maps a sortable column to the API's sort key (see PatientRepository.PatientSortMap).
+ * Sorting runs on the server across all patients, not just the visible page.
+ */
+const PATIENT_SORT_KEYS: Partial<Record<SortPatientField, string>> = {
+  patient_Reg_Date: 'regDate',
+  patient_Name: 'name',
+  patient_DOB: 'dob',
+  patient_Age: 'age',
+  isUrgent: 'urgent',
+  status: 'status',
+};
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
+
+/**
+ * sessionStorage key for the Status filter on the patients list.
+ *
+ * The list is left and re-entered constantly (eye icon → patient tests → back),
+ * and each return rebuilt the component with the default "Active" filter, so a
+ * user working through the Completed or Deactivated list had to re-select it
+ * every single time. Remembering the choice keeps the list where they left it.
+ *
+ * sessionStorage (not localStorage) is deliberate: the selection lives for the
+ * current browser tab/session only and is gone on the next sign-in, so nobody
+ * is surprised by a stale filter days later.
+ */
+const PATIENTS_STATUS_FILTER_KEY = 'dc.patientsList.statusFilter';
+
+/** Status values the dropdown offers — anything else in storage is ignored. */
+const PATIENTS_STATUS_FILTER_VALUES = ['active', 'Pending', 'Partial', 'Completed', 'deactivated'];
 
 // ── Simple UI kit ────────────────────────────────────────────────────────────
 // Labelled action buttons, one shared status vocabulary, and an empty state
 // that says what to do next. The originals stay behind *ngIf="!useNewUi".
-import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
-import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
-import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
-import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+// import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
+// import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
+// import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
+// import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
 
 
 @Component({
   selector: 'app-patients-list',
   templateUrl: './patients-list.component.html',
   styleUrls: ['./patients-list.component.scss'],
-  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent, DcActionComponent, DcStatusComponent, DcEmptyComponent],
+  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent],
   encapsulation: ViewEncapsulation.None,
   standalone: true
 })
@@ -37,7 +69,7 @@ import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
 export class PatientsListComponent implements OnInit, OnDestroy {
 
   /** Simple-UI rollout flag — see shared/simple/simple-ui.flags.ts. */
-  readonly useNewUi = USE_NEW_UI;
+  // readonly useNewUi = USE_NEW_UI;
 
   private destroy$ = new Subject<void>();
 
@@ -75,7 +107,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   // Pagination properties
   currentPage: number = 1;
-  pageSize: number = 5;
+  pageSize: number = 10;
   totalPages: number = 1;
   totalItems = 0;
   startIndex: number = 0;
@@ -102,7 +134,33 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     // fix hardcoded date to ISO format (yyyy-MM-dd)
     this.dateFrom = "";
     this.dateTo = "";
+    // Restore the Status filter chosen earlier in this session (see key doc above).
+    this.statusFilter = this.readStoredStatusFilter() ?? this.statusFilter;
     this.loadPatients();
+  }
+
+  /**
+   * Reads the remembered Status filter for this session.
+   * Returns null when nothing is stored, the stored value is no longer a valid
+   * option, or storage is unavailable (private mode / blocked cookies) — the
+   * caller then falls back to the default "Active" view.
+   */
+  private readStoredStatusFilter(): string | null {
+    try {
+      const saved = sessionStorage.getItem(PATIENTS_STATUS_FILTER_KEY);
+      return saved && PATIENTS_STATUS_FILTER_VALUES.includes(saved) ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Remembers the Status filter for the rest of this browser session. */
+  private storeStatusFilter(value: string): void {
+    try {
+      sessionStorage.setItem(PATIENTS_STATUS_FILTER_KEY, value);
+    } catch {
+      // Storage unavailable — the filter simply won't be remembered.
+    }
   }
 
   private mapPatient(p: any): PatientListDto {
@@ -144,10 +202,32 @@ export class PatientsListComponent implements OnInit, OnDestroy {
    * "36 years 7 months 2 days" → "36 yrs"
    * Falls back to the raw string if it cannot be parsed.
    */
+  /**
+   * Ages are stored as "41Y 5M 16D" (and, on older records, "41 Years").
+   * The list has one narrow column, so it shows the two largest parts that are
+   * present — "41y", "6m 30d", "12d" — which is enough to tell an adult from an
+   * infant at a glance without wrapping the cell.
+   */
   getDisplayAge(age: string): string {
     if (!age) return '—';
-    const match = age.match(/^(\d+)\s*year/i);
-    return match ? `${match[1]} yrs` : age;
+
+    const grab = (unit: string) => {
+      const m = age.match(new RegExp(`(\\d+)\\s*${unit}`, 'i'));
+      return m ? Number(m[1]) : 0;
+    };
+
+    // Legacy "41 Years" / a bare number.
+    if (!/\d+\s*[YMD]\b/i.test(age)) {
+      const legacy = age.match(/^(\d+)/);
+      return legacy ? `${legacy[1]}y` : age;
+    }
+
+    const parts: string[] = [];
+    const years = grab('Y'), months = grab('M'), days = grab('D');
+    if (years)  parts.push(`${years}y`);
+    if (months) parts.push(`${months}m`);
+    if (!years && days) parts.push(`${days}d`);
+    return parts.slice(0, 2).join(' ') || '0d';
   }
 
   /** CSS class for the urgent badge. */
@@ -158,12 +238,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
   loadPatients() {
     this.isLoading = true;
     this.cdr.detectChanges();
-    // The search term goes with every load, not just the ones that start at the
-    // Search button. This used to pass '' — so paging, changing the page size,
-    // switching status or deactivating anyone silently dropped the search while
-    // the box still showed what had been typed, and the list quietly became the
-    // full one. That behaviour is why people were taught to retype after paging.
-    this._patientService.searchPatients(this.searchTerm || '', this.currentPage, this.pageSize, this.formatToDDMMYYYY(this.dateFrom), this.formatToDDMMYYYY(this.dateTo), this.statusFilter).pipe(
+    // Keeps the current search term so paging and sorting stay within the search results.
+    this._patientService.searchPatients(this.buildSearchRequest(this.searchTerm)).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response: any) => {
@@ -181,7 +257,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
           }
         });
         this.isLoading = false;
-        this.applySorting();
         this.updatePagination();
         this.cdr.detectChanges();
       },
@@ -195,16 +270,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Searches the database, not the page you happen to be on.
-   *
-   * This used to call applyFilters(), which filters `paginatedPatients` — the
-   * rows already on screen. Typing a name and pressing Enter therefore searched
-   * ten records, and a patient on page 3 came back as "no patients match".
-   */
   onSearch() {
-    this.currentPage = 1;
-    this.loadPatients();
+    this.applyFilters();
   }
 
   onDateFilter() {
@@ -215,26 +282,14 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     // Reload immediately so switching between Active / Completed (etc.) updates
     // the list without an extra click. Resets to the first page.
     this.currentPage = 1;
+    // Keep the choice for when the user returns from a test/report screen.
+    this.storeStatusFilter(this.statusFilter);
     this.loadPatients();
   }
 
   /** True when the user is viewing Completed patients (enables report actions). */
   isCompletedView(): boolean {
     return (this.statusFilter || '').toLowerCase() === 'completed';
-  }
-
-  /**
-   * Opens the patient's tests, where each report can be viewed or downloaded.
-   *
-   * Named for what it does. It was called downloadCompletedReport and sat behind
-   * a button labelled "Report", but it downloads nothing — it navigates. A
-   * control whose label does not match its behaviour has to be un-taught person
-   * by person, and it quietly trains people to distrust every other label on the
-   * screen. There is no patient-level report endpoint to wire it to, so the
-   * honest fix is the name and the label, not a new behaviour.
-   */
-  openPatientReports(patientId: string) {
-    this.viewPatientTest(patientId);
   }
 
   applyFilters() {
@@ -252,11 +307,16 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     });
 
     this.currentPage = 1;
-    this.applySorting();
     this.updatePagination();
   }
 
+  /**
+   * Toggles the sort for a column and reloads from the API. The server sorts
+   * all matching patients before paging, so the order is correct across pages.
+   */
   sort(field: SortPatientField) {
+    if (!PATIENT_SORT_KEYS[field]) return;
+
     if (this.currentSortField === field) {
       this.currentSortDirection = this.currentSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
@@ -264,65 +324,27 @@ export class PatientsListComponent implements OnInit, OnDestroy {
       this.currentSortDirection = 'asc';
     }
 
-    this.applySorting();
-    this.updatePagination();
-    
+    // A new sort order starts from the first page.
+    this.currentPage = 1;
+    this.loadPatients();
   }
 
-  applySorting() {
-    this.filteredPatients.sort((a, b) => {
-      let aValue: any = a[this.currentSortField] ?? '';
-      let bValue: any = b[this.currentSortField] ?? '';
-
-      // Date field — parse to timestamp so order is year → month → day
-      if (this.currentSortField === 'patient_Reg_Date') {
-        aValue = this.parseDateToTimestamp(String(aValue));
-        bValue = this.parseDateToTimestamp(String(bValue));
-      }
-
-      // Age column — sort by the leading number, ignore trailing text
-      if (this.currentSortField === 'patient_Age') {
-        aValue = parseInt(String(aValue), 10) || 0;
-        bValue = parseInt(String(bValue), 10) || 0;
-      }
-
-      let comparison = 0;
-      if (aValue < bValue) comparison = -1;
-      else if (aValue > bValue) comparison = 1;
-
-      return this.currentSortDirection === 'desc' ? -comparison : comparison;
-    });
-  }
-
-  /**
-   * Converts a date string to a numeric timestamp for reliable chronological sorting.
-   *
-   * Handles:
-   *   DD/MM/YYYY  (Indian display format, e.g. "15/03/2024")
-   *   DD-MM-YYYY  (same with dashes)
-   *   YYYY-MM-DD  (ISO / backend format)
-   *   Any format parseable by Date constructor as fallback
-   */
-  private parseDateToTimestamp(dateStr: string): number {
-    if (!dateStr) return 0;
-
-    // DD/MM/YYYY or DD-MM-YYYY
-    const dmy = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (dmy) {
-      const [, dd, mm, yyyy] = dmy;
-      return new Date(+yyyy, +mm - 1, +dd).getTime();
-    }
-
-    // YYYY-MM-DD or YYYY/MM/DD (ISO-like)
-    const ymd = dateStr.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-    if (ymd) {
-      const [, yyyy, mm, dd] = ymd;
-      return new Date(+yyyy, +mm - 1, +dd).getTime();
-    }
-
-    // Generic fallback
-    const ts = new Date(dateStr).getTime();
-    return isNaN(ts) ? 0 : ts;
+  /** Builds the request body: shared paging/sort options plus the patient filter. */
+  private buildSearchRequest(searchTerm: string): PagedRequest<PatientSearchFilter> {
+    return {
+      paging: buildPageSortRequest(
+        this.currentPage,
+        this.pageSize,
+        PATIENT_SORT_KEYS[this.currentSortField],
+        this.currentSortDirection
+      ),
+      filter: {
+        searchTerm: (searchTerm || '').trim(),
+        dateFrom: this.formatToDDMMYYYY(this.dateFrom),
+        dateTo: this.formatToDDMMYYYY(this.dateTo),
+        status: this.statusFilter,
+      },
+    };
   }
 
   getSortIcon(field: SortPatientField): string {
@@ -331,6 +353,8 @@ export class PatientsListComponent implements OnInit, OnDestroy {
   }
 
   onPageSizeChange() {
+    // <select> binds a string; keep pageSize numeric for paging maths and the API.
+    this.pageSize = Number(this.pageSize) || 10;
     this.currentPage = 1;
     this.loadPatients();
   }
@@ -349,6 +373,50 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   trackByPatientId(index: number, patient: PatientListDto): string {
     return patient.patient_Id;
+  }
+
+  /** Patient ID most recently copied — drives the brief "copied" tick on that row. */
+  copiedPatientId: string | null = null;
+  private copyResetTimer?: ReturnType<typeof setTimeout>;
+
+  /** Copies a patient's ID to the clipboard so staff can paste it into search or other screens. */
+  copyPatientId(patientId: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!patientId) return;
+
+    const onCopied = () => {
+      this.copiedPatientId = patientId;
+      this.toastr.success(`Patient ID ${patientId} copied`, '', { timeOut: 1500 });
+      clearTimeout(this.copyResetTimer);
+      this.copyResetTimer = setTimeout(() => {
+        this.copiedPatientId = null;
+        this.cdr.markForCheck();
+      }, 1500);
+      this.cdr.markForCheck();
+    };
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(patientId).then(onCopied, () => this.fallbackCopy(patientId) ? onCopied() : this.toastr.error('Could not copy Patient ID', 'Error'));
+    } else if (this.fallbackCopy(patientId)) {
+      onCopied();
+    } else {
+      this.toastr.error('Could not copy Patient ID', 'Error');
+    }
+  }
+
+  /** Clipboard fallback for non-secure (http) origins where navigator.clipboard is unavailable. */
+  private fallbackCopy(text: string): boolean {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
   }
 
   getVisiblePages(): number[] {
@@ -552,18 +620,9 @@ export class PatientsListComponent implements OnInit, OnDestroy {
       return reason ? `with: ${reason}` : 'dismissed';
     }
 
-  /**
-   * True when the list is showing today and nothing has been searched for.
-   *
-   * The `!this.statusFilter` clause was removed: statusFilter defaults to
-   * 'active' and the dropdown has no blank option, so it was always falsy and
-   * this method always returned false. The friendlier "No patients registered
-   * today" empty state could never appear, and someone who had searched for
-   * nothing at all was told to check their spelling.
-   */
   isTodayDateRange(): boolean {
     const today = this.localDateIso();
-    return this.dateFrom === today && this.dateTo === today && !this.searchTerm;
+    return this.dateFrom === today && this.dateTo === today && !this.searchTerm && !this.statusFilter;
   }
 searchInputPatients() {
   if (!this.searchTerm.trim()) {
@@ -573,12 +632,7 @@ searchInputPatients() {
 }
     searchPatients() {
       this.isLoading = true;
-
-      // Any new search starts at page 1. Without this, searching while on page 3
-      // requested page 3 of the new result set — which is usually empty, so a
-      // search that matched several patients looked like it had found none.
-      this.currentPage = 1;
-
+      
       // Check if there's any search criteria
       const hasSearchTerm = this.searchTerm && this.searchTerm.trim().length >= 2;
       const hasDateFilter = this.dateFrom || this.dateTo;
@@ -602,21 +656,16 @@ searchInputPatients() {
         return;
       }
 
-      this._patientService.searchPatients(
-        this.searchTerm || '', 
-        this.currentPage, 
-        this.pageSize,
-        this.formatToDDMMYYYY(this.dateFrom),
-        this.formatToDDMMYYYY(this.dateTo),
-        this.statusFilter
-      ).pipe(
+      // A new search starts from the first page.
+      this.currentPage = 1;
+
+      this._patientService.searchPatients(this.buildSearchRequest(this.searchTerm)).pipe(
         takeUntil(this.destroy$)
       ).subscribe({
         next: (response: any) => {
           this.filteredPatients = (response.item2 as any[]).map(p => this.mapPatient(p));
           this.totalItems = response.item1;
           this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-          this.applySorting();
           this.updatePagination();
           this.isLoading = false;
           this.cdr.detectChanges();

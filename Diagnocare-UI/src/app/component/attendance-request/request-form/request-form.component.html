@@ -43,6 +43,21 @@
         Nothing recorded for this date yet.
       </div>
 
+      <!-- A request for this date is already awaiting a decision. A second one is
+           rejected by the server, so point at the existing one instead. -->
+      <div *ngIf="!currentStatusLoading && hasExistingRequest" class="current-note current-note--blocked">
+        <i class="fa fa-clock"></i>
+        <span>
+          You already have a request for this date awaiting a decision<ng-container
+            *ngIf="existingRequestedLabel"> — {{ existingRequestLabel || 'Pending' }},
+            {{ existingRequestedLabel }} requested</ng-container>.
+          Edit or cancel that one instead of raising another.
+        </span>
+        <button type="button" class="open-existing-btn" (click)="openExistingRequest()">
+          View request <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+
       <div class="field">
         <label class="field-label">Requested Status <span class="req">*</span></label>
         <div class="input-icon" [class.invalid]="f['requestedStatus'].touched && f['requestedStatus'].invalid">
@@ -78,7 +93,8 @@
 
       <div class="form-actions">
         <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
-        <button type="submit" class="btn-gradient" [disabled]="isSaving">
+        <button type="submit" class="btn-gradient" [disabled]="isSaving || hasExistingRequest"
+                [title]="hasExistingRequest ? 'A request for this date is already awaiting a decision' : ''">
           <i class="fa fa-paper-plane" *ngIf="!isSaving"></i>
           {{ isSaving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Submit Request') }}
         </button>

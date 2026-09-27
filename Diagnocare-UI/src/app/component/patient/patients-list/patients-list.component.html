@@ -79,27 +79,7 @@
         <!-- Loading Spinner -->
         <app-loading-spinner [isLoading]="isLoading" message="Loading patients..."></app-loading-spinner>
         <!-- No Data Message -->
-        <!-- Simple UI: says what happened, why, and gives the next step. -->
-        <div *ngIf="filteredPatients.length === 0 && !isLoading && useNewUi">
-            <dc-empty *ngIf="isTodayDateRange()"
-                      icon="fa-user-plus"
-                      title="No patients registered today"
-                      message="Anyone you register today will appear here. Widen the date range above to see earlier patients."
-                      actionLabel="Register a patient"
-                      actionIcon="fa-plus"
-                      (action)="navigateToAddPatient()">
-            </dc-empty>
-            <dc-empty *ngIf="!isTodayDateRange()"
-                      icon="fa-search"
-                      title="No patients match what you searched for"
-                      message="Check the spelling, or try just the first few letters of the name."
-                      actionLabel="Clear the search"
-                      actionIcon="fa-times"
-                      (action)="searchTerm = ''; searchPatients()">
-            </dc-empty>
-        </div>
-
-        <div *ngIf="filteredPatients.length === 0 && !isLoading && !useNewUi">
+        <div *ngIf="filteredPatients.length === 0 && !isLoading">
             <div *ngIf="isTodayDateRange(); else otherNoData" class="no-data">
                 <i class="fa fa-info-circle"></i>
                 <p>No patient registered for today</p>
@@ -118,6 +98,7 @@
                     Patient Reg Date
                     <i class="sort-icon" [class]="getSortIcon('patient_Reg_Date')"></i>
                     </th>
+                    <th class="col-patient-id">Patient ID</th>
                     <th (click)="sort('patient_Name')" class="sortable">
                     Patient Name / Father Name
                     <i class="sort-icon" [class]="getSortIcon('patient_Name')"></i>
@@ -155,21 +136,34 @@
         <tr *ngFor="let patient of filteredPatients; let i = index; trackBy: trackByPatientId" 
             [class]="getRowClass(patient)">
             
-            <td>{{patient.patient_Reg_Date}}</td>
-            <td>
+            <td data-label="Reg Date">{{patient.patient_Reg_Date}}</td>
+            <td data-label="Patient ID" class="col-patient-id">
+                <span class="patient-id-chip" *ngIf="patient.patient_Id; else noPatientId">
+                    <span class="patient-id-text" [title]="patient.patient_Id">{{ patient.patient_Id }}</span>
+                    <button type="button" class="patient-id-copy"
+                        [class.copied]="copiedPatientId === patient.patient_Id"
+                        [title]="copiedPatientId === patient.patient_Id ? 'Copied!' : 'Copy Patient ID'"
+                        [attr.aria-label]="'Copy Patient ID ' + patient.patient_Id"
+                        (click)="copyPatientId(patient.patient_Id, $event)">
+                        <i class="fa" [ngClass]="copiedPatientId === patient.patient_Id ? 'fa-check' : 'fa-copy'"></i>
+                    </button>
+                </span>
+                <ng-template #noPatientId><span class="text-muted">—</span></ng-template>
+            </td>
+            <td data-label="Patient">
                 <div class="patient-info">
                     <strong>{{patient.patient_Name}}</strong>
                     <small>{{patient.relative_Name}}</small>
                 </div>
             </td>
-            <td>{{patient.patient_DOB}}</td>
-            <td>
+            <td data-label="Date of Birth">{{patient.patient_DOB}}</td>
+            <td data-label="Age / Sex">
                 <div class="patient-info">
                     <strong>{{ getDisplayAge(patient.patient_Age) }}</strong>
                     <small>{{ patient.patient_Gender }}</small>
                 </div>
             </td>
-            <td>
+            <td data-label="Urg Rep">
               <span [ngClass]="getUrgentClass(patient.isUrgent)">
                 <span class="urgent-dot"></span>
                 {{ patient.isUrgent === 'Yes' ? 'Urgent' : 'Normal' }}
@@ -198,36 +192,15 @@
             <!-- <td class="amount">₹{{patient.total_Amount}}</td>
             <td class="amount">₹{{patient.discount}}</td> 
             -->
-            <td>
-              <!-- Simple UI: colour, icon and word from one shared table. -->
-              <dc-status *ngIf="useNewUi" [status]="patient.status"></dc-status>
-              <span *ngIf="!useNewUi" class="status-badge" [ngClass]="getStatusClass(patient.status)">
+            <td data-label="Status">
+              <span class="status-badge" [ngClass]="getStatusClass(patient.status)">
                 <span class="status-dot"></span>
                 {{ patient.status || '—' }}
               </span>
             </td>
-            <td>
-            <!-- Simple UI: every action carries its word, so nobody has to
-                 hover three grey squares to find out which is which. -->
-            <div class="action-buttons dc-actions-row" *ngIf="useNewUi">
-                <ng-container *ngIf="!isDeactivatedView(); else dcDeactivatedActions">
-                    <!-- Labelled for what it does. It says "Reports" and opens the
-                         patient's tests, where each report can be viewed or
-                         downloaded — it never downloaded anything itself. -->
-                    <dc-action *ngIf="isCompletedView()" type="results" label="Reports" (clicked)="openPatientReports(patient.patient_Id)"></dc-action>
-                    <dc-action type="results" label="Tests"      (clicked)="viewPatientTest(patient.patient_Id)"></dc-action>
-                    <dc-action type="edit"                        (clicked)="editPatient(patient.patient_Id)"></dc-action>
-                    <dc-action type="delete"  label="Deactivate"  (clicked)="confirmDelete(patient.patient_Id)"></dc-action>
-                </ng-container>
-                <ng-template #dcDeactivatedActions>
-                    <dc-action type="restore" label="Reactivate"        (clicked)="confirmReactivate(patient.patient_Id)"></dc-action>
-                    <dc-action type="delete"  label="Delete for good"   (clicked)="confirmHardDelete(patient.patient_Id)"></dc-action>
-                </ng-template>
-            </div>
-
-            <div class="action-buttons" *ngIf="!useNewUi">
+            <td data-label="Actions" class="col-actions">
+            <div class="action-buttons">
                 <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
-                    <app-action-btn *ngIf="isCompletedView()" type="view" title="Open Reports" (clicked)="openPatientReports(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="delete" title="Deactivate Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
@@ -254,7 +227,6 @@
         </div>
         <div class="pagination-controls">
             <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="form-select" style="width: auto;">
-                <option value="5">5 per page</option>
                 <option value="10">10 per page</option>
                 <option value="25">25 per page</option>
                 <option value="50">50 per page</option>

@@ -25,7 +25,6 @@ export * from './dc-search.component';
 export * from './dc-task-tile.component';
 export * from './dc-wizard.component';
 export * from './dc-status.component';
-export * from './dc-queue-tabs.component';
 export * from './dc-action.component';
 export * from './dc-record.component';
 export * from './dc-summary.component';
@@ -43,7 +42,6 @@ import { DcSearchComponent } from './dc-search.component';
 import { DcTaskTileComponent } from './dc-task-tile.component';
 import { DcWizardComponent } from './dc-wizard.component';
 import { DcStatusComponent } from './dc-status.component';
-import { DcQueueTabsComponent } from './dc-queue-tabs.component';
 import { DcActionComponent } from './dc-action.component';
 import { DcRecordComponent } from './dc-record.component';
 import { DcSummaryComponent } from './dc-summary.component';
@@ -68,7 +66,6 @@ export const SIMPLE_UI = [
   DcTaskTileComponent,
   DcWizardComponent,
   DcStatusComponent,
-  DcQueueTabsComponent,
   DcActionComponent,
   DcRecordComponent,
   DcSummaryComponent,

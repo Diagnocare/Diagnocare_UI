@@ -1,4 +1,4 @@
-import { get } from "@okta/okta-auth-js";
+﻿import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -16,20 +16,36 @@ export const controllerEndpoints = {
   patient: 'api/patient/',
   patientReport: 'api/PatientReport/',
   patientTestReportGeneration: 'api/TestReportGeneration/',
+  smartReport: 'api/SmartReport/',
+  sampleLabel: 'api/SampleLabel/',
   pathology: 'api/pathology/',
   test: 'api/test/',
   user: 'api/user/',
   receipt: 'api/receipt/',
   summaryReport:'api/summaryReport/',
   pathologyTest:'api/pathologyTest/',
+  /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
+  testImport:    'api/TestImport/',
   template:   'api/template/',
   attendance: 'api/attendance/',
   salary:     'api/salary/',
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
   feedback:      'api/feedback/',
-  /** The lab's outstanding work, as queues rather than filters. */
-  worklist:      'api/Worklist/',
+  /**
+   * Repeat testing — how many times a test was run on the collected sample, and why.
+   * Its own controller: this is about the conduct of the test, not its values.
+   */
+  testRun:       'api/TestRun/',
+  /**
+   * Sample rejection — a collected sample that could not be used, and why. Its own
+   * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
+   */
+  sampleRejection: 'api/SampleRejection/',
+  /** Super Admin queue for discounts above the lab's max discount. */
+  discountApproval: 'api/DiscountApproval/',
+  /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
+  testReminder: 'api/TestReminder/',
 };
 
 export const apiEndpoints = {
@@ -60,6 +76,8 @@ export const apiEndpoints = {
   getReceiptCount:"GetReceiptCount",
   updatePathologyTest:"UpdatePathologyTest",
   generateTestReportPDF:"GenerateTestReportPDF",
+  generateSmartReport:"Generate",
+  reportShareLink:"ShareLink",
   updateAuthType:"UpdateAuthType",
   updateUserEmail:"UpdateUserEmail",
   updateUserPhone:"UpdateUserPhone",
@@ -105,7 +123,54 @@ export const apiEndpoints = {
   getTestList:"GetTestList",
   getPathTest:"GetPathologyTest",
   getTestParameter:"GetTestParameter",
+  /** The seeded catalogue of laboratory techniques, for the picker on the test form. */
+  getTechniques:"GetTechniques",
+  /** The whole sample-collection protocol library, with usage counts. */
+  getProtocolLibrary:"GetProtocolLibrary",
+  /** One protocol's full content. */
+  getProtocol:"GetProtocol",
+  /** The protocols one test is collected under, in order. */
+  getTestProtocols:"GetTestProtocols",
+  /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
+  getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /** Which library protocol a test's name suggests. Admin / Super Admin only. */
+  suggestTestProtocol:"SuggestTestProtocol",
+  /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */
+  saveProtocol:"SaveProtocol",
+  /** Replaces the whole set of protocols linked to a test. Admin / Super Admin only. */
+  saveTestProtocolAssignments:"SaveTestProtocolAssignments",
+  /** Deletes a lab-authored protocol from the library. Admin / Super Admin only. */
+  deleteProtocol:"DeleteProtocol",
+  /** Every recorded run of one test on one booking, with the reason for each repeat. */
+  getTestRunHistory:"GetHistory",
+  /** Run counts for every test on a booking — one call, so a list can be badged cheaply. */
+  getTestRunBookingCounts:"GetBookingCounts",
+  /** Records that a test was run again on the sample already collected. A reason is required. */
+  repeatTestRun:"Repeat",
+  /** Marks which run the lab stands behind. */
+  acceptTestRun:"Accept",
+  /** The standard sample-rejection reasons, grouped by cause. Served so the UI cannot drift. */
+  getSampleRejectionReasons:"GetReasons",
+  /** Every rejection recorded against one test on one booking. */
+  getSampleRejectionHistory:"GetHistory",
+  /** Rejection flags for every test on a booking — one call for the whole list. */
+  getSampleRejectionBookingSummary:"GetBookingSummary",
+  /** Records that a collected sample could not be used. */
+  rejectSample:"Reject",
+  /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
+  resolveSampleRejection:"Resolve",
+  /** Printed flag for one report (testRegId + testCode). Defaults to not-printed, never 404s. */
+  getPrintStatus:"GetPrintStatus",
+  /** Printed flags for every test code on a booking — one call for the whole list. */
+  getPrintStatuses:"GetPrintStatuses",
+  /** Manually marks one report printed or not-printed. */
+  setPrinted:"SetPrinted",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
+  // Test catalogue import (TestImport controller)
+  testImportTemplate:    'Template',
+  testImportPreview:     'Preview',
+  testImportCommit:      'Commit',
+  testImportErrorReport: 'ErrorReport',
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",
   dropTest:"Delete",
@@ -117,6 +182,8 @@ export const apiEndpoints = {
   requests:              'requests',
   myRequests:            'requests/mine',
   pendingRequestCount:   'requests/pending-count',
+  /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
+  requestCounts:         'requests/counts',
   cancelRequest:         'cancel',
   approveRequest:        'approve',
   rejectRequest:         'reject',
@@ -159,7 +226,9 @@ export const apiEndpoints = {
   disableMFA:               'disable',         // POST api/Mfa/disable
   cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
   removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
+  updateSamplingLocation:   'UpdateSamplingLocation', // PUT api/patient/UpdateSamplingLocation
   reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
+  /** Patients only — staff have no permanent delete, see MemberService.delete. */
   hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
   refundReceipt:            'Refund',            // PUT   api/receipt/Refund
   updateTpaDetails:         'UpdateTpaDetails',  // PUT   api/receipt/UpdateTpaDetails
@@ -279,6 +348,8 @@ export const labOperationMenu = {
     patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },
     pathTest:       { id: 'pathTest',       label: 'Master Test details',     route: `manage-tests`,  icon: 'fa-vials' },
     contact:        { id: 'contact',        label: 'Contact Address Manager', route: `contacts`,      icon: 'fa-map-marker-alt' },
+    // Patients due to repeat a regular test (HbA1c, lipid profile, sugar…), sent on WhatsApp.
+    testReminders:  { id: 'testReminders',  label: 'Test Reminders',          route: `test-reminders`, icon: 'fa-bell' },
 };
 
 export const labSetupMenu = {
@@ -301,6 +372,8 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
   // Payroll is owner-only — an Admin must not be able to edit their own pay.
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
+  // Discounts above the lab limit wait here for the owner's decision.
+  discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
@@ -356,6 +429,9 @@ export const summaryReportApiEndpoints: { [key: string]: string } = {
   worksheetReport:      'worksheet-report',
   receiptRegister:      'receipt-register',
   refundRegister:       'refund-register',
+  // Dashboard revenue figures only — not a Reports page entry, so it is
+  // deliberately absent from reportConfigs below.
+  dailyCollection:      'daily-collection',
   billRegister:         'bill-register',
   patientDiagnosisReport: 'patient-diagnosis-report',
   pndtTestReport:       'pndt-test-report',

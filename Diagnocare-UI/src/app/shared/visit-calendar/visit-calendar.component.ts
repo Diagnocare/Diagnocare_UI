@@ -9,6 +9,11 @@ export interface CalendarDay {
   inMonth:   boolean;
   isToday:   boolean;
   visitInfo: VisitCalendarDayDto | null;
+  /** True when this date is a registered holiday. */
+  isHoliday:   boolean;
+  holidayName: string | null;
+  /** True when the date is a holiday that still has visits scheduled on it. */
+  hasConflict: boolean;
 }
 
 /**
@@ -31,6 +36,11 @@ export class VisitCalendarComponent {
   @Input() viewMonth = new Date().getMonth() + 1;   // 1-indexed
   /** Currently selected day (YYYY-MM-DD) or null. */
   @Input() selectedDate: string | null = null;
+  /**
+   * When true the legend explains the holiday markers. Left on by default —
+   * both the admin and the staff calendar now surface holidays.
+   */
+  @Input() showHolidays = true;
 
   @Output() prevMonth   = new EventEmitter<void>();
   @Output() nextMonth   = new EventEmitter<void>();
@@ -55,22 +65,33 @@ export class VisitCalendarComponent {
       this.calendarData.map(d => [d.date, d])
     );
 
+    const blank = (date: Date): CalendarDay => ({
+      date, inMonth: false, isToday: false, visitInfo: null,
+      isHoliday: false, holidayName: null, hasConflict: false,
+    });
+
     const cells: CalendarDay[] = [];
     const prevLast = new Date(this.viewYear, this.viewMonth - 1, 0).getDate();
     for (let i = startDow - 1; i >= 0; i--) {
-      cells.push({ date: new Date(this.viewYear, this.viewMonth - 2, prevLast - i), inMonth: false, isToday: false, visitInfo: null });
+      cells.push(blank(new Date(this.viewYear, this.viewMonth - 2, prevLast - i)));
     }
     for (let d = 1; d <= lastDay; d++) {
       const date = new Date(this.viewYear, this.viewMonth - 1, d);
+      const info = visitMap.get(this.toIso(date)) ?? null;
       cells.push({
         date, inMonth: true,
         isToday: date.toDateString() === todayStr,
-        visitInfo: visitMap.get(this.toIso(date)) ?? null,
+        // A holiday-only day still arrives with count 0 — treat it as an empty cell
+        // for visit purposes so no "0" badge is drawn.
+        visitInfo: info && info.count > 0 ? info : null,
+        isHoliday:   !!info?.isHoliday,
+        holidayName: info?.holidayName ?? null,
+        hasConflict: !!info?.isHoliday && (info?.count ?? 0) > 0,
       });
     }
     let trail = 1;
     while (cells.length % 7 !== 0) {
-      cells.push({ date: new Date(this.viewYear, this.viewMonth, trail++), inMonth: false, isToday: false, visitInfo: null });
+      cells.push(blank(new Date(this.viewYear, this.viewMonth, trail++)));
     }
 
     const weeks: CalendarDay[][] = [];
@@ -80,6 +101,23 @@ export class VisitCalendarComponent {
 
   isSelected(day: CalendarDay): boolean {
     return day.inMonth && this.toIso(day.date) === this.selectedDate;
+  }
+
+  /** True when any day in the displayed month is a holiday. Drives the legend. */
+  get hasAnyHoliday(): boolean {
+    return this.showHolidays && this.calendarData.some(d => d.isHoliday);
+  }
+
+  /** Tooltip text for a cell — holiday name and/or conflict warning. */
+  dayTitle(day: CalendarDay): string {
+    if (!day.inMonth) return '';
+    const parts: string[] = [];
+    if (day.holidayName) parts.push(`Holiday: ${day.holidayName}`);
+    if (day.hasConflict) {
+      const n = day.visitInfo?.count ?? 0;
+      parts.push(`${n} visit${n === 1 ? '' : 's'} scheduled on this holiday`);
+    }
+    return parts.join(' — ');
   }
 
   onPrev(): void { this.prevMonth.emit(); }

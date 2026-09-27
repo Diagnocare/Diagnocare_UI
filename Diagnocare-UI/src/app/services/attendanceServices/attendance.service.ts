@@ -7,7 +7,7 @@ import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { WeeklyAttendanceResponseDTO } from 'src/app/models/attendance/user-weekly-attendance.dto';
 import { AttendanceRecordDTO } from 'src/app/models/attendance/attendance-record.dto';
 import { MemberDto } from 'src/app/models/member/member.dto';
-import {AttendanceRequestDTO, CreateAttendanceRequestDTO, UpdateAttendanceRequestDTO, ApproveAttendanceRequestDTO, RejectAttendanceRequestDTO, WithdrawAttendanceRequestDTO, DecideWithdrawalDTO, AttendanceRequestFilter, PagedResult} from 'src/app/models/attendanceRequest/attendance-request.model';
+import {AttendanceRequestDTO, CreateAttendanceRequestDTO, UpdateAttendanceRequestDTO, ApproveAttendanceRequestDTO, RejectAttendanceRequestDTO, WithdrawAttendanceRequestDTO, DecideWithdrawalDTO, AttendanceRequestFilter, AttendanceRequestCounts, PagedResult} from 'src/app/models/attendanceRequest/attendance-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class AttendanceService {
@@ -162,6 +162,9 @@ export class AttendanceService {
 
     if (filter.userId)   params = params.set('userId', filter.userId);
     if (filter.status)   params = params.set('status', filter.status);
+    // `bucket` is what the admin queue sends; 'all' is the absence of a filter, so it
+    // goes unsent rather than as a value the server would have to special-case.
+    if (filter.bucket && filter.bucket !== 'all') params = params.set('bucket', filter.bucket);
     if (filter.awaitingDecision) params = params.set('awaitingDecision', true);
     if (filter.fromDate) params = params.set('fromDate', filter.fromDate);
     if (filter.toDate)   params = params.set('toDate', filter.toDate);
@@ -181,6 +184,12 @@ export class AttendanceService {
   getPendingRequestCount(): Observable<number> {
     return this.http
       .get<number>(`${this.baseUrl}${apiEndpoints.pendingRequestCount}`);
+  }
+
+  /** Totals behind the admin queue's tab badges. Not affected by date range or search. */
+  getRequestCounts(): Observable<AttendanceRequestCounts> {
+    return this.http
+      .get<AttendanceRequestCounts>(`${this.baseUrl}${apiEndpoints.requestCounts}`);
   }
 
   approveRequest(id: number, dto: ApproveAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
