@@ -16,6 +16,7 @@ export const controllerEndpoints = {
   patient: 'api/patient/',
   patientReport: 'api/PatientReport/',
   patientTestReportGeneration: 'api/TestReportGeneration/',
+  smartReport: 'api/SmartReport/',
   sampleLabel: 'api/SampleLabel/',
   pathology: 'api/pathology/',
   test: 'api/test/',
@@ -23,6 +24,8 @@ export const controllerEndpoints = {
   receipt: 'api/receipt/',
   summaryReport:'api/summaryReport/',
   pathologyTest:'api/pathologyTest/',
+  /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
+  testImport:    'api/TestImport/',
   template:   'api/template/',
   attendance: 'api/attendance/',
   salary:     'api/salary/',
@@ -41,6 +44,8 @@ export const controllerEndpoints = {
   sampleRejection: 'api/SampleRejection/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
+  /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
+  testReminder: 'api/TestReminder/',
 };
 
 export const apiEndpoints = {
@@ -71,6 +76,8 @@ export const apiEndpoints = {
   getReceiptCount:"GetReceiptCount",
   updatePathologyTest:"UpdatePathologyTest",
   generateTestReportPDF:"GenerateTestReportPDF",
+  generateSmartReport:"Generate",
+  reportShareLink:"ShareLink",
   updateAuthType:"UpdateAuthType",
   updateUserEmail:"UpdateUserEmail",
   updateUserPhone:"UpdateUserPhone",
@@ -144,6 +151,11 @@ export const apiEndpoints = {
   /** Manually marks one report printed or not-printed. */
   setPrinted:"SetPrinted",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
+  // Test catalogue import (TestImport controller)
+  testImportTemplate:    'Template',
+  testImportPreview:     'Preview',
+  testImportCommit:      'Commit',
+  testImportErrorReport: 'ErrorReport',
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",
   dropTest:"Delete",
@@ -321,6 +333,8 @@ export const labOperationMenu = {
     patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },
     pathTest:       { id: 'pathTest',       label: 'Master Test details',     route: `manage-tests`,  icon: 'fa-vials' },
     contact:        { id: 'contact',        label: 'Contact Address Manager', route: `contacts`,      icon: 'fa-map-marker-alt' },
+    // Patients due to repeat a regular test (HbA1c, lipid profile, sugar…), sent on WhatsApp.
+    testReminders:  { id: 'testReminders',  label: 'Test Reminders',          route: `test-reminders`, icon: 'fa-bell' },
 };
 
 export const labSetupMenu = {

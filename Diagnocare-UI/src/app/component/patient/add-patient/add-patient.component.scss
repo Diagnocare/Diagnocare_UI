@@ -1061,3 +1061,49 @@ textarea.form-control {
   cursor: not-allowed;
   opacity: 0.45;
 }
+
+/* ── Collapsible protocol panels (hidden by default, opened via toggle) ── */
+.ap-catalog-protocol--collapsed {
+  padding: 0.55rem 1rem;
+  overflow: hidden;
+}
+
+.ap-catalog-protocol-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ap-catalog-protocol:not(.ap-catalog-protocol--collapsed) .ap-catalog-protocol-bar {
+  margin-bottom: 0.6rem;
+}
+
+.ap-catalog-protocol-title i {
+  margin-right: 0.3rem;
+  color: #64748b;
+}
+
+.ap-catalog-protocol-test {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.ap-protocol-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}

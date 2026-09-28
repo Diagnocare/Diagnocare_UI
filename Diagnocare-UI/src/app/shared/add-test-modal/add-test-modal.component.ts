@@ -112,8 +112,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
   selectedTestProtocols: TestBookingProtocolsDto[] = [];
   selectedProtocolsLoading = false;
-  /** Expanded by default — the requirements are the point; the operator can collapse them. */
-  showSelectedProtocols = true;
+  /** Collapsed by default so selecting tests stays uncluttered; the operator opens it with the toggle. */
+  showSelectedProtocols = false;
+  /** Catalogue protocol panel for the last-clicked test — hidden until the operator asks for it. */
+  showFocusedProtocol = false;
 
   // ── Referred By autocomplete ──────────────────────────────────────────────
   referredByOptions:         string[] = [];
@@ -885,7 +887,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     // requirements onto another, which is the exact failure the counter exists to prevent.
     this.selectedTestProtocols     = [];
     this.selectedProtocolsLoading  = false;
-    this.showSelectedProtocols     = true;
+    this.showSelectedProtocols     = false;
+    this.showFocusedProtocol       = false;
     this.referredByContacts        = [];
     this.referredByOptions         = [];
     this.filteredReferredByOptions = [];

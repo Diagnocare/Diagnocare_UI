@@ -201,7 +201,6 @@
             <td data-label="Actions" class="col-actions">
             <div class="action-buttons">
                 <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
-                    <app-action-btn *ngIf="isCompletedView()" type="download" title="Download Completed Report" (clicked)="downloadCompletedReport(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
                     <app-action-btn type="delete" title="Deactivate Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
