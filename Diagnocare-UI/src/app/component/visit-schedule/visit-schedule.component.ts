@@ -13,6 +13,7 @@ import { DatePickerComponent }     from 'src/app/shared/date-picker/date-picker.
 import { AppValidators }            from 'src/app/shared/validators/app-validators';
 import { VisitCalendarComponent }  from 'src/app/shared/visit-calendar/visit-calendar.component';
 import { VisitCardComponent }      from 'src/app/shared/visit-card/visit-card.component';
+import { formatTime12h, TimePartsPicker } from 'src/app/shared/time-slots/time-slots';
 
 import {
   VisitCompleteModalComponent,
@@ -187,7 +188,11 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       purpose:          [''],
       notes:            [''],
     });
+    // Visit time = Hour / Minute (15-min steps) / AM-PM dropdowns.
+    this.timePicker = new TimePartsPicker(this.assignForm.get('visitTime')!);
   }
+
+  timePicker!: TimePartsPicker;
 
   ngOnInit(): void {
     this.loadMembers();
@@ -213,8 +218,8 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     { label: 'User',           value: 1 },
     { label: 'Assistant',      value: 2 },
     { label: 'Admin',          value: 3 },
-    { label: 'Collection Boy', value: 5 },
-    { label: 'Doctor',         value: 6 },
+    // { label: 'Collection Boy', value: 5 },
+    // { label: 'Doctor',         value: 6 },
   ];
 
   /** Members visible in the member select — filtered by role when one is chosen. */
@@ -540,11 +545,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
 
   get viewLabel(): string { return `${this.months[this.viewMonth - 1]} ${this.viewYear}`; }
 
-  formatTime(t: string): string {
-    if (!t) return '';
-    const [h, m] = t.split(':').map(Number);
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-  }
+  formatTime(t: string): string { return formatTime12h(t); }
 
   toIsoPublic(d: Date): string { return this.toIso(d); }
   private toIso(d: Date): string {
@@ -556,5 +557,5 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     return !!(c?.invalid && c.touched);
   }
 
-  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy(): void { this.timePicker.destroy(); this.destroy$.next(); this.destroy$.complete(); }
 }
