@@ -1,0 +1,157 @@
+<div class="page-container verify">
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Verify results</h2>
+      <p class="subtitle">
+        Order <strong>{{ testRegId }}</strong> · {{ testCode }}
+      </p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="dc-btn" (click)="back()">
+        <i class="fa fa-arrow-left" aria-hidden="true"></i> Back to the queue
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container">
+
+    <!-- ── Loading / error ───────────────────────────────────────────── -->
+    <div class="verify__loading" *ngIf="isLoading">
+      <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>Loading the results…</span>
+    </div>
+
+    <dc-note tone="danger" title="Could not load" *ngIf="errorMessage && !isLoading">
+      {{ errorMessage }}
+    </dc-note>
+
+    <ng-container *ngIf="!isLoading && !errorMessage">
+
+      <!-- ── Abnormal values, first ──────────────────────────────────────
+           Put at the top because they are the reason a person is on this
+           screen. A verifier scanning twenty normal rows to find the two that
+           matter is doing the computer's job. -->
+      <dc-note tone="warn"
+               [title]="abnormalRows.length === 1
+                          ? '1 value is outside its reference range'
+                          : abnormalRows.length + ' values are outside their reference range'"
+               icon="fa-exclamation-triangle"
+               *ngIf="abnormalRows.length > 0">
+        <ul class="verify__abnormal-list">
+          <li *ngFor="let row of abnormalRows">
+            <strong>{{ row.parameterName }}</strong>
+            {{ row.value }} {{ row.parameterUnit }}
+            <span class="verify__flag">{{ row.direction }}</span>
+            <span class="verify__range">reference {{ row.parameterRange }}</span>
+          </li>
+        </ul>
+      </dc-note>
+
+      <dc-note tone="info" title="Everything is within range" icon="fa-check-circle"
+               *ngIf="abnormalRows.length === 0 && rows.length > 0">
+        No value on this report falls outside its reference range.
+      </dc-note>
+
+      <!-- ── All values ────────────────────────────────────────────────── -->
+      <div class="table-container" *ngIf="rows.length > 0">
+        <table class="verify__table">
+          <thead>
+            <tr>
+              <th scope="col">Parameter</th>
+              <th scope="col">Reference range</th>
+              <th scope="col">Unit</th>
+              <th scope="col">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackByRow"
+                [class.verify__row--abnormal]="row.abnormal">
+              <td class="verify__param">{{ row.parameterName }}</td>
+              <td class="verify__range-cell">{{ row.parameterRange || '—' }}</td>
+              <td class="verify__unit">{{ row.parameterUnit || '—' }}</td>
+              <td>
+                <span class="verify__value"
+                      [class.verify__value--abnormal]="row.abnormal"
+                      [class.verify__value--missing]="!row.value">
+                  {{ row.value || 'Not entered' }}
+                </span>
+                <!-- The flag carries a word as well as colour, and only appears
+                     when the range was actually understood. A wrong HIGH teaches
+                     people to ignore the flags entirely. -->
+                <span class="verify__flag" *ngIf="row.abnormal">{{ row.direction }}</span>
+                <span class="verify__unknown-range"
+                      *ngIf="!row.rangeUnderstood && row.value"
+                      title="This range could not be read automatically — please check it yourself">
+                  not auto-checked
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Verifier's note ───────────────────────────────────────────── -->
+      <div class="verify__comment" *ngIf="rows.length > 0 && !showReturnPanel">
+        <label for="verify-comment">Add a note (optional)</label>
+        <textarea id="verify-comment"
+                  class="form-control"
+                  rows="2"
+                  [(ngModel)]="comment"
+                  placeholder="Anything the next reader should know — kept with the sign-off."></textarea>
+      </div>
+
+      <!-- ── Send back ─────────────────────────────────────────────────── -->
+      <div class="verify__return" *ngIf="showReturnPanel">
+        <label for="return-reason">What needs redoing?</label>
+        <textarea id="return-reason"
+                  class="form-control"
+                  rows="2"
+                  [(ngModel)]="returnReason"
+                  placeholder="e.g. Repeat the WBC count — the sample looked clotted."></textarea>
+        <p class="verify__return-hint">
+          The bench sees this reason. Without it the same value tends to come straight back.
+        </p>
+        <div class="verify__return-actions">
+          <button type="button" class="dc-btn" (click)="cancelReturn()">Cancel</button>
+          <button type="button" class="dc-btn dc-btn--danger"
+                  [disabled]="isSaving || !returnReason.trim()"
+                  (click)="returnForReentry()">
+            <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-reply'" aria-hidden="true"></i>
+            Send back to the bench
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Sign-off bar ────────────────────────────────────────────────
+           Sticks to the bottom, per the kit's seventh rule, and states in words
+           why it cannot be pressed rather than greying out in silence. -->
+      <div class="verify__savebar" *ngIf="!showReturnPanel">
+        <div class="verify__savebar-note">
+          <dc-status *ngIf="canVerify"
+                     label="Ready to issue"
+                     tone="ok"
+                     icon="fa-check-circle">
+          </dc-status>
+          <span class="verify__blocked" *ngIf="!canVerify && blockedReason">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            {{ blockedReason }}
+          </span>
+        </div>
+        <div class="verify__savebar-actions">
+          <button type="button" class="dc-btn" (click)="openReturnPanel()" [disabled]="isSaving">
+            Send back for re-entry
+          </button>
+          <button type="button" class="dc-btn dc-btn--primary"
+                  [disabled]="!canVerify"
+                  (click)="verify()">
+            <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
+            Verify &amp; issue report
+          </button>
+        </div>
+      </div>
+
+    </ng-container>
+  </div>
+</div>

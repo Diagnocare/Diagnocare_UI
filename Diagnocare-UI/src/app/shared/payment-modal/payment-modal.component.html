@@ -59,8 +59,34 @@
       </ng-container>
     </div>
 
+    <!-- ═══════════ PAYMENT — Simple UI (USE_NEW_UI) ═══════════════════ -->
+    <div class="pm-form" *ngIf="useNewUi">
+      <dc-payment-panel
+        [netAmount]="panelAmount"
+        [modes]="paymentModeOptions"
+        [allowNoPayment]="!topupMode"
+        [busy]="isSaving"
+        confirmLabel="Confirm payment"
+        (decisionChange)="onPaymentDecision($event)"
+        (confirmed)="save()">
+      </dc-payment-panel>
+
+      <div class="pm-save-error" *ngIf="saveError">
+        <i class="fa fa-exclamation-circle"></i>
+        {{ saveError }}
+      </div>
+
+      <div class="pm-actions">
+        <button type="button" class="dc-btn dc-btn--cancel" (click)="cancel()" [disabled]="isSaving">
+          <i class="fa fa-times"></i> Cancel
+        </button>
+      </div>
+    </div>
+
     <!-- ── Form ── -->
-    <form [formGroup]="form" class="pm-form" (ngSubmit)="save()">
+    <!-- The original payment form. Kept while USE_NEW_UI is being evaluated;
+         delete this block once the panel is signed off. -->
+    <form [formGroup]="form" class="pm-form" (ngSubmit)="save()" *ngIf="!useNewUi">
 
       <!-- Payment Type Toggle (standard mode only) -->
       <div class="pm-field" *ngIf="!topupMode">
