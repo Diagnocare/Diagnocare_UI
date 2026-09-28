@@ -607,7 +607,7 @@
                   (click)="downloadReportPdf()"
                   [disabled]="isDownloadingPdf || !canIssueReport"
                   [title]="!canIssueReport ? reportBlockedReason
-                            : (isDownloadingPdf ? 'Preparing PDF…' : 'Download the report as a PDF file')">
+                            : (isDownloadingPdf ? 'Preparing PDF…' : 'Open the print-ready report — choose “Save as PDF” in the print dialog')">
             <i class="fa" [ngClass]="isDownloadingPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf-o'"></i>
             {{ isDownloadingPdf ? 'Preparing…' : 'PDF' }}
           </button>
@@ -654,35 +654,59 @@
 
     <!-- Parameter Table -->
     <div *ngIf="!isLoadingParameters && testParameters.length > 0" class="parameter-list-section">
-      <table class="table table-bordered parameter-list-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Parameter Name</th>
-            <th>Unit</th>
-            <th>Normal Range</th>
-            <th>Type</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let param of testParameters; let i = index">
-            <td>{{ i + 1 }}</td>
-            <td>{{ param.parameterName }}</td>
-            <td>{{ param.parameterUnit || 'N/A' }}</td>
-            <td>{{ param.parameterRange || 'N/A' }}</td>
-            <td>{{ param.type || 'N/A' }}</td>
-            <td>
-              <input
-                type="text"
-                class="form-control result-input"
-                [placeholder]="'Enter result (' + param.parameterUnit + ')'"
-                [(ngModel)]="param.resultValue"
-                (input)="updateParameterResult(param, $any($event.target).value)">
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="param-card">
+        <table class="table parameter-list-table">
+          <thead>
+            <tr>
+              <th class="col-idx">#</th>
+              <th>Parameter</th>
+              <th>Unit</th>
+              <th>Reference Range</th>
+              <th>Type</th>
+              <th class="col-result">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let param of testParameters; let i = index"
+                [class.row-flagged]="resultFlag(param)">
+              <td class="col-idx">{{ i + 1 }}</td>
+              <td class="param-name">{{ param.parameterName }}</td>
+              <td class="param-muted">{{ param.parameterUnit || '—' }}</td>
+              <td>
+                <span class="range-pill" *ngIf="param.parameterRange; else noRange">{{ param.parameterRange }}</span>
+                <ng-template #noRange><span class="param-muted">—</span></ng-template>
+              </td>
+              <td class="param-muted">{{ param.type || '—' }}</td>
+              <td class="col-result">
+                <div class="result-field"
+                     [class.result-field--high]="resultFlag(param) === 'H'"
+                     [class.result-field--low]="resultFlag(param) === 'L'">
+                  <input
+                    type="text"
+                    class="form-control result-input"
+                    placeholder="Enter result"
+                    [attr.aria-label]="param.parameterName + ' result'"
+                    [(ngModel)]="param.resultValue"
+                    (input)="updateParameterResult(param, $any($event.target).value)">
+                  <span class="result-unit" *ngIf="param.parameterUnit">{{ param.parameterUnit }}</span>
+                  <span class="result-flag" *ngIf="resultFlag(param) as flag"
+                        [title]="flag === 'H' ? 'Above reference range' : 'Below reference range'">{{ flag }}</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="param-footer">
+        <span class="param-progress" [class.param-progress--done]="canIssueReport">
+          <i class="fa" [ngClass]="canIssueReport ? 'fa-check-circle' : 'fa-clock-o'"></i>
+          {{ savedResultCount }} of {{ testParameters.length }} results saved
+        </span>
+        <span class="param-hint">
+          {{ canIssueReport ? 'Report is ready to view or print.' : 'Save all results to unlock View Report and PDF.' }}
+        </span>
+      </div>
     </div>
   </div>
 </div>

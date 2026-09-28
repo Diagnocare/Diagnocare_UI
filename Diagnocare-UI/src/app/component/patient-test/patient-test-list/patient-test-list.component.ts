@@ -1115,8 +1115,20 @@ export class PatientTestListComponent implements OnInit {
   }
 
   /**
-   * Downloads the current report as a real, full-A4 PDF (rendered server-side).
-   * Requests the file as a Blob from the backend and saves it via an anchor click.
+   * PDF button.
+   *
+   * The backend's `format=pdf` does NOT return PDF bytes for template reports: the
+   * hosting plan forbids a headless browser, so it returns a clean A4 HTML page that
+   * opens the browser's print dialog on load ("Save as PDF" from there). Saving that
+   * HTML under a `.pdf` name is what produced "Failed to load PDF document".
+   *
+   * So the response is inspected:
+   *   • application/pdf (QuestPDF fallback, no template) → downloaded as a real .pdf
+   *   • anything else (the print-ready HTML)             → opened in a new tab, where
+   *     the print dialog appears and the operator picks "Save as PDF".
+   *
+   * The tab is opened synchronously inside the click handler (before the request) so
+   * pop-up blockers treat it as user-initiated; it is pointed at the report once ready.
    */
   downloadReportPdf(): void {
     if (!this.selectedPatientTest || !this.selectedTestDetail) return;
@@ -1127,6 +1139,14 @@ export class PatientTestListComponent implements OnInit {
     this.isDownloadingPdf = true;
     this.errorMessage = '';
 
+    const tab = window.open('', '_blank');
+    if (tab) {
+      tab.document.title = 'Preparing report…';
+      tab.document.body.innerHTML =
+        '<p style="font:15px system-ui,sans-serif;color:#475569;text-align:center;margin-top:20vh">' +
+        'Preparing your report…</p>';
+    }
+
     this.testReportGenerationService
       .downloadTestReport(patientTestId, testCode, this.pathBranch || undefined)
       .subscribe({
@@ -1134,28 +1154,63 @@ export class PatientTestListComponent implements OnInit {
           this.isDownloadingPdf = false;
 
           if (!blob || blob.size === 0) {
+            tab?.close();
             this.toastr.warning('Report generated but no file was returned.', 'Warning');
             return;
           }
 
-          const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
-          const filename = `${safeName}_${testCode}.pdf`;
+          // ── Real PDF (QuestPDF fallback) → save to disk ────────────────────
+          if ((blob.type || '').toLowerCase().includes('application/pdf')) {
+            tab?.close();
+            const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
+            const url    = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href     = url;
+            anchor.download = `${safeName}_${testCode}.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            return;
+          }
 
-          const url    = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href     = url;
-          anchor.download = filename;
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          // ── Print-ready HTML → open it; its print dialog offers "Save as PDF" ─
+          const htmlBlob = new Blob([blob], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(htmlBlob);
+          if (tab && !tab.closed) {
+            tab.location.href = url;
+            tab.focus();
+          } else if (!window.open(url, '_blank')) {
+            this.toastr.warning(
+              'Pop-up was blocked. Please allow pop-ups for this site to save the report as PDF.',
+              'Pop-up blocked'
+            );
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
         },
         error: (err: unknown) => {
+          tab?.close();
           this.isDownloadingPdf = false;
-          this.errorMessage = 'Failed to download PDF. Please try again.';
+          this.errorMessage = 'Failed to prepare the PDF. Please try again.';
           console.error('downloadReportPdf error:', err);
         }
       });
+  }
+
+  /** Numeric "low-high" normal range → flag for an out-of-range result, else ''. */
+  resultFlag(param: testParameter): 'H' | 'L' | '' {
+    const m = /^\s*(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(param?.parameterRange ?? '');
+    const raw = (param?.resultValue ?? '').toString().trim();
+    if (!m || raw === '' || isNaN(Number(raw))) return '';
+    const v = Number(raw), lo = Number(m[1]), hi = Number(m[2]);
+    if (v > hi) return 'H';
+    if (v < lo) return 'L';
+    return '';
+  }
+
+  /** Parameters whose result has been saved to the server. */
+  get savedResultCount(): number {
+    return this.testParameters.length - this.missingResultCount;
   }
 
   /**
