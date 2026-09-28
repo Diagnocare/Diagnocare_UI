@@ -11,6 +11,7 @@ import { MemberDto }           from 'src/app/models/member/member.dto';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { VisitScheduleGetDto, VisitCalendarDayDto } from 'src/app/models/visitSchedule/visit-schedule.dto';
 import { AppValidators }       from 'src/app/shared/validators/app-validators';
+import { TimePartsPicker } from 'src/app/shared/time-slots/time-slots';
 
 export interface VisitEditData {
   assignedMemberId: number;
@@ -41,6 +42,9 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
 
   form!: FormGroup;
 
+  /** Visit time = Hour / Minute (15-min steps) / AM-PM dropdowns. */
+  timePicker!: TimePartsPicker;
+
   /** Admin ticked "move it anyway". */
   overrideHoliday = false;
 
@@ -49,8 +53,8 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
     { label: 'User',           value: 1 },
     { label: 'Assistant',      value: 2 },
     { label: 'Admin',          value: 3 },
-    { label: 'Collection Boy', value: 5 },
-    { label: 'Doctor',         value: 6 },
+    // { label: 'Collection Boy', value: 5 },
+    // { label: 'Doctor',         value: 6 },
   ];
 
   memberTypeFilter: number | null = null;
@@ -64,6 +68,7 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     document.body.classList.add('modal-open');
+
     this.form = this.fb.group({
       assignedMemberId: [this.visit.assignedMemberId, Validators.required],
       visitDate:        [this.visit.visitDate,         Validators.required],
@@ -72,6 +77,8 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
         AppValidators.time24h(),
       ]],
     });
+
+    this.timePicker = new TimePartsPicker(this.form.get('visitTime')!);
 
     // Changing the date invalidates any override already given.
     this.dateSub = this.form.get('visitDate')!.valueChanges
@@ -82,6 +89,7 @@ export class VisitEditModalComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.dateSub?.unsubscribe();
+    this.timePicker?.destroy();
     document.body.classList.remove('modal-open');
   }
 
