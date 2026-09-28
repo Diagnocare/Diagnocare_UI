@@ -1,4 +1,4 @@
-﻿import { get } from "@okta/okta-auth-js";
+import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -46,6 +46,7 @@ export const controllerEndpoints = {
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
+  worklist: 'api/Worklist/'
 };
 
 export const apiEndpoints = {
