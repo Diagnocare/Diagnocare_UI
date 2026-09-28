@@ -344,6 +344,8 @@ export const profileMenu = {
 };
 
 export const labOperationMenu = {
+    // The lab's outstanding work as queues (collect sample, enter results, verify…). Route guard: 'work'.
+    workflow:       { id: 'workflow',       label: 'Workflow',                route: `work`,          icon: 'fa-tasks' },
     patientDetails: { id: 'patientDetails', label: 'Patient Details',        route: `patients`,      icon: 'fa-users' },
     receiptBills:   { id: 'receiptBills',   label: 'Receipt Bills',           route: `receipt`,       icon: 'fa-receipt' },
     patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },
