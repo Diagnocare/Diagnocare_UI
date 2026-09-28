@@ -1,15 +1,48 @@
 <app-header></app-header>
 
+<!--
+  Password expiry notice.
+
+  A full-width bar carrying one short sentence wastes almost all of its width,
+  and buries the one thing the reader needs — how long they have — in the
+  middle of a paragraph. This lays it out as a real bar: the countdown as the
+  headline on the left, the supporting sentence under it, and the action as a
+  button pinned to the right edge where the eye ends up. The width is then
+  doing work instead of being empty amber.
+
+  The tone escalates with the deadline (see layout.component.ts): quiet blue
+  while there is time, amber inside a week, red in the last two days. Colour is
+  never the only signal — the icon and the wording change with it.
+-->
 <div *ngIf="passwordExpiryDaysLeft !== null"
-  class="alert alert-warning alert-dismissible mb-0 d-flex align-items-center justify-content-between px-4 py-2"
-  style="border-radius: 0; border-left: 4px solid #f0ad4e;">
-  <span>
-    <i class="fa fa-exclamation-triangle me-2"></i>
-    <strong>Password Expiry Notice:</strong>
-    Your password will expire in <strong>{{ passwordExpiryDaysLeft }} day{{ passwordExpiryDaysLeft === 1 ? '' : 's' }}</strong>.
-    Please <a routerLink="/change-password" class="alert-link" (click)="dismissExpiryWarning()">update your password</a> to avoid being locked out.
+     class="pw-notice"
+     [ngClass]="'pw-notice--' + expiryTone"
+     role="status">
+
+  <span class="pw-notice__icon" aria-hidden="true">
+    <i class="fa" [ngClass]="expiryIcon"></i>
   </span>
-  <button type="button" class="btn-close ms-3" aria-label="Dismiss" (click)="dismissExpiryWarning()"></button>
+
+  <div class="pw-notice__text">
+    <strong class="pw-notice__headline">{{ expiryHeadline }}</strong>
+    <span class="pw-notice__detail">
+      Change it before then, or you will be locked out and have to ask an admin to reset it.
+    </span>
+  </div>
+
+  <a routerLink="/change-password"
+     class="pw-notice__action"
+     (click)="dismissExpiryWarning()">
+    <i class="fa fa-key" aria-hidden="true"></i>
+    <span>Change password</span>
+  </a>
+
+  <button type="button"
+          class="pw-notice__close"
+          aria-label="Dismiss this notice until you sign in again"
+          (click)="dismissExpiryWarning()">
+    <i class="fa fa-times" aria-hidden="true"></i>
+  </button>
 </div>
 
 <router-outlet></router-outlet>

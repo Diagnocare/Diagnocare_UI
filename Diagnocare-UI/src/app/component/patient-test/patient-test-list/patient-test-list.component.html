@@ -1,50 +1,26 @@
 <div class="page-container">
 
-  <!-- ── Page Header ──────────────────────────────────────────────── -->
+  <!-- ── Page Header ────────────────────────────────────────────────────
+       The patient is the subject of this page, so the patient is the title.
+       No "Recent / All" toggle: the page below is ordered by time and hides
+       nothing, so there is nothing to switch. -->
   <div class="page-header">
     <div class="header-left">
-      <h1>Patient Test Results</h1>
+      <h1>{{ (!showPatientIdInput && patientName) ? patientName : 'Patient Tests' }}</h1>
       <p class="subtitle" *ngIf="!showPatientIdInput">
-        <span *ngIf="!showAllTests">Pending &amp; partial reports</span>
-        <span *ngIf="showAllTests">Full test history (incl. completed)</span>
-        <span *ngIf="patientId"> &mdash; Patient&nbsp;<strong>{{ patientId }}</strong></span>
+        Patient ID <strong>{{ patientId }}</strong>
+        <span *ngIf="patientContact"> &middot; {{ patientContact }}</span>
       </p>
-      <p class="subtitle" *ngIf="showPatientIdInput">View all patient test records</p>
+      <p class="subtitle" *ngIf="showPatientIdInput">Enter a patient ID to see their tests</p>
     </div>
 
-    <div class="header-actions-group">
-      <!-- Add New Test -->
-      <button class="btn btn-primary" (click)="addNewTest()" *ngIf="!showPatientIdInput" title="Register a new test for this patient">
-        <i class="fa fa-plus"></i> Add New Test
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="addNewTest()" *ngIf="!showPatientIdInput"
+              title="Book new tests for this patient">
+        <i class="fa fa-plus"></i> Book new test
       </button>
-
-      <!-- Filter mode segmented toggle -->
-      <div class="filter-mode-wrap" *ngIf="!showPatientIdInput">
-        <div class="filter-mode-toggle" role="group" aria-label="Choose which tests to show">
-          <button class="filter-mode-btn"
-                  type="button"
-                  [class.filter-mode-btn--active]="!showAllTests"
-                  [attr.aria-pressed]="!showAllTests"
-                  (click)="showRecentOnly()"
-                  title="Show only recent and pending tests">
-            <i class="fa fa-check filter-mode-check" aria-hidden="true"></i>
-            <i class="fa fa-clock-o filter-mode-icon" aria-hidden="true"></i>
-            <span>Recent &amp; Pending</span>
-          </button>
-          <button class="filter-mode-btn"
-                  type="button"
-                  [class.filter-mode-btn--active]="showAllTests"
-                  [attr.aria-pressed]="showAllTests"
-                  (click)="showOldReports()"
-                  title="Show full test history">
-            <i class="fa fa-check filter-mode-check" aria-hidden="true"></i>
-            <i class="fa fa-history filter-mode-icon" aria-hidden="true"></i>
-            <span>All Reports</span>
-          </button>
-        </div>
-      </div>
-
-      <button class="btn btn-outline" (click)="refreshList()" [disabled]="showPatientIdInput">
+      <button class="btn btn-outline" (click)="refreshList()" *ngIf="!showPatientIdInput"
+              title="Load the latest status">
         <i class="fa fa-refresh"></i> Refresh
       </button>
       <button class="btn btn-back" (click)="goBack()">
@@ -66,7 +42,7 @@
   </div>
 
   <!-- ── Main Content ──────────────────────────────────────────────── -->
-  <div class="content-container" *ngIf="!showPatientIdInput">
+  <div class="content-container ptl" *ngIf="!showPatientIdInput">
 
     <!-- Loading -->
     <div *ngIf="isLoading" class="loading-overlay">
@@ -82,458 +58,507 @@
     <!-- ── Empty: no tests at all ───────────────────────────────── -->
     <div *ngIf="noTestsAtAll && !errorMessage" class="no-data-state">
       <div class="no-data-icon"><i class="fa fa-flask"></i></div>
-      <h3 class="no-data-title">No Tests Registered</h3>
+      <h3 class="no-data-title">No tests booked yet</h3>
       <p class="no-data-message">
-        There are no tests on record for patient <strong>{{ patientId }}</strong> yet.
+        There are no tests on record for patient <strong>{{ patientId }}</strong>.
       </p>
       <div class="no-data-actions">
         <button class="btn btn-primary btn-lg" (click)="addNewTest()">
-          <i class="fa fa-plus"></i> Register New Test
+          <i class="fa fa-plus"></i> Book new test
         </button>
       </div>
     </div>
 
-    <!-- ── Empty: has history but nothing passes recent filter ──── -->
-    <div *ngIf="noRecentTests && !errorMessage" class="no-recent-state">
-      <div class="no-recent-icon"><i class="fa fa-check-circle"></i></div>
-      <h3 class="no-recent-title">All Reports Up to Date</h3>
-      <p class="no-recent-message">
-        No tests in the last <strong>{{ RECENT_DAYS }} days</strong> with pending reports.<br>
-        There {{ oldTestCount === 1 ? 'is' : 'are' }}
-        <strong>{{ oldTestCount }}</strong> older record{{ oldTestCount !== 1 ? 's' : '' }} in the archive.
-      </p>
-      <div class="no-data-actions">
-        <button class="btn btn-outline btn-lg" (click)="showOldReports()">
-          <i class="fa fa-history"></i> View All Reports
-        </button>
-      </div>
-    </div>
-  
-    <!-- ── Test Cards Stack ──────────────────────────────────────── -->
-    <div *ngIf="!isLoading && patientTests.length > 0" class="test-cards-stack">
-      <div *ngFor="let test of patientTests; let i = index"
-           class="test-card card"
-           [class.active]="isActiveCard(i)"
-           [style.z-index]="getCardZIndex(i)"
-           [style.transform]="isActiveCard(i) ? 'translateX(0)' : 'translateX(' + (i - activeCardIndex) * 60 + 'px)'"
-           (click)="selectCard(i)">
+    <ng-container *ngIf="!isLoading && allPatientTests.length > 0">
 
-        <!-- Right Side Tab (visible when not active) -->
-        <div class="card-tab" [class.hidden]="isActiveCard(i)">
-          <span class="tab-id">{{ test.patient_Test_Id }}</span>
-          <span class="tab-count">{{ getTestCount(test) }} Tests</span>
+      <!-- ══ 1. TODAY ═══════════════════════════════════════════════ -->
+      <section class="ptl-section" aria-labelledby="ptl-today-h">
+        <div class="ptl-section__head">
+          <h2 id="ptl-today-h" class="ptl-section__title">Today</h2>
+          <span class="ptl-section__sub">{{ todayLabel }}</span>
         </div>
 
-        <div class="card-content">
-          <div class="card-header">
-            <div class="header-title">
-              <h3>{{ test.patient_Test_Id }}</h3>
-              <span class="test-count-badge">{{ getTestCount(test) }} Tests</span>
+        <ng-container *ngFor="let test of todayVisits; trackBy: trackByVisit">
+          <ng-container *ngTemplateOutlet="visitCard; context: { $implicit: test }"></ng-container>
+        </ng-container>
 
-              <!-- Registration date chip -->
-              <span class="test-date-chip" *ngIf="getFormattedDate(test)">
-                <i class="fa fa-calendar"></i> {{ getFormattedDate(test) }}
-              </span>
-            </div>
+        <div class="card ptl-empty-today" *ngIf="todayVisits.length === 0">
+          <span><i class="fa fa-calendar-o" aria-hidden="true"></i> No tests booked for this patient today.</span>
+          <button class="dc-btn dc-btn--clear" type="button" (click)="addNewTest()">
+            <i class="fa fa-plus"></i> Book new test
+          </button>
+        </div>
+      </section>
 
-            <div class="card-header-right">
-              <!-- Cancelled badge (highest priority) -->
-              <span class="report-status-chip report-cancelled" *ngIf="isCancelled(test)">
-                <i class="fa fa-ban"></i> Cancelled
-              </span>
+      <!-- ══ 2. STILL WAITING (earlier, unfinished) ═════════════════ -->
+      <section class="ptl-section" *ngIf="waitingVisits.length > 0" aria-labelledby="ptl-wait-h">
+        <div class="ptl-section__head">
+          <h2 id="ptl-wait-h" class="ptl-section__title">Still waiting — from earlier visits</h2>
+          <span class="ptl-section__sub">{{ waitingVisits.length }} {{ waitingVisits.length === 1 ? 'visit' : 'visits' }}</span>
+        </div>
+        <div class="card ptl-list ptl-list--waiting">
+          <ng-container *ngFor="let test of waitingVisits; trackBy: trackByVisit">
+            <ng-container *ngTemplateOutlet="visitRow; context: { $implicit: test, waiting: true }"></ng-container>
+          </ng-container>
+        </div>
+      </section>
 
-              <!-- Report status chip (only when not cancelled) -->
-              <ng-container *ngIf="!isCancelled(test)">
-                <span class="report-status-chip report-pending"
-                      *ngIf="reportStatus(test) === 'Pending'">
-                  <i class="fa fa-hourglass-half"></i> Pending
-                </span>
-                <span class="report-status-chip report-partial"
-                      *ngIf="reportStatus(test) === 'Partial'">
-                  <i class="fa fa-adjust"></i> Partial
-                </span>
-                <span class="report-status-chip report-done"
-                      *ngIf="reportStatus(test) === 'Completed'">
-                  <i class="fa fa-check-circle"></i> Completed
-                </span>
-              </ng-container>
+      <!-- ══ 3. PAST VISITS ═════════════════════════════════════════ -->
+      <section class="ptl-section" *ngIf="pastVisits.length > 0" aria-labelledby="ptl-past-h">
+        <div class="ptl-section__head">
+          <h2 id="ptl-past-h" class="ptl-section__title">Past visits</h2>
+          <span class="ptl-section__sub">{{ pastVisits.length }} {{ pastVisits.length === 1 ? 'visit' : 'visits' }}</span>
+          <label class="ptl-search">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <span class="visually-hidden">Find a test in past visits</span>
+            <input type="search" class="ptl-search__input"
+                   placeholder="Find a test, e.g. sugar"
+                   [ngModel]="pastSearch" (ngModelChange)="onPastSearchChange($event)">
+          </label>
+        </div>
 
-              <!-- Payment badge -->
-              <span class="badge" [ngClass]="getPaymentStatusClass(test)">
-                {{ getPaymentBadgeLabel(test) }}
-              </span>
+        <div class="card ptl-list">
+          <ng-container *ngFor="let group of pastGroups; trackBy: trackByGroup">
+            <div class="ptl-month">{{ group.label }}</div>
+            <ng-container *ngFor="let test of group.visits; trackBy: trackByVisit">
+              <ng-container *ngTemplateOutlet="visitRow; context: { $implicit: test, waiting: false }"></ng-container>
+            </ng-container>
+          </ng-container>
 
-              <!-- Urgent badge -->
-              <span class="badge badge-danger urgent-badge" *ngIf="test.urgent_Report">
-                <i class="fa fa-bolt"></i> Urgent
-              </span>
-            </div>
+          <div class="ptl-list__empty" *ngIf="pastGroups.length === 0">
+            No past visit has a test matching “{{ pastSearch }}”.
           </div>
 
-          <div class="card-body">
-            <!-- Test Details Section -->
-            <div class="test-details">
-              <div class="detail-row">
-                <span class="detail-label">Referred By:</span>
-                <span class="detail-value">{{ test.referred_By || 'N/A' }}</span>
-              </div>
-
-              <div class="detail-row">
-                <span class="detail-label">Collected By:</span>
-                <span class="detail-value">{{ test.collected_By || 'N/A' }}</span>
-              </div>
-
-              <div class="detail-row">
-                <span class="detail-label">Area:</span>
-                <span class="detail-value">{{ test.area || 'N/A' }}</span>
-              </div>
-
-              <div class="detail-row">
-                <span class="detail-label">Sampling Done:</span>
-                <span class="detail-value" *ngIf="hasSamplingLocation(test)">{{ test.sampling_Done_At }}</span>
-                <span class="detail-value sampling-missing" *ngIf="!hasSamplingLocation(test)">
-                  Not selected — barcode not generated
-                </span>
-              </div>
-
-              <!-- Booking saved without a sampling location: pick one here; saving it
-                   generates the barcode. -->
-              <div class="sampling-picker" *ngIf="!hasSamplingLocation(test) && !isCancelled(test)"
-                   (click)="$event.stopPropagation()">
-                <select class="form-select form-select-sm"
-                        [(ngModel)]="samplingDraft[test.patient_Test_Id]"
-                        [disabled]="savingSamplingFor === test.patient_Test_Id">
-                  <option [ngValue]="undefined" disabled>-- Select Sampling Done At --</option>
-                  <option *ngFor="let loc of samplingLocations" [ngValue]="loc">{{ loc }}</option>
-                </select>
-                <button class="btn btn-sm btn-primary"
-                        (click)="saveSamplingLocation(test, $event)"
-                        [disabled]="!samplingDraft[test.patient_Test_Id] || savingSamplingFor === test.patient_Test_Id">
-                  <i class="fa" [ngClass]="savingSamplingFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
-                  {{ savingSamplingFor === test.patient_Test_Id ? 'Saving…' : 'Save & Generate Barcode' }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Payment Details Section -->
-            <!-- <div class="payment-section" *ngIf="test.bill_Reciept">
-              <h4>Payment Details</h4>
-              <div class="payment-details">
-                <!-- <div class="detail-row">
-                  <span class="detail-label">Total Amount:</span>
-                  <span class="detail-value amount">₹{{ test.bill_Reciept.test_Amount | number:'1.2-2' }}</span>
-                </div> -->
-
-                <!-- <div class="detail-row" *ngIf="test.bill_Reciept.discount > 0">
-                  <span class="detail-label">Discount:</span>
-                  <span class="detail-value discount">{{ test.bill_Reciept.discount | number:'1.2-2' }}%</span>
-                </div> -->
-
-                <!-- <div class="detail-row">
-                  <span class="detail-label">Net Amount:</span>
-                  <span class="detail-value amount highlight">₹{{ test.bill_Reciept.net_Amount | number:'1.2-2' }}</span>
-                </div>
-
-                <div class="detail-row">
-                  <span class="detail-label">Amount Paid:</span>
-                  <span class="detail-value paid">₹{{ test.bill_Reciept.amount_Paid | number:'1.2-2' }}</span>
-                </div>
-
-                <div class="detail-row" *ngIf="test.bill_Reciept.amount_Pending > 0">
-                  <span class="detail-label">Pending:</span>
-                  <span class="detail-value pending">₹{{ test.bill_Reciept.amount_Pending | number:'1.2-2' }}</span>
-                </div>
-
-                <div class="detail-row">
-                  <span class="detail-label">Payment Mode:</span>
-                  <span class="detail-value">{{ test.bill_Reciept.payment_Mode || 'N/A' }}</span>
-                </div> 
-              </div>
-            </div> -->
-
-            <!-- Remarks Section -->
-            <div class="remarks-section" *ngIf="test.remark">
-              <h4>Remarks</h4>
-              <p class="remark-text">{{ test.remark }}</p>
-            </div>
-
-            <!-- Additional Info -->
-            <div class="additional-info" *ngIf="test.collected_Outside">
-              <span class="badge badge-info">Collected Outside</span>
-            </div>
+          <div class="ptl-list__more" *ngIf="hiddenPastCount > 0">
+            <button class="dc-btn dc-btn--clear" type="button" (click)="showOlderVisits()">
+              Show {{ hiddenPastCount }} older {{ hiddenPastCount === 1 ? 'visit' : 'visits' }}
+              <i class="fa fa-chevron-down" aria-hidden="true"></i>
+            </button>
           </div>
+        </div>
+      </section>
 
-          <!-- Card Actions -->
-          <div class="card-footer">
-            <button class="btn btn-sm btn-primary"
-                    *ngIf="!isCancelled(test)"
-                    (click)="viewDetails(test, $event)">
-              <i class="fa fa-eye"></i> View Test Details
-            </button>
-            <!-- Sample collection protocol for everything on this booking. Read-only —
-                 the same instructions shown while booking, available afterwards. -->
-            <button class="btn btn-sm btn-protocol"
-                    (click)="openBookingProtocols(test, $event)"
-                    [disabled]="loadingProtocolFor === test.patient_Test_Id"
-                    title="View the sample collection protocol for the tests on this booking">
-              <i class="fa" [ngClass]="loadingProtocolFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-info-circle'"></i>
-              {{ loadingProtocolFor === test.patient_Test_Id ? 'Loading…' : 'Sample Protocol' }}
-            </button>
-            <button class="btn btn-sm btn-protocol"
-                    *ngIf="!isCancelled(test) && hasSamplingLocation(test)"
-                    (click)="printBarcode(test, $event)"
-                    [disabled]="printingLabelFor === test.patient_Test_Id"
-                    title="Print the sample barcode labels for this booking">
-              <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
-              {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print Barcode' }}
-            </button>
-            <button class="btn btn-sm btn-protocol"
-                    *ngIf="!isCancelled(test) && reportStatus(test) !== 'Pending'"
-                    (click)="openSmartReport(test, $event)"
-                    [disabled]="openingSmartReportFor === test.patient_Test_Id"
-                    title="Open the Smart Health Report (health score, summary and roadmap) for all tests on this booking">
-              <i class="fa" [ngClass]="openingSmartReportFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-heartbeat'"></i>
-              {{ openingSmartReportFor === test.patient_Test_Id ? 'Preparing…' : 'Smart Report' }}
-            </button>
-            <button class="btn btn-sm btn-protocol"
-                    *ngIf="!isCancelled(test) && reportStatus(test) !== 'Pending'"
-                    (click)="sendSmartReportOnWhatsApp(test, $event)"
-                    [disabled]="sendingSmartWhatsAppFor === test.patient_Test_Id || !patientWhatsAppNumber"
-                    [title]="!patientWhatsAppNumber ? 'No valid mobile number on this patient'
-                              : 'Send the Smart Report link to the patient on WhatsApp'">
-              <i class="fa" [ngClass]="sendingSmartWhatsAppFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
-              {{ sendingSmartWhatsAppFor === test.patient_Test_Id ? 'Preparing…' : 'Send Smart Report' }}
-            </button>
-            <button class="btn btn-sm btn-primary" (click)="viewReceipts(test, $event)"
-                    title="View payment receipts for this test">
-              <i class="fa fa-file-text"></i> View Receipts
-            </button>
-            <button class="btn btn-sm btn-cancel-booking"
-                    *ngIf="!isCancelled(test) && reportStatus(test) === 'Pending'"
-                    (click)="openCancelModal(test, $event)"
-                    [disabled]="loadingCancelModal"
-                    title="Cancel this booking (only available for pending reports)">
-              <i class="fa" [ngClass]="loadingCancelModal ? 'fa-spinner fa-spin' : 'fa-ban'"></i>
-              {{ loadingCancelModal ? 'Loading…' : 'Cancel Booking' }}
-            </button>
-            <span class="cancelled-info-chip" *ngIf="isCancelled(test) && test.cancellation_Reason">
-              <i class="fa fa-info-circle"></i> {{ test.cancellation_Reason }}
-            </span>
-          </div>
-        </div><!-- /card-content -->
-      </div>
-    </div>
-
+    </ng-container>
   </div><!-- /content-container -->
 </div><!-- /page-container -->
 
 
-<!-- ══ Test Details Overlay ════════════════════════════════════════════ -->
+<!-- ══ Template: a big visit card (used for Today) ═════════════════════ -->
+<ng-template #visitCard let-test>
+  <article class="card ptl-visit" [class.ptl-visit--cancelled]="vm(test).cancelled">
+
+    <div class="ptl-visit__top">
+      <div class="ptl-visit__info">
+        <div class="ptl-meta">
+          Order {{ test.patient_Test_Id }}
+          <span *ngIf="test.referred_By"> &middot; Referred by {{ test.referred_By }}</span>
+          <span *ngIf="hasSamplingLocation(test)"> &middot; Sample at {{ test.sampling_Done_At }}</span>
+        </div>
+        <ul class="ptl-names" aria-label="Tests in this visit">
+          <li *ngFor="let name of vm(test).names" class="ptl-name">{{ name }}</li>
+        </ul>
+      </div>
+      <div class="ptl-visit__flags">
+        <span class="ptl-pill" [ngClass]="'ptl-pill--' + vm(test).paymentTone">
+          <i class="fa" aria-hidden="true"
+             [ngClass]="vm(test).paymentTone === 'ok' ? 'fa-check' : (vm(test).paymentTone === 'hold' ? 'fa-hourglass-half' : 'fa-exclamation-circle')"></i>
+          {{ vm(test).paymentText }}
+        </span>
+        <span class="ptl-pill ptl-pill--urgent" *ngIf="test.urgent_Report && !vm(test).cancelled">
+          <i class="fa fa-bolt" aria-hidden="true"></i> Urgent
+        </span>
+        <span class="ptl-pill" *ngIf="test.collected_Outside">Collected outside</span>
+      </div>
+    </div>
+
+    <!-- Where this visit is: Booked → Sample → Results → Report -->
+    <ol class="ptl-steps" *ngIf="!vm(test).cancelled" aria-label="Progress">
+      <li *ngFor="let step of vm(test).steps" class="ptl-step" [ngClass]="'ptl-step--' + step.state">
+        <span class="ptl-step__bar"></span>
+        <span class="ptl-step__label">
+          <i class="fa fa-check" aria-hidden="true" *ngIf="step.state === 'done'"></i>
+          {{ step.label }}
+        </span>
+      </li>
+    </ol>
+
+    <ng-container *ngIf="vm(test).next === 'sampling'">
+      <ng-container *ngTemplateOutlet="samplingPicker; context: { $implicit: test }"></ng-container>
+    </ng-container>
+
+    <p class="ptl-remark" *ngIf="test.remark"><strong>Note:</strong> {{ test.remark }}</p>
+
+    <div class="ptl-visit__bottom">
+      <p class="ptl-next">
+        <strong *ngIf="!vm(test).cancelled">Next:</strong> {{ vm(test).nextText }}
+      </p>
+      <div class="ptl-actions">
+        <button class="dc-btn dc-btn--clear" type="button"
+                *ngIf="!vm(test).cancelled && hasSamplingLocation(test)"
+                (click)="printBarcode(test, $event)"
+                [disabled]="printingLabelFor === test.patient_Test_Id">
+          <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
+          {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print barcode' }}
+        </button>
+        <button class="dc-btn dc-btn--clear" type="button"
+                *ngIf="!vm(test).cancelled && vm(test).paymentTone === 'due' && vm(test).next !== 'payment'"
+                (click)="openPaymentModal(test, $event)">
+          <i class="fa fa-inr"></i> Take payment
+        </button>
+        <ng-container *ngTemplateOutlet="moreMenu; context: { $implicit: test }"></ng-container>
+        <button class="dc-btn dc-btn--save" type="button"
+                *ngIf="vm(test).next !== 'none' && vm(test).next !== 'sampling'"
+                (click)="doNextStep(test, $event)">
+          {{ nextStepLabel(test) }} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </article>
+</ng-template>
+
+
+<!-- ══ Template: one compact visit row (Still waiting + Past) ══════════ -->
+<ng-template #visitRow let-test let-waiting="waiting">
+  <div class="ptl-row" [class.ptl-row--cancelled]="vm(test).cancelled">
+    <div class="ptl-row__date">
+      <strong>{{ vm(test).dateLabel }}</strong>
+      <span>{{ vm(test).relLabel }}</span>
+    </div>
+
+    <div class="ptl-row__main">
+      <div class="ptl-row__names">{{ vm(test).names.join(', ') || 'No tests listed' }}</div>
+      <div class="ptl-row__status" [ngClass]="'ptl-tone--' + vm(test).statusTone">
+        <i class="fa" aria-hidden="true"
+           [ngClass]="vm(test).statusTone === 'ok' ? 'fa-check' : (vm(test).statusTone === 'muted' ? 'fa-ban' : 'fa-exclamation-circle')"></i>
+        {{ vm(test).statusText }}
+        <span *ngIf="vm(test).paymentTone === 'due' && vm(test).next !== 'payment'"> &middot; {{ vm(test).paymentText }}</span>
+        <span *ngIf="vm(test).cancelled && test.cancellation_Reason"> — {{ test.cancellation_Reason }}</span>
+      </div>
+      <div class="ptl-meta">
+        Order {{ test.patient_Test_Id }}
+        <span *ngIf="test.referred_By"> &middot; Referred by {{ test.referred_By }}</span>
+        <span *ngIf="test.urgent_Report && !vm(test).cancelled" class="ptl-urgent-text"> &middot; <i class="fa fa-bolt"></i> Urgent</span>
+      </div>
+      <ng-container *ngIf="vm(test).next === 'sampling'">
+        <ng-container *ngTemplateOutlet="samplingPicker; context: { $implicit: test }"></ng-container>
+      </ng-container>
+    </div>
+
+    <div class="ptl-actions">
+      <button class="dc-btn dc-btn--clear" type="button"
+              *ngIf="!vm(test).cancelled && reportStatus(test) !== 'Pending' && !waiting"
+              (click)="sendSmartReportOnWhatsApp(test, $event)"
+              [disabled]="sendingSmartWhatsAppFor === test.patient_Test_Id || !patientWhatsAppNumber"
+              [title]="!patientWhatsAppNumber ? 'No valid mobile number on this patient' : 'Send the report link to the patient on WhatsApp'">
+        <i class="fa" [ngClass]="sendingSmartWhatsAppFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+        {{ sendingSmartWhatsAppFor === test.patient_Test_Id ? 'Preparing…' : 'Send on WhatsApp' }}
+      </button>
+      <ng-container *ngTemplateOutlet="moreMenu; context: { $implicit: test }"></ng-container>
+      <button type="button"
+              *ngIf="vm(test).next !== 'none' && vm(test).next !== 'sampling'"
+              class="dc-btn"
+              [ngClass]="(waiting || vm(test).next === 'payment') ? 'dc-btn--save' : 'dc-btn--clear ptl-btn-blue'"
+              (click)="doNextStep(test, $event)">
+        {{ nextStepLabel(test) }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+
+<!-- ══ Template: choose sampling place (creates the barcode) ═══════════ -->
+<ng-template #samplingPicker let-test>
+  <div class="ptl-sampling" (click)="$event.stopPropagation()">
+    <label class="ptl-sampling__label" [attr.for]="'samp-' + test.patient_Test_Id">
+      <i class="fa fa-exclamation-circle" aria-hidden="true"></i> Where was the sample taken?
+    </label>
+    <select class="form-select ptl-sampling__select" [id]="'samp-' + test.patient_Test_Id"
+            [(ngModel)]="samplingDraft[test.patient_Test_Id]"
+            [disabled]="savingSamplingFor === test.patient_Test_Id">
+      <option [ngValue]="undefined" disabled>-- Choose place --</option>
+      <option *ngFor="let loc of samplingLocations" [ngValue]="loc">{{ loc }}</option>
+    </select>
+    <button class="dc-btn dc-btn--save" type="button"
+            (click)="saveSamplingLocation(test, $event)"
+            [disabled]="!samplingDraft[test.patient_Test_Id] || savingSamplingFor === test.patient_Test_Id">
+      <i class="fa" [ngClass]="savingSamplingFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
+      {{ savingSamplingFor === test.patient_Test_Id ? 'Saving…' : 'Save & make barcode' }}
+    </button>
+  </div>
+</ng-template>
+
+
+<!-- ══ Template: "More" menu — the rarely used actions ═════════════════ -->
+<ng-template #moreMenu let-test>
+  <div class="ptl-more">
+    <button class="dc-btn dc-btn--clear" type="button"
+            [attr.aria-expanded]="openMoreFor === test.patient_Test_Id"
+            aria-haspopup="true"
+            (click)="toggleMore(test, $event)">
+      More <i class="fa fa-caret-down" aria-hidden="true"></i>
+    </button>
+    <div class="ptl-more__menu" *ngIf="openMoreFor === test.patient_Test_Id" role="menu">
+      <button type="button" role="menuitem" *ngIf="!vm(test).cancelled" (click)="closeMore(); viewDetails(test, $event)">
+        <i class="fa fa-list"></i> Open visit (all tests)
+      </button>
+      <button type="button" role="menuitem"
+              *ngIf="!vm(test).cancelled && reportStatus(test) !== 'Pending'"
+              (click)="closeMore(); openSmartReport(test, $event)"
+              [disabled]="openingSmartReportFor === test.patient_Test_Id">
+        <i class="fa fa-heartbeat"></i> Smart Report
+      </button>
+      <button type="button" role="menuitem"
+              *ngIf="!vm(test).cancelled && reportStatus(test) !== 'Pending'"
+              (click)="closeMore(); sendSmartReportOnWhatsApp(test, $event)"
+              [disabled]="!patientWhatsAppNumber">
+        <i class="fa fa-whatsapp"></i> Send Smart Report on WhatsApp
+      </button>
+      <button type="button" role="menuitem" (click)="closeMore(); openBookingProtocols(test, $event)">
+        <i class="fa fa-info-circle"></i> Sample instructions
+      </button>
+      <button type="button" role="menuitem" (click)="closeMore(); viewReceipts(test, $event)">
+        <i class="fa fa-file-text"></i> View receipts
+      </button>
+      <button type="button" role="menuitem" class="ptl-more__danger"
+              *ngIf="!vm(test).cancelled && reportStatus(test) === 'Pending'"
+              (click)="closeMore(); openCancelModal(test, $event)" [disabled]="loadingCancelModal">
+        <i class="fa fa-ban"></i> Cancel this visit
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+
+<!-- ══ Visit screen (one booking, every test in plain rows) ════════════
+     Replaces the old second card deck: one table, one row per test, and each
+     row says where that test is and what to do next. -->
 <div class="detail-overlay" *ngIf="showDetailView">
   <div class="detail-overlay-backdrop" (click)="closeDetailView()"></div>
 
-  <div class="detail-container">
-    <!-- Detail Header -->
+  <div class="detail-container ptl-visit-screen" role="dialog" aria-modal="true" aria-labelledby="ptl-visit-h">
     <div class="detail-header">
-      <div class="header-left">
-        <h2>Test Details</h2>
-        <p class="subtitle" *ngIf="selectedPatientTest">
-          {{ selectedPatientTest.patient_Test_Id }} — {{ selectedPatientTest.test_Name }}
+      <div class="header-left" *ngIf="selectedPatientTest">
+        <h2 id="ptl-visit-h">
+          Visit on {{ vm(selectedPatientTest).dateLabel }}
+          <span class="ptl-rel">({{ vm(selectedPatientTest).relLabel }})</span>
+        </h2>
+        <p class="subtitle">
+          Order {{ selectedPatientTest.patient_Test_Id }}
+          <span *ngIf="selectedPatientTest.referred_By"> &middot; Referred by {{ selectedPatientTest.referred_By }}</span>
+          <span *ngIf="hasSamplingLocation(selectedPatientTest)"> &middot; Sample at {{ selectedPatientTest.sampling_Done_At }}</span>
         </p>
       </div>
-      <button class="overlay-close-btn" (click)="closeDetailView()" title="Close">
+      <button class="overlay-close-btn" (click)="closeDetailView()" title="Close" aria-label="Close">
         <i class="fa fa-times"></i>
       </button>
     </div>
 
-    <!-- Loading -->
     <div *ngIf="isLoadingDetails" class="detail-loading">
       <div class="spinner"></div>
-      <p>Loading test details...</p>
+      <p>Loading tests…</p>
     </div>
 
-    <!-- Error -->
     <div *ngIf="detailErrorMessage" class="alert alert-danger">
       <h5>Error</h5>
       <p>{{ detailErrorMessage }}</p>
     </div>
 
-    <!-- No Data -->
     <div *ngIf="!isLoadingDetails && !detailErrorMessage && testDetails.length === 0" class="no-data-detail">
       <i class="fa fa-info-circle"></i>
-      <p>No test details available.</p>
+      <p>No tests found on this visit.</p>
     </div>
 
-    <!-- Detail Cards Stack -->
-    <div *ngIf="!isLoadingDetails && testDetails.length > 0" class="detail-cards-stack">
-      <div *ngFor="let detail of testDetails; let i = index"
-           class="detail-card card"
-           [class.active]="isActiveDetailCard(i)"
-           [style.z-index]="getDetailCardZIndex(i)"
-           [style.transform]="isActiveDetailCard(i) ? 'translateX(0)' : 'translateX(' + (i - activeDetailIndex) * 60 + 'px)'"
-           (click)="selectDetailCard(i)">
+    <ng-container *ngIf="!isLoadingDetails && testDetails.length > 0 && selectedPatientTest">
+      <div class="ptl-visit-body">
 
-        <div class="card-tab" [class.hidden]="isActiveDetailCard(i)">
-          <span class="tab-id">Test {{ i + 1 }}</span>
-          <span class="tab-count">{{ detail.testName }}</span>
+        <div class="ptl-cancelled-note" *ngIf="isCancelled(selectedPatientTest)">
+          <i class="fa fa-ban"></i> This visit was cancelled<span *ngIf="selectedPatientTest.cancellation_Reason"> — {{ selectedPatientTest.cancellation_Reason }}</span>.
         </div>
 
-        <div class="card-content">
-          <div class="card-header">
-            <div class="header-title">
-              <h3>Test {{ i + 1 }}: {{ detail.testName }}</h3>
-              <!-- Per-test protocol. Sits beside the name because that is where someone
-                   looks when they are about to collect this particular sample. -->
-              <button type="button"
-                      class="protocol-info-btn"
-                      (click)="openDetailProtocol(detail, $event)"
-                      [title]="'Sample collection protocol for ' + detail.testName"
-                      aria-label="View sample collection protocol">
-                <i class="fa fa-info-circle"></i>
-              </button>
+        <!-- Tests table -->
+        <div class="ptl-table-wrap">
+          <table class="ptl-table">
+            <thead>
+              <tr>
+                <th scope="col">Test</th>
+                <th scope="col">Sample</th>
+                <th scope="col">Result</th>
+                <th scope="col" class="ptl-table__act">What to do</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let detail of testDetails; trackBy: trackByDetail"
+                  [class.ptl-table__row--next]="detail.testCode === firstPendingTestCode && !isCancelled(selectedPatientTest)">
+                <!-- Test -->
+                <td>
+                  <div class="ptl-table__name">{{ detail.testName }}</div>
+                  <div class="ptl-table__sub">
+                    {{ detail.testCode }} &middot; ₹{{ detail.price | number:'1.0-2' }}
+                    <span *ngIf="detail.effectiveMethod || detail.method"> &middot; {{ detail.effectiveMethod || detail.method }}</span>
+                  </div>
+                  <div class="ptl-table__chips">
+                    <button type="button" class="run-count-chip" *ngIf="runCount(detail) > 1"
+                            (click)="openRunHistory(detail, $event)" [title]="runCountTooltip(detail)">
+                      <i class="fa fa-repeat"></i> Run &times;{{ runCount(detail) }}
+                    </button>
+                    <span class="print-status-chip" [class.print-status-chip--printed]="isPrinted(detail)"
+                          [title]="printedTooltip(detail)">
+                      <i class="fa" [ngClass]="isPrinted(detail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
+                      {{ isPrinted(detail) ? 'Printed' : 'Not printed' }}
+                    </span>
+                  </div>
+                </td>
 
-              <!-- How many times this test was run on the sample. Shown only once it has
-                   actually been repeated: a "×1" on every test would be noise, and the
-                   whole signal here is that this one was questioned. -->
-              <button type="button"
-                      class="run-count-chip"
-                      *ngIf="runCount(detail) > 1"
-                      (click)="openRunHistory(detail, $event)"
-                      [title]="runCountTooltip(detail)">
-                <i class="fa fa-repeat"></i> Run &times;{{ runCount(detail) }}
-              </button>
+                <!-- Sample -->
+                <td>
+                  <ng-container *ngIf="hasOpenRejection(detail); else sampleOk">
+                    <div class="ptl-tone--bad ptl-cell-strong">
+                      <i class="fa fa-exclamation-triangle"></i> Not usable — take a new sample
+                    </div>
+                    <div class="ptl-table__sub">{{ rejectionReason(detail) }}</div>
+                  </ng-container>
+                  <ng-template #sampleOk>
+                    <div *ngIf="hasSamplingLocation(selectedPatientTest)" class="ptl-tone--ok ptl-cell-strong">
+                      <i class="fa fa-check"></i> Taken
+                    </div>
+                    <div *ngIf="!hasSamplingLocation(selectedPatientTest)" class="ptl-tone--warn ptl-cell-strong">
+                      Place not chosen
+                    </div>
+                    <div class="ptl-table__sub" *ngIf="wasEverRejected(detail)">Was rejected once: {{ rejectionReason(detail) }}</div>
+                  </ng-template>
+                </td>
 
-              <!-- A rejected sample is why no result appeared. It belongs on the test
-                   itself, not only inside a modal somebody has to think to open. -->
-              <button type="button"
-                      class="rejection-chip"
-                      *ngIf="wasEverRejected(detail)"
-                      [class.rejection-chip--open]="hasOpenRejection(detail)"
-                      (click)="openRejectionView(detail, $event)"
-                      [title]="rejectionCategory(detail) + ' — ' + rejectionReason(detail)">
-                <i class="fa fa-ban"></i>
-                {{ hasOpenRejection(detail) ? 'Sample rejected' : 'Was rejected' }}
-              </button>
+                <!-- Result -->
+                <td>
+                  <div class="ptl-cell-strong"
+                       [ngClass]="{
+                         'ptl-tone--ok':   resultState(detail) === 'done',
+                         'ptl-tone--info': resultState(detail) === 'none' || resultState(detail) === 'partial'
+                       }">
+                    <i class="fa fa-check" *ngIf="resultState(detail) === 'done'"></i>
+                    {{ resultText(detail) }}
+                  </div>
+                  <div class="ptl-table__sub ptl-tone--bad" *ngIf="resultState(detail) === 'done' && detail.isAbnormal">
+                    Has a value outside the normal range
+                  </div>
+                </td>
 
-              <!-- "Has this report been printed?" — read-only. Always shown, unlike the
-                   run/rejection chips which only appear when something out of the
-                   ordinary happened: whether a report was printed is worth knowing at a
-                   glance for every test. Set automatically by the Print button on the
-                   generated report itself — there is nothing to click here. -->
-              <span class="print-status-chip"
-                    [class.print-status-chip--printed]="isPrinted(detail)"
-                    [title]="printedTooltip(detail)">
-                <i class="fa" [ngClass]="isPrinted(detail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
-                {{ isPrinted(detail) ? 'Printed' : 'Not Printed' }}
-              </span>
+                <!-- What to do -->
+                <td class="ptl-table__act">
+                  <ng-container *ngIf="!isCancelled(selectedPatientTest)">
+                    <button *ngIf="hasOpenRejection(detail)" type="button" class="dc-btn dc-btn--clear"
+                            (click)="openRejectionView(detail, $event)">
+                      <i class="fa fa-ban"></i> Sample problem
+                    </button>
+
+                    <button *ngIf="!hasOpenRejection(detail) && resultState(detail) !== 'done'" type="button"
+                            class="dc-btn"
+                            [ngClass]="detail.testCode === firstPendingTestCode ? 'dc-btn--save' : 'dc-btn--clear ptl-btn-blue'"
+                            (click)="openParameterView(detail, $event)">
+                      {{ resultState(detail) === 'partial' ? 'Finish results' : 'Enter results' }}
+                    </button>
+
+                    <ng-container *ngIf="!hasOpenRejection(detail) && resultState(detail) === 'done'">
+                      <button type="button" class="dc-btn dc-btn--clear ptl-btn-blue"
+                              [disabled]="!selectedVisitPaid || isGeneratingReport"
+                              (click)="viewTestReport(detail, $event)">
+                        <i class="fa" [ngClass]="isGeneratingReport && selectedTestDetail?.testCode === detail.testCode ? 'fa-spinner fa-spin' : 'fa-file-text-o'"></i>
+                        View report
+                      </button>
+                      <div class="ptl-table__sub" *ngIf="!selectedVisitPaid">Report opens after full payment</div>
+                    </ng-container>
+
+                    <div class="ptl-links">
+                      <button type="button" class="ptl-link" *ngIf="resultState(detail) === 'done'"
+                              (click)="openParameterView(detail, $event)">Edit results</button>
+                      <button type="button" class="ptl-link" (click)="openRunHistory(detail, $event)">Test runs</button>
+                      <button type="button" class="ptl-link" *ngIf="!hasOpenRejection(detail)"
+                              (click)="openRejectionView(detail, $event)">Sample problem</button>
+                      <button type="button" class="ptl-link" (click)="openDetailProtocol(detail, $event)">Instructions</button>
+                    </div>
+                  </ng-container>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Report + Payment -->
+        <div class="ptl-panels">
+          <div class="ptl-panel">
+            <h3 class="ptl-panel__title">Report</h3>
+            <div class="ptl-callout" [class.ptl-callout--ok]="readyTestCount === testDetails.length && selectedVisitPaid">
+              <i class="fa" [ngClass]="readyTestCount === testDetails.length ? 'fa-check-circle' : 'fa-info-circle'"></i>
+              <div>
+                <strong>{{ readyTestCount }} of {{ testDetails.length }}</strong>
+                {{ testDetails.length === 1 ? 'test has' : 'tests have' }} all results entered.
+                <span *ngIf="!selectedVisitPaid"><br>Reports can be opened once the bill is fully paid.</span>
+              </div>
             </div>
-            <span class="badge" [ngClass]="detail.isAbnormal ? 'badge-danger' : 'badge-success'">
-              {{ detail.isAbnormal ? 'Abnormal' : 'Normal' }}
-            </span>
-          </div>
-
-          <div class="card-body">
-
-            <!-- The reason, in full, where the result would be. A test whose sample was
-                 refused has no result to show and the blank space is what confuses people —
-                 so the space says what happened and what is being waited on. -->
-            <div class="rejection-banner" *ngIf="hasOpenRejection(detail)"
-                 (click)="openRejectionView(detail, $event)">
-              <i class="fa fa-exclamation-triangle"></i>
-              <div class="rejection-banner-body">
-                <strong>Sample rejected — awaiting re-collection</strong>
-                <span class="rejection-banner-reason">{{ rejectionReason(detail) }}</span>
-                <span class="rejection-banner-cat">{{ rejectionCategory(detail) }}</span>
-              </div>
-              <span class="rejection-banner-link">Details</span>
-            </div>
-
-            <div class="test-details">
-              <div class="detail-row">
-                <span class="detail-label">Test Code:</span>
-                <span class="detail-value">{{ detail.testCode }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Test Name:</span>
-                <span class="detail-value">{{ detail.testName }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Price:</span>
-                <span class="detail-value amount">₹{{ detail.price | number:'1.2-2' }}</span>
-              </div>
-              <div class="detail-row" *ngIf="detail.testParameter">
-                <span class="detail-label">Parameter:</span>
-                <span class="detail-value">{{ detail.testParameter }}</span>
-              </div>
-              <div class="detail-row result-row" *ngIf="detail.resultValue" [class.abnormal]="detail.isAbnormal">
-                <span class="detail-label">Result:</span>
-                <span class="detail-value result-value">{{ detail.resultValue }}</span>
-              </div>
-              <div class="detail-row" *ngIf="detail.normalRange">
-                <span class="detail-label">Normal Range:</span>
-                <span class="detail-value">{{ detail.normalRange }}</span>
-              </div>
-              <div class="detail-row" *ngIf="detail.unit">
-                <span class="detail-label">Unit:</span>
-                <span class="detail-value">{{ detail.unit }}</span>
-              </div>
-              <!-- Always rendered, never hidden when empty. A missing row reads as "no
-                   particular method"; a row that says "Not recorded" is the truth, and it is
-                   what tells an admin the test still needs its technique entered. -->
-              <div class="detail-row">
-                <span class="detail-label">Method:</span>
-                <!-- effectiveMethod first: it resolves a linked catalogue technique, which a
-                     test can carry with no free-text method at all. -->
-                <span class="detail-value" *ngIf="detail.effectiveMethod || detail.method">
-                  {{ detail.effectiveMethod || detail.method }}
-                </span>
-                <span class="detail-value detail-value--absent"
-                      *ngIf="!detail.effectiveMethod && !detail.method">
-                  Not recorded
-                </span>
-              </div>
-              <div class="detail-row" *ngIf="detail.status">
-                <span class="detail-label">Status:</span>
-                <span class="detail-value">{{ detail.status }}</span>
-              </div>
-            </div>
-
-            <div class="remarks-section" *ngIf="detail.remarks">
-              <h4>Remarks</h4>
-              <p class="remark-text">{{ detail.remarks }}</p>
-            </div>
-
-            <div class="card-footer">
-              <button class="btn btn-primary"
-                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
-                      (click)="openParameterView(detail, $event)">
-                <i class="fa fa-file-text"></i> Test Result
+            <div class="ptl-actions ptl-actions--left" *ngIf="!isCancelled(selectedPatientTest)">
+              <button type="button" class="dc-btn dc-btn--clear"
+                      [disabled]="reportStatus(selectedPatientTest) === 'Pending' || openingSmartReportFor === selectedPatientTest.patient_Test_Id"
+                      (click)="openSmartReport(selectedPatientTest, $event)">
+                <i class="fa" [ngClass]="openingSmartReportFor === selectedPatientTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-heartbeat'"></i>
+                Smart Report
               </button>
-
-              <!-- Opening the runs and ordering a repeat are the same action in practice:
-                   whoever doubts a result wants to see whether it has already been
-                   questioned before adding another run. -->
-              <button class="btn btn-runs"
-                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
-                      (click)="openRunHistory(detail, $event)"
-                      title="How many times this test was run on the sample, and why">
-                <i class="fa fa-repeat"></i> Test Runs
-              </button>
-
-              <!-- Recording a rejection and reading one are the same screen: whoever is
-                   about to refuse a sample wants to see whether it has already been
-                   refused once. -->
-              <button class="btn btn-rejection"
-                      *ngIf="selectedPatientTest && !isCancelled(selectedPatientTest)"
-                      (click)="openRejectionView(detail, $event)"
-                      title="Record or review a rejected sample for this test">
-                <i class="fa fa-ban"></i> Sample Rejection
+              <button type="button" class="dc-btn dc-btn--clear"
+                      [disabled]="reportStatus(selectedPatientTest) === 'Pending' || !patientWhatsAppNumber || sendingSmartWhatsAppFor === selectedPatientTest.patient_Test_Id"
+                      [title]="!patientWhatsAppNumber ? 'No valid mobile number on this patient' : 'Send the report link on WhatsApp'"
+                      (click)="sendSmartReportOnWhatsApp(selectedPatientTest, $event)">
+                <i class="fa" [ngClass]="sendingSmartWhatsAppFor === selectedPatientTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+                Send on WhatsApp
               </button>
             </div>
           </div>
+
+          <div class="ptl-panel">
+            <h3 class="ptl-panel__title">Payment</h3>
+            <div class="ptl-money">
+              <div><span>Bill</span><strong>₹{{ visitMoney(selectedPatientTest).bill | number:'1.0-2' }}</strong></div>
+              <div><span>Paid</span><strong>₹{{ visitMoney(selectedPatientTest).paid | number:'1.0-2' }}</strong></div>
+              <div [class.ptl-tone--warn]="visitMoney(selectedPatientTest).due > 0">
+                <span>Still to pay</span><strong>₹{{ visitMoney(selectedPatientTest).due | number:'1.0-2' }}</strong>
+              </div>
+            </div>
+            <p class="ptl-table__sub" *ngIf="vm(selectedPatientTest).paymentTone === 'hold'">
+              <i class="fa fa-hourglass-half"></i> The discount is above the lab limit and is waiting for Super Admin approval.
+            </p>
+            <div class="ptl-actions ptl-actions--left">
+              <button type="button" class="dc-btn dc-btn--save"
+                      *ngIf="!isCancelled(selectedPatientTest) && vm(selectedPatientTest).paymentTone === 'due'"
+                      (click)="takePaymentFromVisit($event)">
+                <i class="fa fa-inr"></i> Take payment
+              </button>
+              <button type="button" class="dc-btn dc-btn--clear" (click)="viewReceipts(selectedPatientTest, $event)">
+                <i class="fa fa-file-text"></i> View receipts
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Less used -->
+        <div class="ptl-other" *ngIf="!isCancelled(selectedPatientTest)">
+          <span class="ptl-other__label">Other:</span>
+          <button type="button" class="dc-btn dc-btn--clear"
+                  *ngIf="hasSamplingLocation(selectedPatientTest)"
+                  (click)="printBarcode(selectedPatientTest, $event)"
+                  [disabled]="printingLabelFor === selectedPatientTest.patient_Test_Id">
+            <i class="fa fa-barcode"></i> Print barcode
+          </button>
+          <button type="button" class="dc-btn dc-btn--clear" (click)="openBookingProtocols(selectedPatientTest, $event)"
+                  [disabled]="loadingProtocolFor === selectedPatientTest.patient_Test_Id">
+            <i class="fa fa-info-circle"></i> Sample instructions
+          </button>
+          <span class="ptl-spacer"></span>
+          <button type="button" class="dc-btn dc-btn--delete"
+                  *ngIf="reportStatus(selectedPatientTest) === 'Pending'"
+                  (click)="cancelFromVisit($event)" [disabled]="loadingCancelModal">
+            <i class="fa" [ngClass]="loadingCancelModal ? 'fa-spinner fa-spin' : 'fa-ban'"></i> Cancel this visit
+          </button>
         </div>
       </div>
-    </div>
+    </ng-container>
   </div>
 </div>
 
@@ -578,7 +603,7 @@
   <div class="parameter-container">
     <div class="parameter-header">
       <div class="header-left">
-        <h2>Create Test Report</h2>
+        <h2>Enter results</h2>
         <p class="subtitle" *ngIf="selectedTestDetail">
           {{ selectedTestDetail.testCode }} — {{ selectedTestDetail.testName }}
         </p>
@@ -592,7 +617,7 @@
       </div>
       <div class="header-actions">
         <button class="btn btn-primary" (click)="saveTestReport()">
-          <i class="fa fa-save"></i> Save Report
+          <i class="fa fa-save"></i> Save results
         </button>
         <!-- Pay Now — payment not yet complete -->
         <button class="btn btn-pay-now"

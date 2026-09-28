@@ -1,4 +1,4 @@
-﻿import { get } from "@okta/okta-auth-js";
+import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -46,6 +46,7 @@ export const controllerEndpoints = {
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
+  worklist: 'api/Worklist/'
 };
 
 export const apiEndpoints = {
@@ -87,6 +88,21 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+
+  // ── Worklist ──
+  /** One queue's items plus the counts for every queue. */
+  getWorklist: 'GetWorklist',
+  /** Signs a test's results off — this is what issues the report. */
+  verifyReport: 'Verify',
+  /** Withdraws a sign-off and sends the results back to the bench. */
+  returnForReentry: 'ReturnForReentry',
+  /** Whether a test is signed off — decides between "Verify & issue" and "Print". */
+  isVerified: 'IsVerified',
+  /** Records where a booking's sample was collected. */
+  markSampleCollected: 'MarkSampleCollected',
+  /** Pulls an already-issued report back for re-entry. */
+  recallReport: 'RecallReport',
+
   /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
   staffCapacity: 'Capacity',
   getById: 'GetById',
