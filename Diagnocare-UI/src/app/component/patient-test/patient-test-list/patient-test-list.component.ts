@@ -1,5 +1,6 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, HostListener, OnInit, ViewChild } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { CommonModule, Location } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -36,6 +37,42 @@ import {
   getPaymentBadgeLabel as paymentBadgeLabel,
   getPaymentStatusClass as paymentStatusClass
 } from 'src/app/utilities/patient-status.util';
+
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** One step of a visit's progress bar. */
+export interface VisitStep {
+  label: string;
+  state: 'done' | 'current' | 'todo';
+}
+
+/**
+ * Everything the page says about one booking, in plain words, computed once per
+ * load rather than on every change-detection pass.
+ */
+export interface VisitView {
+  /** Test names on the booking (codes where a name is unknown). */
+  names: string[];
+  isToday: boolean;
+  /** "27 Sep 2026" */
+  dateLabel: string;
+  /** "Sunday, 27 September 2026" */
+  dayLabel: string;
+  /** "Today", "15 days ago" */
+  relLabel: string;
+  /** "SEPTEMBER 2026" — the past-visits group header */
+  monthLabel: string;
+  steps: VisitStep[];
+  /** What the big button does. */
+  next: 'sampling' | 'results' | 'payment' | 'reports' | 'none';
+  nextText: string;
+  statusText: string;
+  statusTone: 'ok' | 'warn' | 'muted';
+  paymentText: string;
+  paymentTone: 'ok' | 'due' | 'hold' | 'none';
+  due: number;
+  cancelled: boolean;
+}
 
 @Component({
   selector: 'app-patient-test-list',
@@ -79,8 +116,6 @@ export class PatientTestListComponent implements OnInit {
   /** Cached pathology branch name — passed to report generation to fill {{PATHOLOGY_BRANCH}}. */
   pathBranch: string = '';
 
-  activeCardIndex: number = 0;
-  activeDetailIndex: number = 0;
   activeParameterIndex: number = 0;
 
   showDetailView: boolean = false;
@@ -168,11 +203,26 @@ export class PatientTestListComponent implements OnInit {
    */
   printStatus = new Map<string, ReportPrintStatusDto>();
 
-  // ── Filter state ───────────────────────────────────────────────────────
-  /** When true the full history is shown; false = only last 15 days / pending reports. */
-  showAllTests: boolean = false;
-  readonly RECENT_DAYS = 15;
+  // ── Visit grouping (Today / Still waiting / Past) ─────────────────────
+  todayVisits:   patientTest[] = [];
+  waitingVisits: patientTest[] = [];
+  pastVisits:    patientTest[] = [];
+  /** Past visits after the search box and "Show older" limit, grouped by month. */
+  pastGroups: { label: string; visits: patientTest[] }[] = [];
+  pastSearch = '';
+  showAllPast = false;
+  readonly PAST_PAGE_SIZE = 6;
+  /** Past visits matching the search, before the "Show older" cut. */
+  pastMatchCount = 0;
 
+  /** Test code → display name, loaded once for every code on this patient. */
+  testNameByCode = new Map<string, string>();
+  /** Cached display model per booking id — rebuilt whenever the list or names change. */
+  private visitViews = new Map<string, VisitView>();
+
+  /** Saved-result progress per test code for the OPEN visit. */
+  resultProgress = new Map<string, { filled: number; total: number }>();
+  isLoadingProgress = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -329,8 +379,9 @@ export class PatientTestListComponent implements OnInit {
 
     this.testReportService.getAllPatientTests(this.patientId).subscribe({
       next: (data: patientTest[]) => {
-        this.allPatientTests = data;
+        this.allPatientTests = data ?? [];
         this.filterTests();
+        this.loadTestNames();
         this.isLoading = false;
       },
       error: (error: Error) => {
@@ -362,76 +413,364 @@ export class PatientTestListComponent implements OnInit {
     });
   }
 
-  // ── Filtering ──────────────────────────────────────────────────────────
+  // ── Grouping ───────────────────────────────────────────────────────────
 
   /**
-   * Applies the current filter mode to `allPatientTests` and writes the
-   * result into `patientTests` (which drives the template).
+   * Splits `allPatientTests` into the three sections the page shows.
    *
-   * One rule: the default view keeps orders whose results are not finished.
-   * There is no date filter and there never was — this comment used to claim a
-   * `RECENT_DAYS` window, the labels and the empty state repeated the claim, and
-   * the code below has only ever compared status. Four places disagreeing about
-   * what a filter does is worse than no documentation at all, so the claim is
-   * gone rather than the behaviour: filtering a single patient's orders by age
-   * hides exactly the old order somebody opened the screen to find.
+   *  • Today         — registered today (any status, cancelled included).
+   *  • Still waiting — earlier visits, not cancelled, results not complete.
+   *  • Past visits   — everything else, newest first, grouped by month.
    *
-   * When `showAllTests` is true, every order is shown.
+   * The split is by TIME, never by a toggle: nothing is hidden, so an old report
+   * is one scroll away. `patientTests` keeps the full newest-first list.
    */
   private filterTests(): void {
-    let filtered: patientTest[];
+    this.visitViews.clear();
+    const sorted = [...this.allPatientTests].sort((a, b) => this.compareNewestFirst(a, b));
+    this.patientTests = sorted;
 
-    if (this.showAllTests) {
-      filtered = [...this.allPatientTests];
-    } else {
-      // Default view shows only outstanding work: Pending / Partial reports
-      // (plus just-cancelled bookings so their settled payment status is visible).
-      // Completed reports are hidden here and reached via the "All Reports" toggle.
-      filtered = this.allPatientTests.filter(test => {
-        const status = (test.is_Report_Generated || 'Pending').trim();
-        return status !== 'Completed';
-      });
+    this.todayVisits   = sorted.filter(t => this.vm(t).isToday);
+    this.waitingVisits = sorted.filter(t => !this.vm(t).isToday && !this.isCancelled(t)
+                                            && this.reportStatus(t) !== 'Completed');
+    const shown = new Set<patientTest>([...this.todayVisits, ...this.waitingVisits]);
+    this.pastVisits    = sorted.filter(t => !shown.has(t));
+    this.refreshPastGroups();
+  }
+
+  /** Newest first by registration date; the booking id breaks ties (higher = newer). */
+  private compareNewestFirst(a: patientTest, b: patientTest): number {
+    const da = this.visitDate(a)?.getTime() ?? 0;
+    const db = this.visitDate(b)?.getTime() ?? 0;
+    if (db !== da) return db - da;
+    return Number(b.patient_Test_Id) - Number(a.patient_Test_Id);
+  }
+
+  /** Applies the past-visit search box and the "Show older" limit, then groups by month. */
+  refreshPastGroups(): void {
+    const q = this.pastSearch.trim().toLowerCase();
+    const matches = !q ? this.pastVisits : this.pastVisits.filter(t => {
+      const v = this.vm(t);
+      const haystack = [
+        ...v.names, t.test_Id, String(t.patient_Test_Id), v.dateLabel, t.referred_By || ''
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+    this.pastMatchCount = matches.length;
+    // While searching, show every match — hiding a match behind "Show older" defeats the search.
+    const visible = (this.showAllPast || q) ? matches : matches.slice(0, this.PAST_PAGE_SIZE);
+
+    const groups: { label: string; visits: patientTest[] }[] = [];
+    for (const t of visible) {
+      const label = this.vm(t).monthLabel;
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.visits.push(t);
+      else groups.push({ label, visits: [t] });
     }
+    this.pastGroups = groups;
+  }
 
-    this.patientTests = this.sortTests(filtered);
+  onPastSearchChange(value: string): void {
+    this.pastSearch = value ?? '';
+    this.refreshPastGroups();
+  }
+
+  showOlderVisits(): void {
+    this.showAllPast = true;
+    this.refreshPastGroups();
+  }
+
+  get hiddenPastCount(): number {
+    if (this.showAllPast || this.pastSearch.trim()) return 0;
+    return Math.max(0, this.pastMatchCount - this.PAST_PAGE_SIZE);
+  }
+
+  trackByVisit  = (_: number, t: patientTest) => t.patient_Test_Id;
+  trackByGroup  = (_: number, g: { label: string }) => g.label;
+  trackByDetail = (_: number, d: testDetail) => d.testCode;
+
+  // ── Test names ─────────────────────────────────────────────────────────
+
+  /** Codes on a booking, in booking order ("CBC,LIPID" → ["CBC","LIPID"]). */
+  testCodes(test: patientTest): string[] {
+    return (test?.test_Id || '').split(',').map(c => c.trim()).filter(c => !!c);
   }
 
   /**
-   * Sort order:
-   *  1. Report status — Pending first, then Partial, Completed, Cancelled
-   *  2. Within the same status — descending by patient_Test_Id (higher id = more recent)
+   * One request for every test code on this patient, so each visit can show the
+   * names of its tests without being opened — the list endpoint only carries
+   * codes. Silent on failure: the codes are shown instead.
    */
-  private sortTests(tests: patientTest[]): patientTest[] {
-    const statusRank = (t: patientTest): number => {
-      if (this.isCancelled(t))                                        return 3;
-      switch ((t.is_Report_Generated || 'Pending').trim()) {
-        case 'Pending':   return 0;
-        case 'Partial':   return 1;
-        case 'Completed': return 2;
-        default:          return 2;
-      }
-    };
+  private loadTestNames(): void {
+    const codes = Array.from(new Set(this.allPatientTests.flatMap(t => this.testCodes(t))))
+      .filter(c => !this.testNameByCode.has(c));
+    if (codes.length === 0) return;
 
-    return [...tests].sort((a, b) => {
-      const rankDiff = statusRank(a) - statusRank(b);
-      if (rankDiff !== 0) return rankDiff;
-      // Same status → most-recently registered first (higher numeric ID = newer)
-      return Number(b.patient_Test_Id) - Number(a.patient_Test_Id);
+    this.testReportService.getTestDetails(codes.join(',')).subscribe({
+      next: (details: testDetail[]) => {
+        for (const d of details ?? []) {
+          if (d?.testCode) this.testNameByCode.set(d.testCode, d.testName || d.testCode);
+        }
+        this.filterTests();   // rebuild the view models with names
+      },
+      error: () => { /* names fall back to codes */ }
     });
   }
 
-  /** Shows every order for this patient, finished or not. */
-  showOldReports(): void {
-    this.showAllTests = true;
-    this.filterTests();
-    this.activeCardIndex = 0;
+  // ── Visit view model ───────────────────────────────────────────────────
+
+  /** Cached, plain-language description of one booking for the template. */
+  vm(test: patientTest): VisitView {
+    const key = String(test.patient_Test_Id);
+    let v = this.visitViews.get(key);
+    if (!v) {
+      v = this.buildVisitView(test);
+      this.visitViews.set(key, v);
+    }
+    return v;
   }
 
-  /** Returns to the default "needs work" view. */
-  showRecentOnly(): void {
-    this.showAllTests = false;
-    this.filterTests();
-    this.activeCardIndex = 0;
+  private buildVisitView(test: patientTest): VisitView {
+    const date      = this.visitDate(test);
+    const cancelled = this.isCancelled(test);
+    const status    = this.reportStatus(test);
+    const payment   = this.getPaymentStatus(test);
+    const due       = test.bill_Reciept?.amount_Pending ?? 0;
+    const sampled   = this.hasSamplingLocation(test);
+    const names     = this.testCodes(test).map(c => this.testNameByCode.get(c) || c);
+    const paid      = payment === 'Paid';
+    const onHold    = payment === 'Awaiting Approval';
+    const resultsDone = status === 'Completed';
+
+    // ── Money, in words ──
+    let paymentText = '';
+    let paymentTone: VisitView['paymentTone'] = 'none';
+    if (cancelled) {
+      paymentText = payment === 'Payment Settled' ? 'Payment settled' : 'Nothing to pay';
+    } else if (onHold) {
+      paymentText = 'Discount waiting for approval'; paymentTone = 'hold';
+    } else if (paid) {
+      paymentText = 'Paid'; paymentTone = 'ok';
+    } else if (due > 0) {
+      paymentText = `₹${this.formatMoney(due)} still to pay`; paymentTone = 'due';
+    } else {
+      paymentText = 'Not paid yet'; paymentTone = 'due';
+    }
+
+    // ── Progress steps ──
+    const steps: VisitStep[] = [
+      { label: 'Booked', state: 'done' },
+      { label: sampled ? 'Sample taken' : 'Sample place not chosen', state: sampled ? 'done' : 'current' },
+      {
+        label: resultsDone ? 'All results entered'
+             : status === 'Partial' ? 'Some results entered' : 'Results not entered',
+        state: resultsDone ? 'done' : (sampled ? 'current' : 'todo')
+      },
+      { label: 'Report ready', state: resultsDone && paid ? 'done' : (resultsDone ? 'current' : 'todo') },
+    ];
+
+    // ── The one next step ──
+    let next: VisitView['next'] = 'none';
+    let nextText = '';
+    if (cancelled) {
+      nextText = test.cancellation_Reason ? `Cancelled — ${test.cancellation_Reason}` : 'This visit was cancelled.';
+    } else if (!sampled) {
+      next = 'sampling'; nextText = 'Choose where the sample was taken. This also creates the barcode.';
+    } else if (!resultsDone) {
+      next = 'results';
+      nextText = status === 'Partial' ? 'Some results are still missing — finish entering them.'
+                                      : 'Enter the test results.';
+    } else if (onHold) {
+      next = 'reports'; nextText = 'Results are in. Payment is on hold until the discount is approved.';
+    } else if (!paid) {
+      next = 'payment'; nextText = 'Results are in. Take the payment to release the report.';
+    } else {
+      next = 'reports'; nextText = 'Report is ready to print or send.';
+    }
+
+    // ── One status line for list rows ──
+    let statusText = '';
+    let statusTone: VisitView['statusTone'] = 'ok';
+    if (cancelled)         { statusText = 'Cancelled';                   statusTone = 'muted'; }
+    else if (!resultsDone) { statusText = status === 'Partial' ? 'Some results missing' : 'Results not entered'; statusTone = 'warn'; }
+    else if (!paid)        { statusText = onHold ? 'Results ready · discount on hold' : 'Results ready · payment due'; statusTone = 'warn'; }
+    else                   { statusText = 'Report ready · Paid';         statusTone = 'ok'; }
+
+    return {
+      names,
+      isToday:    !!date && this.isSameDay(date, new Date()),
+      dateLabel:  date ? `${String(date.getDate()).padStart(2, '0')} ${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()}` : 'Date not recorded',
+      dayLabel:   date ? date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '',
+      relLabel:   date ? this.relativeLabel(date) : '',
+      monthLabel: date ? date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase() : 'DATE NOT RECORDED',
+      steps, next, nextText, statusText, statusTone, paymentText, paymentTone, due, cancelled,
+    };
+  }
+
+  private formatMoney(n: number): string {
+    return Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+
+  /** Registration date as a Date. The API sends "dd-MMM-yyyy"; ISO strings are accepted too. */
+  visitDate(test: patientTest): Date | null {
+    const raw = (test?.registration_Date || '').trim();
+    if (!raw) return null;
+    const parsed = this.parseDMMMYYYY(raw);
+    if (parsed) return parsed;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  private isSameDay(a: Date, b: Date): boolean {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  /** "Today", "Yesterday", "5 days ago", "1 month ago", "2 years ago". */
+  private relativeLabel(date: Date): string {
+    const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const days = Math.round((start(new Date()) - start(date)) / 86400000);
+    if (days <= 0)  return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30)  return `${days} days ago`;
+    const months = Math.floor(days / 30.44);
+    if (months < 12) return months <= 1 ? '1 month ago' : `${months} months ago`;
+    const years = Math.floor(days / 365.25);
+    return years <= 1 ? '1 year ago' : `${years} years ago`;
+  }
+
+  /** Runs the visit's one main action (the big blue button). */
+  doNextStep(test: patientTest, event: Event): void {
+    switch (this.vm(test).next) {
+      case 'payment': this.openPaymentModal(test, event); break;
+      default:        this.viewDetails(test, event);      break;
+    }
+  }
+
+  nextStepLabel(test: patientTest): string {
+    const v = this.vm(test);
+    switch (v.next) {
+      case 'results': return this.reportStatus(test) === 'Partial' ? 'Finish results' : 'Enter results';
+      case 'payment': return 'Take payment';
+      case 'reports': return 'View reports';
+      default:        return 'Open visit';
+    }
+  }
+
+  // ── Visit screen: per-test result progress ─────────────────────────────
+
+  /**
+   * Reads how many parameters of each test already have a saved result, so the
+   * visit screen can say "3 of 8 entered" per test instead of one booking-wide
+   * Pending / Partial. One small request per test; failures just hide the count.
+   */
+  private loadResultProgress(test: patientTest, details: testDetail[]): void {
+    this.resultProgress.clear();
+    if (!details.length) return;
+    this.isLoadingProgress = true;
+    const id = Number(test.patient_Test_Id);
+    forkJoin(details.map(d =>
+      this.testReportService.getSavedTestReport(id, d.testCode).pipe(catchError(() => of(null)))
+    )).subscribe(results => {
+      results.forEach((rows, i) => {
+        if (!rows) return;
+        const filled = rows.filter((r: any) => (r?.obtainedValue ?? '').toString().trim() !== '').length;
+        this.resultProgress.set(details[i].testCode, { filled, total: rows.length });
+      });
+      this.isLoadingProgress = false;
+    });
+  }
+
+  /** 'done' | 'partial' | 'none' | 'unknown' for one test on the open visit. */
+  resultState(detail: testDetail): 'done' | 'partial' | 'none' | 'unknown' {
+    const p = this.resultProgress.get(detail.testCode);
+    if (!p) return 'unknown';
+    if (p.total > 0 && p.filled >= p.total) return 'done';
+    return p.filled > 0 ? 'partial' : 'none';
+  }
+
+  resultText(detail: testDetail): string {
+    const p = this.resultProgress.get(detail.testCode);
+    if (!p) return this.isLoadingProgress ? 'Checking…' : '—';
+    if (p.total === 0) return 'No values set up for this test';
+    if (p.filled >= p.total) return 'All entered';
+    if (p.filled === 0) return 'Not entered yet';
+    return `${p.filled} of ${p.total} entered`;
+  }
+
+  /** How many tests on the open visit have every result saved. */
+  get readyTestCount(): number {
+    return this.testDetails.filter(d => this.resultState(d) === 'done').length;
+  }
+
+  /** The first test that still needs results — its button is the blue one. */
+  get firstPendingTestCode(): string | null {
+    const d = this.testDetails.find(x => !this.hasOpenRejection(x) && this.resultState(x) !== 'done');
+    return d ? d.testCode : null;
+  }
+
+  get selectedVisitPaid(): boolean {
+    return !!this.selectedPatientTest && this.getPaymentStatus(this.selectedPatientTest) === 'Paid';
+  }
+
+  /** "Sunday, 28 September 2026" for the Today heading. */
+  get todayLabel(): string {
+    return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /** Bill / paid / still-to-pay for one booking, from its embedded receipt summary. */
+  visitMoney(test: patientTest): { bill: number; paid: number; due: number } {
+    const r = test?.bill_Reciept;
+    if (!r) return { bill: test?.amount_Tobe_Paid ?? 0, paid: 0, due: test?.amount_Tobe_Paid ?? 0 };
+    const paid = r.amount_Paid || 0;
+    const due  = r.amount_Pending || 0;
+    const bill = r.net_Amount ?? (paid + due);
+    return { bill, paid, due };
+  }
+
+  // ── "More" menu ────────────────────────────────────────────────────────
+
+  /** Booking whose "More" menu is open (one at a time). */
+  openMoreFor: patientTest['patient_Test_Id'] | null = null;
+
+  toggleMore(test: patientTest, event: Event): void {
+    event.stopPropagation();
+    this.openMoreFor = this.openMoreFor === test.patient_Test_Id ? null : test.patient_Test_Id;
+  }
+
+  closeMore(): void { this.openMoreFor = null; }
+
+  /** A click anywhere else, or Escape, closes the menu. */
+  @HostListener('document:click')
+  onDocumentClick(): void { this.closeMore(); }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void { this.closeMore(); }
+
+  // ── Visit screen actions that open another dialog ──────────────────────
+  // The payment and cancel dialogs sit on the page, so the visit screen closes
+  // first — the same order payNowFromReport has always used.
+
+  takePaymentFromVisit(event: Event): void {
+    event.stopPropagation();
+    const test = this.selectedPatientTest;
+    if (!test) return;
+    this.closeDetailView();
+    this.openPaymentModal(test, event);
+  }
+
+  cancelFromVisit(event: Event): void {
+    event.stopPropagation();
+    const test = this.selectedPatientTest;
+    if (!test) return;
+    this.closeDetailView();
+    this.openCancelModal(test, event);
+  }
+
+  /** Opens one finished test's report straight from the visit table. */
+  viewTestReport(detail: testDetail, event: Event): void {
+    event.stopPropagation();
+    this.selectedTestDetail = detail;
+    this.generateTestReportPDF();
   }
 
   // ── Add Test Modal ─────────────────────────────────────────────────────
@@ -467,30 +806,9 @@ export class PatientTestListComponent implements OnInit {
 
   // ── Computed helpers ───────────────────────────────────────────────────
 
-  /** True when finished orders are currently hidden by the "Needs work" tab. */
-  get hasOldTests(): boolean {
-    if (this.showAllTests) return false;
-    return this.allPatientTests.length > this.patientTests.length;
-  }
-
-  /** How many finished orders the "Needs work" tab is hiding. */
-  get oldTestCount(): number {
-    return this.allPatientTests.length - this.patientTests.length;
-  }
-
   /** True when there is genuinely no data for this patient at all. */
   get noTestsAtAll(): boolean {
     return !this.isLoading && this.allPatientTests.length === 0;
-  }
-
-  /** True when the patient has orders but all of them are finished. */
-  get noRecentTests(): boolean {
-    return (
-      !this.isLoading &&
-      !this.showAllTests &&
-      this.allPatientTests.length > 0 &&
-      this.patientTests.length === 0
-    );
   }
 
   /**
@@ -520,16 +838,6 @@ export class PatientTestListComponent implements OnInit {
     return `${d.getDate().toString().padStart(2,'0')}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`;
   }
 
-  /** Returns true when a test was registered within the last RECENT_DAYS days. */
-  isRecentTest(test: patientTest): boolean {
-    if (!test.registration_Date) return false;
-    const d = new Date(test.registration_Date);
-    if (isNaN(d.getTime())) return false;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - this.RECENT_DAYS);
-    return d >= cutoff;
-  }
-
   /** Report status string is passed straight through from the backend. */
   reportStatus(test: patientTest): string {
     return test.is_Report_Generated || 'Pending';
@@ -543,8 +851,11 @@ export class PatientTestListComponent implements OnInit {
     } else if (!this.showPatientIdInput) {
       this.showPatientIdInput = true;
       this.allPatientTests = [];
-      this.patientTests = [];
+      this.filterTests();
+      this.pastSearch = '';
+      this.showAllPast = false;
       this.patientId = '';
+      this.patientName = '';
       this.enteredPatientId = '';
       this.errorMessage = '';
     } else {
@@ -638,15 +949,6 @@ export class PatientTestListComponent implements OnInit {
     this.activePaymentTest = null;
   }
 
-  // ── Card stack helpers ─────────────────────────────────────────────────
-
-  selectCard(index: number): void { this.activeCardIndex = index; }
-  isActiveCard(index: number): boolean { return this.activeCardIndex === index; }
-  getCardZIndex(index: number): number {
-    if (index === this.activeCardIndex) return this.patientTests.length + 1;
-    return this.patientTests.length - Math.abs(index - this.activeCardIndex);
-  }
-
   getTestCount(test: patientTest): number {
     if (test.test_count) return test.test_count;
     if (test.test_Id) return test.test_Id.split(',').filter(id => id.trim()).length;
@@ -659,7 +961,6 @@ export class PatientTestListComponent implements OnInit {
     event.stopPropagation();
     this.selectedPatientTest = test;
     this.showDetailView = true;
-    this.activeDetailIndex = 0;
     this.loadTestDetails(test.test_Id);
     this.loadRunCounts(Number(test.patient_Test_Id));
     this.loadRejectionSummary(Number(test.patient_Test_Id));
@@ -673,8 +974,9 @@ export class PatientTestListComponent implements OnInit {
 
     this.testReportService.getTestDetails(patientTestId).subscribe({
       next: (data: testDetail[]) => {
-        this.testDetails = data;
+        this.testDetails = data ?? [];
         this.isLoadingDetails = false;
+        if (this.selectedPatientTest) this.loadResultProgress(this.selectedPatientTest, this.testDetails);
       },
       error: (error: Error) => {
         this.detailErrorMessage = 'Failed to load test details. Please try again.';
@@ -688,17 +990,10 @@ export class PatientTestListComponent implements OnInit {
     this.showDetailView = false;
     this.selectedPatientTest = null;
     this.testDetails = [];
-    this.activeDetailIndex = 0;
+    this.resultProgress.clear();
     this.runCounts.clear();
     this.rejectionSummary.clear();
     this.printStatus.clear();
-  }
-
-  selectDetailCard(index: number): void { this.activeDetailIndex = index; }
-  isActiveDetailCard(index: number): boolean { return this.activeDetailIndex === index; }
-  getDetailCardZIndex(index: number): number {
-    if (index === this.activeDetailIndex) return this.testDetails.length + 1;
-    return this.testDetails.length - Math.abs(index - this.activeDetailIndex);
   }
 
   // ── Sample collection protocol ─────────────────────────────────────────
@@ -1043,6 +1338,10 @@ export class PatientTestListComponent implements OnInit {
     // its own tab and prints from there — refresh so a print that happened while
     // this overlay was open is reflected as soon as they come back to it.
     this.refreshPrintStatus();
+    // Results may have just been saved — refresh the per-test counts on the visit screen.
+    if (this.selectedPatientTest && this.testDetails.length) {
+      this.loadResultProgress(this.selectedPatientTest, this.testDetails);
+    }
   }
 
   /**
