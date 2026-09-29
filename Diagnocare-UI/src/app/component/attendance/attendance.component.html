@@ -39,6 +39,8 @@
       <button class="btn btn-secondary" (click)="openAttendanceRequests()"
               title="Review attendance correction requests">
         <i class="fa fa-clipboard-check"></i> Attendance Requests
+        <span class="dirty-badge" *ngIf="pendingRequestCount > 0"
+              [title]="pendingRequestCount + ' request(s) awaiting your decision'">{{ pendingRequestCount }}</span>
       </button>
 
       <!-- Save -->

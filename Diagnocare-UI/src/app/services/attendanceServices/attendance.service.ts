@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { BehaviorSubject, Observable, forkJoin, of } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
+import { SKIP_ERROR_TOAST_HEADER } from 'src/app/core/interceptors/error.interceptor';
 
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
@@ -14,6 +16,14 @@ export class AttendanceService {
 
   private readonly baseUrl:  string;
   private readonly userUrl:  string;
+
+  /**
+   * Super Admin nav badge: correction + withdrawal requests awaiting a decision.
+   * Shared so the header and the request screens stay in step — same pattern as
+   * DiscountApprovalService.pendingCount$.
+   */
+  private readonly pendingRequestCountSubject = new BehaviorSubject<number>(0);
+  readonly pendingRequestCount$ = this.pendingRequestCountSubject.asObservable();
 
   constructor(private http: HttpClient) {
     this.baseUrl = getDiagnocareApiUrl() + controllerEndpoints.attendance;
@@ -186,6 +196,19 @@ export class AttendanceService {
       .get<number>(`${this.baseUrl}${apiEndpoints.pendingRequestCount}`);
   }
 
+  /**
+   * Refreshes the Super Admin badge. Silent on failure — a background poll: no toast,
+   * and no /access-denied redirect on a 403. Call only for Super Admin (the endpoint
+   * is SuperAdminOnly).
+   */
+  refreshPendingRequestCount(): void {
+    const headers = new HttpHeaders({ [SKIP_ERROR_TOAST_HEADER]: '1' });
+    this.http.get<number>(`${this.baseUrl}${apiEndpoints.pendingRequestCount}`, { headers }).pipe(
+      map(n => (typeof n === 'number' ? n : 0)),
+      catchError(() => of(this.pendingRequestCountSubject.value)),
+    ).subscribe(n => this.pendingRequestCountSubject.next(n));
+  }
+
   /** Totals behind the admin queue's tab badges. Not affected by date range or search. */
   getRequestCounts(): Observable<AttendanceRequestCounts> {
     return this.http
@@ -194,24 +217,28 @@ export class AttendanceService {
 
   approveRequest(id: number, dto: ApproveAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveRequest}`, dto);
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveRequest}`, dto)
+      .pipe(tap(() => this.refreshPendingRequestCount()));
   }
 
   rejectRequest(id: number, dto: RejectAttendanceRequestDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectRequest}`, dto);
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectRequest}`, dto)
+      .pipe(tap(() => this.refreshPendingRequestCount()));
   }
 
   /** Admin grants a withdrawal — reverts the attendance record. */
   approveWithdrawal(id: number, dto: DecideWithdrawalDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveWithdrawal}`, dto);
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.approveWithdrawal}`, dto)
+      .pipe(tap(() => this.refreshPendingRequestCount()));
   }
 
   /** Admin refuses a withdrawal — request returns to Approved, attendance untouched. */
   rejectWithdrawal(id: number, dto: DecideWithdrawalDTO): Observable<AttendanceRequestDTO> {
     return this.http
-      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectWithdrawal}`, dto);
+      .post<AttendanceRequestDTO>(`${this.requestsUrl}/${id}/${apiEndpoints.rejectWithdrawal}`, dto)
+      .pipe(tap(() => this.refreshPendingRequestCount()));
   }
 
 }

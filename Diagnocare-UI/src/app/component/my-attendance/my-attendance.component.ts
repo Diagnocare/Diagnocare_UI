@@ -7,6 +7,7 @@ import { takeUntil, catchError, map } from 'rxjs/operators';
 
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
+import { NotificationService } from 'src/app/services/notificationServices/notification.service';
 import { HolidayService } from 'src/app/services/holidayServices/holiday.service';
 import { HolidayDTO } from 'src/app/models/holiday/holiday.dto';
 import {
@@ -117,7 +118,8 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
     private attendanceSvc: AttendanceService,
     private holidaySvc:    HolidayService,
     private datePipe:      DatePipe,
-    private router:        Router
+    private router:        Router,
+    private notifications: NotificationService,
   ) {}
 
   /**
@@ -145,6 +147,10 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.today.setHours(0, 0, 0, 0);
     this.jumpToWeek(0);
+
+    // Seeing the page is seeing the news — clear the My Attendance badge, which also
+    // carries decisions on this person's correction requests.
+    this.notifications.markModuleRead('attendance', 'attendanceRequest');
   }
 
   // ── View switching ─────────────────────────────────────────────────────────
