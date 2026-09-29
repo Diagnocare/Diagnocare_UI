@@ -14,7 +14,11 @@ export interface BillReceiptDto {
   amount_Paid:    number;
   amount_Pending: number;
   payment_Mode:   string;           // "Cash" | "Online" | …
-  payment_Status: string;           // "Paid" | "Partial" | "Pending"
+  payment_Status: string;           // "Paid" | "Partial" | "Pending" | "Awaiting Approval"
+  // Discount approval (discount above the lab limit → Super Admin)
+  discount_Approval_Status?: 'NotRequired' | 'Pending' | 'Approved' | 'Rejected';
+  requested_Discount?:       number | null;
+  discount_Review_Remark?:   string | null;
   // Refund fields
   is_Refunded:    boolean;
   refund_Amount:  number | null;

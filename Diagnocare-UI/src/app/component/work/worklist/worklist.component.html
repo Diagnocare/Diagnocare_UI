@@ -1,0 +1,244 @@
+<div class="page-container worklist">
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2>Today's work</h2>
+      <p class="subtitle">
+        {{ page?.totalItems || 0 }} {{ (page?.totalItems === 1) ? 'item' : 'items' }} in this queue
+      </p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="dc-btn" (click)="refresh()" [disabled]="isLoading">
+        <i class="fa" [ngClass]="isLoading ? 'fa-spinner fa-spin' : 'fa-refresh'" aria-hidden="true"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container">
+
+    <!-- ── Queues ────────────────────────────────────────────────────────
+         The only navigation on the screen. Every item is in exactly one, so
+         the counts always add up and an empty queue genuinely means nothing
+         is waiting — which is what lets the filters go away entirely. -->
+    <dc-queue-tabs
+      [tabs]="queueTabs"
+      [active]="queue"
+      ariaLabel="Work queues"
+      (select)="onQueueChange($event)">
+    </dc-queue-tabs>
+
+    <!-- ── Search ────────────────────────────────────────────────────────
+         One box across every field a person might be holding: the patient's
+         name, their ID, the order number off a sample label, or the referring
+         doctor. Nobody has to choose which field they are searching. -->
+    <div class="worklist__search">
+      <dc-search
+        label="Find anything"
+        placeholder="Patient name, patient ID, order number or doctor…"
+        resultNoun="item"
+        [value]="searchTerm"
+        [resultCount]="searchTerm ? (page?.totalItems ?? null) : null"
+        (search)="onSearch($event)">
+      </dc-search>
+
+      <!-- Said out loud, because a search that quietly widened its own scope
+           would look like the queue counts had gone wrong. -->
+      <p class="worklist__search-note" *ngIf="searchTerm">
+        Searching every queue, not just the one you were in.
+        <button type="button" class="link-btn" (click)="clearSearch()">Clear the search</button>
+      </p>
+    </div>
+
+    <!-- ── Loading ───────────────────────────────────────────────────── -->
+    <div class="worklist__loading" *ngIf="isLoading">
+      <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>Loading the worklist…</span>
+    </div>
+
+    <!-- ── Error ─────────────────────────────────────────────────────── -->
+    <div class="alert alert-danger" *ngIf="errorMessage && !isLoading">
+      <p>{{ errorMessage }}</p>
+      <button type="button" class="dc-btn" (click)="refresh()">Try again</button>
+    </div>
+
+    <!-- ── Empty ─────────────────────────────────────────────────────────
+         An empty queue is usually good news, so the copy says so. "No records
+         found" reads like a failure for something that means the work is done. -->
+    <dc-empty
+      *ngIf="!isLoading && !errorMessage && items.length === 0"
+      icon="fa-check-circle"
+      tone="ok"
+      [title]="emptyTitle"
+      [message]="emptyMessage"
+      [actionLabel]="searchTerm ? 'Clear the search' : ''"
+      actionIcon="fa-times"
+      (action)="clearSearch()">
+    </dc-empty>
+
+    <!-- ── The work ──────────────────────────────────────────────────────
+         A table, not a card deck: scannable, sortable, countable, reachable by
+         keyboard, and it needs no demonstration.
+
+         Widths are fixed rather than content-driven. Letting the browser size
+         seven columns means every cell stretches to fill a wide monitor, so the
+         patient's name and the button they need drift to opposite edges of the
+         screen and the eye has to travel the whole width per row. Fixed columns
+         keep a row scannable at any window size. -->
+    <div class="table-container" *ngIf="!isLoading && !errorMessage && items.length > 0">
+      <table class="worklist__table">
+        <colgroup>
+          <col class="c-flag">
+          <col class="c-test">
+          <col class="c-patient">
+          <col class="c-order">
+          <col class="c-progress">
+          <col class="c-wait">
+          <col class="c-action">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr-only">Urgent</span></th>
+            <th scope="col">Test</th>
+            <th scope="col">Patient</th>
+            <th scope="col">Order</th>
+            <th scope="col">Results</th>
+            <th scope="col" class="ta-right">Waiting</th>
+            <th scope="col"><span class="sr-only">Action</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items; trackBy: trackByItem"
+              class="worklist__row"
+              [class.worklist__row--urgent]="item.urgent">
+
+            <td class="ta-center">
+              <i class="fa fa-bolt urgent-flag" *ngIf="item.urgent"
+                 title="Urgent report" aria-hidden="true"></i>
+              <span class="sr-only" *ngIf="item.urgent">Urgent</span>
+            </td>
+
+            <td>
+              <span class="cell-strong" [title]="item.testName">{{ item.testName }}</span>
+              <span class="cell-sub">
+                {{ item.testCode }} · {{ item.parameterCount }}
+                {{ item.parameterCount === 1 ? 'parameter' : 'parameters' }}
+              </span>
+            </td>
+
+            <td>
+              <!-- Age and sex ride on every row: reference ranges for
+                   haemoglobin, creatinine and most hormones differ by both, and
+                   seeing them here is what catches a wrong-patient entry. -->
+              <button type="button" class="link-btn cell-strong"
+                      (click)="openPatient(item, $event)"
+                      [title]="'Open the record for ' + item.patientName">
+                {{ item.patientName }}
+              </button>
+              <span class="cell-sub">
+                {{ item.patientAge }} / {{ item.patientGender }} · {{ item.patientId }}
+              </span>
+            </td>
+
+            <td>
+              <span class="cell-mono">{{ item.testRegId }}</span>
+              <span class="cell-sub cell-sub--warn"
+                    *ngIf="item.paymentStatus && item.paymentStatus !== 'Paid'">
+                {{ item.paymentStatus }}
+              </span>
+            </td>
+
+            <td>
+              <!-- A blocker replaces progress entirely: an item nobody can
+                   advance should not also be showing how far along it is. -->
+              <span class="blocked" *ngIf="item.blockedReason" [title]="item.blockedReason">
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                {{ item.blockedReason }}
+              </span>
+
+              <!-- A returned item shows why it came back, in the verifier's words.
+                   Without it the technician sees a row that looks finished and has
+                   no idea what to change. -->
+              <span class="returned" *ngIf="!item.blockedReason && item.returnedReason"
+                    [title]="'Returned by ' + (item.returnedBy || 'a verifier') + ': ' + item.returnedReason">
+                <i class="fa fa-reply" aria-hidden="true"></i>
+                {{ item.returnedReason }}
+              </span>
+
+              <!-- A fraction plus a bar, not the word "Partial". "9 of 21"
+                   answers from the list what "Partial" made you open the item
+                   to find out, and the bar makes it comparable down the column
+                   without reading every number. -->
+              <ng-container *ngIf="!item.blockedReason && !item.returnedReason">
+                <span class="prog__text">{{ progressText(item) }}</span>
+                <span class="prog__bar" *ngIf="item.parameterCount > 0" aria-hidden="true">
+                  <i [style.width.%]="progressPct(item)"></i>
+                </span>
+              </ng-container>
+            </td>
+
+            <td class="ta-right">
+              <span class="wait" [ngClass]="'wait--' + waitTone(item)">{{ waitText(item) }}</span>
+            </td>
+
+            <td class="ta-right">
+              <!-- One button, carrying the queue's own verb. The row never shows
+                   two competing primary actions, so there is nothing to choose. -->
+              <button type="button" class="dc-btn dc-btn--primary worklist__go" (click)="open(item)">
+                {{ queueVerb(item.queue) }}
+              </button>
+              <!-- Only an issued report can be pulled back, so this appears
+                   nowhere else. Secondary and quiet: recalling is rare and should
+                   never be the thing a tired thumb hits instead of Print. -->
+              <button type="button" class="link-btn worklist__recall"
+                      *ngIf="item.queue === 'ready-to-print'"
+                      (click)="recall(item, $event)">
+                Recall
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Paging ────────────────────────────────────────────────────── -->
+    <div class="worklist__paging"
+         *ngIf="!isLoading && page && page.totalItems > page.pageSize">
+      <span class="worklist__paging-info">
+        Showing {{ ((page.pageNumber - 1) * page.pageSize) + 1 }}–{{ (page.pageNumber - 1) * page.pageSize + items.length }}
+        of {{ page.totalItems }}
+      </span>
+      <div class="worklist__paging-controls">
+        <button type="button" class="dc-btn"
+                [disabled]="page.pageNumber <= 1"
+                (click)="pageNumber = page.pageNumber - 1; load()">
+          Previous
+        </button>
+        <button type="button" class="dc-btn"
+                [disabled]="(page.pageNumber * page.pageSize) >= page.totalItems"
+                (click)="pageNumber = page.pageNumber + 1; load()">
+          Next
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Mark sample collected ──────────────────────────────────────────────
+     Sits outside the page container so the backdrop covers the whole viewport
+     rather than just the content column. -->
+<app-recall-report-modal
+  [visible]="!!recallingItem"
+  [item]="recallingItem"
+  (recalled)="onRecalled()"
+  (cancelled)="onRecallCancelled()">
+</app-recall-report-modal>
+
+<app-mark-collected-modal
+  [visible]="!!collectingItem"
+  [item]="collectingItem"
+  (saved)="onCollected()"
+  (cancelled)="onCollectCancelled()">
+</app-mark-collected-modal>

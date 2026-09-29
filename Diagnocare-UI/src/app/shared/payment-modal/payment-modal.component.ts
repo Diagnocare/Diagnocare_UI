@@ -14,10 +14,16 @@ import { ReceiptService } from 'src/app/services/receiptServices/receipt.service
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 
+// ── Simple UI kit ────────────────────────────────────────────────────────────
+// The new panel asks how much, then how, then (for cash) what was handed over,
+// all on one screen. The original form stays behind *ngIf="!useNewUi".
+import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
+import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+
 @Component({
   selector: 'app-payment-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, PaymentCalculatorComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, PaymentCalculatorComponent, DcPaymentPanelComponent],
   templateUrl: './payment-modal.component.html',
   styleUrls: ['./payment-modal.component.css'],
 })
@@ -62,6 +68,39 @@ export class PaymentModalComponent implements OnChanges {
   form: FormGroup;
   isSaving = false;
   saveError = '';
+
+  // ── Simple UI kit ───────────────────────────────────────────────────────────
+  /** Flip in shared/simple/simple-ui.flags.ts to compare old and new. */
+  readonly useNewUi = USE_NEW_UI;
+
+  /** True once the new panel has everything it needs to save. */
+  newUiComplete = false;
+
+  /**
+   * What the new panel is allowed to collect. In topup mode the operator is
+   * paying down an existing balance, so the ceiling is what is left, not the
+   * whole bill.
+   */
+  get panelAmount(): number {
+    return this.topupMode ? this.prefillAmount : this.netAmount;
+  }
+
+  /**
+   * Applies a decision from the new panel to the existing form, so save(),
+   * the DTO builder and every validation rule stay exactly as they are.
+   *
+   * In topup mode the panel's "all of it" means the whole remaining balance,
+   * which the existing save() correctly records as a Full settlement.
+   */
+  onPaymentDecision(decision: DcPaymentDecision): void {
+    this.newUiComplete = decision.complete;
+    this.form.patchValue({
+      payment_Type:   decision.type || this.form.get('payment_Type')?.value,
+      payment_Mode:   decision.mode || this.form.get('payment_Mode')?.value,
+      amount_Paid:    decision.amountPaid,
+      amount_Pending: decision.amountPending,
+    });
+  }
   amountPaidError = '';
   tpaError = '';
 

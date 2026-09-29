@@ -21,8 +21,17 @@ export interface BookingResultDto {
   /** One entry per booked test, each with the barcode value for that test's tube. */
   labels: SampleLabelItemDto[];
 
-  /** Relative path the printable labels are fetched from, e.g. `/api/SampleLabel/1042`. */
+  /** Relative path the printable labels are fetched from, e.g. `/api/SampleLabel/1042`. Empty when !labelsReady. */
   labelUrl: string;
+
+  /** The booking's "Sampling Done At" location as saved. */
+  samplingDoneAt?: string;
+
+  /**
+   * False when the booking was saved without a sampling location: no barcode is
+   * generated until one is selected from the patient's test list.
+   */
+  labelsReady?: boolean;
 }
 
 /** One sticker: one test on the booking, and the barcode that identifies its tube. */

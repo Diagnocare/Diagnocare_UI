@@ -1,4 +1,4 @@
-﻿import { get } from "@okta/okta-auth-js";
+import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -16,6 +16,7 @@ export const controllerEndpoints = {
   patient: 'api/patient/',
   patientReport: 'api/PatientReport/',
   patientTestReportGeneration: 'api/TestReportGeneration/',
+  smartReport: 'api/SmartReport/',
   sampleLabel: 'api/SampleLabel/',
   pathology: 'api/pathology/',
   test: 'api/test/',
@@ -23,6 +24,8 @@ export const controllerEndpoints = {
   receipt: 'api/receipt/',
   summaryReport:'api/summaryReport/',
   pathologyTest:'api/pathologyTest/',
+  /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
+  testImport:    'api/TestImport/',
   template:   'api/template/',
   attendance: 'api/attendance/',
   salary:     'api/salary/',
@@ -39,6 +42,16 @@ export const controllerEndpoints = {
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
   sampleRejection: 'api/SampleRejection/',
+  /** Super Admin queue for discounts above the lab's max discount. */
+  discountApproval: 'api/DiscountApproval/',
+  /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
+  testReminder: 'api/TestReminder/',
+  worklist: 'api/Worklist/',
+  /**
+   * The caller's own in-app notifications (header bell, User Panel badges).
+   * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
+   */
+  notification: 'api/Notification/'
 };
 
 export const apiEndpoints = {
@@ -69,6 +82,8 @@ export const apiEndpoints = {
   getReceiptCount:"GetReceiptCount",
   updatePathologyTest:"UpdatePathologyTest",
   generateTestReportPDF:"GenerateTestReportPDF",
+  generateSmartReport:"Generate",
+  reportShareLink:"ShareLink",
   updateAuthType:"UpdateAuthType",
   updateUserEmail:"UpdateUserEmail",
   updateUserPhone:"UpdateUserPhone",
@@ -78,6 +93,21 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+
+  // ── Worklist ──
+  /** One queue's items plus the counts for every queue. */
+  getWorklist: 'GetWorklist',
+  /** Signs a test's results off — this is what issues the report. */
+  verifyReport: 'Verify',
+  /** Withdraws a sign-off and sends the results back to the bench. */
+  returnForReentry: 'ReturnForReentry',
+  /** Whether a test is signed off — decides between "Verify & issue" and "Print". */
+  isVerified: 'IsVerified',
+  /** Records where a booking's sample was collected. */
+  markSampleCollected: 'MarkSampleCollected',
+  /** Pulls an already-issued report back for re-entry. */
+  recallReport: 'RecallReport',
+
   /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
   staffCapacity: 'Capacity',
   getById: 'GetById',
@@ -142,6 +172,11 @@ export const apiEndpoints = {
   /** Manually marks one report printed or not-printed. */
   setPrinted:"SetPrinted",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
+  // Test catalogue import (TestImport controller)
+  testImportTemplate:    'Template',
+  testImportPreview:     'Preview',
+  testImportCommit:      'Commit',
+  testImportErrorReport: 'ErrorReport',
   testParameterManipulation:"TestParameterManipulation",
   getSavedTestReport:"GetSavedTestReport",
   dropTest:"Delete",
@@ -155,6 +190,11 @@ export const apiEndpoints = {
   pendingRequestCount:   'requests/pending-count',
   /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
   requestCounts:         'requests/counts',
+  // In-app notifications (NotificationController) — all scoped to the caller
+  notificationUnreadCount: 'UnreadCount',
+  notificationRead:        'Read',
+  notificationReadAll:     'ReadAll',
+  notificationReadModule:  'ReadModule',
   cancelRequest:         'cancel',
   approveRequest:        'approve',
   rejectRequest:         'reject',
@@ -197,6 +237,7 @@ export const apiEndpoints = {
   disableMFA:               'disable',         // POST api/Mfa/disable
   cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
   removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
+  updateSamplingLocation:   'UpdateSamplingLocation', // PUT api/patient/UpdateSamplingLocation
   reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
   /** Patients only — staff have no permanent delete, see MemberService.delete. */
   hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
@@ -313,11 +354,15 @@ export const profileMenu = {
 };
 
 export const labOperationMenu = {
+    // The lab's outstanding work as queues (collect sample, enter results, verify…). Route guard: 'work'.
+    workflow:       { id: 'workflow',       label: 'Workflow',                route: `work`,          icon: 'fa-tasks' },
     patientDetails: { id: 'patientDetails', label: 'Patient Details',        route: `patients`,      icon: 'fa-users' },
     receiptBills:   { id: 'receiptBills',   label: 'Receipt Bills',           route: `receipt`,       icon: 'fa-receipt' },
     patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },
     pathTest:       { id: 'pathTest',       label: 'Master Test details',     route: `manage-tests`,  icon: 'fa-vials' },
     contact:        { id: 'contact',        label: 'Contact Address Manager', route: `contacts`,      icon: 'fa-map-marker-alt' },
+    // Patients due to repeat a regular test (HbA1c, lipid profile, sugar…), sent on WhatsApp.
+    testReminders:  { id: 'testReminders',  label: 'Test Reminders',          route: `test-reminders`, icon: 'fa-bell' },
 };
 
 export const labSetupMenu = {
@@ -340,6 +385,8 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
   // Payroll is owner-only — an Admin must not be able to edit their own pay.
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
+  // Discounts above the lab limit wait here for the owner's decision.
+  discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },

@@ -223,6 +223,19 @@
               </div>
             </div>
 
+            <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
+                 (and can be sent a WhatsApp) shortly before this interval has passed. -->
+            <div class="form-group">
+              <label class="form-label">Remind patient to repeat</label>
+              <select class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
+                <option [ngValue]="null">Don't remind</option>
+                <option *ngFor="let o of repeatOptions(formData.test)" [ngValue]="o.days">{{ o.label }}</option>
+              </select>
+              <div class="field-hint">
+                For regular tests such as HbA1c, lipid profile or blood sugar.
+              </div>
+            </div>
+
 
           </div>
         </ng-container>
@@ -337,6 +350,19 @@
               </div>
             </div>
 
+            <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
+                 (and can be sent a WhatsApp) shortly before this interval has passed. -->
+            <div class="form-group">
+              <label class="form-label">Remind patient to repeat</label>
+              <select class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
+                <option [ngValue]="null">Don't remind</option>
+                <option *ngFor="let o of repeatOptions(formData.test)" [ngValue]="o.days">{{ o.label }}</option>
+              </select>
+              <div class="field-hint">
+                For regular tests such as HbA1c, lipid profile or blood sugar.
+              </div>
+            </div>
+
 
           </div>
         </ng-container>
@@ -428,6 +454,19 @@
                      [(ngModel)]="formData.test.method">
               <div class="field-hint">
                 Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
+            <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
+                 (and can be sent a WhatsApp) shortly before this interval has passed. -->
+            <div class="form-group">
+              <label class="form-label">Remind patient to repeat</label>
+              <select class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
+                <option [ngValue]="null">Don't remind</option>
+                <option *ngFor="let o of repeatOptions(formData.test)" [ngValue]="o.days">{{ o.label }}</option>
+              </select>
+              <div class="field-hint">
+                For regular tests such as HbA1c, lipid profile or blood sugar.
               </div>
             </div>
 
@@ -693,6 +732,19 @@
                      [(ngModel)]="updatedFormData.test.method">
               <div class="field-hint">
                 Used when the technique is not in the catalogue above.
+              </div>
+            </div>
+
+            <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
+                 (and can be sent a WhatsApp) shortly before this interval has passed. -->
+            <div class="form-group">
+              <label class="form-label">Remind patient to repeat</label>
+              <select class="form-control" [(ngModel)]="updatedFormData.test.repeatIntervalDays">
+                <option [ngValue]="null">Don't remind</option>
+                <option *ngFor="let o of repeatOptions(updatedFormData.test)" [ngValue]="o.days">{{ o.label }}</option>
+              </select>
+              <div class="field-hint">
+                For regular tests such as HbA1c, lipid profile or blood sugar.
               </div>
             </div>
 

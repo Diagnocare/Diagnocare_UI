@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -12,6 +13,7 @@ import { DatePickerComponent }     from 'src/app/shared/date-picker/date-picker.
 import { AppValidators }            from 'src/app/shared/validators/app-validators';
 import { VisitCalendarComponent }  from 'src/app/shared/visit-calendar/visit-calendar.component';
 import { VisitCardComponent }      from 'src/app/shared/visit-card/visit-card.component';
+import { formatTime12h, TimePartsPicker } from 'src/app/shared/time-slots/time-slots';
 
 import {
   VisitCompleteModalComponent,
@@ -34,7 +36,7 @@ import { InstitutionType } from 'src/app/constant/enums';
 @Component({
   selector:    'app-visit-schedule',
   standalone:  true,
-  imports:     [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, VisitCompleteModalComponent, VisitEditModalComponent, DatePickerComponent, VisitCalendarComponent, VisitCardComponent],
+  imports:     [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, VisitCompleteModalComponent, VisitEditModalComponent, DatePickerComponent, VisitCalendarComponent, VisitCardComponent],
   providers:   [DatePipe],
   templateUrl: './visit-schedule.component.html',
   styleUrls:   ['./visit-schedule.component.scss'],
@@ -186,7 +188,11 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       purpose:          [''],
       notes:            [''],
     });
+    // Visit time = Hour / Minute (15-min steps) / AM-PM dropdowns.
+    this.timePicker = new TimePartsPicker(this.assignForm.get('visitTime')!);
   }
+
+  timePicker!: TimePartsPicker;
 
   ngOnInit(): void {
     this.loadMembers();
@@ -212,14 +218,36 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     { label: 'User',           value: 1 },
     { label: 'Assistant',      value: 2 },
     { label: 'Admin',          value: 3 },
-    { label: 'Collection Boy', value: 5 },
-    { label: 'Doctor',         value: 6 },
+    // { label: 'Collection Boy', value: 5 },
+    // { label: 'Doctor',         value: 6 },
   ];
 
   /** Members visible in the member select — filtered by role when one is chosen. */
   get displayMembers(): MemberDto[] {
     if (this.memberTypeFilter === null) return this.allMembers;
     return this.allMembers.filter(m => m.typeUserId === this.memberTypeFilter);
+  }
+
+  /** True once the member list request has finished (success or failure). */
+  membersLoaded = false;
+
+  /** Number of active members in a role (null = all roles). */
+  memberCountFor(type: number | null): number {
+    return type === null
+      ? this.allMembers.length
+      : this.allMembers.filter(m => m.typeUserId === type).length;
+  }
+
+  /** Plural, lower-case name of the selected role — "collection boys", "doctors". */
+  get memberFilterPlural(): string {
+    const label = this.memberTypeOptions.find(o => o.value === this.memberTypeFilter)?.label;
+    return label ? `${label.toLowerCase()}s` : 'staff members';
+  }
+
+  /** Clear the role filter and show every member. */
+  showAllMembers(): void {
+    this.memberTypeFilter = null;
+    this.onMemberTypeFilterChange();
   }
 
   onMemberTypeFilterChange(): void {
@@ -230,13 +258,16 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
   private loadMembers(): void {
     this._memberSvc.getAll().pipe(takeUntil(this.destroy$)).subscribe({
       // Exclude Super Admin (typeUserId=4) and the lab-owner admin row (last name = "admin")
-      next: users => (this.allMembers = filterActiveMembers(
-        (users ?? []).filter(u =>
-          u.typeUserId !== 4 &&
-          (u.last_Name ?? '').toLowerCase() !== 'admin'
-        )
-      )),
-      error: () => (this.allMembers = []),
+      next: users => {
+        this.allMembers = filterActiveMembers(
+          (users ?? []).filter(u =>
+            u.typeUserId !== 4 &&
+            (u.last_Name ?? '').toLowerCase() !== 'admin'
+          )
+        );
+        this.membersLoaded = true;
+      },
+      error: () => { this.allMembers = []; this.membersLoaded = true; },
     });
   }
 
@@ -336,6 +367,16 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     const name = (this.assignForm.get('contactName')?.value ?? '').trim().toLowerCase();
     if (!name) return false;
     return !this.contactsByType.some(c => c.name.toLowerCase() === name);
+  }
+
+  /** Saved contacts of a given institution type. */
+  contactCountFor(type: InstitutionType): number {
+    return this.allContacts.filter(c => +c.institutionType === +type).length;
+  }
+
+  /** Contact type chosen but the address book has nobody of that type yet. */
+  get noContactsForType(): boolean {
+    return this.assignForm.get('contactType')?.value != null && this.contactsByType.length === 0;
   }
 
   get selectedContactTypeName(): string {
@@ -497,13 +538,14 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  /** True when the selected calendar day is today. */
+  get isSelectedToday(): boolean {
+    return this.selectedDate === this.toIso(new Date());
+  }
+
   get viewLabel(): string { return `${this.months[this.viewMonth - 1]} ${this.viewYear}`; }
 
-  formatTime(t: string): string {
-    if (!t) return '';
-    const [h, m] = t.split(':').map(Number);
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-  }
+  formatTime(t: string): string { return formatTime12h(t); }
 
   toIsoPublic(d: Date): string { return this.toIso(d); }
   private toIso(d: Date): string {
@@ -515,5 +557,5 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     return !!(c?.invalid && c.touched);
   }
 
-  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy(): void { this.timePicker.destroy(); this.destroy$.next(); this.destroy$.complete(); }
 }

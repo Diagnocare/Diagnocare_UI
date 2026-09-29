@@ -78,6 +78,21 @@ export const routes: Routes = [
         loadComponent: () => import('./component/staff/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
+      // Work — the worklist. The lab's outstanding tests, grouped into queues
+      // rather than reached by guessing which patient contains them. Every role
+      // that does clinical work lands here; which queue they land on comes from
+      // their role (see defaultQueueForRole in work-queue.util.ts).
+      { path: 'work', title: 'Work',
+        loadComponent: () => import('./component/work/worklist/worklist.component').then(m => m.WorklistComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Verification — the sign-off step. Restricted to the roles allowed to
+      // stand behind a clinical result; the API enforces the same list, because
+      // a guard the client owns is not a control.
+      { path: 'work/verify/:id', title: 'Verify results',
+        loadComponent: () => import('./component/work/verify/verify-results.component').then(m => m.VerifyResultsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
       // Patients — all lab staff (not Doctor who just views reports)
       { path: 'patients', title: 'Patients',
         loadComponent: () => import('./component/patient/patients-list/patients-list.component').then(m => m.PatientsListComponent),
@@ -115,6 +130,11 @@ export const routes: Routes = [
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter',
         loadComponent: () => import('./component/pathTest/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
         canActivate: [roleGuard(Role.Admin.id, Role.Assistant.id, Role.Super_Admin.id)] },
+      // Bulk import is a structural write like Add/Edit — Admin and Super Admin only,
+      // mirroring the API's AdminOrSuperAdmin policy on TestImportController.
+      { path: 'manage-tests/import', title: 'Import Tests',
+        loadComponent: () => import('./component/pathTest/import-tests/import-tests.component').then(m => m.ImportTestsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id', title: 'Edit Test',
         loadComponent: () => import('./component/pathTest/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -241,6 +261,16 @@ export const routes: Routes = [
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
+      // Repeat-test reminders on WhatsApp — the Lab Operations roles (API: LabOperations policy).
+      { path: 'test-reminders', title: 'Test Reminders',
+        loadComponent: () => import('./component/test-reminders/test-reminders.component').then(m => m.TestRemindersComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+
+      // Discount approvals — Super Admin only (the API enforces SuperAdminOnly too).
+      { path: 'discount-approvals', title: 'Discount Approvals',
+        loadComponent: () => import('./component/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
+
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
       // requests; admins see all requests and can approve/reject. Order matters:
@@ -285,7 +315,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/receipt/bill-receipt').then(m => m.BillReceipt) },
     ]
   },
-
+  {
+    path: 'ui-kit', title: 'UI Kit',
+    loadComponent: () => import('./shared/simple/showcase/simple-ui-showcase.component')
+      .then(m => m.SimpleUiShowcaseComponent)
+  },
   // Fallback
   { path: '**', redirectTo: 'login' }
 ];

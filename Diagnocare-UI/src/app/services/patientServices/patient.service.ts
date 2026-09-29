@@ -8,6 +8,8 @@ import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { KeyValuePair } from 'src/app/models/common/keyValuePair';
 import { BookingResultDto } from '../../models/patient/booking-result.dto';
+import { PagedRequest, PagedResponse } from '../../models/common/page-sort-request';
+import { PatientSearchFilter } from '../../models/patient/patient-search-filter';
 
 @Injectable({
   providedIn: 'root'
@@ -59,6 +61,16 @@ export class PatientService {
     return this.httpClient.post<BookingResultDto>(url, data);
   }
 
+  /**
+   * Sets "Sampling Done At" on a booking saved without one. The response carries
+   * the booking's barcodes — they are only generated once the location is set.
+   * PUT api/patient/UpdateSamplingLocation
+   */
+  updateSamplingLocation(patientTestId: number, samplingDoneAt: string): Observable<BookingResultDto> {
+    const url = this.patienturl + apiEndpoints.updateSamplingLocation;
+    return this.httpClient.put<BookingResultDto>(url, { patientTestId, samplingDoneAt });
+  }
+
   updatePatientDetails(patient: PatientEditDto): Observable<boolean> {
     const updateUrl = this.patienturl + apiEndpoints.update;
     return this.httpClient.put<boolean>(updateUrl, patient);
@@ -96,18 +108,13 @@ export class PatientService {
     return this.httpClient.delete<any>(url);
   }
 
-  searchPatients(searchTerm: string, pageNumber: number, pageSize: number, dateFrom?: string, dateTo?: string, status?: string): Observable<any> {
-    let searchUrl = `${this.patienturl}${apiEndpoints.searchPatients}?searchTerm=${encodeURIComponent(searchTerm)}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-    if (dateFrom) {
-      searchUrl += `&dateFrom=${dateFrom}`;
-    }
-    if (dateTo) {
-      searchUrl += `&dateTo=${dateTo}`;
-    }
-    if (status) {
-      searchUrl += `&status=${encodeURIComponent(status)}`;
-    }
-    return this.httpClient.get<any>(searchUrl);
+  /**
+   * Searches patients. Filtering, sorting and paging all run on the server.
+   * POST api/Patient/SearchPatients
+   */
+  searchPatients(request: PagedRequest<PatientSearchFilter>): Observable<PagedResponse<any>> {
+    const searchUrl = `${this.patienturl}${apiEndpoints.searchPatients}`;
+    return this.httpClient.post<PagedResponse<any>>(searchUrl, request);
   }
   getDistinctReferredBy(referredByType:string): Observable<string[]> {
     const getUrl = `${this.patienturl}${apiEndpoints.getDistinctReferredBy}?referred_By_Type=${referredByType}`;

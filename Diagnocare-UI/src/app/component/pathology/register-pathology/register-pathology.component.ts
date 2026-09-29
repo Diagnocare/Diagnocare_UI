@@ -34,7 +34,7 @@ export class RegisterPathologyComponent implements OnInit {
   ];
 
   readonly TRIAL_DAYS   = 15;
-  readonly LICENSE_DAYS = 365;
+  // readonly LICENSE_DAYS = 365;
 
   constructor(
     private fb: FormBuilder,
@@ -67,7 +67,7 @@ export class RegisterPathologyComponent implements OnInit {
   }
 
   get expiryDate(): string {
-    const days = this.licenseType === 'Trial' ? this.TRIAL_DAYS : this.LICENSE_DAYS;
+    const days = this.licenseType === 'Trial' ? this.TRIAL_DAYS : this.TRIAL_DAYS;
     const d = new Date();
     d.setDate(d.getDate() + days);
     return d.toISOString().split('T')[0];

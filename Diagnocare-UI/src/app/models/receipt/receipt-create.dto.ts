@@ -15,4 +15,9 @@ export interface ReceiptCreateDto {
   tpaApprovalCode?: string;
   tpaPolicyValidFrom?: string;  // ISO date string
   tpaPolicyValidTo?: string;    // ISO date string
+  /**
+   * Why the discount is being given. Required by the API when `discount` is above
+   * the lab's max discount — that discount then goes to a Super Admin for approval.
+   */
+  discountReason?: string;
 }
