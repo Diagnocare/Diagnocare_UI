@@ -46,7 +46,12 @@ export const controllerEndpoints = {
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
-  worklist: 'api/Worklist/'
+  worklist: 'api/Worklist/',
+  /**
+   * The caller's own in-app notifications (header bell, User Panel badges).
+   * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
+   */
+  notification: 'api/Notification/'
 };
 
 export const apiEndpoints = {
@@ -185,6 +190,11 @@ export const apiEndpoints = {
   pendingRequestCount:   'requests/pending-count',
   /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
   requestCounts:         'requests/counts',
+  // In-app notifications (NotificationController) — all scoped to the caller
+  notificationUnreadCount: 'UnreadCount',
+  notificationRead:        'Read',
+  notificationReadAll:     'ReadAll',
+  notificationReadModule:  'ReadModule',
   cancelRequest:         'cancel',
   approveRequest:        'approve',
   rejectRequest:         'reject',

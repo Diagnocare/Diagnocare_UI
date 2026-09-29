@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule }  from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { NotificationService } from 'src/app/services/notificationServices/notification.service';
 
 import { VisitScheduleService } from 'src/app/services/visitScheduleServices/visit-schedule.service';
 import { TokenService }         from 'src/app/core/interceptors/token.service';
@@ -56,7 +58,9 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
 
   constructor(
     private _visitSvc:  VisitScheduleService,
-    private _tokenSvc:  TokenService
+    private _tokenSvc:  TokenService,
+    private _route:     ActivatedRoute,
+    private _notifications: NotificationService,
   ) {}
 
   ngOnInit(): void {
@@ -66,12 +70,41 @@ export class MyVisitsComponent implements OnInit, OnDestroy {
     this.selectedDate = this.toIso(this.today);
     this.viewYear  = this.today.getFullYear();
     this.viewMonth = this.today.getMonth() + 1;
+    this.applyDeepLinkDate(this._route.snapshot.queryParamMap.get('date'));
 
     this.loadCalendar();
     this.loadVisits();
+
+    // Deep link from a notification: /my-visits?date=YYYY-MM-DD opens that day.
+    // Subscribed (not a snapshot) so clicking a second notification while already on
+    // this page still moves to the new date — Angular reuses the component.
+    this._route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(q => {
+      const monthBefore = `${this.viewYear}-${this.viewMonth}`;
+      if (this.applyDeepLinkDate(q.get('date'))) {
+        if (`${this.viewYear}-${this.viewMonth}` !== monthBefore) this.loadCalendar();
+        this.loadVisits();
+      }
+    });
+
+    // Seeing the page is seeing the news — clear the My Visits badge.
+    this._notifications.markModuleRead('visit');
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+
+  /**
+   * Moves the view to a YYYY-MM-DD date from the URL. Returns true only when the
+   * selected day actually changed, so the caller knows whether to reload.
+   */
+  private applyDeepLinkDate(date: string | null): boolean {
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date === this.selectedDate) return false;
+    const [y, m] = date.split('-').map(Number);
+    if (!y || !m || m < 1 || m > 12) return false;
+    this.selectedDate = date;
+    this.viewYear = y;
+    this.viewMonth = m;
+    return true;
+  }
 
   // ── Data loading ───────────────────────────────────────────────────────────
 
