@@ -826,3 +826,26 @@
   text-transform: none;
   letter-spacing: normal;
 }
+
+/* ── Report on WhatsApp ─────────────────────────────────────────────── */
+.atm-whatsapp-icon { color: #25a244; }
+
+.atm-whatsapp-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.55em 0.8em;
+  border: 1px solid #b7e4c7;
+  border-radius: 8px;
+  background: #f0faf3;
+  color: #1c5f30;
+  font-size: 0.85em;
+}
+.atm-whatsapp-note .fa { color: #25a244; font-size: 1.15em; }
+
+.atm-whatsapp-hint {
+  display: block;
+  margin-top: 0.3em;
+  font-size: 0.78em;
+  color: #1c7c3a;
+}

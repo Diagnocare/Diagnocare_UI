@@ -9,4 +9,9 @@ export interface AddPatientTestDto {
   patientId:       string;
   test:             PatientTestCreateDto;
   receipt:          ReceiptCreateDto;
+  /**
+   * Mobile number to save on the patient when test.report_On_WhatsApp is set and
+   * the patient has no valid number yet. Ignored by the API otherwise.
+   */
+  patientContact?:  string;
 }

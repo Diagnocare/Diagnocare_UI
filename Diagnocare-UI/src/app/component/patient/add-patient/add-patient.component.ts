@@ -219,6 +219,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_id:              [''],
       test_Name:            ['', Validators.required],
       urgent_Report:        [false],
+      // Per-booking: send THIS booking's report on WhatsApp. Turning it on makes
+      // patient_Contact required (see syncWhatsAppContactRule).
+      report_On_WhatsApp:   [false],
       test_Amount:          ['', Validators.required],
       referred_By_Type:     ['Doctor', Validators.required],
       referred_By:          ['', Validators.required],
@@ -287,6 +290,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         }
       });
 
+    this.patientForm.get('report_On_WhatsApp')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(on => this.syncWhatsAppContactRule(!!on));
+
     this.patientForm.get('discount')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
@@ -331,7 +338,47 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     return this.tpaDetails !== null;
   }
 
+  // ── Report on WhatsApp ─────────────────────────────────────────────────────
+
+  /**
+   * True while "Send report on WhatsApp" is on and the mobile number was missing or
+   * invalid when it was switched on. Shows a mobile-number input on the Test step
+   * (bound to the same patient_Contact control as the Patient step), so staff don't
+   * have to go back a step. Stays visible until the toggle is turned off.
+   */
+  showWhatsAppContactInput = false;
+
+  get reportOnWhatsApp(): boolean {
+    return !!this.patientForm?.get('report_On_WhatsApp')?.value;
+  }
+
+  /** WhatsApp is on but there is no valid mobile number yet. */
+  get whatsAppNeedsNumber(): boolean {
+    const contact = this.patientForm.get('patient_Contact');
+    return this.reportOnWhatsApp && (!contact?.value || !!contact?.invalid);
+  }
+
+  /**
+   * The mobile number is optional, except when the report is to go on WhatsApp.
+   * Adds / removes the required rule as the toggle changes.
+   */
+  private syncWhatsAppContactRule(on: boolean): void {
+    const contact = this.patientForm.get('patient_Contact');
+    if (!contact) return;
+    if (on) {
+      contact.addValidators(Validators.required);
+      this.showWhatsAppContactInput = !contact.value || contact.invalid;
+    } else {
+      contact.removeValidators(Validators.required);
+      this.showWhatsAppContactInput = false;
+    }
+    contact.updateValueAndValidity({ emitEvent: false });
+  }
+
   get isCurrentStepValid(): boolean {
+    // Test step: a WhatsApp report needs a mobile number (entered on the Patient step
+    // or in the inline field under the toggle).
+    if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
     // NoPayment: payment_Mode is not required (no payment is collected now)
@@ -432,6 +479,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.stepTouched[this.currentStep] = true;
     const fields = this.stepFields[this.currentStep] ?? [];
     fields.forEach(f => this.patientForm.get(f)?.markAsTouched());
+    if (this.currentStep === 3 && this.reportOnWhatsApp) {
+      this.patientForm.get('patient_Contact')?.markAsTouched();
+    }
   }
 
   handleNext() {
@@ -1453,6 +1503,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_Id:          testIds,
       test_Name:         f.test_Name,
       urgent_Report:     f.urgent_Report    ?? false,
+      report_On_WhatsApp: !!f.report_On_WhatsApp,
       test_Amount:       f.test_Amount      ?? 0,
       referred_By_Type:  f.referred_By_Type ?? '',
       referred_By:  f.referred_By      ?? '',

@@ -9,6 +9,8 @@ export interface patientTest {
     test_Name:          string;
     test_count:         number;
     urgent_Report:      boolean;
+    /** The patient asked for this booking's report on WhatsApp. */
+    report_On_WhatsApp?: boolean;
     amount_Tobe_Paid:   number;
     referred_By:        string;
     remark:             string;

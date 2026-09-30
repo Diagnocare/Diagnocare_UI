@@ -218,6 +218,9 @@
                     [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
                 </div>
                 <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+                <small class="whatsapp-hint" *ngIf="reportOnWhatsApp">
+                  <i class="fa fa-whatsapp" aria-hidden="true"></i> Needed to send the report on WhatsApp
+                </small>
               </div>
 
               <div class="form-group">
@@ -271,6 +274,28 @@
                   <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="urgentReport" [attr.tabindex]="getTabIndex('urgent_Report')" />
                   <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
                 </div>
+              </div>
+
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Report on WhatsApp</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
+                  <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp needs a mobile number. When it was missing or invalid as the toggle
+                 was switched on, ask for it here; this input shares the patient_Contact
+                 control with the Patient step, so either place fills it. -->
+            <div class="form-row" *ngIf="reportOnWhatsApp && showWhatsAppContactInput">
+              <div class="form-group">
+                <label class="form-label required" for="whatsAppContact">Mobile Number for WhatsApp</label>
+                <input type="number" appNumericOnly class="form-control" id="whatsAppContact" formControlName="patient_Contact"
+                  placeholder="10-digit mobile number"
+                  [class.is-invalid]="isFieldInvalid('patient_Contact')" />
+                <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+                <small class="whatsapp-hint">The report link will be sent to this number. It is also saved on the patient.</small>
               </div>
             </div>
 

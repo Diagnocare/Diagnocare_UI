@@ -55,6 +55,35 @@
                   <label for="atm-urgentReport" class="toggle-label">Mark as Urgent</label>
                 </div>
               </div>
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Report on WhatsApp</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="atm-reportOnWhatsApp" />
+                  <label for="atm-reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp atm-whatsapp-icon" aria-hidden="true"></i> Send on WhatsApp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp: show the number the report goes to, or ask for one. -->
+            <div class="form-row" *ngIf="reportOnWhatsApp">
+              <div class="form-group" *ngIf="hasWhatsAppNumber">
+                <div class="atm-whatsapp-note">
+                  <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                  Report will be sent to <strong>{{ whatsAppNumberDisplay }}</strong>
+                </div>
+              </div>
+              <div class="form-group" *ngIf="!hasWhatsAppNumber">
+                <label class="form-label required" for="atm-whatsAppContact">Mobile Number for WhatsApp</label>
+                <input type="tel" inputmode="numeric" maxlength="10" class="form-control" id="atm-whatsAppContact"
+                       formControlName="whatsApp_Contact" placeholder="10-digit mobile number"
+                       [class.is-invalid]="form.get('whatsApp_Contact')?.invalid && form.get('whatsApp_Contact')?.touched" />
+                <span class="field-error" *ngIf="form.get('whatsApp_Contact')?.invalid && form.get('whatsApp_Contact')?.touched">
+                  Mobile number must be 10 digits and cannot start with 0.
+                </span>
+                <span class="atm-whatsapp-hint" *ngIf="!form.get('whatsApp_Contact')?.invalid || !form.get('whatsApp_Contact')?.touched">
+                  This patient has no mobile number. It will be saved on the patient.
+                </span>
+              </div>
             </div>
 
             <div class="form-row">

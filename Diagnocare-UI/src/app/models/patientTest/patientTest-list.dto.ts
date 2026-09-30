@@ -4,6 +4,7 @@ export interface PatientTestListDto {
   test_id: string[];
   test_Name: string;
   urgent_Report: boolean;
+  report_On_WhatsApp?: boolean;
   amount_Tobe_Paid: number;
   referred_By: string;
   remark: string;

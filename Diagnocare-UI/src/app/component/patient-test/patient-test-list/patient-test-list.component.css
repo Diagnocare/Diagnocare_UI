@@ -2143,6 +2143,27 @@
 .ptl-pill--due    { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
 .ptl-pill--hold   { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
 .ptl-pill--urgent { background: var(--ptl-bad-bg);  color: var(--ptl-bad); }
+.ptl-pill--whatsapp { background: var(--ptl-ok-bg); color: var(--ptl-ok); }
+
+/* Report screen WhatsApp button when the patient asked for WhatsApp */
+.btn.ptl-whatsapp-requested {
+  background: #25a244; border-color: #25a244; color: #fff;
+}
+
+/* Dialog: mobile number for a WhatsApp report */
+.ptl-wa-dialog {
+  position: relative; z-index: 1;
+  width: min(26em, calc(100vw - 2em));
+  padding: 1.4em 1.5em;
+  border-radius: 12px;
+  background: var(--bg-card, #fff); color: var(--text-primary, #1f2937);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.ptl-wa-dialog h3 { margin: 0 0 0.5em; font-size: 1.1em; }
+.ptl-wa-dialog h3 .fa { color: #25a244; }
+.ptl-wa-dialog p  { margin: 0 0 0.9em; font-size: 0.9em; color: var(--text-secondary, #4b5563); }
+.ptl-wa-error { margin-top: 0.4em; font-size: 0.85em; color: var(--ptl-bad); }
+.ptl-wa-actions { display: flex; justify-content: flex-end; gap: 0.6em; margin-top: 1.1em; }
 
 /* Progress: Booked → Sample → Results → Report */
 .ptl-steps {

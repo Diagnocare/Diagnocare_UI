@@ -160,6 +160,21 @@ export class PatientService {
     return this.httpClient.patch<any>(url, { patientTestId, testCodes, reason: reason ?? null });
   }
 
+  /**
+   * Turns "send report on WhatsApp" on or off for a booking. Turning it on for a
+   * patient with no valid mobile number needs `patientContact`, which the API saves
+   * on the patient. Rejections come back as 400 `{ message }`.
+   * PATCH api/patient/ReportOnWhatsApp
+   */
+  updateReportOnWhatsApp(patientTestId: number, reportOnWhatsApp: boolean, patientContact?: string): Observable<any> {
+    const url = this.patienturl + apiEndpoints.reportOnWhatsApp;
+    return this.httpClient.patch<any>(url, {
+      patientTestId,
+      reportOnWhatsApp,
+      patientContact: patientContact || null,
+    });
+  }
+
   // NOTE: there is deliberately no updatePatientStatus() here.
   // A patient's test status is derived server-side on every read
   // (PatientService.ComputeTestStatus, which excludes cancelled bookings);

@@ -28,6 +28,7 @@ import { ReportPrintStatusDto } from 'src/app/models/report-print-status/report-
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
+import { toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
@@ -1522,18 +1523,7 @@ export class PatientTestListComponent implements OnInit {
    * Bare 10-digit numbers are treated as Indian mobiles.
    */
   get patientWhatsAppNumber(): string | null {
-    const raw = (this.patientContact || '').trim();
-    if (!raw) return null;
-    const hasCountryCode = raw.startsWith('+') || raw.startsWith('00');
-    let digits = raw.replace(/\D/g, '');
-    if (raw.startsWith('00')) digits = digits.slice(2);
-    if (!hasCountryCode) {
-      digits = digits.replace(/^0+/, '');
-      if (digits.length === 10) return '91' + digits;
-      if (digits.length === 12 && digits.startsWith('91')) return digits;
-      return null;
-    }
-    return digits.length >= 11 && digits.length <= 15 ? digits : null;
+    return toWhatsAppNumber(this.patientContact);
   }
 
   /**
@@ -1545,6 +1535,76 @@ export class PatientTestListComponent implements OnInit {
    * in. The operator presses send. The patient's link opens a verification page
    * (name masked) with a button to the full Smart Report — no login needed.
    */
+  // ── Report on WhatsApp (per-booking preference) ───────────────────────
+
+  /** Booking whose WhatsApp preference is being saved (menu item / dialog spinner). */
+  savingWhatsAppPrefFor: patientTest['patient_Test_Id'] | null = null;
+  /** Booking waiting for a mobile number before WhatsApp can be switched on. */
+  whatsAppNumberFor: patientTest | null = null;
+  whatsAppNumberInput = '';
+  whatsAppNumberError = '';
+
+  /**
+   * Turns "send report on WhatsApp" on or off for a booking. Turning it on for a
+   * patient without a valid mobile number asks for one first.
+   */
+  toggleReportOnWhatsApp(test: patientTest, event?: Event): void {
+    event?.stopPropagation();
+    const turnOn = !test.report_On_WhatsApp;
+    if (turnOn && !this.patientWhatsAppNumber) {
+      this.whatsAppNumberFor   = test;
+      this.whatsAppNumberInput = '';
+      this.whatsAppNumberError = '';
+      return;
+    }
+    this.saveReportOnWhatsApp(test, turnOn);
+  }
+
+  closeWhatsAppNumberDialog(): void {
+    this.whatsAppNumberFor   = null;
+    this.whatsAppNumberInput = '';
+    this.whatsAppNumberError = '';
+  }
+
+  saveWhatsAppNumber(): void {
+    const test = this.whatsAppNumberFor;
+    if (!test) return;
+    const number = `${this.whatsAppNumberInput ?? ''}`.trim();
+    if (!/^[1-9][0-9]{9}$/.test(number)) {
+      this.whatsAppNumberError = 'Mobile number must be 10 digits and cannot start with 0.';
+      return;
+    }
+    this.saveReportOnWhatsApp(test, true, number);
+  }
+
+  private saveReportOnWhatsApp(test: patientTest, on: boolean, newContact?: string): void {
+    this.savingWhatsAppPrefFor = test.patient_Test_Id;
+    this.patientService.updateReportOnWhatsApp(Number(test.patient_Test_Id), on, newContact)
+      .subscribe({
+        next: () => {
+          this.savingWhatsAppPrefFor = null;
+          test.report_On_WhatsApp = on;
+          if (this.selectedPatientTest?.patient_Test_Id === test.patient_Test_Id) {
+            this.selectedPatientTest.report_On_WhatsApp = on;
+          }
+          if (newContact) this.patientContact = newContact;
+          this.closeWhatsAppNumberDialog();
+          this.toastr.success(
+            on ? 'The report for this visit will be sent on WhatsApp.' : 'WhatsApp report turned off for this visit.',
+            'Saved');
+        },
+        error: (err: any) => {
+          this.savingWhatsAppPrefFor = null;
+          const message = err?.error?.message || 'Could not save the WhatsApp preference.';
+          if (this.whatsAppNumberFor) {
+            this.whatsAppNumberError = message;
+          } else {
+            this.toastr.error(message, 'Error');
+          }
+        },
+      });
+  }
+
   sendSmartReportOnWhatsApp(test: patientTest, event?: Event): void {
     event?.stopPropagation();
 

@@ -58,6 +58,8 @@ import {
 import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
 import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
 import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+import { AppValidators } from 'src/app/shared/validators/app-validators';
+import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 
 @Component({
   selector: 'app-add-test-modal',
@@ -70,6 +72,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   // ── Inputs / Outputs ──────────────────────────────────────────────────────
   @Input() patientId: string  = '';
   @Input() visible:   boolean = false;
+  /** The patient's saved contact number — decides whether WhatsApp needs a number typed in. */
+  @Input() patientContact: string = '';
 
   @Output() saved     = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
@@ -184,6 +188,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
       urgent_Report:     [false],
+      // Per-booking: send THIS booking's report on WhatsApp.
+      report_On_WhatsApp: [false],
+      // Only used when WhatsApp is on and the patient has no valid saved number.
+      whatsApp_Contact:  ['', [AppValidators.contactNumber()]],
       test_Amount:       ['', Validators.required],
       referred_By_Type:  ['Doctor', Validators.required],
       referred_By:       ['', Validators.required],
@@ -238,8 +246,34 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return this.selectedTests.map(t => t.testCode);
   }
 
+  // ── Report on WhatsApp ───────────────────────────────────────────────────
+
+  get reportOnWhatsApp(): boolean {
+    return !!this.form.get('report_On_WhatsApp')?.value;
+  }
+
+  /** The patient already has a number the report can be sent to. */
+  get hasWhatsAppNumber(): boolean {
+    return isWhatsAppNumber(this.patientContact);
+  }
+
+  /** Saved number shown read-only, e.g. "+91 9876543210". */
+  get whatsAppNumberDisplay(): string {
+    const n = toWhatsAppNumber(this.patientContact);
+    if (!n) return '';
+    return n.startsWith('91') && n.length === 12 ? `+91 ${n.slice(2)}` : `+${n}`;
+  }
+
+  /** WhatsApp is on, the patient has no valid number, and none has been typed in yet. */
+  get whatsAppNeedsNumber(): boolean {
+    if (!this.reportOnWhatsApp || this.hasWhatsAppNumber) return false;
+    const c = this.form.get('whatsApp_Contact');
+    return !c?.value || !!c?.invalid;
+  }
+
   get isStep1Valid(): boolean {
     return (
+      !this.whatsAppNeedsNumber &&
       !!this.form.get('test_Name')?.valid &&
       !!this.form.get('test_Amount')?.valid &&
       !!this.form.get('referred_By_Type')?.valid &&
@@ -933,6 +967,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         test_Id:          testIds,
         test_Name:         f.test_Name,
         urgent_Report:     f.urgent_Report     ?? false,
+        report_On_WhatsApp: !!f.report_On_WhatsApp,
         test_Amount:       f.test_Amount       ?? 0,
         referred_By_Type:  f.referred_By_Type  ?? '',
         referred_By: f.referred_By ?? '',
@@ -944,6 +979,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         sampling_Done_At:  f.sampling_Done     ?? '',
       },
       receipt,
+      // Saved on the patient by the API — only when WhatsApp is on and there was no valid number.
+      ...(f.report_On_WhatsApp && !this.hasWhatsAppNumber && f.whatsApp_Contact
+        ? { patientContact: `${f.whatsApp_Contact}` }
+        : {}),
     };
 
     this.isSaving  = true;
@@ -1058,6 +1097,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form.reset({
       test_Name:         '',
       urgent_Report:     false,
+      report_On_WhatsApp: false,
+      whatsApp_Contact:  '',
       test_Amount:       '',
       referred_By_Type:  'Doctor',
       referred_By:       '',

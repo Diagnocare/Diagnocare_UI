@@ -167,6 +167,10 @@
         <span class="ptl-pill ptl-pill--urgent" *ngIf="test.urgent_Report && !vm(test).cancelled">
           <i class="fa fa-bolt" aria-hidden="true"></i> Urgent
         </span>
+        <span class="ptl-pill ptl-pill--whatsapp" *ngIf="test.report_On_WhatsApp && !vm(test).cancelled"
+              title="The patient asked for this report on WhatsApp">
+          <i class="fa fa-whatsapp" aria-hidden="true"></i> WhatsApp
+        </span>
         <span class="ptl-pill" *ngIf="test.collected_Outside">Collected outside</span>
       </div>
     </div>
@@ -245,7 +249,8 @@
     </div>
 
     <div class="ptl-actions">
-      <button class="dc-btn dc-btn--clear" type="button"
+      <button class="dc-btn" type="button"
+              [ngClass]="test.report_On_WhatsApp ? 'dc-btn--save' : 'dc-btn--clear'"
               *ngIf="!vm(test).cancelled && reportStatus(test) !== 'Pending' && !waiting"
               (click)="sendSmartReportOnWhatsApp(test, $event)"
               [disabled]="sendingSmartWhatsAppFor === test.patient_Test_Id || !patientWhatsAppNumber"
@@ -312,6 +317,12 @@
               (click)="closeMore(); sendSmartReportOnWhatsApp(test, $event)"
               [disabled]="!patientWhatsAppNumber">
         <i class="fa fa-whatsapp"></i> Send Smart Report on WhatsApp
+      </button>
+      <button type="button" role="menuitem" *ngIf="!vm(test).cancelled"
+              (click)="closeMore(); toggleReportOnWhatsApp(test, $event)"
+              [disabled]="savingWhatsAppPrefFor === test.patient_Test_Id">
+        <i class="fa fa-whatsapp"></i>
+        {{ test.report_On_WhatsApp ? 'Turn off WhatsApp report' : 'Send report on WhatsApp' }}
       </button>
       <button type="button" role="menuitem" (click)="closeMore(); openBookingProtocols(test, $event)">
         <i class="fa fa-info-circle"></i> Sample instructions
@@ -502,7 +513,8 @@
                 <i class="fa" [ngClass]="openingSmartReportFor === selectedPatientTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-heartbeat'"></i>
                 Smart Report
               </button>
-              <button type="button" class="dc-btn dc-btn--clear"
+              <button type="button" class="dc-btn"
+                      [ngClass]="selectedPatientTest.report_On_WhatsApp ? 'dc-btn--save' : 'dc-btn--clear'"
                       [disabled]="reportStatus(selectedPatientTest) === 'Pending' || !patientWhatsAppNumber || sendingSmartWhatsAppFor === selectedPatientTest.patient_Test_Id"
                       [title]="!patientWhatsAppNumber ? 'No valid mobile number on this patient' : 'Send the report link on WhatsApp'"
                       (click)="sendSmartReportOnWhatsApp(selectedPatientTest, $event)">
@@ -576,9 +588,34 @@
 </app-payment-modal>
 
 <!-- ══ Add Test Modal ══════════════════════════════════════════════════ -->
+<!-- ══ Report on WhatsApp: ask for a mobile number ════════════════════
+     Shown when WhatsApp is switched on for a booking whose patient has no
+     valid number. The number is saved on the patient by the API. -->
+<div class="detail-overlay" *ngIf="whatsAppNumberFor">
+  <div class="detail-overlay-backdrop" (click)="closeWhatsAppNumberDialog()"></div>
+  <div class="ptl-wa-dialog" role="dialog" aria-modal="true" aria-labelledby="ptl-wa-h">
+    <h3 id="ptl-wa-h"><i class="fa fa-whatsapp" aria-hidden="true"></i> Send report on WhatsApp</h3>
+    <p>This patient has no valid mobile number. Enter one to send order {{ whatsAppNumberFor.patient_Test_Id }}'s report on WhatsApp. It will be saved on the patient.</p>
+    <label class="form-label required" for="ptl-wa-number">Mobile Number</label>
+    <input id="ptl-wa-number" type="tel" inputmode="numeric" maxlength="10" class="form-control"
+           placeholder="10-digit mobile number"
+           [(ngModel)]="whatsAppNumberInput" (keydown.enter)="saveWhatsAppNumber()" />
+    <div class="ptl-wa-error" *ngIf="whatsAppNumberError">{{ whatsAppNumberError }}</div>
+    <div class="ptl-wa-actions">
+      <button type="button" class="dc-btn dc-btn--cancel" (click)="closeWhatsAppNumberDialog()">Cancel</button>
+      <button type="button" class="dc-btn dc-btn--save" (click)="saveWhatsAppNumber()"
+              [disabled]="savingWhatsAppPrefFor === whatsAppNumberFor.patient_Test_Id">
+        <i class="fa" [ngClass]="savingWhatsAppPrefFor === whatsAppNumberFor.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+        Save
+      </button>
+    </div>
+  </div>
+</div>
+
 <app-add-test-modal
   [visible]="showAddTestModal"
   [patientId]="patientId"
+  [patientContact]="patientContact"
   (saved)="onAddTestSaved()"
   (cancelled)="onAddTestCancelled()">
 </app-add-test-modal>
@@ -656,6 +693,7 @@
           <!-- WhatsApp: opens the patient's chat with a message carrying the report's
                verified link (same URL as the printed QR); the operator presses send. -->
           <button class="btn btn-info"
+                  [class.ptl-whatsapp-requested]="selectedPatientTest?.report_On_WhatsApp"
                   (click)="sendReportOnWhatsApp()"
                   [disabled]="isSendingWhatsApp || !canIssueReport"
                   [title]="!canIssueReport ? reportBlockedReason
