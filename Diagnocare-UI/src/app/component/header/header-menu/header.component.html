@@ -143,8 +143,6 @@
               [disabled]="isLicenceExpired"
               [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
         <i class="fa fa-user-circle"></i><span>User Panel</span>
-        <span class="dc-nav-badge dc-nav-badge--info" *ngIf="!isLicenceExpired && userPanelBadge > 0"
-              [title]="userPanelBadge + ' new update(s) for you'">{{ badgeText(userPanelBadge) }}</span>
         <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
         <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
       </button>
