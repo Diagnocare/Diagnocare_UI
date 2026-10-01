@@ -43,10 +43,14 @@
         (search)="onSearch($event)">
       </dc-search>
 
-      <!-- Said out loud, because a search that quietly widened its own scope
-           would look like the queue counts had gone wrong. -->
+      <!-- Said out loud, because the counts move when a search is running: they
+           describe the matches, not the whole lab, and the tiles are how someone
+           reaches a match that is sitting in a different queue. -->
       <p class="worklist__search-note" *ngIf="searchTerm">
-        Searching every queue, not just the one you were in.
+        Showing matches in <strong>{{ currentQueueLabel }}</strong>, including work older than the usual window.
+        <ng-container *ngIf="matchesInOtherQueues as elsewhere">
+          The tiles show {{ elsewhere }} more in other queues.
+        </ng-container>
         <button type="button" class="link-btn" (click)="clearSearch()">Clear the search</button>
       </p>
     </div>

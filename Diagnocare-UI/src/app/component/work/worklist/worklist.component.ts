@@ -135,10 +135,14 @@ export class WorklistComponent implements OnInit, OnDestroy {
 
     this.worklist
       .getWorklist({
-        // A search deliberately ignores the queue: someone hunting for a patient
-        // does not know which queue their work is in, and "not found" when it is
-        // one tile away is how people lose trust in a search box.
-        queue: this.searchTerm ? null : this.queue,
+        // The selected tile governs the list at all times, search included. A
+        // search that quietly dropped the queue filter returned rows from every
+        // queue while one tile stayed highlighted, so the list disagreed with the
+        // tile above it and the count on that tile described neither. Matches in
+        // other queues are not lost — the counts show where they are, one click
+        // away. A search still reaches past the default date window; that part is
+        // the server's doing and is what makes older work findable.
+        queue: this.queue,
         searchTerm: this.searchTerm || null,
         pageNumber: this.pageNumber,
         pageSize: this.pageSize,
@@ -332,13 +336,36 @@ export class WorklistComponent implements OnInit, OnDestroy {
     return Math.max(0, Math.min(100, Math.round((saved / total) * 100)));
   }
 
+  /** The selected queue's label, for copy that has to name it. */
+  get currentQueueLabel(): string {
+    return WORK_QUEUE_META[this.queue].label;
+  }
+
+  /**
+   * How many rows the current search matched in the queues the user is NOT
+   * looking at. This is what turns an empty result into a signpost: the row they
+   * are hunting for is usually a tile away, not absent.
+   */
+  get matchesInOtherQueues(): number {
+    if (!this.searchTerm) return 0;
+    return (this.page?.counts ?? [])
+      .filter(c => c.queue !== this.queue)
+      .reduce((sum, c) => sum + (c.count ?? 0), 0);
+  }
+
   get emptyTitle(): string {
-    if (this.searchTerm) return 'Nothing matches that search';
+    if (this.searchTerm) return `No match in ${this.currentQueueLabel.toLowerCase()}`;
     return `Nothing in ${WORK_QUEUE_META[this.queue].label.toLowerCase()}`;
   }
 
   get emptyMessage(): string {
     if (this.searchTerm) {
+      const elsewhere = this.matchesInOtherQueues;
+      if (elsewhere > 0) {
+        return elsewhere === 1
+          ? 'One match is in another queue — the tiles above show which one.'
+          : `${elsewhere} matches are in other queues — the tiles above show which ones.`;
+      }
       return 'Try just the first few letters of the patient’s name, or the order number from the sample label.';
     }
     // An empty queue is good news here, so say so. "No records found" reads like
