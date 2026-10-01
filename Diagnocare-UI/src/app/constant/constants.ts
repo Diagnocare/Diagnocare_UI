@@ -1,4 +1,4 @@
-﻿import { get } from "@okta/okta-auth-js";
+import { get } from "@okta/okta-auth-js";
 import { ReportConfig } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
@@ -46,6 +46,12 @@ export const controllerEndpoints = {
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
+  worklist: 'api/Worklist/',
+  /**
+   * The caller's own in-app notifications (header bell, User Panel badges).
+   * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
+   */
+  notification: 'api/Notification/'
 };
 
 export const apiEndpoints = {
@@ -87,6 +93,21 @@ export const apiEndpoints = {
   generateJWTToken: "GenerateJWTToken",
   authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
+
+  // ── Worklist ──
+  /** One queue's items plus the counts for every queue. */
+  getWorklist: 'GetWorklist',
+  /** Signs a test's results off — this is what issues the report. */
+  verifyReport: 'Verify',
+  /** Withdraws a sign-off and sends the results back to the bench. */
+  returnForReentry: 'ReturnForReentry',
+  /** Whether a test is signed off — decides between "Verify & issue" and "Print". */
+  isVerified: 'IsVerified',
+  /** Records where a booking's sample was collected. */
+  markSampleCollected: 'MarkSampleCollected',
+  /** Pulls an already-issued report back for re-entry. */
+  recallReport: 'RecallReport',
+
   /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
   staffCapacity: 'Capacity',
   getById: 'GetById',
@@ -169,6 +190,11 @@ export const apiEndpoints = {
   pendingRequestCount:   'requests/pending-count',
   /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
   requestCounts:         'requests/counts',
+  // In-app notifications (NotificationController) — all scoped to the caller
+  notificationUnreadCount: 'UnreadCount',
+  notificationRead:        'Read',
+  notificationReadAll:     'ReadAll',
+  notificationReadModule:  'ReadModule',
   cancelRequest:         'cancel',
   approveRequest:        'approve',
   rejectRequest:         'reject',
@@ -328,6 +354,8 @@ export const profileMenu = {
 };
 
 export const labOperationMenu = {
+    // The lab's outstanding work as queues (collect sample, enter results, verify…). Route guard: 'work'.
+    workflow:       { id: 'workflow',       label: 'Workflow',                route: `work`,          icon: 'fa-tasks' },
     patientDetails: { id: 'patientDetails', label: 'Patient Details',        route: `patients`,      icon: 'fa-users' },
     receiptBills:   { id: 'receiptBills',   label: 'Receipt Bills',           route: `receipt`,       icon: 'fa-receipt' },
     patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },

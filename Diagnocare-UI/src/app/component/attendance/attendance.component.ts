@@ -280,6 +280,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   today            = new Date();
   private destroy$ = new Subject<void>();
 
+  /** Correction + withdrawal requests awaiting a decision — shown on the Attendance Requests button. */
+  pendingRequestCount = 0;
+
   readonly DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   /**
@@ -300,6 +303,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.today.setHours(0, 0, 0, 0);
     this.editCutoff = this.calcEditCutoff();
     this.jumpToWeek(0);
+
+    // Same shared count as the header badge; refreshed by the header's poll.
+    this.attendanceSvc.pendingRequestCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(n => this.pendingRequestCount = n);
+    this.attendanceSvc.refreshPendingRequestCount();
   }
 
   /** Opens the shared attendance-correction review queue in this same tab,

@@ -217,8 +217,29 @@
 
           <div class="af-field">
             <label class="af-label">Time <span class="af-req">*</span></label>
-            <input type="time" class="form-control" formControlName="visitTime"
-                   [class.is-invalid]="isInvalid('visitTime')" />
+            <div class="d-flex gap-2">
+              <select class="form-select" aria-label="Hour"
+                      [(ngModel)]="timePicker.hour" [ngModelOptions]="{standalone: true}"
+                      (ngModelChange)="timePicker.commit()" (blur)="timePicker.touch()"
+                      [class.is-invalid]="isInvalid('visitTime')">
+                <option value="" disabled>Hour</option>
+                <option *ngFor="let h of timePicker.hours" [value]="h">{{ h }}</option>
+              </select>
+              <select class="form-select" aria-label="Minute"
+                      [(ngModel)]="timePicker.minute" [ngModelOptions]="{standalone: true}"
+                      (ngModelChange)="timePicker.commit()" (blur)="timePicker.touch()"
+                      [class.is-invalid]="isInvalid('visitTime')">
+                <option value="" disabled>Min</option>
+                <option *ngFor="let m of timePicker.minutes" [value]="m">{{ m }}</option>
+              </select>
+              <select class="form-select" aria-label="AM or PM"
+                      [(ngModel)]="timePicker.meridiem" [ngModelOptions]="{standalone: true}"
+                      (ngModelChange)="timePicker.commit()" (blur)="timePicker.touch()"
+                      [class.is-invalid]="isInvalid('visitTime')">
+                <option value="" disabled>AM/PM</option>
+                <option *ngFor="let p of timePicker.meridiems" [value]="p">{{ p }}</option>
+              </select>
+            </div>
             <small class="af-error" *ngIf="isInvalid('visitTime')">Valid time is required.</small>
           </div>
         </div>

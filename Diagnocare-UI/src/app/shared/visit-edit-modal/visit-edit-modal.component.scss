@@ -79,6 +79,12 @@
   i { color: #0891b2; }
 }
 
+.vem-time-row {
+  display: flex;
+  gap: .5rem;
+  .vem-select { flex: 1 1 0; min-width: 0; }
+}
+
 .vem-select,
 .vem-input {
   width: 100%;

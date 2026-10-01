@@ -8,6 +8,7 @@ import { ToastrService } from 'ngx-toastr';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { SalaryService } from 'src/app/services/salaryServices/salary.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
+import { NotificationService } from 'src/app/services/notificationServices/notification.service';
 import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
 import {
   SalaryPaymentDTO,
@@ -79,6 +80,7 @@ export class MySalaryComponent implements OnInit, OnDestroy {
     private salarySvc: SalaryService,
     private tokenSvc: TokenService,
     private toastr: ToastrService,
+    private notifications: NotificationService,
   ) {}
 
   ngOnInit(): void {
@@ -89,6 +91,9 @@ export class MySalaryComponent implements OnInit, OnDestroy {
     this.canView = (role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS).mySalary;
 
     if (this.canView) this.loadPayments();
+
+    // Seeing the page is seeing the news — clear the My Salary badge.
+    this.notifications.markModuleRead('salary');
   }
 
   ngOnDestroy(): void {
