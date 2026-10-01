@@ -371,9 +371,20 @@ export class PatientTestListComponent implements OnInit {
 
   // ── Data loading ───────────────────────────────────────────────────────
 
-  loadPatientTests(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+  /**
+   * Reloads the patient's bookings.
+   *
+   * `silent` refreshes the list in the background without the full-page loading
+   * overlay. Use it whenever an overlay (parameter entry, detail view) is open and
+   * already showing its own spinner — two spinners on screen at once read as a
+   * stuck screen, and the page overlay belongs to the list the operator is not
+   * looking at.
+   */
+  loadPatientTests(silent: boolean = false): void {
+    if (!silent) {
+      this.isLoading = true;
+      this.errorMessage = '';
+    }
 
     this.loadPatientContact();
 
@@ -382,11 +393,13 @@ export class PatientTestListComponent implements OnInit {
         this.allPatientTests = data ?? [];
         this.filterTests();
         this.loadTestNames();
-        this.isLoading = false;
+        if (!silent) this.isLoading = false;
       },
       error: (error: Error) => {
-        this.errorMessage = 'Failed to load patient tests. Please try again.';
-        this.isLoading = false;
+        if (!silent) {
+          this.errorMessage = 'Failed to load patient tests. Please try again.';
+          this.isLoading = false;
+        }
         console.error('Error loading patient tests:', error);
       }
     });
@@ -1372,6 +1385,10 @@ export class PatientTestListComponent implements OnInit {
 
   saveTestReport(): void {
     if (!this.selectedTestDetail) return;
+    if (this.testParameters.length === 0) {
+      this.toastr.warning('There is nothing to save for this test.', 'No parameters');
+      return;
+    }
     this.isLoadingParameters = true;
     this.parameterErrorMessage = '';
 
@@ -1409,12 +1426,39 @@ export class PatientTestListComponent implements OnInit {
       : of(null);
 
     forkJoin([insert$, update$]).subscribe({
-      next: () => {
-        this.loadPatientTests();
-        // Re-read from the server so savedResults (and reportId) reflect what was
-        // actually persisted — this is what unlocks the View / PDF buttons.
-        this.loadTestParameters();
+      next: ([, updateResult]: [any, any]) => {
+        // The Update endpoint answers HTTP 200 even when it did not apply the
+        // change (OperationResult.success === false — e.g. no matching row). A 200
+        // is therefore not on its own proof of a save, and ErrorInterceptor only
+        // toasts HTTP failures, so this one is ours to catch.
+        if (toUpdate.length > 0 && updateResult && updateResult.success === false) {
+          this.isLoadingParameters = false;
+          const reason = updateResult.message || 'Results could not be saved.';
+          this.parameterErrorMessage = reason;
+          this.toastr.error(reason, 'Not saved');
+          return;
+        }
+
+        const saved = toInsert.length + toUpdate.length;
+        this.isLoadingParameters = false;
+        this.toastr.success(
+          saved === 1 ? 'Result saved.' : `${saved} results saved.`,
+          'Saved'
+        );
+
+        // Background refresh: nothing of the full-page loading overlay here — the
+        // operator is being returned to the visit screen, not made to watch it load.
+        this.loadPatientTests(true);
+
+        // Entry is done, so close the overlay. No loadTestParameters() is needed:
+        // closeParameterView() drops the in-memory parameters and refreshes the
+        // per-test result counts, and re-opening the overlay re-reads everything
+        // (including each row's reportId) from the server — which is what keeps a
+        // second save an UPDATE rather than a duplicate INSERT.
+        this.closeParameterView();
       },
+      // HTTP failures (4xx/5xx/network) are already toasted by ErrorInterceptor,
+      // so only the inline message inside the overlay is set here.
       error: (err) => {
         this.isLoadingParameters = false;
         this.parameterErrorMessage = 'Failed to save test report.';
