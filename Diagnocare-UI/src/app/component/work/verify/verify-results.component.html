@@ -9,7 +9,7 @@
       </p>
     </div>
     <div class="header-actions">
-      <button type="button" class="dc-btn" (click)="back()">
+      <button type="button" class="dc-btn dc-btn--back" (click)="back()">
         <i class="fa fa-arrow-left" aria-hidden="true"></i> Back to the queue
       </button>
     </div>
@@ -56,7 +56,7 @@
 
       <!-- ── All values ────────────────────────────────────────────────── -->
       <div class="table-container" *ngIf="rows.length > 0">
-        <table class="verify__table">
+        <table class="data-table verify__table">
           <thead>
             <tr>
               <th scope="col">Parameter</th>
@@ -114,8 +114,8 @@
           The bench sees this reason. Without it the same value tends to come straight back.
         </p>
         <div class="verify__return-actions">
-          <button type="button" class="dc-btn" (click)="cancelReturn()">Cancel</button>
-          <button type="button" class="dc-btn dc-btn--danger"
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="cancelReturn()">Cancel</button>
+          <button type="button" class="dc-btn dc-btn--delete"
                   [disabled]="isSaving || !returnReason.trim()"
                   (click)="returnForReentry()">
             <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-reply'" aria-hidden="true"></i>
@@ -140,10 +140,10 @@
           </span>
         </div>
         <div class="verify__savebar-actions">
-          <button type="button" class="dc-btn" (click)="openReturnPanel()" [disabled]="isSaving">
+          <button type="button" class="dc-btn dc-btn--clear" (click)="openReturnPanel()" [disabled]="isSaving">
             Send back for re-entry
           </button>
-          <button type="button" class="dc-btn dc-btn--primary"
+          <button type="button" class="dc-btn dc-btn--save"
                   [disabled]="!canVerify"
                   (click)="verify()">
             <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
