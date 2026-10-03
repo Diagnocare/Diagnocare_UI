@@ -238,6 +238,7 @@ export const apiEndpoints = {
   cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
   removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
   updateSamplingLocation:   'UpdateSamplingLocation', // PUT api/patient/UpdateSamplingLocation
+  reportOnWhatsApp:         'ReportOnWhatsApp',  // PATCH  api/patient/ReportOnWhatsApp
   reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
   /** Patients only — staff have no permanent delete, see MemberService.delete. */
   hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
@@ -291,6 +292,7 @@ export const validationMessages = {
      'patient_Address',
      'test_Name',
      'urgent_Report',
+     'report_On_WhatsApp',
      'test_Amount',
      'referred_By_Type',
      'referred_By',

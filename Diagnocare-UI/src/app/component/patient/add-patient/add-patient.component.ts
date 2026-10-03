@@ -95,6 +95,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   paymentConfirmed = false;
   /** Inline error shown inside the Partial Payment modal. */
   amountPaidError  = '';
+  /**
+   * True when a discount edit has just reset a Partial payment back to Full.
+   * Drives the note on the payment step — the payment type changes under the
+   * user, so it has to say so. Cleared as soon as they touch the type again.
+   */
+  partialResetByDiscount = false;
   /** Tracks whether Next/Submit was clicked on each step — triggers inline errors. */
   stepTouched: Record<number, boolean> = { 1: false, 2: false, 3: false, 4: false };
 
@@ -229,6 +235,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_id:              [''],
       test_Name:            ['', Validators.required],
       urgent_Report:        [false],
+      // Per-booking: send THIS booking's report on WhatsApp, to whatsApp_Number.
+      // The number is pre-filled from patient_Contact and may be changed to send
+      // the report elsewhere; required only while the toggle is on
+      // (see syncWhatsAppNumberRule).
+      report_On_WhatsApp:   [false],
+      whatsApp_Number:      ['', [AppValidators.contactNumber()]],
       test_Amount:          ['', Validators.required],
       referred_By_Type:     ['Doctor', Validators.required],
       referred_By:          ['', Validators.required],
@@ -276,7 +288,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         } else {
           // Partial — reset amounts so user goes through the modal
           this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+          this.clearPartialAmounts();
         }
       });
 
@@ -292,17 +304,58 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           // Net changed after partial confirmation → stale; require re-confirmation
           if (this.paymentConfirmed) {
             this.paymentConfirmed = false;
-            this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+            this.clearPartialAmounts();
           }
         }
+      });
+
+    this.patientForm.get('report_On_WhatsApp')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(on => this.syncWhatsAppNumberRule(!!on));
+
+    // While the WhatsApp number is still the patient's own mobile (or empty), keep it
+    // in step when the mobile is corrected on the Patient step. A number that was
+    // deliberately changed to someone else's is left alone.
+    let lastMobile = `${this.patientForm.get('patient_Contact')?.value ?? ''}`;
+    this.patientForm.get('patient_Contact')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        const mobile = `${value ?? ''}`;
+        const number = this.patientForm.get('whatsApp_Number');
+        const current = `${number?.value ?? ''}`;
+        if (this.reportOnWhatsApp && number && (current === '' || current === lastMobile)) {
+          number.setValue(mobile, { emitEvent: false });
+        }
+        lastMobile = mobile;
       });
 
     this.patientForm.get('discount')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial && this.paymentConfirmed) {
-          this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+        // A discount edit changes the net amount, so any partial amount already
+        // entered is stale. This used to blank amount_Paid / amount_Pending,
+        // which stranded the user: both fields are readonly and can only be
+        // filled from the Partial Payment modal, and the only control that
+        // reopens that modal sits behind *ngIf="paymentConfirmed" — which this
+        // same code had just set false. Two blank, required, unfillable fields.
+        //
+        // The booking now falls back to Full payment instead. The payment_Type
+        // subscription above rewrites amount_Paid / amount_Pending to the new
+        // net, so the form stays valid, and the radio visibly moves to Full so
+        // the change is not silent (the note on the step says so too). The user
+        // picks Partial again if they still want one, which reopens the modal.
+        //
+        // Deliberately not conditional on paymentConfirmed: closing the modal
+        // with the X leaves Partial selected and unconfirmed, and that state
+        // needs the same escape.
+        //
+        // This runs per keystroke in the discount box, but only the first one
+        // does anything — after it the type is Full, not Partial.
+        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
+          this.paymentConfirmed       = false;
+          this.amountPaidError        = '';
+          this.partialResetByDiscount = true;
+          this.patientForm.patchValue({ payment_Type: paymentType.Full });
         }
         // Runs after the control holds the new value, whichever order the (input)
         // handler and the value accessor fired in — so an over-limit discount
@@ -341,7 +394,55 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     return this.tpaDetails !== null;
   }
 
+  // ── Report on WhatsApp ─────────────────────────────────────────────────────
+
+  get reportOnWhatsApp(): boolean {
+    return !!this.patientForm?.get('report_On_WhatsApp')?.value;
+  }
+
+  /** WhatsApp is on but there is no valid number to send to yet. */
+  get whatsAppNeedsNumber(): boolean {
+    const number = this.patientForm.get('whatsApp_Number');
+    return this.reportOnWhatsApp && (!number?.value || !!number?.invalid);
+  }
+
+  /** The WhatsApp number typed for this booking is the patient's own mobile. */
+  get whatsAppIsPatientNumber(): boolean {
+    const mobile = `${this.patientForm.get('patient_Contact')?.value ?? ''}`;
+    const number = `${this.patientForm.get('whatsApp_Number')?.value ?? ''}`;
+    return !!mobile && mobile === number;
+  }
+
+  /**
+   * Turning the toggle on makes the WhatsApp number required and pre-fills it with
+   * the patient's mobile, which staff can change to send the report to someone else.
+   * Turning it off clears the number. The patient's own mobile stays optional.
+   */
+  private syncWhatsAppNumberRule(on: boolean): void {
+    const number = this.patientForm.get('whatsApp_Number');
+    const mobile = this.patientForm.get('patient_Contact');
+    if (!number) return;
+    if (on) {
+      number.addValidators(Validators.required);
+      if (!number.value && mobile?.value && mobile.valid) {
+        number.setValue(`${mobile.value}`, { emitEvent: false });
+      }
+    } else {
+      number.removeValidators(Validators.required);
+      number.setValue('', { emitEvent: false });
+    }
+    number.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Puts the patient's mobile back into the WhatsApp number field. */
+  usePatientMobileForWhatsApp(): void {
+    const mobile = this.patientForm.get('patient_Contact')?.value;
+    this.patientForm.get('whatsApp_Number')?.setValue(mobile ? `${mobile}` : '');
+  }
+
   get isCurrentStepValid(): boolean {
+    // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
+    if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
     // NoPayment: payment_Mode is not required (no payment is collected now)
@@ -442,6 +543,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.stepTouched[this.currentStep] = true;
     const fields = this.stepFields[this.currentStep] ?? [];
     fields.forEach(f => this.patientForm.get(f)?.markAsTouched());
+    if (this.currentStep === 3 && this.reportOnWhatsApp) {
+      this.patientForm.get('whatsApp_Number')?.markAsTouched();
+    }
   }
 
   handleNext() {
@@ -1277,8 +1381,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.patientForm.patchValue({ payment_Type: paymentType.NoPayment }, { emitEvent: false });
       selectedType = paymentType.NoPayment;
     }
-    this.paymentConfirmed = false;
-    this.amountPaidError  = '';
+    this.paymentConfirmed       = false;
+    this.amountPaidError        = '';
+    this.partialResetByDiscount = false;   // the user has chosen; the note goes
 
     if (selectedType === paymentType.Full) {
       this.patientForm.patchValue({
@@ -1293,7 +1398,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       });
     } else {
       // Partial — reset amounts and open modal for the user to enter how much they're paying
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+      this.clearPartialAmounts();
       this.showModal('paymentModal');
     }
   }
@@ -1316,7 +1421,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
       this.paymentConfirmed = false;
       this.amountPaidError  = '';
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+      this.clearPartialAmounts();
       this.showModal('paymentModal');
     }
   }
@@ -1367,6 +1472,29 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   modalPaymentClose() {
     const el = document.getElementById('paymentModal');
     if (el) this.hideModal('paymentModal');
+  }
+
+  /**
+   * Blank the two amount fields AND forget that the user ever touched them.
+   *
+   * Both are cleared by code, never by the user, so any touched/dirty state left
+   * over from an earlier pass describes a value that no longer exists. Without
+   * the reset the fields come back red the instant they are cleared, before the
+   * user has been given a chance to type anything: `isFieldInvalid()` tests
+   * `c.touched`, and styles.css paints every `input.ng-invalid.ng-touched` with
+   * a red left border — which is why the error appeared both inside the Partial
+   * Payment modal and on the step behind it.
+   *
+   * The controls stay `required` and still invalid; this only stops the form
+   * claiming the user got it wrong when they have not been asked yet.
+   */
+  private clearPartialAmounts(): void {
+    this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+    for (const name of ['amount_Paid', 'amount_Pending']) {
+      const c = this.patientForm.get(name);
+      c?.markAsUntouched();
+      c?.markAsPristine();
+    }
   }
 
   /** Opens the Partial Payment modal again so the user can amend confirmed values. */
@@ -1525,6 +1653,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_Id:          testIds,
       test_Name:         f.test_Name,
       urgent_Report:     f.urgent_Report    ?? false,
+      report_On_WhatsApp: !!f.report_On_WhatsApp,
+      // The API stores it on the booking only when it differs from the patient's mobile.
+      whatsApp_Number:    f.report_On_WhatsApp && f.whatsApp_Number ? `${f.whatsApp_Number}` : null,
       test_Amount:       f.test_Amount      ?? 0,
       referred_By_Type:  f.referred_By_Type ?? '',
       referred_By:  f.referred_By      ?? '',

@@ -276,6 +276,37 @@
                   <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
                 </div>
               </div>
+
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Report on WhatsApp</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
+                  <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
+                 patient's mobile; change it to send the report to someone else. A different
+                 number is kept on this booking only. -->
+            <div class="form-row" *ngIf="reportOnWhatsApp">
+              <div class="form-group">
+                <label class="form-label required" for="whatsAppNumber">Send report to (WhatsApp number)</label>
+                <input type="number" appNumericOnly class="form-control" id="whatsAppNumber" formControlName="whatsApp_Number"
+                  placeholder="10-digit mobile number"
+                  [class.is-invalid]="isFieldInvalid('whatsApp_Number')" />
+                <app-field-error [control]="patientForm.get('whatsApp_Number')" label="WhatsApp Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+                <small class="whatsapp-hint" *ngIf="!patientForm.get('patient_Contact')?.value">
+                  The patient has no mobile number, so this will also be saved as their mobile.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && whatsAppIsPatientNumber">
+                  The patient's own mobile. Change it to send this report to another number.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && !whatsAppIsPatientNumber">
+                  Different from the patient's mobile ({{ patientForm.get('patient_Contact')?.value }}). Used for this booking only.
+                  <button type="button" class="whatsapp-link" (click)="usePatientMobileForWhatsApp()">Use the patient's mobile</button>
+                </small>
+              </div>
             </div>
 
             <div class="form-row">
@@ -597,6 +628,39 @@
               <i class="fa fa-info-circle"></i>
               <strong>No payment collected now.</strong> Full amount of
               ₹{{ patientForm.get('net_Amount')?.value }} will be collected at report pickup.
+            </div>
+
+            <!-- A discount edit moved the payment type off Partial. Said out loud,
+                 because a payment type that changes by itself and is not announced is
+                 how a booking gets saved as paid-in-full by accident. -->
+            <div *ngIf="partialResetByDiscount && patientForm.get('payment_Type')?.value === 'Full'"
+                 class="tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              <strong>Payment type reset to Full.</strong>
+              Changing the discount changed the net amount, so the partial amount entered
+              earlier no longer applied. Choose <strong>Partial</strong> again to enter a
+              new amount.
+            </div>
+
+            <!-- Partial selected, nothing entered yet — the way back into the modal.
+
+                 The two amount fields in the summary above are readonly: a partial
+                 amount can only be entered in the Partial Payment modal. Several
+                 things un-confirm a partial payment and blank both amounts — editing
+                 the discount, a change in net amount, switching payment mode. Until
+                 this banner existed, the only control that could reopen the modal was
+                 the Edit button below, which is itself inside *ngIf="paymentConfirmed".
+                 So after a discount edit the user was left with two blank, required,
+                 readonly fields and no control on the page able to fill them; the only
+                 way out was to pick the payment type again. Mirrors the TPA note above. -->
+            <div *ngIf="patientForm.get('payment_Type')?.value === 'Partial' && !paymentConfirmed"
+                 class="tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              <strong>Partial payment not set.</strong>
+              Enter how much is being paid now.
+              <button type="button" class="tpa-open-btn" (click)="editPaymentDetails()">
+                <i class="fa fa-pencil-alt"></i> Enter Payment Details
+              </button>
             </div>
 
             <!-- Partial Payment Confirmed Banner -->
