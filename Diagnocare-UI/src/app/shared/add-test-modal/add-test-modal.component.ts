@@ -9,6 +9,7 @@
   SimpleChanges,
 } from '@angular/core';
 import {
+  AbstractControl,
   FormBuilder,
   FormGroup,
   FormsModule,
@@ -58,6 +59,7 @@ import {
 import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
 import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
 import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 
 @Component({
   selector: 'app-add-test-modal',
@@ -70,6 +72,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   // ── Inputs / Outputs ──────────────────────────────────────────────────────
   @Input() patientId: string  = '';
   @Input() visible:   boolean = false;
+  /** The patient's saved contact number — pre-fills the WhatsApp number for this booking. */
+  @Input() patientContact: string = '';
 
   @Output() saved     = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
@@ -184,6 +188,11 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
       urgent_Report:     [false],
+      // Per-booking: send THIS booking's report on WhatsApp.
+      report_On_WhatsApp: [false],
+      // Number this booking's report goes to. Pre-filled with the patient's own when
+      // the toggle is switched on; may be changed to send the report elsewhere.
+      whatsApp_Number:   ['', [(c: AbstractControl) => (!c.value || isWhatsAppNumber(`${c.value}`) ? null : { whatsAppNumber: true })]],
       test_Amount:       ['', Validators.required],
       referred_By_Type:  ['Doctor', Validators.required],
       referred_By:       ['', Validators.required],
@@ -238,8 +247,63 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return this.selectedTests.map(t => t.testCode);
   }
 
+  // ── Report on WhatsApp ───────────────────────────────────────────────────
+
+  get reportOnWhatsApp(): boolean {
+    return !!this.form.get('report_On_WhatsApp')?.value;
+  }
+
+  /** The patient has a number of their own the report could go to. */
+  get hasWhatsAppNumber(): boolean {
+    return isWhatsAppNumber(this.patientContact);
+  }
+
+  /** A stored number as staff type it: Indian numbers lose the 91 prefix. */
+  private toTypedNumber(raw: string | null | undefined): string {
+    const n = toWhatsAppNumber(raw);
+    if (!n) return '';
+    return n.length === 12 && n.startsWith('91') ? n.slice(2) : `+${n}`;
+  }
+
+  /** The patient's own number for display, e.g. "+91 98765 43210". */
+  get patientNumberDisplay(): string {
+    const n = toWhatsAppNumber(this.patientContact);
+    if (!n) return '';
+    return n.length === 12 && n.startsWith('91') ? `+91 ${n.slice(2, 7)} ${n.slice(7)}` : `+${n}`;
+  }
+
+  /** The number typed for this booking is the patient's own. */
+  get whatsAppIsPatientNumber(): boolean {
+    const typed = toWhatsAppNumber(`${this.form.get('whatsApp_Number')?.value ?? ''}`);
+    return !!typed && typed === toWhatsAppNumber(this.patientContact);
+  }
+
+  /** WhatsApp is on and there is no valid number to send to yet. */
+  get whatsAppNeedsNumber(): boolean {
+    if (!this.reportOnWhatsApp) return false;
+    const c = this.form.get('whatsApp_Number');
+    return !c?.value || !!c?.invalid;
+  }
+
+  /** Toggle switched: pre-fill the number with the patient's own, or clear it. */
+  onReportOnWhatsAppChange(): void {
+    const c = this.form.get('whatsApp_Number');
+    if (!c) return;
+    if (this.reportOnWhatsApp) {
+      if (!c.value) c.setValue(this.toTypedNumber(this.patientContact));
+    } else {
+      c.setValue('');
+      c.markAsUntouched();
+    }
+  }
+
+  usePatientNumberForWhatsApp(): void {
+    this.form.get('whatsApp_Number')?.setValue(this.toTypedNumber(this.patientContact));
+  }
+
   get isStep1Valid(): boolean {
     return (
+      !this.whatsAppNeedsNumber &&
       !!this.form.get('test_Name')?.valid &&
       !!this.form.get('test_Amount')?.valid &&
       !!this.form.get('referred_By_Type')?.valid &&
@@ -448,8 +512,13 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   }
 
   toggleTestSelection(t: TestItem): void {
-    this.focusedTestId = t.testCode;
-    this.loadFocusedProtocol(t);
+    // The picker fires (focused) before (toggled) on the same tap, so by the
+    // time we get here the protocol is usually already on its way. Only the old
+    // four-column path arrives with a different test still focused.
+    if (this.focusedTestId !== t.testCode) {
+      this.focusedTestId = t.testCode;
+      this.loadFocusedProtocol(t);
+    }
 
     // Selecting is blocked, but de-selecting must always work — otherwise a test
     // whose last parameter was deleted after it was picked would be stuck in the
@@ -591,6 +660,15 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   onPickerToggled(picked: DcPickableTest): void {
     const test = this.allTests.find(t => t.testCode === picked.code);
     if (test) this.toggleTestSelection(test);
+  }
+
+  /** The test the protocol panel under the catalogue is describing. */
+  onPickerFocused(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) {
+      this.focusedTestId = test.testCode;
+      this.loadFocusedProtocol(test);
+    }
   }
 
   /**
@@ -933,6 +1011,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         test_Id:          testIds,
         test_Name:         f.test_Name,
         urgent_Report:     f.urgent_Report     ?? false,
+        report_On_WhatsApp: !!f.report_On_WhatsApp,
+        // The API keeps it on the booking only when it differs from the patient's own
+        // number; if the patient has no number at all, it becomes theirs.
+        whatsApp_Number:    f.report_On_WhatsApp && f.whatsApp_Number ? `${f.whatsApp_Number}`.trim() : null,
         test_Amount:       f.test_Amount       ?? 0,
         referred_By_Type:  f.referred_By_Type  ?? '',
         referred_By: f.referred_By ?? '',
@@ -1058,6 +1140,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form.reset({
       test_Name:         '',
       urgent_Report:     false,
+      report_On_WhatsApp: false,
+      whatsApp_Number:   '',
       test_Amount:       '',
       referred_By_Type:  'Doctor',
       referred_By:       '',

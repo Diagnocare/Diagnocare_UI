@@ -55,6 +55,39 @@
                   <label for="atm-urgentReport" class="toggle-label">Mark as Urgent</label>
                 </div>
               </div>
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Report on WhatsApp</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="atm-reportOnWhatsApp" (change)="onReportOnWhatsAppChange()" />
+                  <label for="atm-reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp atm-whatsapp-icon" aria-hidden="true"></i> Send on WhatsApp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
+                 patient's own; change it to send the report to someone else. -->
+            <div class="form-row" *ngIf="reportOnWhatsApp">
+              <div class="form-group">
+                <label class="form-label required" for="atm-whatsAppNumber">Send report to (WhatsApp number)</label>
+                <input type="tel" inputmode="tel" maxlength="16" class="form-control" id="atm-whatsAppNumber"
+                       formControlName="whatsApp_Number" placeholder="10-digit mobile number"
+                       [class.is-invalid]="form.get('whatsApp_Number')?.invalid && form.get('whatsApp_Number')?.touched" />
+                <span class="field-error" *ngIf="form.get('whatsApp_Number')?.invalid && form.get('whatsApp_Number')?.touched">
+                  Enter a 10-digit mobile number.
+                </span>
+                <ng-container *ngIf="!form.get('whatsApp_Number')?.invalid || !form.get('whatsApp_Number')?.touched">
+                  <span class="atm-whatsapp-hint" *ngIf="!hasWhatsAppNumber">
+                    This patient has no mobile number, so this will also be saved as their mobile.
+                  </span>
+                  <span class="atm-whatsapp-hint" *ngIf="hasWhatsAppNumber && whatsAppIsPatientNumber">
+                    The patient's own number. Change it to send this report to another number.
+                  </span>
+                  <span class="atm-whatsapp-hint" *ngIf="hasWhatsAppNumber && !whatsAppIsPatientNumber">
+                    Different from the patient's number ({{ patientNumberDisplay }}). Used for this booking only.
+                    <button type="button" class="atm-whatsapp-link" (click)="usePatientNumberForWhatsApp()">Use the patient's number</button>
+                  </span>
+                </ng-container>
+              </div>
             </div>
 
             <div class="form-row">
@@ -404,8 +437,37 @@
         [selectedCodes]="selectedTestCodes"
         [loading]="isLoadingAllTests"
         (toggled)="onPickerToggled($event)"
+        (focused)="onPickerFocused($event)"
         (confirmed)="confirmTestSelection()"
         (cancelled)="cancelTestCatalog()">
+
+        <!-- Protocol for the test last tapped. Full width under the columns:
+             procedure and rejection criteria are paragraphs, and a column that
+             narrow makes them unreadable at the moment they matter. -->
+        <ng-template #dcpProtocol>
+          <div class="atm-catalog-protocol" [class.atm-catalog-protocol--collapsed]="!showFocusedProtocol">
+            <div class="atm-catalog-protocol-bar">
+              <span class="atm-catalog-protocol-title">
+                <i class="fa fa-flask"></i> Sample Collection Protocol
+                <span class="atm-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
+              </span>
+              <button type="button" class="atm-protocol-toggle"
+                      [attr.aria-expanded]="showFocusedProtocol"
+                      (click)="showFocusedProtocol = !showFocusedProtocol">
+                <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
+                              [class.fa-chevron-down]="!showFocusedProtocol"></i>
+                {{ showFocusedProtocol ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <app-test-protocol-panel *ngIf="showFocusedProtocol"
+              [protocols]="focusedProtocols"
+              [testName]="focusedProtocolTestName"
+              [testCode]="focusedProtocolTestCode"
+              [loading]="focusedProtocolLoading"
+              emptySelectionMessage="Tap a test to see how its sample must be collected.">
+            </app-test-protocol-panel>
+          </div>
+        </ng-template>
       </dc-test-picker>
     </div>
 

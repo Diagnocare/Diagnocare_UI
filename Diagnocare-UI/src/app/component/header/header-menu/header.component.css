@@ -183,7 +183,7 @@
   display: flex;
   align-items: center;
   gap: 2em;
-  margin-left: 4em;
+  /*margin-left: 4em;*/
   flex: 1;
 }
 
@@ -411,6 +411,9 @@
   flex-shrink: 0;
   padding-left: 1rem;
   border-left: 1px solid var(--h-border);
+  /* Let the chip inside grow with the name instead of being clipped by a
+     fixed-width parent. */
+  min-width: 0;
 }
 
 /* Username chip */
@@ -426,12 +429,20 @@
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
+  /* Size to the name; only give ground after the nav has already given its. */
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
-.dc-username-chip i { opacity: 0.85; }
+.dc-username-chip i { opacity: 0.85; flex-shrink: 0; }
 
 .dc-username-text {
-  max-width: 120px;
+  /* The cap used to be a flat 120px, so a long name — or any name at a larger
+     browser/OS text size — hit the ellipsis while the pill still had room. The
+     ch unit is measured in the chip's own font, so the cap now grows in step
+     with the text; the vw term keeps a very long name from crowding out the
+     nav on a narrow window. Ellipsis stays as a last-resort safety net. */
+  max-width: min(32ch, 24vw);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -675,7 +686,10 @@
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .dc-nav { display: none; }
-  .dc-username-chip { display: none; }
+  /* The nav is gone here, so there is room for the name even though the header
+     has switched to hamburger mode — which is what a desktop user at 150% zoom
+     sees. Keep the chip; only the narrow-phone rule below drops it. */
+  .dc-username-chip { max-width: 40vw; }
   .dc-hamburger { display: flex; }
   .dc-mobile-nav { display: block; }
   .dc-user-section { border-left: none; padding-left: 0; }
@@ -697,6 +711,9 @@
 @media (max-width: 480px) {
   .dc-header { padding: 0 1rem; }
   .dc-brand-text { font-size: 1.1rem; }
+  /* Genuinely no room beside the brand and the bell on a phone — the name is
+     still on the profile dropdown. */
+  .dc-username-chip { display: none; }
 }
 
 /* ── Focus / accessibility ──────────────────────────────────────── */
@@ -863,7 +880,7 @@ input.ng-invalid.ng-touched { border-left: 5px solid red; }
   border-radius: 999px;
   background: #f59e0b;
   color: #fff;
-  font-size: 0.68rem;
+  font-size: 0.88rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -905,7 +922,7 @@ input.ng-invalid.ng-touched { border-left: 5px solid red; }
   border-radius: 999px;
   background: #ef4444;
   color: #fff;
-  font-size: 0.66rem;
+  font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.15rem;
   text-align: center;
