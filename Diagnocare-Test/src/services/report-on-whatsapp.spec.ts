@@ -52,35 +52,34 @@ describe('Report on WhatsApp', () => {
 
       const req = httpMock.expectOne(r => r.url.endsWith('ReportOnWhatsApp'));
       expect(req.request.method).toBe('PATCH');
-      expect(req.request.body).toEqual({ patientTestId: 42, reportOnWhatsApp: true, patientContact: '9876543210' });
+      expect(req.request.body).toEqual({ patientTestId: 42, reportOnWhatsApp: true, whatsAppNumber: '9876543210' });
       req.flush({ success: true });
     });
 
-    it('updateReportOnWhatsApp() sends patientContact: null when no number is given', () => {
+    it('updateReportOnWhatsApp() sends whatsAppNumber: null when no number is given', () => {
       service.updateReportOnWhatsApp(42, false).subscribe();
 
       const req = httpMock.expectOne(r => r.url.endsWith('ReportOnWhatsApp'));
-      expect(req.request.body).toEqual({ patientTestId: 42, reportOnWhatsApp: false, patientContact: null });
+      expect(req.request.body).toEqual({ patientTestId: 42, reportOnWhatsApp: false, whatsAppNumber: null });
       req.flush({ success: true });
     });
 
-    it('addPatientTest() carries report_On_WhatsApp and patientContact in the payload', () => {
+    it('addPatientTest() carries report_On_WhatsApp and the booking\'s whatsApp_Number in the payload', () => {
       const payload: AddPatientTestDto = {
         patientId: 'Pat1001',
         test: {
-          test_Id: 'CBC', test_Name: 'CBC', urgent_Report: false, report_On_WhatsApp: true,
+          test_Id: 'CBC', test_Name: 'CBC', urgent_Report: false, report_On_WhatsApp: true, whatsApp_Number: '9123456780',
           test_Amount: 300, referred_By_Type: 'Doctor', referred_By: 'Dr A', remark: '',
           collected_Outside: false, area: '', collected_By: '', sampling_Done_At: 'Lab',
         },
         receipt: {} as any,
-        patientContact: '9876543210',
       };
 
       service.addPatientTest(payload).subscribe();
 
       const req = httpMock.expectOne(r => r.url.includes('AddTestWithReceipt'));
       expect(req.request.body.test.report_On_WhatsApp).toBe(true);
-      expect(req.request.body.patientContact).toBe('9876543210');
+      expect(req.request.body.test.whatsApp_Number).toBe('9123456780');
       req.flush({ success: true });
     });
   });

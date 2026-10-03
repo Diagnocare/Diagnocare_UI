@@ -58,31 +58,35 @@
               <div class="form-group form-group--narrow">
                 <label class="form-label">Report on WhatsApp</label>
                 <div class="toggle-wrap">
-                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="atm-reportOnWhatsApp" />
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="atm-reportOnWhatsApp" (change)="onReportOnWhatsAppChange()" />
                   <label for="atm-reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp atm-whatsapp-icon" aria-hidden="true"></i> Send on WhatsApp</label>
                 </div>
               </div>
             </div>
 
-            <!-- WhatsApp: show the number the report goes to, or ask for one. -->
+            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
+                 patient's own; change it to send the report to someone else. -->
             <div class="form-row" *ngIf="reportOnWhatsApp">
-              <div class="form-group" *ngIf="hasWhatsAppNumber">
-                <div class="atm-whatsapp-note">
-                  <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                  Report will be sent to <strong>{{ whatsAppNumberDisplay }}</strong>
-                </div>
-              </div>
-              <div class="form-group" *ngIf="!hasWhatsAppNumber">
-                <label class="form-label required" for="atm-whatsAppContact">Mobile Number for WhatsApp</label>
-                <input type="tel" inputmode="numeric" maxlength="10" class="form-control" id="atm-whatsAppContact"
-                       formControlName="whatsApp_Contact" placeholder="10-digit mobile number"
-                       [class.is-invalid]="form.get('whatsApp_Contact')?.invalid && form.get('whatsApp_Contact')?.touched" />
-                <span class="field-error" *ngIf="form.get('whatsApp_Contact')?.invalid && form.get('whatsApp_Contact')?.touched">
-                  Mobile number must be 10 digits and cannot start with 0.
+              <div class="form-group">
+                <label class="form-label required" for="atm-whatsAppNumber">Send report to (WhatsApp number)</label>
+                <input type="tel" inputmode="tel" maxlength="16" class="form-control" id="atm-whatsAppNumber"
+                       formControlName="whatsApp_Number" placeholder="10-digit mobile number"
+                       [class.is-invalid]="form.get('whatsApp_Number')?.invalid && form.get('whatsApp_Number')?.touched" />
+                <span class="field-error" *ngIf="form.get('whatsApp_Number')?.invalid && form.get('whatsApp_Number')?.touched">
+                  Enter a 10-digit mobile number.
                 </span>
-                <span class="atm-whatsapp-hint" *ngIf="!form.get('whatsApp_Contact')?.invalid || !form.get('whatsApp_Contact')?.touched">
-                  This patient has no mobile number. It will be saved on the patient.
-                </span>
+                <ng-container *ngIf="!form.get('whatsApp_Number')?.invalid || !form.get('whatsApp_Number')?.touched">
+                  <span class="atm-whatsapp-hint" *ngIf="!hasWhatsAppNumber">
+                    This patient has no mobile number, so this will also be saved as their mobile.
+                  </span>
+                  <span class="atm-whatsapp-hint" *ngIf="hasWhatsAppNumber && whatsAppIsPatientNumber">
+                    The patient's own number. Change it to send this report to another number.
+                  </span>
+                  <span class="atm-whatsapp-hint" *ngIf="hasWhatsAppNumber && !whatsAppIsPatientNumber">
+                    Different from the patient's number ({{ patientNumberDisplay }}). Used for this booking only.
+                    <button type="button" class="atm-whatsapp-link" (click)="usePatientNumberForWhatsApp()">Use the patient's number</button>
+                  </span>
+                </ng-container>
               </div>
             </div>
 

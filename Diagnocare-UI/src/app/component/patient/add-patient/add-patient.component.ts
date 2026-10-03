@@ -229,9 +229,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_id:              [''],
       test_Name:            ['', Validators.required],
       urgent_Report:        [false],
-      // Per-booking: send THIS booking's report on WhatsApp. Turning it on makes
-      // patient_Contact required (see syncWhatsAppContactRule).
+      // Per-booking: send THIS booking's report on WhatsApp, to whatsApp_Number.
+      // The number is pre-filled from patient_Contact and may be changed to send
+      // the report elsewhere; required only while the toggle is on
+      // (see syncWhatsAppNumberRule).
       report_On_WhatsApp:   [false],
+      whatsApp_Number:      ['', [AppValidators.contactNumber()]],
       test_Amount:          ['', Validators.required],
       referred_By_Type:     ['Doctor', Validators.required],
       referred_By:          ['', Validators.required],
@@ -302,7 +305,23 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
     this.patientForm.get('report_On_WhatsApp')?.valueChanges
       .pipe(takeUntil(this.destroy$))
-      .subscribe(on => this.syncWhatsAppContactRule(!!on));
+      .subscribe(on => this.syncWhatsAppNumberRule(!!on));
+
+    // While the WhatsApp number is still the patient's own mobile (or empty), keep it
+    // in step when the mobile is corrected on the Patient step. A number that was
+    // deliberately changed to someone else's is left alone.
+    let lastMobile = `${this.patientForm.get('patient_Contact')?.value ?? ''}`;
+    this.patientForm.get('patient_Contact')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        const mobile = `${value ?? ''}`;
+        const number = this.patientForm.get('whatsApp_Number');
+        const current = `${number?.value ?? ''}`;
+        if (this.reportOnWhatsApp && number && (current === '' || current === lastMobile)) {
+          number.setValue(mobile, { emitEvent: false });
+        }
+        lastMobile = mobile;
+      });
 
     this.patientForm.get('discount')?.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -350,44 +369,52 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Report on WhatsApp ─────────────────────────────────────────────────────
 
-  /**
-   * True while "Send report on WhatsApp" is on and the mobile number was missing or
-   * invalid when it was switched on. Shows a mobile-number input on the Test step
-   * (bound to the same patient_Contact control as the Patient step), so staff don't
-   * have to go back a step. Stays visible until the toggle is turned off.
-   */
-  showWhatsAppContactInput = false;
-
   get reportOnWhatsApp(): boolean {
     return !!this.patientForm?.get('report_On_WhatsApp')?.value;
   }
 
-  /** WhatsApp is on but there is no valid mobile number yet. */
+  /** WhatsApp is on but there is no valid number to send to yet. */
   get whatsAppNeedsNumber(): boolean {
-    const contact = this.patientForm.get('patient_Contact');
-    return this.reportOnWhatsApp && (!contact?.value || !!contact?.invalid);
+    const number = this.patientForm.get('whatsApp_Number');
+    return this.reportOnWhatsApp && (!number?.value || !!number?.invalid);
+  }
+
+  /** The WhatsApp number typed for this booking is the patient's own mobile. */
+  get whatsAppIsPatientNumber(): boolean {
+    const mobile = `${this.patientForm.get('patient_Contact')?.value ?? ''}`;
+    const number = `${this.patientForm.get('whatsApp_Number')?.value ?? ''}`;
+    return !!mobile && mobile === number;
   }
 
   /**
-   * The mobile number is optional, except when the report is to go on WhatsApp.
-   * Adds / removes the required rule as the toggle changes.
+   * Turning the toggle on makes the WhatsApp number required and pre-fills it with
+   * the patient's mobile, which staff can change to send the report to someone else.
+   * Turning it off clears the number. The patient's own mobile stays optional.
    */
-  private syncWhatsAppContactRule(on: boolean): void {
-    const contact = this.patientForm.get('patient_Contact');
-    if (!contact) return;
+  private syncWhatsAppNumberRule(on: boolean): void {
+    const number = this.patientForm.get('whatsApp_Number');
+    const mobile = this.patientForm.get('patient_Contact');
+    if (!number) return;
     if (on) {
-      contact.addValidators(Validators.required);
-      this.showWhatsAppContactInput = !contact.value || contact.invalid;
+      number.addValidators(Validators.required);
+      if (!number.value && mobile?.value && mobile.valid) {
+        number.setValue(`${mobile.value}`, { emitEvent: false });
+      }
     } else {
-      contact.removeValidators(Validators.required);
-      this.showWhatsAppContactInput = false;
+      number.removeValidators(Validators.required);
+      number.setValue('', { emitEvent: false });
     }
-    contact.updateValueAndValidity({ emitEvent: false });
+    number.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Puts the patient's mobile back into the WhatsApp number field. */
+  usePatientMobileForWhatsApp(): void {
+    const mobile = this.patientForm.get('patient_Contact')?.value;
+    this.patientForm.get('whatsApp_Number')?.setValue(mobile ? `${mobile}` : '');
   }
 
   get isCurrentStepValid(): boolean {
-    // Test step: a WhatsApp report needs a mobile number (entered on the Patient step
-    // or in the inline field under the toggle).
+    // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
     if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
@@ -490,7 +517,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     const fields = this.stepFields[this.currentStep] ?? [];
     fields.forEach(f => this.patientForm.get(f)?.markAsTouched());
     if (this.currentStep === 3 && this.reportOnWhatsApp) {
-      this.patientForm.get('patient_Contact')?.markAsTouched();
+      this.patientForm.get('whatsApp_Number')?.markAsTouched();
     }
   }
 
@@ -1576,6 +1603,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_Name:         f.test_Name,
       urgent_Report:     f.urgent_Report    ?? false,
       report_On_WhatsApp: !!f.report_On_WhatsApp,
+      // The API stores it on the booking only when it differs from the patient's mobile.
+      whatsApp_Number:    f.report_On_WhatsApp && f.whatsApp_Number ? `${f.whatsApp_Number}` : null,
       test_Amount:       f.test_Amount      ?? 0,
       referred_By_Type:  f.referred_By_Type ?? '',
       referred_By:  f.referred_By      ?? '',
