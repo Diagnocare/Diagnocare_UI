@@ -161,17 +161,18 @@ export class PatientService {
   }
 
   /**
-   * Turns "send report on WhatsApp" on or off for a booking. Turning it on for a
-   * patient with no valid mobile number needs `patientContact`, which the API saves
-   * on the patient. Rejections come back as 400 `{ message }`.
+   * Turns "send report on WhatsApp" on or off for a booking and sets the number it
+   * goes to. `whatsAppNumber` empty = the patient's own number. A different number is
+   * stored on the booking only; if the patient has no number at all, the API saves it
+   * as the patient's. Rejections come back as 400 `{ message }`.
    * PATCH api/patient/ReportOnWhatsApp
    */
-  updateReportOnWhatsApp(patientTestId: number, reportOnWhatsApp: boolean, patientContact?: string): Observable<any> {
+  updateReportOnWhatsApp(patientTestId: number, reportOnWhatsApp: boolean, whatsAppNumber?: string): Observable<any> {
     const url = this.patienturl + apiEndpoints.reportOnWhatsApp;
     return this.httpClient.patch<any>(url, {
       patientTestId,
       reportOnWhatsApp,
-      patientContact: patientContact || null,
+      whatsAppNumber: whatsAppNumber || null,
     });
   }
 

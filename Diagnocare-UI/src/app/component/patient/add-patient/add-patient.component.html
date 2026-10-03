@@ -221,9 +221,6 @@
                     [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
                 </div>
                 <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
-                <small class="whatsapp-hint" *ngIf="reportOnWhatsApp">
-                  <i class="fa fa-whatsapp" aria-hidden="true"></i> Needed to send the report on WhatsApp
-                </small>
               </div>
 
               <div class="form-group">
@@ -288,17 +285,26 @@
               </div>
             </div>
 
-            <!-- WhatsApp needs a mobile number. When it was missing or invalid as the toggle
-                 was switched on, ask for it here; this input shares the patient_Contact
-                 control with the Patient step, so either place fills it. -->
-            <div class="form-row" *ngIf="reportOnWhatsApp && showWhatsAppContactInput">
+            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
+                 patient's mobile; change it to send the report to someone else. A different
+                 number is kept on this booking only. -->
+            <div class="form-row" *ngIf="reportOnWhatsApp">
               <div class="form-group">
-                <label class="form-label required" for="whatsAppContact">Mobile Number for WhatsApp</label>
-                <input type="number" appNumericOnly class="form-control" id="whatsAppContact" formControlName="patient_Contact"
+                <label class="form-label required" for="whatsAppNumber">Send report to (WhatsApp number)</label>
+                <input type="number" appNumericOnly class="form-control" id="whatsAppNumber" formControlName="whatsApp_Number"
                   placeholder="10-digit mobile number"
-                  [class.is-invalid]="isFieldInvalid('patient_Contact')" />
-                <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
-                <small class="whatsapp-hint">The report link will be sent to this number. It is also saved on the patient.</small>
+                  [class.is-invalid]="isFieldInvalid('whatsApp_Number')" />
+                <app-field-error [control]="patientForm.get('whatsApp_Number')" label="WhatsApp Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+                <small class="whatsapp-hint" *ngIf="!patientForm.get('patient_Contact')?.value">
+                  The patient has no mobile number, so this will also be saved as their mobile.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && whatsAppIsPatientNumber">
+                  The patient's own mobile. Change it to send this report to another number.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && !whatsAppIsPatientNumber">
+                  Different from the patient's mobile ({{ patientForm.get('patient_Contact')?.value }}). Used for this booking only.
+                  <button type="button" class="whatsapp-link" (click)="usePatientMobileForWhatsApp()">Use the patient's mobile</button>
+                </small>
               </div>
             </div>
 

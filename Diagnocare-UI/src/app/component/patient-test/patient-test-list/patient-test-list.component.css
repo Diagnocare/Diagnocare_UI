@@ -2163,7 +2163,15 @@
 .ptl-wa-dialog h3 .fa { color: #25a244; }
 .ptl-wa-dialog p  { margin: 0 0 0.9em; font-size: 0.9em; color: var(--text-secondary, #4b5563); }
 .ptl-wa-error { margin-top: 0.4em; font-size: 0.85em; color: var(--ptl-bad); }
-.ptl-wa-actions { display: flex; justify-content: flex-end; gap: 0.6em; margin-top: 1.1em; }
+.ptl-wa-hint  { margin-top: 0.4em; font-size: 0.85em; color: var(--text-secondary, #4b5563); }
+.ptl-wa-link  {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; color: var(--primary-color, #1e5ba8); text-decoration: underline;
+}
+.ptl-wa-off   { margin-right: auto; }
+/* Above the visit and report screens, which are overlays too. */
+.ptl-wa-overlay { z-index: 1200; }
+.ptl-wa-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6em; margin-top: 1.1em; }
 
 /* Progress: Booked → Sample → Results → Report */
 .ptl-steps {

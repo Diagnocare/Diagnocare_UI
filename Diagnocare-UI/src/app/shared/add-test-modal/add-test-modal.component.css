@@ -849,3 +849,13 @@
   font-size: 0.78em;
   color: #1c7c3a;
 }
+
+.atm-whatsapp-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: #1e5ba8;
+  text-decoration: underline;
+}

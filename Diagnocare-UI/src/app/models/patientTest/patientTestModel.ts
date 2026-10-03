@@ -11,6 +11,8 @@ export interface patientTest {
     urgent_Report:      boolean;
     /** The patient asked for this booking's report on WhatsApp. */
     report_On_WhatsApp?: boolean;
+    /** Number this booking's report goes to when it is not the patient's own; else null. */
+    whatsApp_Number?: string | null;
     amount_Tobe_Paid:   number;
     referred_By:        string;
     remark:             string;

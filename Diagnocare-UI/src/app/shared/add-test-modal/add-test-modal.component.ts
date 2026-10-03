@@ -9,6 +9,7 @@
   SimpleChanges,
 } from '@angular/core';
 import {
+  AbstractControl,
   FormBuilder,
   FormGroup,
   FormsModule,
@@ -58,7 +59,6 @@ import {
 import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
 import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
 import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
-import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 
 @Component({
@@ -72,7 +72,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   // ── Inputs / Outputs ──────────────────────────────────────────────────────
   @Input() patientId: string  = '';
   @Input() visible:   boolean = false;
-  /** The patient's saved contact number — decides whether WhatsApp needs a number typed in. */
+  /** The patient's saved contact number — pre-fills the WhatsApp number for this booking. */
   @Input() patientContact: string = '';
 
   @Output() saved     = new EventEmitter<void>();
@@ -190,8 +190,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       urgent_Report:     [false],
       // Per-booking: send THIS booking's report on WhatsApp.
       report_On_WhatsApp: [false],
-      // Only used when WhatsApp is on and the patient has no valid saved number.
-      whatsApp_Contact:  ['', [AppValidators.contactNumber()]],
+      // Number this booking's report goes to. Pre-filled with the patient's own when
+      // the toggle is switched on; may be changed to send the report elsewhere.
+      whatsApp_Number:   ['', [(c: AbstractControl) => (!c.value || isWhatsAppNumber(`${c.value}`) ? null : { whatsAppNumber: true })]],
       test_Amount:       ['', Validators.required],
       referred_By_Type:  ['Doctor', Validators.required],
       referred_By:       ['', Validators.required],
@@ -252,23 +253,52 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return !!this.form.get('report_On_WhatsApp')?.value;
   }
 
-  /** The patient already has a number the report can be sent to. */
+  /** The patient has a number of their own the report could go to. */
   get hasWhatsAppNumber(): boolean {
     return isWhatsAppNumber(this.patientContact);
   }
 
-  /** Saved number shown read-only, e.g. "+91 9876543210". */
-  get whatsAppNumberDisplay(): string {
-    const n = toWhatsAppNumber(this.patientContact);
+  /** A stored number as staff type it: Indian numbers lose the 91 prefix. */
+  private toTypedNumber(raw: string | null | undefined): string {
+    const n = toWhatsAppNumber(raw);
     if (!n) return '';
-    return n.startsWith('91') && n.length === 12 ? `+91 ${n.slice(2)}` : `+${n}`;
+    return n.length === 12 && n.startsWith('91') ? n.slice(2) : `+${n}`;
   }
 
-  /** WhatsApp is on, the patient has no valid number, and none has been typed in yet. */
+  /** The patient's own number for display, e.g. "+91 98765 43210". */
+  get patientNumberDisplay(): string {
+    const n = toWhatsAppNumber(this.patientContact);
+    if (!n) return '';
+    return n.length === 12 && n.startsWith('91') ? `+91 ${n.slice(2, 7)} ${n.slice(7)}` : `+${n}`;
+  }
+
+  /** The number typed for this booking is the patient's own. */
+  get whatsAppIsPatientNumber(): boolean {
+    const typed = toWhatsAppNumber(`${this.form.get('whatsApp_Number')?.value ?? ''}`);
+    return !!typed && typed === toWhatsAppNumber(this.patientContact);
+  }
+
+  /** WhatsApp is on and there is no valid number to send to yet. */
   get whatsAppNeedsNumber(): boolean {
-    if (!this.reportOnWhatsApp || this.hasWhatsAppNumber) return false;
-    const c = this.form.get('whatsApp_Contact');
+    if (!this.reportOnWhatsApp) return false;
+    const c = this.form.get('whatsApp_Number');
     return !c?.value || !!c?.invalid;
+  }
+
+  /** Toggle switched: pre-fill the number with the patient's own, or clear it. */
+  onReportOnWhatsAppChange(): void {
+    const c = this.form.get('whatsApp_Number');
+    if (!c) return;
+    if (this.reportOnWhatsApp) {
+      if (!c.value) c.setValue(this.toTypedNumber(this.patientContact));
+    } else {
+      c.setValue('');
+      c.markAsUntouched();
+    }
+  }
+
+  usePatientNumberForWhatsApp(): void {
+    this.form.get('whatsApp_Number')?.setValue(this.toTypedNumber(this.patientContact));
   }
 
   get isStep1Valid(): boolean {
@@ -982,6 +1012,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         test_Name:         f.test_Name,
         urgent_Report:     f.urgent_Report     ?? false,
         report_On_WhatsApp: !!f.report_On_WhatsApp,
+        // The API keeps it on the booking only when it differs from the patient's own
+        // number; if the patient has no number at all, it becomes theirs.
+        whatsApp_Number:    f.report_On_WhatsApp && f.whatsApp_Number ? `${f.whatsApp_Number}`.trim() : null,
         test_Amount:       f.test_Amount       ?? 0,
         referred_By_Type:  f.referred_By_Type  ?? '',
         referred_By: f.referred_By ?? '',
@@ -993,10 +1026,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         sampling_Done_At:  f.sampling_Done     ?? '',
       },
       receipt,
-      // Saved on the patient by the API — only when WhatsApp is on and there was no valid number.
-      ...(f.report_On_WhatsApp && !this.hasWhatsAppNumber && f.whatsApp_Contact
-        ? { patientContact: `${f.whatsApp_Contact}` }
-        : {}),
     };
 
     this.isSaving  = true;
@@ -1112,7 +1141,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       test_Name:         '',
       urgent_Report:     false,
       report_On_WhatsApp: false,
-      whatsApp_Contact:  '',
+      whatsApp_Number:   '',
       test_Amount:       '',
       referred_By_Type:  'Doctor',
       referred_By:       '',
