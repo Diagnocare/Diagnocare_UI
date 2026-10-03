@@ -23,50 +23,56 @@ import { WorklistItem } from 'src/app/models/worklist/worklist.models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="rc" *ngIf="visible" role="dialog" aria-modal="true"
+    <div class="rc-overlay" *ngIf="visible" role="dialog" aria-modal="true"
          aria-labelledby="rc-title" (keydown.escape)="close()">
-      <div class="rc__backdrop" (click)="close()"></div>
+      <div class="rc-backdrop" (click)="close()"></div>
 
-      <div class="rc__panel">
-        <div class="rc__head">
-          <h3 id="rc-title">Recall this report</h3>
-          <button type="button" class="rc__x" (click)="close()" aria-label="Close">
+      <div class="rc-container">
+
+        <!-- Same shape as the app's other dialogs. The header is red rather than
+             the brand gradient for the same reason sample-rejection is: this
+             withdraws something that already went out. -->
+        <div class="rc-header">
+          <div class="rc-header-left">
+            <h2 id="rc-title">
+              <i class="fa fa-undo" aria-hidden="true"></i>
+              Recall this report
+            </h2>
+            <p class="rc-subtitle" *ngIf="item">
+              {{ item.patientName }} · {{ item.patientAge }} / {{ item.patientGender }}
+              · {{ item.patientId }} · order {{ item.testRegId }}
+            </p>
+          </div>
+
+          <button type="button" class="rc-close" (click)="close()" aria-label="Close">
             <i class="fa fa-times" aria-hidden="true"></i>
           </button>
         </div>
 
-        <div class="rc__who" *ngIf="item">
-          <span class="rc__patient">{{ item.patientName }}</span>
-          <span class="rc__meta">
-            {{ item.patientAge }} / {{ item.patientGender }} ·
-            {{ item.patientId }} · order {{ item.testRegId }}
-          </span>
-          <span class="rc__meta">{{ item.testName }}</span>
-          <span class="rc__meta" *ngIf="item.verifiedBy">
-            Issued by {{ item.verifiedBy }}
-          </span>
-        </div>
+        <div class="rc-body">
+          <p class="rc-test" *ngIf="item">
+            {{ item.testName }}<span *ngIf="item.verifiedBy"> · issued by {{ item.verifiedBy }}</span>
+          </p>
 
-        <div class="rc__body">
           <!-- Said plainly. Someone recalling a report needs to know the report is
                no longer valid from this moment, not discover it afterwards. -->
-          <p class="rc__warn">
+          <p class="rc-warn">
             <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
             The sign-off will be withdrawn and the test goes back to the bench.
             Anyone holding a printed copy has an out-of-date report.
           </p>
 
-          <label class="rc__label" for="rc-reason">Why is it being recalled?</label>
-          <textarea id="rc-reason" class="form-control rc__text" rows="3"
+          <label class="rc-label" for="rc-reason">Why is it being recalled?</label>
+          <textarea id="rc-reason" class="form-control" rows="3"
                     [(ngModel)]="reason" [disabled]="isSaving"
                     placeholder="e.g. Wrong sample — the CBC belongs to another patient."></textarea>
 
-          <p class="rc__hint" *ngIf="!reason.trim()">
+          <p class="rc-hint" *ngIf="!reason.trim()">
             A reason is required. It is kept with the report's history.
           </p>
         </div>
 
-        <div class="rc__foot">
+        <div class="rc-footer">
           <button type="button" class="dc-btn dc-btn--cancel" (click)="close()" [disabled]="isSaving">
             Cancel
           </button>
@@ -81,83 +87,149 @@ import { WorklistItem } from 'src/app/models/worklist/worklist.models';
     </div>
   `,
   styles: [`
+    /* Geometry matches the app's other dialogs — see the note in
+       mark-collected-modal.component.ts. No backticks in here: this sits inside
+       a template literal and one would end the string. */
+
     :host { display: contents; }
 
-    .rc { position: fixed; inset: 0; z-index: 1050; display: flex;
-          align-items: center; justify-content: center; padding: 1rem; }
-    .rc__backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45); }
-
-    .rc__panel {
-      position: relative; width: 100%; max-width: 28rem;
-      background: var(--dc-surface, #ffffff); border-radius: var(--radius-lg, 0.75em);
-      box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.35); overflow: hidden;
+    .rc-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1400;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
     }
 
-    .rc__head {
-      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-      padding: 0.9rem 1rem; border-bottom: 1px solid var(--dc-line, #e1e8ed);
-
-      h3 {
-        margin: 0;
-        font-size: var(--dc-text-title, 1.25rem);
-        font-weight: 600;
-        color: var(--dc-ink, #2c3e50);
-      }
+    .rc-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(2px);
     }
 
-    .rc__x {
-      background: none; border: 0; font-size: 1rem; line-height: 1;
-      padding: 0.4rem; cursor: pointer; color: var(--dc-ink-3, #666666);
-      &:hover { color: var(--dc-ink, #2c3e50); }
-      /* --dc-focus is a box-shadow value; the outline needs the colour token. */
-      &:focus-visible { outline: 3px solid var(--dc-focus-color, #1e5ba8); outline-offset: 2px; }
+    .rc-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(560px, 100%);
+      max-height: 90vh;
+      background: var(--bg-white, #ffffff);
+      border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+      overflow: hidden;
     }
 
-    .rc__who {
-      padding: 0.75rem 1rem; background: var(--dc-surface-2, #f8f9fa);
-      border-bottom: 1px solid var(--dc-line, #e1e8ed);
-    }
-    .rc__patient {
-      display: block; font-weight: 600;
-      font-size: var(--dc-text-body, 0.875rem); color: var(--dc-ink, #2c3e50);
-    }
-    .rc__meta {
-      display: block; margin-top: 0.1rem;
-      font-size: var(--dc-text-meta, 0.8125rem); color: var(--dc-ink-3, #666666);
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .rc-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.4rem;
+      background: var(--btn-danger, linear-gradient(135deg, #991b1b, #b91c1c));
+      color: #ffffff;
     }
 
-    .rc__body { padding: 1rem; }
+    .rc-header h2 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
 
-    .rc__warn {
-      display: flex; gap: 0.5rem; margin: 0 0 0.85rem;
-      padding: 0.6rem 0.75rem; border-radius: var(--radius-md, 0.5em);
-      font-size: var(--dc-text-body, 0.875rem); line-height: 1.45;
+    .rc-subtitle {
+      margin: 0.3rem 0 0;
+      font-size: 0.82rem;
+      opacity: 0.9;
+    }
+
+    .rc-close {
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+    .rc-close:hover { background: rgba(255, 255, 255, 0.3); }
+    .rc-close:focus-visible {
+      outline: 3px solid var(--dc-focus-color, #1e5ba8);
+      outline-offset: 2px;
+    }
+
+    /* ── Body ───────────────────────────────────────────────────────────── */
+    .rc-body {
+      padding: 1.2rem 1.4rem;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      background: var(--bg-light, #f8fafc);
+      font-size: var(--dc-text-body, 0.875rem);
+      color: var(--text-primary, #1e293b);
+    }
+
+    .rc-test {
+      margin: 0 0 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary, #0f172a);
+    }
+
+    .rc-warn {
+      display: flex;
+      gap: 0.5rem;
+      margin: 0 0 0.9rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-md, 0.5em);
+      line-height: 1.45;
       color: var(--dc-danger-ink, #b91c1c);
       background: var(--dc-danger-bg, #fee2e2);
-      i { flex: 0 0 auto; margin-top: 0.1rem; }
+      border: 1px solid var(--dc-danger-line, #fca5a5);
+    }
+    .rc-warn i { flex: 0 0 auto; margin-top: 0.1rem; }
+
+    .rc-label {
+      display: block;
+      margin: 0 0 0.3rem;
+      font-size: var(--dc-text-meta, 0.8125rem);
+      font-weight: 600;
+      color: var(--text-primary, #334155);
     }
 
-    .rc__label {
-      display: block; margin-bottom: 0.4rem; font-weight: 600;
-      font-size: var(--dc-text-meta, 0.8125rem); color: var(--dc-ink, #2c3e50);
-    }
-    .rc__text { width: 100%; font-size: var(--dc-text-body, 0.875rem); }
-
-    .rc__hint {
+    .rc-hint {
       margin: 0.5rem 0 0;
-      font-size: var(--dc-text-meta, 0.8125rem); color: var(--dc-ink-3, #666666);
+      font-size: var(--dc-text-meta, 0.8125rem);
+      color: var(--text-secondary, #666666);
     }
 
-    .rc__foot {
-      display: flex; justify-content: flex-end; align-items: center; gap: 0.75em;
-      padding: 0.85rem 1rem; background: var(--dc-surface-2, #f8f9fa);
-      border-top: 1px solid var(--dc-line, #e1e8ed);
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    .rc-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75em;
+      padding: 0.8rem 1.4rem;
+      border-top: 1px solid var(--border-color, #e2e8f0);
+      background: var(--bg-white, #ffffff);
+      flex-shrink: 0;
     }
 
-    /* No button is styled here. styles.css owns the .dc-btn intents — a
-       component stylesheet is scoped, so a rule written here would only dress
-       the button on this one modal and leave the identical button elsewhere
-       bare. The red confirm is .dc-btn--delete. */
+    @media (max-width: 640px) {
+      .rc-overlay { padding: 0.6rem; }
+      .rc-container { max-height: 95vh; }
+      .rc-body { padding: 0.9rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rc-close { transition: none; }
+    }
   `]
 })
 export class RecallReportModalComponent {

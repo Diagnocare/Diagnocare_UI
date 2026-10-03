@@ -216,7 +216,8 @@
                   <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                     <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                   </select>
-                  <input type="number" appNumericOnly class="form-control" formControlName="patient_Contact"
+                  <input type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
+                    appNumericOnly class="form-control" formControlName="patient_Contact"
                     placeholder="10-digit mobile number"
                     [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
                 </div>
@@ -627,6 +628,39 @@
               <i class="fa fa-info-circle"></i>
               <strong>No payment collected now.</strong> Full amount of
               ₹{{ patientForm.get('net_Amount')?.value }} will be collected at report pickup.
+            </div>
+
+            <!-- A discount edit moved the payment type off Partial. Said out loud,
+                 because a payment type that changes by itself and is not announced is
+                 how a booking gets saved as paid-in-full by accident. -->
+            <div *ngIf="partialResetByDiscount && patientForm.get('payment_Type')?.value === 'Full'"
+                 class="tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              <strong>Payment type reset to Full.</strong>
+              Changing the discount changed the net amount, so the partial amount entered
+              earlier no longer applied. Choose <strong>Partial</strong> again to enter a
+              new amount.
+            </div>
+
+            <!-- Partial selected, nothing entered yet — the way back into the modal.
+
+                 The two amount fields in the summary above are readonly: a partial
+                 amount can only be entered in the Partial Payment modal. Several
+                 things un-confirm a partial payment and blank both amounts — editing
+                 the discount, a change in net amount, switching payment mode. Until
+                 this banner existed, the only control that could reopen the modal was
+                 the Edit button below, which is itself inside *ngIf="paymentConfirmed".
+                 So after a discount edit the user was left with two blank, required,
+                 readonly fields and no control on the page able to fill them; the only
+                 way out was to pick the payment type again. Mirrors the TPA note above. -->
+            <div *ngIf="patientForm.get('payment_Type')?.value === 'Partial' && !paymentConfirmed"
+                 class="tpa-required-note">
+              <i class="fa fa-info-circle"></i>
+              <strong>Partial payment not set.</strong>
+              Enter how much is being paid now.
+              <button type="button" class="tpa-open-btn" (click)="editPaymentDetails()">
+                <i class="fa fa-pencil-alt"></i> Enter Payment Details
+              </button>
             </div>
 
             <!-- Partial Payment Confirmed Banner -->

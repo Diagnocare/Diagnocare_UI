@@ -50,14 +50,14 @@ import { CommonModule } from '@angular/common';
       <p class="dc-empty__message" *ngIf="message">{{ message }}</p>
 
       <div class="dc-empty__actions" *ngIf="actionLabel || secondaryLabel">
-        <button type="button" class="dc-empty__btn dc-empty__btn--primary"
+        <button type="button" class="dc-btn dc-btn--save"
                 *ngIf="actionLabel"
                 (click)="action.emit()">
           <i class="fa" [ngClass]="actionIcon" aria-hidden="true"></i>
           <span>{{ actionLabel }}</span>
         </button>
 
-        <button type="button" class="dc-empty__btn dc-empty__btn--secondary"
+        <button type="button" class="dc-btn dc-btn--clear"
                 *ngIf="secondaryLabel"
                 (click)="secondary.emit()">
           {{ secondaryLabel }}
@@ -103,15 +103,15 @@ import { CommonModule } from '@angular/common';
 
     .dc-empty__title {
       margin: 0;
-      font-size: var(--dc-text-xl, 1.375rem);
-      font-weight: 700;
+      font-size: var(--dc-text-title, 1.25rem);
+      font-weight: 600;
       color: var(--dc-ink, #2c3e50);
       line-height: 1.3;
     }
     .dc-empty__message {
       margin: 0;
       max-width: 34rem;
-      font-size: var(--dc-text, 1rem);
+      font-size: var(--dc-text-body, 0.875rem);
       color: var(--dc-ink-soft, #666);
       line-height: 1.5;
     }
@@ -124,36 +124,10 @@ import { CommonModule } from '@angular/common';
       margin-top: var(--dc-gap-sm, 0.6rem);
     }
 
-    .dc-empty__btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      min-height: var(--dc-touch-lg, 3.5rem);
-      padding: 0 1.75rem;
-      font-family: inherit;
-      font-size: var(--dc-text, 1rem);
-      font-weight: 600;
-      border-radius: var(--dc-radius, 0.625rem);
-      border: var(--dc-border, 2px) solid transparent;
-      cursor: pointer;
-      transition: filter 0.15s ease, background 0.15s ease;
-    }
-    .dc-empty__btn:focus-visible {
-      outline: none;
-      box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,0.35));
-    }
-    .dc-empty__btn--primary {
-      background: var(--dc-brand, #1e5ba8);
-      color: #fff;
-    }
-    .dc-empty__btn--primary:hover { filter: brightness(1.1); }
-    .dc-empty__btn--secondary {
-      background: transparent;
-      color: var(--dc-ink, #2c3e50);
-      border-color: var(--dc-line, #e1e8ed);
-    }
-    .dc-empty__btn--secondary:hover { background: var(--dc-surface-muted, #f8f9fa); }
+    /* The buttons are global .dc-btn intents (save / clear). styles.css owns
+       their size, colour, shape, hover and disabled state, so an empty state
+       offers the same button as the screen behind it. Nothing to style here —
+       see the canonical button system at the end of styles.css. */
   `]
 })
 export class DcEmptyComponent {
