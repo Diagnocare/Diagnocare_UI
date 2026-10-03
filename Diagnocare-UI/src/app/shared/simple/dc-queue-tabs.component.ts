@@ -97,7 +97,10 @@ export interface DcQueueTab {
     }
     .dc-queue:hover { background: var(--dc-surface-2, #f8fafc); }
     .dc-queue:focus-visible {
-      outline: 3px solid var(--dc-focus, #2563eb);
+      /* --dc-focus is a box-shadow value — `outline: 3px solid <shadow>` is
+         invalid and the whole declaration is dropped, which takes the keyboard
+         ring with it. The colour has its own token for exactly this. */
+      outline: 3px solid var(--dc-focus-color, #1e5ba8);
       outline-offset: 2px;
     }
 

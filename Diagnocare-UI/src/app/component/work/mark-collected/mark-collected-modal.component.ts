@@ -74,10 +74,10 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
         </div>
 
         <div class="mc__foot">
-          <button type="button" class="dc-btn" (click)="close()" [disabled]="isSaving">
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="close()" [disabled]="isSaving">
             Cancel
           </button>
-          <button type="button" class="dc-btn dc-btn--primary"
+          <button type="button" class="dc-btn dc-btn--save"
                   [disabled]="!location || isSaving"
                   (click)="save()">
             <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
@@ -111,7 +111,7 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
       width: 100%;
       max-width: 26rem;
       background: var(--dc-surface, #ffffff);
-      border-radius: 0.5rem;
+      border-radius: var(--radius-lg, 0.75em);
       box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.35);
       overflow: hidden;
     }
@@ -122,13 +122,13 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
       justify-content: space-between;
       gap: 0.75rem;
       padding: 0.9rem 1rem;
-      border-bottom: 1px solid var(--dc-line, #e2e8f0);
+      border-bottom: 1px solid var(--dc-line, #e1e8ed);
 
       h3 {
         margin: 0;
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: var(--dc-ink, #0f172a);
+        font-size: var(--dc-text-title, 1.25rem);
+        font-weight: 600;
+        color: var(--dc-ink, #2c3e50);
       }
     }
 
@@ -139,29 +139,31 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
       line-height: 1;
       padding: 0.4rem;
       cursor: pointer;
-      color: var(--dc-ink-3, #64748b);
+      color: var(--dc-ink-3, #666666);
 
-      &:hover { color: var(--dc-ink, #0f172a); }
-      &:focus-visible { outline: 3px solid var(--dc-focus, #2563eb); outline-offset: 2px; }
+      &:hover { color: var(--dc-ink, #2c3e50); }
+      /* --dc-focus is a box-shadow value; the outline needs the colour token. */
+      &:focus-visible { outline: 3px solid var(--dc-focus-color, #1e5ba8); outline-offset: 2px; }
     }
 
     .mc__who {
       padding: 0.75rem 1rem;
-      background: var(--dc-surface-2, #f8fafc);
-      border-bottom: 1px solid var(--dc-line, #e2e8f0);
+      background: var(--dc-surface-2, #f8f9fa);
+      border-bottom: 1px solid var(--dc-line, #e1e8ed);
     }
 
     .mc__patient {
       display: block;
       font-weight: 600;
-      color: var(--dc-ink, #0f172a);
+      font-size: var(--dc-text-body, 0.875rem);
+      color: var(--dc-ink, #2c3e50);
     }
 
     .mc__meta {
       display: block;
       margin-top: 0.1rem;
-      font-size: 0.75rem;
-      color: var(--dc-ink-3, #64748b);
+      font-size: var(--dc-text-meta, 0.8125rem);
+      color: var(--dc-ink-3, #666666);
     }
 
     .mc__body { padding: 1rem; }
@@ -170,21 +172,21 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
       display: block;
       margin-bottom: 0.4rem;
       font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--dc-ink, #0f172a);
+      font-size: var(--dc-text-meta, 0.8125rem);
+      color: var(--dc-ink, #2c3e50);
     }
 
     /* 48px floor, per the kit's first rule — this gets used in a hurry. */
     .mc__select {
       width: 100%;
       min-height: var(--dc-touch, 48px);
-      font-size: 0.95rem;
+      font-size: var(--dc-text-body, 0.875rem);
     }
 
     .mc__hint {
       margin: 0.5rem 0 0;
-      font-size: 0.78rem;
-      color: var(--dc-ink-3, #64748b);
+      font-size: var(--dc-text-meta, 0.8125rem);
+      color: var(--dc-ink-3, #666666);
 
       &--warn { color: var(--dc-wait-ink, #b45309); font-weight: 600; }
     }
@@ -192,10 +194,11 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
     .mc__foot {
       display: flex;
       justify-content: flex-end;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.75em;
       padding: 0.85rem 1rem;
-      background: var(--dc-surface-2, #f8fafc);
-      border-top: 1px solid var(--dc-line, #e2e8f0);
+      background: var(--dc-surface-2, #f8f9fa);
+      border-top: 1px solid var(--dc-line, #e1e8ed);
     }
 
     @media (prefers-reduced-motion: reduce) {
