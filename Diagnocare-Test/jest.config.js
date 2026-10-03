@@ -11,8 +11,8 @@ module.exports = {
 
   // Map bare 'src/...' imports → actual UI project source
   moduleNameMapper: {
-    '^src/app/(.*)$':          '<rootDir>/../Diagnocare_UI/src/app/$1',
-    '^src/environments/(.*)$': '<rootDir>/../Diagnocare_UI/src/environments/$1',
+    '^src/app/(.*)$':          '<rootDir>/../Diagnocare-UI/src/app/$1',
+    '^src/environments/(.*)$': '<rootDir>/../Diagnocare-UI/src/environments/$1',
   },
 
   transform: {
@@ -22,16 +22,22 @@ module.exports = {
     ],
   },
 
+  // Resolve Angular, rxjs etc. from THIS project's node_modules first. The UI
+  // source files live under ../Diagnocare-UI, and if that folder has its own
+  // node_modules, a second copy of Angular gets loaded and every TestBed.inject()
+  // fails with NG0203.
+  moduleDirectories: [require('path').join(__dirname, 'node_modules'), 'node_modules'],
+
   transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
 
   // Coverage — report on UI source, not on the spec files themselves
   collectCoverageFrom: [
-    '../Diagnocare_UI/src/app/services/**/*.ts',
-    '../Diagnocare_UI/src/app/shared/common.service.ts',
-    '../Diagnocare_UI/src/app/component/receipt/bill-receipt.ts',
-    '../Diagnocare_UI/src/app/component/login/home.component.ts',
-    '../Diagnocare_UI/src/app/component/pathology/register-pathology/register-pathology.component.ts',
-    '../Diagnocare_UI/src/app/component/lab-profile/lab-profile.component.ts',
+    '../Diagnocare-UI/src/app/services/**/*.ts',
+    '../Diagnocare-UI/src/app/shared/common.service.ts',
+    '../Diagnocare-UI/src/app/component/receipt/bill-receipt.ts',
+    '../Diagnocare-UI/src/app/component/login/home.component.ts',
+    '../Diagnocare-UI/src/app/component/pathology/register-pathology/register-pathology.component.ts',
+    '../Diagnocare-UI/src/app/component/lab-profile/lab-profile.component.ts',
     '!**/*.spec.ts',
     '!**/node_modules/**',
   ],
