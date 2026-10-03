@@ -47,7 +47,11 @@
   border-radius: 14px;
   box-shadow: 0 1.25em 3.75em rgba(0, 0, 0, 0.22), 0 0.25em 1em rgba(0, 0, 0, 0.12);
   width: 100%;
-  max-width: 30em;
+  /* 40em, not 30em. At 480px every field in this form had to sit on its own
+     row, which is what pushed the dialog past the viewport and made it scroll.
+     With 640px the fields pair up (see .pm-form below) and the whole thing
+     fits. Still narrower than the content-heavy dialogs at 720px. */
+  max-width: 40em;
   margin: 1em;
   max-height: calc(100vh - 2em);
   overflow-y: auto;
@@ -65,7 +69,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1em;
-  padding: 1.25em 1.25em 1em;
+  padding: 1em 1.25em 0.85em;
   border-bottom: 2px solid #f0f4fb;
 }
 
@@ -91,7 +95,7 @@
 
 .pm-title {
   margin: 0;
-  font-size: 1.15em;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary, #1a2e4a);
   line-height: 1.2;
@@ -99,7 +103,7 @@
 
 .pm-subtitle {
   margin: 0.2em 0 0;
-  font-size: 0.8em;
+  font-size: 0.8125em;
   color: var(--text-secondary, #7a8fa8);
 }
 
@@ -141,7 +145,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.2em;
-  padding: 0.85em 1em;
+  padding: 0.75em 0.5em;
   min-width: 0;
 }
 
@@ -166,7 +170,7 @@
 }
 
 .pm-amount-value {
-  font-size: 1.2em;
+  font-size: 1em;
   font-weight: 800;
   color: var(--text-primary, #1a2e4a);
   white-space: nowrap;
@@ -177,10 +181,30 @@
 
 /* ── Form ───────────────────────────────────────────────────────────────── */
 .pm-form {
-  padding: 1.25em;
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
+  /* Two columns: a payment form is a series of short fields, and stacking them
+     one per row is what made this dialog taller than the screen. Anything that
+     is not a short field spans both columns — see the rule below. */
+  padding: 1.1em 1.25em 1.25em;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 0.75em 1em;
+}
+
+/* Full width: panels, totals, the calculator, errors and the action row. Only
+   a plain .pm-field is narrow enough to share a row. */
+.pm-form > .pm-tpa-panel,
+.pm-form > .pm-summary-row,
+.pm-form > .pm-save-error,
+.pm-form > .pm-actions,
+.pm-form > app-payment-calculator,
+.pm-form > dc-payment-panel {
+  grid-column: 1 / -1;
+}
+
+/* One column again once two would be cramped. */
+@media (max-width: 36em) {
+  .pm-form { grid-template-columns: 1fr; }
 }
 
 /* The panel carries no padding of its own — .pm-form above provides it. */
@@ -192,12 +216,12 @@
 .pm-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35em;
+  gap: 0.3em;
 }
 
 /* Uppercase micro-label, same treatment as .form-section-label app-wide. */
 .pm-label {
-  font-size: 0.72em;
+  font-size: 0.8125em;
   font-weight: 700;
   color: var(--text-secondary, #9aa8be);
   text-transform: uppercase;
@@ -225,7 +249,7 @@
   background: var(--bg-light, #f7f9fc);
   color: var(--text-secondary, #5a6a7e);
   font-family: inherit;
-  font-size: 0.82em;
+  font-size: 0.8125em;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, color 0.18s;
@@ -336,7 +360,7 @@
 }
 
 .pm-summary-value {
-  font-size: 1.05em;
+  font-size: 1em;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -354,7 +378,7 @@
   border: 1.5px solid #fecaca;
   border-radius: 10px;
   padding: 0.85em 1.1em;
-  font-size: 0.8em;
+  font-size: 0.8125em;
   font-weight: 600;
   line-height: 1.5;
   color: #b91c1c;
@@ -378,7 +402,7 @@
 }
 
 .pm-tpa-header {
-  font-size: 0.72em;
+  font-size: 0.75em;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -408,7 +432,7 @@
   border: 1.5px solid var(--border-color, #cbd5e1);
   border-radius: var(--radius-sm, 0.25em);
   font-family: inherit;
-  font-size: 0.8em;
+  font-size: 0.875em;
   color: var(--text-primary, #2c3e50);
   background: var(--bg-white, #fff);
   box-sizing: border-box;
@@ -453,7 +477,7 @@
 @media (max-width: 30em) {
   .pm-tpa-grid { grid-template-columns: 1fr; }
   .pm-amount-item { padding: 0.75em 0.5em; }
-  .pm-amount-value { font-size: 1.05em; }
+  .pm-amount-value { font-size: 0.9375em; }
 }
 
 /* ══════════════════════════ THEME OVERRIDES ══════════════════════════════

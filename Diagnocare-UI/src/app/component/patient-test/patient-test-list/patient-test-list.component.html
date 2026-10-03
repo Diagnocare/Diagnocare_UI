@@ -15,15 +15,15 @@
     </div>
 
     <div class="header-actions">
-      <button class="btn btn-primary" (click)="addNewTest()" *ngIf="!showPatientIdInput"
+      <button class="dc-btn dc-btn--add" (click)="addNewTest()" *ngIf="!showPatientIdInput"
               title="Book new tests for this patient">
         <i class="fa fa-plus"></i> Book new test
       </button>
-      <button class="btn btn-outline" (click)="refreshList()" *ngIf="!showPatientIdInput"
+      <button class="dc-btn dc-btn--search" (click)="refreshList()" *ngIf="!showPatientIdInput"
               title="Load the latest status">
         <i class="fa fa-refresh"></i> Refresh
       </button>
-      <button class="btn btn-back" (click)="goBack()">
+      <button class="dc-btn dc-btn--back" (click)="goBack()">
         <i class="fa fa-arrow-left"></i> Back
       </button>
     </div>
@@ -36,7 +36,7 @@
         <h3>Enter Patient ID</h3>
         <input type="text" class="form-control" [(ngModel)]="enteredPatientId"
                placeholder="Patient ID" (keyup.enter)="onPatientIdSubmit()">
-        <button class="btn btn-primary" (click)="onPatientIdSubmit()">Load</button>
+        <button class="dc-btn dc-btn--search" (click)="onPatientIdSubmit()">Load</button>
       </div>
     </div>
   </div>
@@ -63,7 +63,7 @@
         There are no tests on record for patient <strong>{{ patientId }}</strong>.
       </p>
       <div class="no-data-actions">
-        <button class="btn btn-primary btn-lg" (click)="addNewTest()">
+        <button class="dc-btn dc-btn--add" (click)="addNewTest()">
           <i class="fa fa-plus"></i> Book new test
         </button>
       </div>
@@ -256,7 +256,7 @@
       <button type="button"
               *ngIf="vm(test).next !== 'none' && vm(test).next !== 'sampling'"
               class="dc-btn"
-              [ngClass]="(waiting || vm(test).next === 'payment') ? 'dc-btn--save' : 'dc-btn--clear ptl-btn-blue'"
+              [ngClass]="(waiting || vm(test).next === 'payment') ? 'dc-btn--save' : 'dc-btn--clear'"
               (click)="doNextStep(test, $event)">
         {{ nextStepLabel(test) }}
       </button>
@@ -462,13 +462,13 @@
 
                     <button *ngIf="!hasOpenRejection(detail) && resultState(detail) !== 'done'" type="button"
                             class="dc-btn"
-                            [ngClass]="detail.testCode === firstPendingTestCode ? 'dc-btn--save' : 'dc-btn--clear ptl-btn-blue'"
+                            [ngClass]="detail.testCode === firstPendingTestCode ? 'dc-btn--save' : 'dc-btn--clear'"
                             (click)="openParameterView(detail, $event)">
                       {{ resultState(detail) === 'partial' ? 'Finish results' : 'Enter results' }}
                     </button>
 
                     <ng-container *ngIf="!hasOpenRejection(detail) && resultState(detail) === 'done'">
-                      <button type="button" class="dc-btn dc-btn--clear ptl-btn-blue"
+                      <button type="button" class="dc-btn dc-btn--clear"
                               [disabled]="!selectedVisitPaid || isGeneratingReport"
                               (click)="viewTestReport(detail, $event)">
                         <i class="fa" [ngClass]="isGeneratingReport && selectedTestDetail?.testCode === detail.testCode ? 'fa-spinner fa-spin' : 'fa-file-text-o'"></i>
@@ -679,11 +679,11 @@
         </p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" (click)="saveTestReport()">
+        <button class="dc-btn dc-btn--save" (click)="saveTestReport()">
           <i class="fa fa-save"></i> Save results
         </button>
         <!-- Pay Now — payment not yet complete -->
-        <button class="btn btn-pay-now"
+        <button class="dc-btn dc-btn--save"
                 *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) !== 'Paid'
                        && getPaymentStatus(selectedPatientTest) !== 'Awaiting Approval'"
                 (click)="payNowFromReport($event)"
@@ -691,7 +691,7 @@
           <i class="fa fa-credit-card"></i> Pay Now
         </button>
         <!-- Discount above the lab limit → payment held until a Super Admin decides. -->
-        <button class="btn btn-pay-now" disabled
+        <button class="dc-btn dc-btn--save" disabled
                 *ngIf="selectedPatientTest && getPaymentStatus(selectedPatientTest) === 'Awaiting Approval'"
                 title="The discount on this booking is above the lab limit and is waiting for Super Admin approval. Payment can be taken once it is decided.">
           <i class="fa fa-hourglass-half"></i> Discount awaiting approval
@@ -700,7 +700,7 @@
              Both buttons stay visible but disabled while results are missing, so
              it is obvious the report exists and why it cannot be issued yet. -->
         <ng-container *ngIf="!selectedPatientTest || getPaymentStatus(selectedPatientTest) === 'Paid'">
-          <button class="btn btn-info"
+          <button class="dc-btn dc-btn--clear"
                   (click)="generateTestReportPDF()"
                   [disabled]="isGeneratingReport || !canIssueReport"
                   [title]="!canIssueReport ? reportBlockedReason
@@ -708,7 +708,7 @@
             <i class="fa" [ngClass]="isGeneratingReport ? 'fa-spinner fa-spin' : 'fa-file-text-o'"></i>
             {{ isGeneratingReport ? 'Generating…' : 'View Report' }}
           </button>
-          <button class="btn btn-info"
+          <button class="dc-btn dc-btn--clear"
                   (click)="downloadReportPdf()"
                   [disabled]="isDownloadingPdf || !canIssueReport"
                   [title]="!canIssueReport ? reportBlockedReason
