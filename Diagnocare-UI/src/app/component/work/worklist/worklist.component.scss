@@ -134,9 +134,12 @@
     }
   }
 
+  // tabular-nums without a monospace family: the app has one typeface and an
+  // order number set in SF Mono is visibly a different screen. tabular-nums
+  // gives every digit the same advance width in the body font, which is what
+  // actually makes a column of numbers line up — the family never did that.
   .cell-mono {
     display: block;
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     color: var(--dc-ink, #2c3e50);
@@ -223,7 +226,6 @@
   // Plain figures, right-aligned and tabular so the column reads as a column.
   // Turnaround is the number a lab is judged on; it does not need a pill.
   .wait {
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
     font-variant-numeric: tabular-nums;
     font-size: var(--dc-text-body, 0.875rem);
     white-space: nowrap;

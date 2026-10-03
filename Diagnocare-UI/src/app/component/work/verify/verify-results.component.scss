@@ -63,16 +63,15 @@
     color: var(--dc-ink, #2c3e50);
   }
 
+  // See the note in worklist.component.scss: tabular figures, app typeface.
   &__range-cell,
   &__unit {
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
     font-variant-numeric: tabular-nums;
     font-size: var(--dc-text-body, 0.875rem);
     color: var(--dc-ink-3, #666666);
   }
 
   &__value {
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     color: var(--dc-ink, #2c3e50);
@@ -90,7 +89,6 @@
 
   &__flag {
     margin-left: 0.5rem;
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
     font-size: var(--dc-text-micro, 0.75rem);
     font-weight: 700;
     letter-spacing: 0.04em;

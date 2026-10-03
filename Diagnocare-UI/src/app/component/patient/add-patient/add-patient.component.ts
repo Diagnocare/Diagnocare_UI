@@ -95,6 +95,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   paymentConfirmed = false;
   /** Inline error shown inside the Partial Payment modal. */
   amountPaidError  = '';
+  /**
+   * True when a discount edit has just reset a Partial payment back to Full.
+   * Drives the note on the payment step — the payment type changes under the
+   * user, so it has to say so. Cleared as soon as they touch the type again.
+   */
+  partialResetByDiscount = false;
   /** Tracks whether Next/Submit was clicked on each step — triggers inline errors. */
   stepTouched: Record<number, boolean> = { 1: false, 2: false, 3: false, 4: false };
 
@@ -276,7 +282,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         } else {
           // Partial — reset amounts so user goes through the modal
           this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+          this.clearPartialAmounts();
         }
       });
 
@@ -292,7 +298,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           // Net changed after partial confirmation → stale; require re-confirmation
           if (this.paymentConfirmed) {
             this.paymentConfirmed = false;
-            this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+            this.clearPartialAmounts();
           }
         }
       });
@@ -300,9 +306,30 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.patientForm.get('discount')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial && this.paymentConfirmed) {
-          this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+        // A discount edit changes the net amount, so any partial amount already
+        // entered is stale. This used to blank amount_Paid / amount_Pending,
+        // which stranded the user: both fields are readonly and can only be
+        // filled from the Partial Payment modal, and the only control that
+        // reopens that modal sits behind *ngIf="paymentConfirmed" — which this
+        // same code had just set false. Two blank, required, unfillable fields.
+        //
+        // The booking now falls back to Full payment instead. The payment_Type
+        // subscription above rewrites amount_Paid / amount_Pending to the new
+        // net, so the form stays valid, and the radio visibly moves to Full so
+        // the change is not silent (the note on the step says so too). The user
+        // picks Partial again if they still want one, which reopens the modal.
+        //
+        // Deliberately not conditional on paymentConfirmed: closing the modal
+        // with the X leaves Partial selected and unconfirmed, and that state
+        // needs the same escape.
+        //
+        // This runs per keystroke in the discount box, but only the first one
+        // does anything — after it the type is Full, not Partial.
+        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
+          this.paymentConfirmed       = false;
+          this.amountPaidError        = '';
+          this.partialResetByDiscount = true;
+          this.patientForm.patchValue({ payment_Type: paymentType.Full });
         }
         // Runs after the control holds the new value, whichever order the (input)
         // handler and the value accessor fired in — so an over-limit discount
@@ -1277,8 +1304,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.patientForm.patchValue({ payment_Type: paymentType.NoPayment }, { emitEvent: false });
       selectedType = paymentType.NoPayment;
     }
-    this.paymentConfirmed = false;
-    this.amountPaidError  = '';
+    this.paymentConfirmed       = false;
+    this.amountPaidError        = '';
+    this.partialResetByDiscount = false;   // the user has chosen; the note goes
 
     if (selectedType === paymentType.Full) {
       this.patientForm.patchValue({
@@ -1293,7 +1321,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       });
     } else {
       // Partial — reset amounts and open modal for the user to enter how much they're paying
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+      this.clearPartialAmounts();
       this.showModal('paymentModal');
     }
   }
@@ -1316,7 +1344,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
       this.paymentConfirmed = false;
       this.amountPaidError  = '';
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+      this.clearPartialAmounts();
       this.showModal('paymentModal');
     }
   }
@@ -1367,6 +1395,29 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   modalPaymentClose() {
     const el = document.getElementById('paymentModal');
     if (el) this.hideModal('paymentModal');
+  }
+
+  /**
+   * Blank the two amount fields AND forget that the user ever touched them.
+   *
+   * Both are cleared by code, never by the user, so any touched/dirty state left
+   * over from an earlier pass describes a value that no longer exists. Without
+   * the reset the fields come back red the instant they are cleared, before the
+   * user has been given a chance to type anything: `isFieldInvalid()` tests
+   * `c.touched`, and styles.css paints every `input.ng-invalid.ng-touched` with
+   * a red left border — which is why the error appeared both inside the Partial
+   * Payment modal and on the step behind it.
+   *
+   * The controls stay `required` and still invalid; this only stops the form
+   * claiming the user got it wrong when they have not been asked yet.
+   */
+  private clearPartialAmounts(): void {
+    this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+    for (const name of ['amount_Paid', 'amount_Pending']) {
+      const c = this.patientForm.get(name);
+      c?.markAsUntouched();
+      c?.markAsPristine();
+    }
   }
 
   /** Opens the Partial Payment modal again so the user can amend confirmed values. */

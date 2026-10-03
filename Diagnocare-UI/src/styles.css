@@ -1318,7 +1318,15 @@ body:has(#pinAuthModal.show) .spinner-container {
   justify-content: center;
   gap: 0.45em;
   font-family: inherit;
-  font-size: 0.9em;
+  /* rem, not em. font-size is the one property where em resolves against the
+     PARENT, so a button in a .data-table cell (0.875em = 14px) came out at
+     0.9 x 14 = 12.6px while the same button in a .page-header came out at
+     14.4px — the same class, two sizes, depending only on where it was put.
+     A button is the same size everywhere, so it is sized against the root.
+     The paddings below stay in em: on an element, em in any property other
+     than font-size resolves against that element's OWN size, so they follow
+     the button and stay in proportion. */
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.1;
   padding: 0.6em 1.2em;
@@ -1339,7 +1347,7 @@ body:has(#pinAuthModal.show) .spinner-container {
   filter: none;
 }
 .dc-btn i { font-size: 0.95em; }
-.dc-btn--sm { padding: 0.4em 0.85em; font-size: 0.82em; }
+.dc-btn--sm { padding: 0.4em 0.85em; font-size: 0.82rem; }
 .dc-btn--block { width: 100%; }
 
 /* ── Save / positive primary — brand blue gradient ───────────────────────── */
@@ -2605,7 +2613,8 @@ td .action-buttons,
 .btn-filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
 .btn-refresh:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg) {
   padding: 0.6em 1.2em !important;
-  font-size: 0.9em !important;
+  /* rem for the same reason as the base .dc-btn rule above. */
+  font-size: 0.9rem !important;
 }
 
 /* ── Resting state: solid brand blue, white label ─────────────────────────── */
