@@ -67,10 +67,10 @@ import { WorklistItem } from 'src/app/models/worklist/worklist.models';
         </div>
 
         <div class="rc__foot">
-          <button type="button" class="dc-btn" (click)="close()" [disabled]="isSaving">
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="close()" [disabled]="isSaving">
             Cancel
           </button>
-          <button type="button" class="dc-btn dc-btn--danger"
+          <button type="button" class="dc-btn dc-btn--delete"
                   [disabled]="!reason.trim() || isSaving"
                   (click)="save()">
             <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-reply'" aria-hidden="true"></i>
@@ -89,37 +89,49 @@ import { WorklistItem } from 'src/app/models/worklist/worklist.models';
 
     .rc__panel {
       position: relative; width: 100%; max-width: 28rem;
-      background: var(--dc-surface, #ffffff); border-radius: 0.5rem;
+      background: var(--dc-surface, #ffffff); border-radius: var(--radius-lg, 0.75em);
       box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.35); overflow: hidden;
     }
 
     .rc__head {
       display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-      padding: 0.9rem 1rem; border-bottom: 1px solid var(--dc-line, #e2e8f0);
+      padding: 0.9rem 1rem; border-bottom: 1px solid var(--dc-line, #e1e8ed);
 
-      h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--dc-ink, #0f172a); }
+      h3 {
+        margin: 0;
+        font-size: var(--dc-text-title, 1.25rem);
+        font-weight: 600;
+        color: var(--dc-ink, #2c3e50);
+      }
     }
 
     .rc__x {
       background: none; border: 0; font-size: 1rem; line-height: 1;
-      padding: 0.4rem; cursor: pointer; color: var(--dc-ink-3, #64748b);
-      &:hover { color: var(--dc-ink, #0f172a); }
-      &:focus-visible { outline: 3px solid var(--dc-focus, #2563eb); outline-offset: 2px; }
+      padding: 0.4rem; cursor: pointer; color: var(--dc-ink-3, #666666);
+      &:hover { color: var(--dc-ink, #2c3e50); }
+      /* --dc-focus is a box-shadow value; the outline needs the colour token. */
+      &:focus-visible { outline: 3px solid var(--dc-focus-color, #1e5ba8); outline-offset: 2px; }
     }
 
     .rc__who {
-      padding: 0.75rem 1rem; background: var(--dc-surface-2, #f8fafc);
-      border-bottom: 1px solid var(--dc-line, #e2e8f0);
+      padding: 0.75rem 1rem; background: var(--dc-surface-2, #f8f9fa);
+      border-bottom: 1px solid var(--dc-line, #e1e8ed);
     }
-    .rc__patient { display: block; font-weight: 600; color: var(--dc-ink, #0f172a); }
-    .rc__meta { display: block; margin-top: 0.1rem; font-size: 0.75rem; color: var(--dc-ink-3, #64748b); }
+    .rc__patient {
+      display: block; font-weight: 600;
+      font-size: var(--dc-text-body, 0.875rem); color: var(--dc-ink, #2c3e50);
+    }
+    .rc__meta {
+      display: block; margin-top: 0.1rem;
+      font-size: var(--dc-text-meta, 0.8125rem); color: var(--dc-ink-3, #666666);
+    }
 
     .rc__body { padding: 1rem; }
 
     .rc__warn {
       display: flex; gap: 0.5rem; margin: 0 0 0.85rem;
-      padding: 0.6rem 0.75rem; border-radius: 0.35rem;
-      font-size: 0.8rem; line-height: 1.45;
+      padding: 0.6rem 0.75rem; border-radius: var(--radius-md, 0.5em);
+      font-size: var(--dc-text-body, 0.875rem); line-height: 1.45;
       color: var(--dc-danger-ink, #b91c1c);
       background: var(--dc-danger-bg, #fee2e2);
       i { flex: 0 0 auto; margin-top: 0.1rem; }
@@ -127,23 +139,25 @@ import { WorklistItem } from 'src/app/models/worklist/worklist.models';
 
     .rc__label {
       display: block; margin-bottom: 0.4rem; font-weight: 600;
-      font-size: 0.9rem; color: var(--dc-ink, #0f172a);
+      font-size: var(--dc-text-meta, 0.8125rem); color: var(--dc-ink, #2c3e50);
     }
-    .rc__text { width: 100%; font-size: 0.95rem; }
+    .rc__text { width: 100%; font-size: var(--dc-text-body, 0.875rem); }
 
-    .rc__hint { margin: 0.5rem 0 0; font-size: 0.78rem; color: var(--dc-ink-3, #64748b); }
+    .rc__hint {
+      margin: 0.5rem 0 0;
+      font-size: var(--dc-text-meta, 0.8125rem); color: var(--dc-ink-3, #666666);
+    }
 
     .rc__foot {
-      display: flex; justify-content: flex-end; gap: 0.5rem;
-      padding: 0.85rem 1rem; background: var(--dc-surface-2, #f8fafc);
-      border-top: 1px solid var(--dc-line, #e2e8f0);
+      display: flex; justify-content: flex-end; align-items: center; gap: 0.75em;
+      padding: 0.85rem 1rem; background: var(--dc-surface-2, #f8f9fa);
+      border-top: 1px solid var(--dc-line, #e1e8ed);
     }
 
-    .dc-btn--danger {
-      background: var(--dc-danger-ink, #b91c1c);
-      border-color: var(--dc-danger-ink, #b91c1c);
-      color: #fff;
-    }
+    /* No button is styled here. styles.css owns the .dc-btn intents — a
+       component stylesheet is scoped, so a rule written here would only dress
+       the button on this one modal and leave the identical button elsewhere
+       bare. The red confirm is .dc-btn--delete. */
   `]
 })
 export class RecallReportModalComponent {

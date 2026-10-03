@@ -433,8 +433,37 @@
         [selectedCodes]="selectedTestCodes"
         [loading]="isLoadingAllTests"
         (toggled)="onPickerToggled($event)"
+        (focused)="onPickerFocused($event)"
         (confirmed)="confirmTestSelection()"
         (cancelled)="cancelTestCatalog()">
+
+        <!-- Protocol for the test last tapped. Full width under the columns:
+             procedure and rejection criteria are paragraphs, and a column that
+             narrow makes them unreadable at the moment they matter. -->
+        <ng-template #dcpProtocol>
+          <div class="atm-catalog-protocol" [class.atm-catalog-protocol--collapsed]="!showFocusedProtocol">
+            <div class="atm-catalog-protocol-bar">
+              <span class="atm-catalog-protocol-title">
+                <i class="fa fa-flask"></i> Sample Collection Protocol
+                <span class="atm-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
+              </span>
+              <button type="button" class="atm-protocol-toggle"
+                      [attr.aria-expanded]="showFocusedProtocol"
+                      (click)="showFocusedProtocol = !showFocusedProtocol">
+                <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
+                              [class.fa-chevron-down]="!showFocusedProtocol"></i>
+                {{ showFocusedProtocol ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <app-test-protocol-panel *ngIf="showFocusedProtocol"
+              [protocols]="focusedProtocols"
+              [testName]="focusedProtocolTestName"
+              [testCode]="focusedProtocolTestCode"
+              [loading]="focusedProtocolLoading"
+              emptySelectionMessage="Tap a test to see how its sample must be collected.">
+            </app-test-protocol-panel>
+          </div>
+        </ng-template>
       </dc-test-picker>
     </div>
 

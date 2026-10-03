@@ -4,7 +4,12 @@
 # - Local npm build + robocopy into IIS (no slow SCP from GitHub)
 # Triggers: push to master_UI (or manual "Run workflow").
 # Flow in ONE run:
-#   deploy DEV → approval gate → deploy QA
+#   unit tests → build → deploy DEV → approval gate → deploy QA
+# The Jest tests in Diagnocare-Test run before the DEV build: a failing test stops
+# the run, so nothing is deployed. The result is shown on the run page and in the
+# QA approval issue. Suites excluded from the gate are listed in
+# Diagnocare-Test/jest.ci.config.js.
+# Emergency bypass: repository variable SKIP_UNIT_TESTS=true (shown as a warning).
 # The approval gate opens a GitHub issue and waits for an authorized user
 # to comment "/approve" before QA runs ("/deny" or timeout cancels QA).
 # ============================================================
@@ -17,6 +22,7 @@ on:
       - master_UI
     paths:
       - "Diagnocare-UI/**"
+      - "Diagnocare-Test/**"
       - ".github/workflows/ui-dev-qa.yml"
   workflow_dispatch: {}
 
@@ -41,20 +47,24 @@ jobs:
   # JOB 1: Build & Deploy DEV (automatic)
   # ============================================================
   deploy-dev:
-    name: Build & Deploy DEV
+    name: Test, Build & Deploy DEV
     runs-on: [self-hosted, windows-ui-builder]
-    timeout-minutes: 15
+    timeout-minutes: 20
+    outputs:
+      # One line, e.g. "PASSED - 7 of 7 tests"; shown in the QA approval issue.
+      unit_tests: ${{ steps.unit_tests.outputs.summary || steps.unit_tests_skipped.outputs.summary }}
     defaults:
       run:
         working-directory: Diagnocare-UI
         shell: powershell
 
     steps:
-      - name: Checkout UI only
+      - name: Checkout UI and its unit tests
         uses: actions/checkout@v4
         with:
           sparse-checkout: |
             Diagnocare-UI
+            Diagnocare-Test
           sparse-checkout-cone-mode: true
           fetch-depth: 1
 
@@ -66,6 +76,34 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund --prefer-offline
+
+      # ── Unit tests (Diagnocare-Test, Jest) ──────────────────────────────────
+      # Runs before the build: a failing test fails this job, so DEV and QA are
+      # never touched. The tests mock HTTP, so they need no API or secrets.
+      - name: Install unit test dependencies
+        if: vars.SKIP_UNIT_TESTS != 'true'
+        working-directory: Diagnocare-Test
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Run unit tests
+        id: unit_tests
+        if: vars.SKIP_UNIT_TESTS != 'true'
+        working-directory: Diagnocare-Test
+        run: |
+          $report = Join-Path $env:RUNNER_TEMP 'ui-unit-tests.json'
+          if (Test-Path $report) { Remove-Item -Force $report }
+          npx jest -c jest.ci.config.js --ci --json --outputFile="$report"
+          $testExit = $LASTEXITCODE
+          node scripts/write-summary.js "$report"
+          if ($testExit -ne 0) { throw "UI unit tests failed (exit code $testExit) - nothing will be deployed. See the run summary." }
+
+      - name: Unit tests skipped
+        id: unit_tests_skipped
+        if: vars.SKIP_UNIT_TESTS == 'true'
+        working-directory: .
+        run: |
+          Write-Host "::warning::UI unit tests were SKIPPED because the repository variable SKIP_UNIT_TESTS is 'true'."
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "summary=SKIPPED (SKIP_UNIT_TESTS=true)`n")
 
       - name: Build DEV
         run: npx --yes ng build --configuration development
@@ -99,6 +137,8 @@ jobs:
             $p = Join-Path $ui $d
             if (Test-Path $p) { Remove-Item -Recurse -Force $p }
           }
+          $testModules = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-Test\node_modules'
+          if (Test-Path $testModules) { Remove-Item -Recurse -Force $testModules }
           Write-Host '[OK] node_modules/dist/.angular removed (DEV)'
 
   # ============================================================
@@ -119,6 +159,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           APPROVAL_TIMEOUT_MINUTES: '120'   # gate fails (QA skipped) after this
           POLL_SECONDS: '20'
+          UNIT_TESTS: ${{ needs.deploy-dev.outputs.unit_tests }}
         run: |
           $ErrorActionPreference = 'Stop'
           $repo    = '${{ github.repository }}'
@@ -142,6 +183,8 @@ jobs:
           $title  = "Deploy UI to QA approval - run ${{ github.run_id }} ($sha)"
           $body   = @"
           DEV deployment succeeded for commit $sha.
+
+          Unit tests: $env:UNIT_TESTS
 
           Comment '/approve' on this issue to deploy the UI to QA, or '/deny' to cancel.
           This gate times out in $env:APPROVAL_TIMEOUT_MINUTES minutes.
