@@ -478,137 +478,6 @@ textarea.form-control {
   margin-top: 1em;
 }
 
-// ─── Test Catalog Modal ────────────────────────────────────────────────────
-.list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(180deg, #f0fbfb, #e9f8f8);
-  border-radius: 6px;
-  width: 100%;
-  padding: 6px;
-  margin-bottom: 6px;
-  cursor: pointer;
-  transition: transform .08s, box-shadow .08s;
-  border: 1px solid rgba(10, 100, 120, 0.06);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(19, 63, 87, 0.05);
-    background: hsl(185 84% 90%);
-  }
-
-  .left { width: 56%; }
-  .right { width: 24%; font-weight: 700; color: #234a57; min-width: 50px; text-align: right; }
-
-  .left .code { font-weight: 700; color: #146c98; margin-bottom: 4px; font-size: 0.85em; }
-  .left .name { color: #234a57; font-size: 0.78em; opacity: 0.85; }
-
-  // ── Transient: last-clicked group / subgroup / test row ─────────────────
-  &.active {
-    background: hsl(201, 97%, 36%);
-    border-color: transparent;
-    box-shadow: 0 4px 14px rgba(7, 144, 203, 0.22);
-
-    .left .code, .left .name, .right { color: #fff; opacity: 1; }
-  }
-
-  // ── Persistent: test has been added to the selection ─────────────────────
-  &.test-selected {
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    border: 1.5px solid #4ade80;
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
-
-    .left .code { color: #15803d; }
-    .left .name { color: #166534; opacity: 1; }
-    .right.price { color: #15803d; }
-
-    &:hover {
-      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
-    }
-  }
-
-  // Selected + active at the same time → green wins (show it's in the basket)
-  &.test-selected.active {
-    background: linear-gradient(135deg, #16a34a, #15803d);
-    border-color: #15803d;
-    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
-
-    .left .code, .left .name, .right { color: #fff; opacity: 1; }
-  }
-}
-
-.test-item { display: flex; align-items: center; }
-.icon-wrap  { margin-right: 10px; display: flex; align-items: center; }
-.icon       { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-
-.selected-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.6em 0.75em;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #fbfefe, #f6fbfb);
-  border: 1px solid rgba(30,55,72,0.06);
-  margin-bottom: 8px;
-
-  .left  { display: flex; flex-direction: column; gap: 3px; }
-  .meta  { font-size: 0.72em; color: #7e98a2; font-weight: 700; }
-  .code  { font-weight: 700; color: #146c98; font-size: 0.85em; }
-  .name  { font-size: 0.78em; color: #234a57; opacity: 0.9; }
-  .right { display: flex; align-items: center; gap: 8px; }
-  .price { font-weight: 700; color: #0c83b7; min-width: 56px; text-align: right; font-size: 0.85em; }
-}
-
-.total-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 8px;
-  padding: 0.7em 1em;
-  background: linear-gradient(135deg, #eef4ff, #f5f0ff);
-  font-weight: 700;
-  color: #1a2e4a;
-  font-size: 0.88em;
-  border: 1px solid #d5e2fb;
-}
-
-.total-amount { font-size: 1.3em; font-weight: 800; color: #0c83b7; }
-.total-label  { font-size: 0.75em; color: #7e98a2; }
-
-.card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(22,45,60,0.07);
-  border: 1px solid rgba(30, 55, 72, 0.06);
-  display: flex;
-  flex-direction: column;
-  height: 520px;
-  padding: 0;
-  overflow: hidden;
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.6em 0.85em;
-    font-weight: 700;
-    color: #234a57;
-    font-size: 0.85em;
-    border-bottom: 1px solid #eef1f8;
-    margin-bottom: 0;
-    padding-bottom: 0.6em;
-  }
-
-  .card-body {
-    overflow-y: auto;
-    padding: 0.5em;
-    flex: 1;
-  }
-}
-
-.no-data { text-align: center; padding: 2em 1em; color: #9aa8be; font-size: 0.85em; }
 
 // ─── Partial Payment Modal — locked Net Amount field ───────────────────────
 .pm-locked-field {
@@ -913,12 +782,18 @@ textarea.form-control {
 
 /* ══════════════════════════════════════════════════════════════════════════
    Sample collection protocol
-   Mirrors the equivalent block in add-test-modal.component.css — the two test
-   pickers are separate components, so a change here belongs in both.
+   The catalogue itself is now <dc-test-picker>, shared with the Add New Test
+   flow. Only the protocol panel projected into it is styled per screen, and
+   add-test-modal.component.css carries the matching .atm-* block.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Panel under the catalogue's four columns. Capped and scrollable so a long
-   procedure cannot push the Confirm Selection button out of reach. */
+/* The card the catalogue takes over when the operator browses tests. Matches
+   .atm-catalog-card in the Add New Test flow — the picker brings its own
+   padding, so the card only has to clip its corners. */
+.ap-catalog-card { overflow: hidden; }
+
+/* Panel under the catalogue's columns. Capped and scrollable so a long
+   procedure cannot push the picker's Done button out of reach. */
 .ap-catalog-protocol {
   margin-top: 0.9rem;
   padding: 0.9rem 1rem;

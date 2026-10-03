@@ -4,8 +4,8 @@ import { CommonModule } from '@angular/common';
 import { StepperComponent } from '../stepper/stepper.component';
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
@@ -34,6 +34,11 @@ import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
+// The catalogue itself. Shared with AddTestModalComponent so registration and
+// Add New Test are the same screen rather than two look-alikes that drift.
+import {
+  DcTestPickerComponent, DcPickableTest, DcTestGroup,
+} from 'src/app/shared/simple/dc-test-picker.component';
 import {
   TestBookingProtocolsDto,
   TestProtocolDto,
@@ -55,6 +60,7 @@ import {
     NumericOnlyDirective,
     PaymentCalculatorComponent,
     TestProtocolPanelComponent,
+    DcTestPickerComponent,
   ],
   providers: [],
   standalone: true,
@@ -89,13 +95,18 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   paymentConfirmed = false;
   /** Inline error shown inside the Partial Payment modal. */
   amountPaidError  = '';
+  /**
+   * True when a discount edit has just reset a Partial payment back to Full.
+   * Drives the note on the payment step — the payment type changes under the
+   * user, so it has to say so. Cleared as soon as they touch the type again.
+   */
+  partialResetByDiscount = false;
   /** Tracks whether Next/Submit was clicked on each step — triggers inline errors. */
   stepTouched: Record<number, boolean> = { 1: false, 2: false, 3: false, 4: false };
 
   // ── TPA state ──────────────────────────────────────────────────────────────
   showTpaModal = false;
   tpaDetails: TpaDetails | null = null;
-  query = '';
   today: string = new Date().toISOString().split('T')[0];
   salutation = Object.values(salutation);
   gender = Object.values(gender);
@@ -117,17 +128,22 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   patientForm: FormGroup;
   countryCodes: { code: string, label: string }[] = [];
-  groupedTests: GroupSubGroupModel[] = [];
-  subGroupTests: GroupSubGroupModel[] = [];
-  pathologyTest: any[] = [];
-  selectedTestGroup?: GroupSubGroupModel;
-  selectedSubGroup?: GroupSubGroupModel;
-  selectedTest?: any;
   showTest: boolean = false;
   showOtherTestDetails: boolean = true;
 
-  selectedGroupId: string | null = null;
-  selectedSubGroupId: string | null = null;
+  /** True while the catalogue has taken over the card from the step form. */
+  showTestCatalog = false;
+
+  /**
+   * The catalogue as a tree, for <dc-test-picker>. The old browser fetched one
+   * column at a time because one column was all it could show; the picker also
+   * searches across every test, so it needs the lot up front.
+   */
+  testGroups: DcTestGroup[] = [];
+  /** The same catalogue flat and de-duplicated — resolves a code the picker returns. */
+  allTests: TestItem[] = [];
+  isLoadingAllTests = false;
+
   selectedTestIds = new Set<string>();
   selectedTests: TestItem[] = [];
   focusedTestId: string | null = null;
@@ -266,7 +282,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         } else {
           // Partial — reset amounts so user goes through the modal
           this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+          this.clearPartialAmounts();
         }
       });
 
@@ -282,7 +298,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           // Net changed after partial confirmation → stale; require re-confirmation
           if (this.paymentConfirmed) {
             this.paymentConfirmed = false;
-            this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+            this.clearPartialAmounts();
           }
         }
       });
@@ -290,9 +306,30 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.patientForm.get('discount')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial && this.paymentConfirmed) {
-          this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+        // A discount edit changes the net amount, so any partial amount already
+        // entered is stale. This used to blank amount_Paid / amount_Pending,
+        // which stranded the user: both fields are readonly and can only be
+        // filled from the Partial Payment modal, and the only control that
+        // reopens that modal sits behind *ngIf="paymentConfirmed" — which this
+        // same code had just set false. Two blank, required, unfillable fields.
+        //
+        // The booking now falls back to Full payment instead. The payment_Type
+        // subscription above rewrites amount_Paid / amount_Pending to the new
+        // net, so the form stays valid, and the radio visibly moves to Full so
+        // the change is not silent (the note on the step says so too). The user
+        // picks Partial again if they still want one, which reopens the modal.
+        //
+        // Deliberately not conditional on paymentConfirmed: closing the modal
+        // with the X leaves Partial selected and unconfirmed, and that state
+        // needs the same escape.
+        //
+        // This runs per keystroke in the discount box, but only the first one
+        // does anything — after it the type is Full, not Partial.
+        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
+          this.paymentConfirmed       = false;
+          this.amountPaidError        = '';
+          this.partialResetByDiscount = true;
+          this.patientForm.patchValue({ payment_Type: paymentType.Full });
         }
         // Runs after the control holds the new value, whichever order the (input)
         // handler and the value accessor fired in — so an over-limit discount
@@ -732,57 +769,123 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Tests ──────────────────────────────────────────────────────────────────
 
-  get filteredGroups():    GroupSubGroupModel[] { const q = this.query.trim().toLowerCase(); return q ? this.groupedTests.filter(g  => `${g.testGroupId} ${g.name}`.toLowerCase().includes(q))  : this.groupedTests;  }
-  get filteredSubGroups(): GroupSubGroupModel[] { const q = this.query.trim().toLowerCase(); return q ? this.subGroupTests.filter(s  => `${s.testGroupId} ${s.name}`.toLowerCase().includes(q))  : this.subGroupTests; }
-  get filteredTests():     any[]           { const q = this.query.trim().toLowerCase(); return q ? this.pathologyTest.filter(t  => `${t.testCode} ${t.testName}`.toLowerCase().includes(q)) : this.pathologyTest; }
   get totalAmount(): number { return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0); }
 
-  openTestForm(event: Event): void {
-    this.query = '';
-    this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.groupedTests = res ?? [];
-        this.selectedTestGroup = this.groupedTests[0];
-        this.selectedGroupId = this.selectedTestGroup?.testGroupId;
-        this.getSubGroupList(this.selectedTestGroup!);
+  /** Codes of the chosen tests, in pick order — what the picker highlights. */
+  get selectedTestCodes(): string[] {
+    return this.selectedTests.map(t => t.testCode).filter(c => !!c);
+  }
+
+  /** Hands the card over to the catalogue and fetches it if this is the first time. */
+  openTestForm(_event?: Event): void {
+    this.showTestCatalog = true;
+    this.loadAllTests();
+  }
+
+  /** Back out without touching the selection — the form is exactly as it was. */
+  cancelTestCatalog(): void {
+    this.showTestCatalog = false;
+  }
+
+  /**
+   * The whole catalogue — groups, their sub-groups, and the tests in each.
+   *
+   * Built from the three endpoints that already exist, so no API change was
+   * needed. Every request fails soft: one bad sub-group costs its own tests,
+   * not the whole catalogue. Cached for the life of the component.
+   *
+   * Mirrors AddTestModalComponent.loadAllTests.
+   */
+  private loadAllTests(): void {
+    if (this.testGroups.length > 0 || this.isLoadingAllTests) return;
+    this.isLoadingAllTests = true;
+
+    this._testService.getTestGroupList().pipe(
+      switchMap((groups: GroupSubGroupModel[]) => {
+        if (!groups || groups.length === 0) return of([] as any[]);
+
+        return forkJoin(groups.map(group =>
+          this._testService.getTestSubGroupList(group.testGroupId).pipe(
+            catchError(() => of([] as GroupSubGroupModel[])),
+            switchMap((subs: GroupSubGroupModel[]) => {
+              if (!subs || subs.length === 0) {
+                return of({
+                  id: group.testGroupId, name: group.name,
+                  subGroups: [] as { id: string; name: string; tests: DcPickableTest[] }[],
+                  rawTests:  [] as TestItem[],
+                });
+              }
+              return forkJoin(subs.map(sub =>
+                this._testService.getMedicalTestList(sub.testGroupId).pipe(
+                  catchError(() => of([] as any[])),
+                  map((tests: any[]) => ({
+                    id:       sub.testGroupId,
+                    name:     sub.name,
+                    tests:    (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
+                    rawTests: (tests ?? []) as TestItem[],
+                  })),
+                )
+              )).pipe(map(subGroups => ({
+                id:        group.testGroupId,
+                name:      group.name,
+                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
+                rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
+              })));
+            }),
+          )
+        ));
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe({
+      next: (groups: any[]) => {
+        this.testGroups = (groups ?? []).map((g: any) => ({
+          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
+        })) as DcTestGroup[];
+
+        // A test can sit under more than one sub-group, and the picker hands
+        // back a code we have to resolve to exactly one TestItem.
+        const seen = new Set<string>();
+        this.allTests = ([] as TestItem[])
+          .concat(...(groups ?? []).map((g: any) => g.rawTests ?? []))
+          .filter((t: TestItem) => {
+            const code = String(t?.testCode ?? '');
+            if (!code || seen.has(code)) return false;
+            seen.add(code);
+            return true;
+          });
+
+        this.isLoadingAllTests = false;
       },
-      error: () => { this.groupedTests = []; }   // message shown centrally by ErrorInterceptor
+      // Message shown centrally by ErrorInterceptor.
+      error: () => { this.isLoadingAllTests = false; },
     });
   }
 
-  getSubGroupList(tg: GroupSubGroupModel): void {
-    this.selectedTestGroup = tg;
-    this._testService.getTestSubGroupList(tg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.subGroupTests = res ?? [];
-        this.selectedSubGroup = this.subGroupTests[0];
-        this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
-        this.getMedicalTestList(this.selectedSubGroup!);
-      },
-      error: () => { this.subGroupTests = []; }   // message shown centrally by ErrorInterceptor
-    });
+  /** TestItem → the plain shape the picker understands. */
+  private toPickable(t: TestItem, groupName: string): DcPickableTest {
+    return {
+      code:     String(t?.testCode ?? ''),
+      name:     String(t?.testName ?? ''),
+      price:    Number(t?.price ?? 0),
+      bookable: this.isTestBookable(t),
+      group:    groupName,
+    };
   }
 
-  getMedicalTestList(sg: GroupSubGroupModel): void {
-    this.selectedSubGroup = sg;
-    this._testService.getMedicalTestList(sg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.pathologyTest = res ?? [];
-        this.selectedTest  = this.pathologyTest[0];
-        const el = document.getElementById('testCatalogModal');
-          if (el) this.showModal('testCatalogModal');
-      },
-      error: () => { this.pathologyTest = []; }   // message shown centrally by ErrorInterceptor
-    });
+  /** Bridges a code from the picker back to the selection rules below. */
+  onPickerToggled(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) this.toggleTestSelection(test);
   }
 
-  getSelectedClass(item: any): string {
-    return (item === this.selectedTestGroup || item === this.selectedSubGroup || item === this.selectedTest)
-      ? 'selectedTestFormRow' : '';
+  /** The test the protocol panel under the catalogue is describing. */
+  onPickerFocused(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) {
+      this.focusedTestId = test.testCode;
+      this.loadFocusedProtocol(test);
+    }
   }
-
-  selectGroup(g: GroupSubGroupModel)    { this.selectedGroupId = g.testGroupId; this.getSubGroupList(g); }
-  selectSubGroup(s: GroupSubGroupModel) { this.selectedSubGroupId = s.testGroupId; this.getMedicalTestList(s); }
 
   /**
    * A test with no parameters configured cannot be booked — there is nothing to
@@ -882,10 +985,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       .filter((x): x is { testName: string; hours: number | null } => x !== null);
   }
 
+  /**
+   * Adds or removes one test. Focus and its protocol are handled by
+   * onPickerFocused, which the picker fires first on the same tap — loading it
+   * here as well would send two requests for every click.
+   */
   toggleTestSelection(t: TestItem) {
-    this.focusedTestId = t.testCode;
-    this.loadFocusedProtocol(t);
-
     // Selecting is blocked, but de-selecting must always work — otherwise a test
     // whose last parameter was deleted after it was picked would be stuck in the
     // basket with no way to remove it.
@@ -899,21 +1004,16 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
+      // Drop the protocol card for a test that is no longer in the basket.
+      this.selectedTestProtocols = this.selectedTestProtocols.filter(p => p.testCode !== t.testCode);
     } else {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
     }
   }
 
-  removeSelected(testId: string) {
-    const t = this.selectedTests.find(x => x.testCode === testId);
-    if (!t) return;
-    this.selectedTestIds.delete(testId);
-    this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
-    this.selectedTestProtocols = this.selectedTestProtocols.filter(t => t.testCode !== testId);
-  }
-
-  modalTestClose() {
+  /** Applies the basket to the form and returns to the step. */
+  confirmTestSelection() {
     // Catches anything that got in before its parameters were removed.
     const unbookable = this.selectedTests.filter(t => !this.isTestBookable(t));
     if (unbookable.length) {
@@ -927,8 +1027,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_Name:   this.selectedTests.map(t => t.testName).join(', '),
       test_Amount: this.totalAmount
     });
-    const el = document.getElementById('testCatalogModal');
-    if (el) this.hideModal('testCatalogModal');
+    this.showTestCatalog = false;
     this.calculateNetAmount();
     // Bring the requirements back to the form step, where the operator is still with the
     // patient and can tell them about fasting before they leave.
@@ -1205,8 +1304,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.patientForm.patchValue({ payment_Type: paymentType.NoPayment }, { emitEvent: false });
       selectedType = paymentType.NoPayment;
     }
-    this.paymentConfirmed = false;
-    this.amountPaidError  = '';
+    this.paymentConfirmed       = false;
+    this.amountPaidError        = '';
+    this.partialResetByDiscount = false;   // the user has chosen; the note goes
 
     if (selectedType === paymentType.Full) {
       this.patientForm.patchValue({
@@ -1221,7 +1321,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       });
     } else {
       // Partial — reset amounts and open modal for the user to enter how much they're paying
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+      this.clearPartialAmounts();
       this.showModal('paymentModal');
     }
   }
@@ -1244,7 +1344,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
       this.paymentConfirmed = false;
       this.amountPaidError  = '';
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+      this.clearPartialAmounts();
       this.showModal('paymentModal');
     }
   }
@@ -1295,6 +1395,29 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   modalPaymentClose() {
     const el = document.getElementById('paymentModal');
     if (el) this.hideModal('paymentModal');
+  }
+
+  /**
+   * Blank the two amount fields AND forget that the user ever touched them.
+   *
+   * Both are cleared by code, never by the user, so any touched/dirty state left
+   * over from an earlier pass describes a value that no longer exists. Without
+   * the reset the fields come back red the instant they are cleared, before the
+   * user has been given a chance to type anything: `isFieldInvalid()` tests
+   * `c.touched`, and styles.css paints every `input.ng-invalid.ng-touched` with
+   * a red left border — which is why the error appeared both inside the Partial
+   * Payment modal and on the step behind it.
+   *
+   * The controls stay `required` and still invalid; this only stops the form
+   * claiming the user got it wrong when they have not been asked yet.
+   */
+  private clearPartialAmounts(): void {
+    this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+    for (const name of ['amount_Paid', 'amount_Pending']) {
+      const c = this.patientForm.get(name);
+      c?.markAsUntouched();
+      c?.markAsPristine();
+    }
   }
 
   /** Opens the Partial Payment modal again so the user can amend confirmed values. */

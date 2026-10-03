@@ -97,12 +97,20 @@ export interface DcQueueTab {
     }
     .dc-queue:hover { background: var(--dc-surface-2, #f8fafc); }
     .dc-queue:focus-visible {
-      outline: 3px solid var(--dc-focus, #2563eb);
+      /* --dc-focus holds a box-shadow value, so pairing it with 'outline:
+         3px solid' produces invalid CSS: the whole declaration is dropped and
+         the keyboard ring goes with it. The colour has its own token.
+         NOTE: no backticks in here — this comment sits inside the styles
+         template literal, and one would end the string. */
+      outline: 3px solid var(--dc-focus-color, #1e5ba8);
       outline-offset: 2px;
     }
 
+    /* The count stays the biggest thing on the tile, but within the app's
+       scale: 1.25rem is what styles.css gives a card heading. At 1.6rem it was
+       larger than anything on any other screen and made this one look foreign. */
     .dc-queue__count {
-      font-size: 1.6rem;
+      font-size: var(--dc-text-title, 1.25rem);
       font-weight: 700;
       line-height: 1;
       font-variant-numeric: tabular-nums;
@@ -112,13 +120,13 @@ export interface DcQueueTab {
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      font-size: var(--dc-text-sm, 0.875rem);
+      font-size: var(--dc-text-body, 0.875rem);
       font-weight: 600;
       color: var(--dc-ink, #0f172a);
     }
     .dc-queue__icon { font-size: 0.9em; opacity: 0.75; }
     .dc-queue__hint {
-      font-size: 0.75rem;
+      font-size: var(--dc-text-micro, 0.75rem);
       color: var(--dc-ink-3, #64748b);
     }
 

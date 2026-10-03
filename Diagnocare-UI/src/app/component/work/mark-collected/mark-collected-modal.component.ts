@@ -30,54 +30,63 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="mc" *ngIf="visible" role="dialog" aria-modal="true"
+    <div class="mc-overlay" *ngIf="visible" role="dialog" aria-modal="true"
          aria-labelledby="mc-title" (keydown.escape)="close()">
-      <div class="mc__backdrop" (click)="close()"></div>
+      <div class="mc-backdrop" (click)="close()"></div>
 
-      <div class="mc__panel">
-        <div class="mc__head">
-          <h3 id="mc-title">Mark sample collected</h3>
-          <button type="button" class="mc__x" (click)="close()" aria-label="Close">
+      <div class="mc-container">
+
+        <!-- Header, body, footer in the shape the rest of the app's dialogs use
+             (sample-rejection, test-run, protocol-view): a coloured bar carrying
+             an icon, a title and the context line, a close circle on the right,
+             a tinted body and a white footer with the actions on the right. -->
+        <div class="mc-header">
+          <div class="mc-header-left">
+            <h2 id="mc-title">
+              <i class="fa fa-flask" aria-hidden="true"></i>
+              Mark sample collected
+            </h2>
+
+            <!-- Who and what, restated. The person clicked a row a moment ago,
+                 but a dialog that does not say which order it is about is how
+                 the wrong booking gets marked on a busy morning. -->
+            <p class="mc-subtitle" *ngIf="item">
+              {{ item.patientName }} · {{ item.patientAge }} / {{ item.patientGender }}
+              · {{ item.patientId }} · order {{ item.testRegId }}
+            </p>
+          </div>
+
+          <button type="button" class="mc-close" (click)="close()" aria-label="Close">
             <i class="fa fa-times" aria-hidden="true"></i>
           </button>
         </div>
 
-        <!-- Who and what, restated. The person clicked a row a moment ago, but a
-             modal that does not say which order it is about is how the wrong
-             booking gets marked on a busy morning. -->
-        <div class="mc__who" *ngIf="item">
-          <span class="mc__patient">{{ item.patientName }}</span>
-          <span class="mc__meta">
-            {{ item.patientAge }} / {{ item.patientGender }} ·
-            {{ item.patientId }} · order {{ item.testRegId }}
-          </span>
-          <span class="mc__meta">{{ item.testName }}</span>
-        </div>
+        <div class="mc-body">
+          <p class="mc-test" *ngIf="item">{{ item.testName }}</p>
 
-        <div class="mc__body">
-          <label class="mc__label" for="mc-location">Where was the sample collected?</label>
-          <select id="mc-location" class="form-select mc__select"
+          <label class="mc-label" for="mc-location">Where was the sample collected?</label>
+          <select id="mc-location" class="form-select"
                   [(ngModel)]="location" [disabled]="isSaving">
             <option value="">-- Select --</option>
             <option *ngFor="let entry of locations" [value]="entry">{{ entry }}</option>
           </select>
 
-          <p class="mc__hint" *ngIf="locations.length === 0">
+          <p class="mc-hint" *ngIf="locations.length === 0">
             No sampling locations are set up yet. Add them where you register a patient.
           </p>
 
           <!-- The disabled Save explains itself rather than sitting greyed out in
                silence — the kit's fourth rule. -->
-          <p class="mc__hint mc__hint--warn" *ngIf="locations.length > 0 && !location">
+          <p class="mc-hint mc-hint--warn" *ngIf="locations.length > 0 && !location">
             Choose a location to enable Save.
           </p>
         </div>
 
-        <div class="mc__foot">
-          <button type="button" class="dc-btn" (click)="close()" [disabled]="isSaving">
+        <div class="mc-footer">
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="close()" [disabled]="isSaving">
             Cancel
           </button>
-          <button type="button" class="dc-btn dc-btn--primary"
+          <button type="button" class="dc-btn dc-btn--save"
                   [disabled]="!location || isSaving"
                   (click)="save()">
             <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
@@ -88,118 +97,144 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
     </div>
   `,
   styles: [`
+    /* Geometry copied from the app's other dialogs so this reads as the same
+       kind of object: 14px radius, 1.1rem/1.4rem header, 1.2rem/1.4rem body,
+       0.8rem/1.4rem footer, a 2rem close circle. Colours and type come from the
+       tokens rather than the hardcoded hex those files use, so this one also
+       follows the five themes. Buttons and the select are the global classes.
+       No backticks anywhere in here: this sits inside a template literal. */
+
     :host { display: contents; }
 
-    .mc {
+    .mc-overlay {
       position: fixed;
       inset: 0;
-      z-index: 1050;
+      z-index: 1400;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: 1.5rem;
     }
 
-    .mc__backdrop {
+    .mc-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(15, 23, 42, 0.45);
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(2px);
     }
 
-    .mc__panel {
+    .mc-container {
       position: relative;
-      width: 100%;
-      max-width: 26rem;
-      background: var(--dc-surface, #ffffff);
-      border-radius: 0.5rem;
-      box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.35);
+      display: flex;
+      flex-direction: column;
+      /* Narrower than the 720px the content-heavy dialogs use — this one asks a
+         single question, and a lone select in a 720px panel reads as unfinished.
+         Width is the one value that legitimately varies: protocol-view is 920. */
+      width: min(560px, 100%);
+      max-height: 90vh;
+      background: var(--bg-white, #ffffff);
+      border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
       overflow: hidden;
     }
 
-    .mc__head {
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .mc-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.4rem;
+      background: var(--primary-gradient, linear-gradient(135deg, #1E5BA8, #667eea));
+      color: #ffffff;
+    }
+
+    .mc-header h2 {
+      margin: 0;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.9rem 1rem;
-      border-bottom: 1px solid var(--dc-line, #e2e8f0);
-
-      h3 {
-        margin: 0;
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: var(--dc-ink, #0f172a);
-      }
-    }
-
-    .mc__x {
-      background: none;
-      border: 0;
-      font-size: 1rem;
-      line-height: 1;
-      padding: 0.4rem;
-      cursor: pointer;
-      color: var(--dc-ink-3, #64748b);
-
-      &:hover { color: var(--dc-ink, #0f172a); }
-      &:focus-visible { outline: 3px solid var(--dc-focus, #2563eb); outline-offset: 2px; }
-    }
-
-    .mc__who {
-      padding: 0.75rem 1rem;
-      background: var(--dc-surface-2, #f8fafc);
-      border-bottom: 1px solid var(--dc-line, #e2e8f0);
-    }
-
-    .mc__patient {
-      display: block;
-      font-weight: 600;
-      color: var(--dc-ink, #0f172a);
-    }
-
-    .mc__meta {
-      display: block;
-      margin-top: 0.1rem;
-      font-size: 0.75rem;
-      color: var(--dc-ink-3, #64748b);
-    }
-
-    .mc__body { padding: 1rem; }
-
-    .mc__label {
-      display: block;
-      margin-bottom: 0.4rem;
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--dc-ink, #0f172a);
-    }
-
-    /* 48px floor, per the kit's first rule — this gets used in a hurry. */
-    .mc__select {
-      width: 100%;
-      min-height: var(--dc-touch, 48px);
-      font-size: 0.95rem;
-    }
-
-    .mc__hint {
-      margin: 0.5rem 0 0;
-      font-size: 0.78rem;
-      color: var(--dc-ink-3, #64748b);
-
-      &--warn { color: var(--dc-wait-ink, #b45309); font-weight: 600; }
-    }
-
-    .mc__foot {
-      display: flex;
-      justify-content: flex-end;
       gap: 0.5rem;
-      padding: 0.85rem 1rem;
-      background: var(--dc-surface-2, #f8fafc);
-      border-top: 1px solid var(--dc-line, #e2e8f0);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .mc-subtitle {
+      margin: 0.3rem 0 0;
+      font-size: 0.82rem;
+      opacity: 0.9;
+    }
+
+    .mc-close {
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+    .mc-close:hover { background: rgba(255, 255, 255, 0.3); }
+    .mc-close:focus-visible {
+      outline: 3px solid var(--dc-focus-color, #1e5ba8);
+      outline-offset: 2px;
+    }
+
+    /* ── Body ───────────────────────────────────────────────────────────── */
+    .mc-body {
+      padding: 1.2rem 1.4rem;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      background: var(--bg-light, #f8fafc);
+      font-size: var(--dc-text-body, 0.875rem);
+      color: var(--text-primary, #1e293b);
+    }
+
+    .mc-test {
+      margin: 0 0 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary, #0f172a);
+    }
+
+    /* Stacked label, at the size styles.css gives a filter label. Not
+       .form-label: that one is right-aligned for the 130px .form-group grid. */
+    .mc-label {
+      display: block;
+      margin: 0 0 0.3rem;
+      font-size: var(--dc-text-meta, 0.8125rem);
+      font-weight: 600;
+      color: var(--text-primary, #334155);
+    }
+
+    .mc-hint {
+      margin: 0.5rem 0 0;
+      font-size: var(--dc-text-meta, 0.8125rem);
+      color: var(--text-secondary, #666666);
+    }
+    .mc-hint--warn { color: var(--dc-wait-ink, #b45309); font-weight: 600; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    .mc-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75em;
+      padding: 0.8rem 1.4rem;
+      border-top: 1px solid var(--border-color, #e2e8f0);
+      background: var(--bg-white, #ffffff);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+      .mc-overlay { padding: 0.6rem; }
+      .mc-container { max-height: 95vh; }
+      .mc-body { padding: 0.9rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .mc__panel { transition: none; }
+      .mc-close { transition: none; }
     }
   `]
 })
