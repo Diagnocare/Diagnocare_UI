@@ -9,6 +9,30 @@ import { buildPageSortRequest } from 'src/app/models/common/page-sort-request';
 import { SummaryReportService } from 'src/app/services/summaryServices/summary-report.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role, RoleId } from 'src/app/constant/enums';
+import { MODULE_ACCESS, DEFAULT_ACCESS, ModuleAccess } from 'src/app/constant/module-access';
+
+/**
+ * One tile in the "Every Module, at a Glance" gallery.
+ *
+ * The tiles were previously decorative — they carried `cursor: pointer` and a
+ * hover lift but no handler, so they read as clickable and did nothing. Each one
+ * now carries the route of the module it previews.
+ */
+interface ShowcaseModule {
+  /** Used for the aria-label, so it must match the title rendered on the tile. */
+  title: string;
+  /** Route the tile opens. Must exist in app-routing.module.ts. */
+  route: string;
+  /**
+   * Module-access flag the role must hold to open this route. Omitted when every
+   * role that can reach this page can also open the route.
+   *
+   * This mirrors the route's own roleGuard — without it a User would click
+   * Revenue Dashboards and land on Access Denied, because /reports is granted to
+   * every role EXCEPT User (see MODULE_ACCESS and the /reports guard).
+   */
+  requires?: keyof ModuleAccess;
+}
 
 interface ActionCard {
   title: string;
@@ -69,6 +93,25 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   daysUntilExpiry = 0;
 
   cardGroups: CardGroup[] = [];
+
+  /**
+   * Routes behind the module gallery tiles. Kept here rather than inline in the
+   * template so the four tiles, their guards and their labels sit in one place.
+   *
+   * Routes are the same ones the header menu uses (see labOperationMenu in
+   * constants.ts), so a tile and the nav entry for the same module always land
+   * on the same screen.
+   */
+  readonly modules: Record<'patients' | 'reports' | 'analytics' | 'billing', ShowcaseModule> = {
+    patients:  { title: 'Patient Registration', route: '/patients' },
+    reports:   { title: 'PDF Report Engine',    route: '/patient-tests' },
+    analytics: { title: 'Revenue Dashboards',   route: '/reports/referrer-collection',
+                 requires: 'summaryReports' },
+    billing:   { title: 'Billing & Receipts',   route: '/receipt' },
+  };
+
+  /** Nav/module permissions for the signed-in role; drives the tile locks. */
+  private access: ModuleAccess = DEFAULT_ACCESS;
 
   /** Inline style strings for floating hero particles (generated once on init). */
   particleStyles: string[] = [];
@@ -143,6 +186,23 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   navigate(route: string): void {
     this.router.navigate([route]);
+  }
+
+  /**
+   * True when the signed-in role may open this tile's route.
+   *
+   * A tile the role cannot open stays on the page — the gallery is a tour of what
+   * the product does, not a menu — but it is rendered inert and out of the tab
+   * order instead of routing the user into Access Denied.
+   */
+  canOpen(module: ShowcaseModule): boolean {
+    return !module.requires || this.access[module.requires] === true;
+  }
+
+  /** Opens a module gallery tile. Ignored for tiles the role cannot open. */
+  openModule(module: ShowcaseModule): void {
+    if (!this.canOpen(module)) return;
+    this.router.navigate([module.route]);
   }
 
   // ── Dashboard data ──────────────────────────────────────────────────────
@@ -326,6 +386,9 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       ? (Object.values(Role).find(r => r.id === this.userRole)?.label ?? '')
       : '';
     this.userName        = this.tokenService.getUserId() ?? 'User';
+    this.access          = this.userRole !== null
+      ? (MODULE_ACCESS[this.userRole] ?? DEFAULT_ACCESS)
+      : DEFAULT_ACCESS;
   }
 
   private buildGreeting(): void {
