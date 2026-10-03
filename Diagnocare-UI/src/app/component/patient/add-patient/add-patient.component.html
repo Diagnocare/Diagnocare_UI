@@ -14,7 +14,10 @@
     <!-- Stepper -->
     <app-stepper [steps]="steps" [currentStep]="currentStep"></app-stepper>
 
-    <div class="registration-card">
+    <!-- The catalogue takes over the card rather than opening a dialog on top of
+         it, so this step looks and behaves exactly like Add New Test. The stepper
+         above stays visible, so it is always clear which step this belongs to. -->
+    <div class="registration-card" *ngIf="!showTestCatalog">
       <form [formGroup]="patientForm" (ngSubmit)="registerPatient()" appFormKeyboard [tabFields]="tabFields">
 
         <!-- ═══════════════════════════════════════════════════════ STEP 1 -->
@@ -673,6 +676,50 @@
 
       </form>
     </div><!-- /registration-card -->
+
+    <!-- ═══════════════════════════════ TEST CATALOGUE ═══════════════════════
+         The same <dc-test-picker> the Add New Test flow uses. Registration had a
+         hand-written copy of the old four-column browser, which is why the two
+         screens had drifted into different interfaces for the same job. -->
+    <div class="registration-card ap-catalog-card" *ngIf="showTestCatalog">
+      <dc-test-picker
+        [groups]="testGroups"
+        [selectedCodes]="selectedTestCodes"
+        [loading]="isLoadingAllTests"
+        (toggled)="onPickerToggled($event)"
+        (focused)="onPickerFocused($event)"
+        (confirmed)="confirmTestSelection()"
+        (cancelled)="cancelTestCatalog()">
+
+        <!-- Protocol for the test last tapped. Full width under the columns:
+             procedure and rejection criteria are paragraphs, and a column that
+             narrow makes them unreadable at the moment they matter. -->
+        <ng-template #dcpProtocol>
+          <div class="ap-catalog-protocol" [class.ap-catalog-protocol--collapsed]="!showFocusedProtocol">
+            <div class="ap-catalog-protocol-bar">
+              <span class="ap-catalog-protocol-title">
+                <i class="fa fa-flask"></i> Sample Collection Protocol
+                <span class="ap-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
+              </span>
+              <button type="button" class="ap-protocol-toggle"
+                      [attr.aria-expanded]="showFocusedProtocol"
+                      (click)="showFocusedProtocol = !showFocusedProtocol">
+                <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
+                              [class.fa-chevron-down]="!showFocusedProtocol"></i>
+                {{ showFocusedProtocol ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <app-test-protocol-panel *ngIf="showFocusedProtocol"
+              [protocols]="focusedProtocols"
+              [testName]="focusedProtocolTestName"
+              [testCode]="focusedProtocolTestCode"
+              [loading]="focusedProtocolLoading"
+              emptySelectionMessage="Tap a test to see how its sample must be collected.">
+            </app-test-protocol-panel>
+          </div>
+        </ng-template>
+      </dc-test-picker>
+    </div><!-- /catalogue card -->
   </div><!-- /content-container -->
 </div><!-- /page-container -->
 
@@ -770,169 +817,6 @@
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════ MODAL: Test Catalog -->
-<div class="modal fade" id="testCatalogModal" tabindex="-1" aria-labelledby="testCatalogLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="testCatalogLabel">🧬 Medical Test Catalog</h5>
-        <button type="button" class="btn-close" (click)="modalTestClose()"></button>
-      </div>
-      <div class="modal-body">
-        <div class="search-section mb-3">
-          <input type="text" class="form-control" placeholder="Search groups, subgroups, or tests..." [(ngModel)]="query" autocomplete="off" />
-        </div>
-        <div class="row">
-          <!-- Groups -->
-          <div class="col-md-3">
-            <div class="card">
-              <div class="card-header"><span>Groups</span><small>Rs.</small></div>
-              <div class="card-body">
-                <ng-container *ngIf="filteredGroups.length > 0; else noGroups">
-                  <div *ngFor="let g of filteredGroups" (click)="selectGroup(g)"
-                       [class.active]="g.testGroupId === selectedGroupId" class="list-item">
-                    <div class="left">
-                      <div class="code">{{g.testGroupId}}</div>
-                      <div class="name">{{g.name}}</div>
-                    </div>
-                    <div class="right">{{g.price}}</div>
-                  </div>
-                </ng-container>
-                <ng-template #noGroups><div class="no-data"><p>No groups.</p></div></ng-template>
-              </div>
-            </div>
-          </div>
-          <!-- SubGroups -->
-          <div class="col-md-3">
-            <div class="card">
-              <div class="card-header"><span>SubGroups</span><small>Rs.</small></div>
-              <div class="card-body">
-                <ng-container *ngIf="filteredSubGroups.length > 0; else noSubGroups">
-                  <div *ngFor="let s of filteredSubGroups" (click)="selectSubGroup(s)"
-                       [class.active]="s.testGroupId === selectedSubGroupId" class="list-item">
-                    <div class="left">
-                      <div class="code">{{s.testGroupId}}</div>
-                      <div class="name">{{s.name}}</div>
-                    </div>
-                    <div class="right">{{s.price}}</div>
-                  </div>
-                </ng-container>
-                <ng-template #noSubGroups><div class="no-data"><p>No subgroups.</p></div></ng-template>
-              </div>
-            </div>
-          </div>
-          <!-- Tests -->
-          <div class="col-md-3">
-            <div class="card">
-              <div class="card-header"><span>Tests</span><small>Rs.</small></div>
-              <div class="card-body">
-                <ng-container *ngIf="filteredTests.length > 0; else noTests">
-                  <div *ngFor="let t of filteredTests" (click)="toggleTestSelection(t)"
-                       [class.active]="focusedTestId === t.testCode"
-                       [class.test-selected]="selectedTestIds.has(t.testCode)"
-                       [class.test-unavailable]="!isTestBookable(t)"
-                       [title]="isTestBookable(t) ? '' : 'No parameters configured — this test cannot be booked'"
-                       class="list-item test-item">
-                    <div class="icon-wrap">
-                      <div class="icon" [class.selected]="selectedTestIds.has(t.testCode)">
-                        <!-- Checkmark — test is selected -->
-                        <svg *ngIf="isTestBookable(t) && selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="11" stroke="#16a34a" stroke-width="2" fill="#dcfce7"/>
-                          <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <!-- Empty circle — test is not selected -->
-                        <svg *ngIf="isTestBookable(t) && !selectedTestIds.has(t.testCode)" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="11" stroke="#cbd5e1" stroke-width="2" fill="#f8fafc"/>
-                        </svg>
-                        <!-- Barred — no parameters configured, cannot be booked -->
-                        <svg *ngIf="!isTestBookable(t)" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="11" stroke="#c2410c" stroke-width="2" fill="#fff7ed"/>
-                          <path d="M8 16L16 8" stroke="#c2410c" stroke-width="2.2" stroke-linecap="round"/>
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="left">
-                      <div class="code">{{t.testCode}}</div>
-                      <div class="name">{{t.testName}}</div>
-                      <div class="test-unavailable-note" *ngIf="!isTestBookable(t)">No parameters configured</div>
-                    </div>
-                    <div class="right price">₹{{t.price}}</div>
-                  </div>
-                </ng-container>
-                <ng-template #noTests><div class="no-data"><p>No tests.</p></div></ng-template>
-              </div>
-            </div>
-          </div>
-          <!-- Selected Tests -->
-          <div class="col-md-3">
-            <div class="card">
-              <div class="card-header">
-                <span>Selected Tests</span>
-                <div class="total-top">
-                  <div class="total-label">Total</div>
-                  <div class="total-amount">₹{{ totalAmount }}</div>
-                </div>
-              </div>
-              <div class="card-body">
-                <ng-container *ngIf="selectedTests.length > 0; else noSelection">
-                  <div *ngFor="let s of selectedTests; let i = index" class="selected-item">
-                    <div class="left">
-                      <div class="meta">#{{i+1}}</div>
-                      <div class="code">{{s.testCode}}</div>
-                      <div class="name">{{s.testName}}</div>
-                    </div>
-                    <div class="right">
-                      <div class="price">₹{{s.price}}</div>
-                      <button class="btn-action btn-delete" (click)="removeSelected(s.testCode)" title="Remove">
-                        <i class="fa fa-times"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="total-summary mt-3">
-                    <div class="summary-left">Total ({{selectedTests.length}} tests)</div>
-                    <div class="summary-right">₹{{ totalAmount }}</div>
-                  </div>
-                </ng-container>
-                <ng-template #noSelection><div class="no-data"><p>No tests selected.</p></div></ng-template>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Protocol for the test last clicked ────────────────────────────
-             Full width under the four columns rather than as a fifth column: the
-             procedure and rejection criteria are paragraphs, and a column that narrow
-             would make them unreadable at exactly the moment they matter. -->
-        <div class="ap-catalog-protocol" [class.ap-catalog-protocol--collapsed]="!showFocusedProtocol">
-          <div class="ap-catalog-protocol-bar">
-            <span class="ap-catalog-protocol-title">
-              <i class="fa fa-flask"></i> Sample Collection Protocol
-              <span class="ap-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
-            </span>
-            <button type="button" class="ap-protocol-toggle"
-                    [attr.aria-expanded]="showFocusedProtocol"
-                    (click)="showFocusedProtocol = !showFocusedProtocol">
-              <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
-                            [class.fa-chevron-down]="!showFocusedProtocol"></i>
-              {{ showFocusedProtocol ? 'Hide' : 'Show' }}
-            </button>
-          </div>
-          <app-test-protocol-panel *ngIf="showFocusedProtocol"
-            [protocols]="focusedProtocols"
-            [testName]="focusedProtocolTestName"
-            [testCode]="focusedProtocolTestCode"
-            [loading]="focusedProtocolLoading"
-            emptySelectionMessage="Click a test to see how its sample must be collected.">
-          </app-test-protocol-panel>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" (click)="modalTestClose()">Confirm Selection</button>
       </div>
     </div>
   </div>

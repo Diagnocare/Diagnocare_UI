@@ -635,6 +635,52 @@
 .ph-sc-item:hover { transform: scale(1.03); box-shadow: 0 18px 50px rgba(10,31,60,.18); z-index: 2; }
 .ph-sc-tall { grid-row: span 2; }
 
+/* Keyboard focus — the tiles are reachable with Tab, so the ring has to read
+   against all four gradients. */
+.ph-sc-item:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 3px rgba(30,136,229,.9), 0 18px 50px rgba(10,31,60,.18);
+  z-index: 2;
+}
+
+/* "Opens a screen" affordance — fades in on hover/focus so a tile reads as a
+   link rather than as a picture. */
+.ph-sc-go {
+  position: absolute; top: 14px; right: 14px; z-index: 1;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.28);
+  color: #fff; font-size: .72rem;
+  opacity: 0; transform: translateX(-6px);
+  transition: opacity .28s, transform .28s;
+  pointer-events: none;
+}
+.ph-sc-item:hover .ph-sc-go,
+.ph-sc-item:focus-visible .ph-sc-go { opacity: 1; transform: translateX(0); }
+
+/* Tiles the signed-in role may not open: still shown, but inert. */
+.ph-sc-locked { cursor: default; }
+.ph-sc-locked:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(10,31,60,.08);
+  z-index: auto;
+}
+.ph-sc-lock {
+  position: absolute; top: 14px; right: 14px; z-index: 1;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,31,60,.42);
+  border: 1px solid rgba(255,255,255,.22);
+  color: rgba(255,255,255,.75); font-size: .68rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-sc-item, .ph-sc-go { transition: none; }
+  .ph-sc-item:hover { transform: none; }
+}
+
 .ph-sc-bg {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;

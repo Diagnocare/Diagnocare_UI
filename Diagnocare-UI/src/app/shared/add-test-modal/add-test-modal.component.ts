@@ -482,8 +482,13 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   }
 
   toggleTestSelection(t: TestItem): void {
-    this.focusedTestId = t.testCode;
-    this.loadFocusedProtocol(t);
+    // The picker fires (focused) before (toggled) on the same tap, so by the
+    // time we get here the protocol is usually already on its way. Only the old
+    // four-column path arrives with a different test still focused.
+    if (this.focusedTestId !== t.testCode) {
+      this.focusedTestId = t.testCode;
+      this.loadFocusedProtocol(t);
+    }
 
     // Selecting is blocked, but de-selecting must always work — otherwise a test
     // whose last parameter was deleted after it was picked would be stuck in the
@@ -625,6 +630,15 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   onPickerToggled(picked: DcPickableTest): void {
     const test = this.allTests.find(t => t.testCode === picked.code);
     if (test) this.toggleTestSelection(test);
+  }
+
+  /** The test the protocol panel under the catalogue is describing. */
+  onPickerFocused(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) {
+      this.focusedTestId = test.testCode;
+      this.loadFocusedProtocol(test);
+    }
   }
 
   /**

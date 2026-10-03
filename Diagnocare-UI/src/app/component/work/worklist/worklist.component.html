@@ -9,7 +9,7 @@
       </p>
     </div>
     <div class="header-actions">
-      <button type="button" class="dc-btn" (click)="refresh()" [disabled]="isLoading">
+      <button type="button" class="dc-btn dc-btn--search" (click)="refresh()" [disabled]="isLoading">
         <i class="fa" [ngClass]="isLoading ? 'fa-spinner fa-spin' : 'fa-refresh'" aria-hidden="true"></i>
         Refresh
       </button>
@@ -60,7 +60,7 @@
     <!-- ── Error ─────────────────────────────────────────────────────── -->
     <div class="alert alert-danger" *ngIf="errorMessage && !isLoading">
       <p>{{ errorMessage }}</p>
-      <button type="button" class="dc-btn" (click)="refresh()">Try again</button>
+      <button type="button" class="dc-btn dc-btn--search" (click)="refresh()">Try again</button>
     </div>
 
     <!-- ── Empty ─────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@
          screen and the eye has to travel the whole width per row. Fixed columns
          keep a row scannable at any window size. -->
     <div class="table-container" *ngIf="!isLoading && !errorMessage && items.length > 0">
-      <table class="worklist__table">
+      <table class="data-table worklist__table">
         <colgroup>
           <col class="c-flag">
           <col class="c-test">
@@ -185,7 +185,7 @@
             <td class="ta-right">
               <!-- One button, carrying the queue's own verb. The row never shows
                    two competing primary actions, so there is nothing to choose. -->
-              <button type="button" class="dc-btn dc-btn--primary worklist__go" (click)="open(item)">
+              <button type="button" class="dc-btn dc-btn--save worklist__go" (click)="open(item)">
                 {{ queueVerb(item.queue) }}
               </button>
               <!-- Only an issued report can be pulled back, so this appears
@@ -203,19 +203,19 @@
     </div>
 
     <!-- ── Paging ────────────────────────────────────────────────────── -->
-    <div class="worklist__paging"
+    <div class="pagination worklist__paging"
          *ngIf="!isLoading && page && page.totalItems > page.pageSize">
-      <span class="worklist__paging-info">
+      <span class="pagination-info">
         Showing {{ ((page.pageNumber - 1) * page.pageSize) + 1 }}–{{ (page.pageNumber - 1) * page.pageSize + items.length }}
         of {{ page.totalItems }}
       </span>
-      <div class="worklist__paging-controls">
-        <button type="button" class="dc-btn"
+      <div class="pagination-controls">
+        <button type="button" class="pagination-btn"
                 [disabled]="page.pageNumber <= 1"
                 (click)="pageNumber = page.pageNumber - 1; load()">
           Previous
         </button>
-        <button type="button" class="dc-btn"
+        <button type="button" class="pagination-btn"
                 [disabled]="(page.pageNumber * page.pageSize) >= page.totalItems"
                 (click)="pageNumber = page.pageNumber + 1; load()">
           Next
