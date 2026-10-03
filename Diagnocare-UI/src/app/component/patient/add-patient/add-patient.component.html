@@ -275,6 +275,37 @@
                   <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
                 </div>
               </div>
+
+              <div class="form-group form-group--narrow">
+                <label class="form-label">Report on WhatsApp</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
+                  <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
+                 patient's mobile; change it to send the report to someone else. A different
+                 number is kept on this booking only. -->
+            <div class="form-row" *ngIf="reportOnWhatsApp">
+              <div class="form-group">
+                <label class="form-label required" for="whatsAppNumber">Send report to (WhatsApp number)</label>
+                <input type="number" appNumericOnly class="form-control" id="whatsAppNumber" formControlName="whatsApp_Number"
+                  placeholder="10-digit mobile number"
+                  [class.is-invalid]="isFieldInvalid('whatsApp_Number')" />
+                <app-field-error [control]="patientForm.get('whatsApp_Number')" label="WhatsApp Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+                <small class="whatsapp-hint" *ngIf="!patientForm.get('patient_Contact')?.value">
+                  The patient has no mobile number, so this will also be saved as their mobile.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && whatsAppIsPatientNumber">
+                  The patient's own mobile. Change it to send this report to another number.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && !whatsAppIsPatientNumber">
+                  Different from the patient's mobile ({{ patientForm.get('patient_Contact')?.value }}). Used for this booking only.
+                  <button type="button" class="whatsapp-link" (click)="usePatientMobileForWhatsApp()">Use the patient's mobile</button>
+                </small>
+              </div>
             </div>
 
             <div class="form-row">
