@@ -58,13 +58,16 @@ import {
 // behind *ngIf="!useNewUi" so the two can be compared with the same patient.
 import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
 import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
+// THE payment dialog, shared with Add New Patient, Patient Tests and
+// Bill / Receipt. This screen used to carry its own Bootstrap copy.
+import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
 import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
 import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent, DcTestPickerComponent, DcPaymentPanelComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent, DcTestPickerComponent, DcPaymentPanelComponent, PaymentModalComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -158,7 +161,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   // ── Payment state ─────────────────────────────────────────────────────────
   paymentConfirmed = false;
   amountPaidError  = '';
+  /** Drives [visible] on the shared payment dialog. */
   showPartialPaymentPanel = false;
+  /** Amount the dialog opens at, so Edit shows the figure being amended. */
+  partialPaymentSeed = 0;
 
   // ── TPA state ─────────────────────────────────────────────────────────────
   showTpaModal = false;
@@ -851,9 +857,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         amount_Pending: this.form.get('net_Amount')?.value ?? 0,
       });
     } else {
-      // Partial — open inline panel
+      // Partial — open the shared payment dialog
       this.form.patchValue({ amount_Paid: '', amount_Pending: '' });
-      this.showPartialPaymentPanel = true;
+      this.openPartialPaymentModal();
     }
   }
 
@@ -887,38 +893,38 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.showTpaModal = true;
   }
 
-  // ── Partial Payment Panel ─────────────────────────────────────────────────
+  // ── Partial payment — the shared dialog ───────────────────────────────────
+  // The live amount-pending calculation that used to live here belonged to this
+  // screen's own copy of the Amount Paid field. The shared dialog works the
+  // running total out itself and shows it beside the figure being typed, so
+  // there is no second field to keep in step.
 
-  onPartialAmountPaidInput(event: Event): void {
-    this.amountPaidError = '';
-    const raw       = (event.target as HTMLInputElement).value;
-    const amtPaid   = parseFloat(raw) || 0;
-    const netAmount = parseFloat(this.form.get('net_Amount')?.value) || 0;
-
-    if (amtPaid <= 0) {
-      this.form.patchValue({ amount_Pending: '' });
-      return;
-    }
-    if (amtPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Use "Full" payment type.`;
-      this.form.patchValue({ amount_Pending: '' });
-      return;
-    }
-    const pending = +(netAmount - amtPaid).toFixed(2);
-    this.form.patchValue({ amount_Pending: pending });
+  private openPartialPaymentModal(): void {
+    this.amountPaidError         = '';
+    this.partialPaymentSeed      = parseFloat(String(this.form.get('amount_Paid')?.value)) || 0;
+    this.showPartialPaymentPanel = true;
   }
 
-  confirmPartialPayment(): void {
-    const amtPaid   = parseFloat(this.form.get('amount_Paid')?.value)  || 0;
-    const netAmount = parseFloat(this.form.get('net_Amount')?.value)    || 0;
+  /**
+   * The dialog hands back the figures; the rule about them stays here, because
+   * it belongs to this test and not to the dialog. A partial amount has to be
+   * strictly under the net amount — equal means the test is paid in full, which
+   * is a different payment type. The message goes back into the dialog's own
+   * error slot, beside the number that broke it.
+   */
+  onPaymentCollected(result: PaymentModalResult): void {
+    const amtPaid   = result.amountPaid || 0;
+    const netAmount = parseFloat(this.form.get('net_Amount')?.value) || 0;
+
     if (amtPaid <= 0) {
       this.amountPaidError = 'Please enter the correct amount paid.';
       return;
     }
     if (amtPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}).`;
+      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Choose "Full" instead.`;
       return;
     }
+
     const pending = +(netAmount - amtPaid).toFixed(2);
     this.form.patchValue({ amount_Paid: amtPaid, amount_Pending: pending });
     this.amountPaidError  = '';
@@ -939,8 +945,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   editPartialPayment(): void {
     this.paymentConfirmed = false;
-    this.amountPaidError  = '';
-    this.showPartialPaymentPanel = true;
+    this.openPartialPaymentModal();
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
