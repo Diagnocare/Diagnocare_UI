@@ -1746,7 +1746,13 @@ input.ng-invalid.ng-touched {
 
 .pagination-info {
   font-size: 0.875em;
-  color: var(--text-secondary);
+  /* The pagination row is a sibling of the table card, so it sits directly on
+     the page's gradient — not on a white surface. --text-secondary is a mid
+     grey meant for use on a card and is close to unreadable there. Every screen
+     that paginates (patients-list, worklist) places it the same way, so this
+     belongs here rather than in either component. */
+  color: var(--text-light);
+  opacity: 0.85;
 }
 
 /* ── Grid helpers ─────────────────────────────────────────────────────────── */
