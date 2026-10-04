@@ -643,57 +643,34 @@
 </app-tpa-details-modal>
 
 
-<!-- ════════════════════ PARTIAL PAYMENT MODAL (Bootstrap-style) ════════════ -->
-<div class="modal-backdrop fade show" *ngIf="showPartialPaymentPanel" style="z-index:1060"></div>
-<div class="modal fade show d-block" tabindex="-1" role="dialog" *ngIf="showPartialPaymentPanel" style="z-index:1065">
-  <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content" [formGroup]="form">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="fa fa-credit-card"></i>&nbsp; Partial Payment Details
-        </h5>
-        <button type="button" class="btn-close" (click)="cancelPartialPayment()"></button>
-      </div>
-      <div class="modal-body">
-        <!-- Locked Net Amount -->
-        <div class="form-group mb-3">
-          <label class="form-label">Net Amount (₹) — locked</label>
-          <div class="pm-locked-field">
-            <input type="text" class="form-control pm-disabled-input"
-                   [value]="form.get('net_Amount')?.value" readonly />
-            <span class="pm-lock-badge">🔒 Locked</span>
-          </div>
-        </div>
-        <!-- Amount Paid input -->
-        <div class="form-group mb-3">
-          <label class="form-label required">Amount Paid Now (₹)</label>
-          <input type="number" class="form-control"
-                 formControlName="amount_Paid"
-                 [class.is-invalid]="!!amountPaidError"
-                 placeholder="Enter amount paid"
-                 (input)="onPartialAmountPaidInput($event)" />
-          <div class="field-error" *ngIf="amountPaidError">{{ amountPaidError }}</div>
-        </div>
-        <!-- Amount Pending (computed) -->
-        <div class="form-group">
-          <label class="form-label">Amount Pending (₹)</label>
-          <input type="text" class="form-control" formControlName="amount_Pending" readonly />
-        </div>
-        <small class="amount-pending-hint">Calculated automatically as Net &minus; Paid</small>
+<!-- ════════════════════ PARTIAL PAYMENT — THE shared dialog ════════════════
+     Was a hand-rolled Bootstrap modal here, with its own header, its own
+     .btn buttons, a second copy of the Amount Paid field and a hard-coded
+     z-index pair. It is now the same <app-payment-modal> that Add New Patient,
+     Patient Tests and Bill / Receipt open, configured rather than redesigned:
 
-        <!-- Cash Change Calculator -->
-        <app-payment-calculator
-          [requiredAmount]="form.get('amount_Paid')?.value || 0"
-          [resetTrigger]="showPartialPaymentPanel">
-        </app-payment-calculator>
-      </div>
-      <div class="modal-footer-actions">
-        <button type="button" class="btn btn-cancel" (click)="cancelPartialPayment()">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="confirmPartialPayment()"
-                [disabled]="!!amountPaidError || !form.get('amount_Paid')?.value">
-          <i class="fa fa-check"></i> Confirm Partial Payment
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+       [autoSave]="false"    the payment is saved with the test in submit(),
+                             not as a receipt of its own.
+       [amountOnly]="true"   Payment Type and Payment Mode are on the step
+       [presetMode]          behind this dialog; asking either again would let
+                             two answers disagree.
+       [errorText]           this screen's rule (a partial amount must be under
+                             the net amount) shows in the dialog's error slot.
+
+     No z-index is needed: .pm-overlay sits at 2000 and .atm-overlay at 1040,
+     so the dialog is above this modal by the design system's own layering. -->
+<app-payment-modal
+  [visible]="showPartialPaymentPanel"
+  [netAmount]="+(form.get('net_Amount')?.value || 0)"
+  [testAmount]="+(form.get('test_Amount')?.value || 0)"
+  [autoSave]="false"
+  [amountOnly]="true"
+  [presetMode]="form.get('payment_Mode')?.value || ''"
+  [initialPaid]="partialPaymentSeed"
+  [errorText]="amountPaidError"
+  heading="Partial Payment"
+  subheading="How much is being paid now"
+  confirmLabel="Confirm"
+  (confirmed)="onPaymentCollected($event)"
+  (cancelled)="cancelPartialPayment()">
+</app-payment-modal>
