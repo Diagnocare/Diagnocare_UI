@@ -47,6 +47,8 @@ export const controllerEndpoints = {
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
   worklist: 'api/Worklist/',
+  /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
+  dashboard: 'api/Dashboard/',
   /**
    * The caller's own in-app notifications (header bell, User Panel badges).
    * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
@@ -74,6 +76,8 @@ export const apiEndpoints = {
   getPathologyExpiryDate:"GetPathologyExpiryDate",
   getSerialNPatientId:"GetSerialNPatientId",
   searchPatients:"SearchPatients",
+  /** GET api/Dashboard/GetHomeSummary?date= — the whole home hero in one call */
+  getHomeSummary:"GetHomeSummary",
   getDistinctReferredBy:"GetDistinctReferredBy",
   getAllStateCityList:"GetAllStateCityList",
   profileImage:"ProfileImage",
