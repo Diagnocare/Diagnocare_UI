@@ -47,6 +47,8 @@ export const controllerEndpoints = {
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
   worklist: 'api/Worklist/',
+  /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
+  dashboard: 'api/Dashboard/',
   /**
    * The caller's own in-app notifications (header bell, User Panel badges).
    * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
@@ -74,6 +76,8 @@ export const apiEndpoints = {
   getPathologyExpiryDate:"GetPathologyExpiryDate",
   getSerialNPatientId:"GetSerialNPatientId",
   searchPatients:"SearchPatients",
+  /** GET api/Dashboard/GetHomeSummary?date= — the whole home hero in one call */
+  getHomeSummary:"GetHomeSummary",
   getDistinctReferredBy:"GetDistinctReferredBy",
   getAllStateCityList:"GetAllStateCityList",
   profileImage:"ProfileImage",
@@ -238,6 +242,7 @@ export const apiEndpoints = {
   cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
   removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
   updateSamplingLocation:   'UpdateSamplingLocation', // PUT api/patient/UpdateSamplingLocation
+  reportOnWhatsApp:         'ReportOnWhatsApp',  // PATCH  api/patient/ReportOnWhatsApp
   reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
   /** Patients only — staff have no permanent delete, see MemberService.delete. */
   hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
@@ -291,6 +296,7 @@ export const validationMessages = {
      'patient_Address',
      'test_Name',
      'urgent_Report',
+     'report_On_WhatsApp',
      'test_Amount',
      'referred_By_Type',
      'referred_By',

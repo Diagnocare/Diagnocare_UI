@@ -52,7 +52,11 @@
 
         <!-- KPI cards — slide down into content area -->
         <!-- A dash means "no value": either still loading, or the request failed.
-             Deliberately not 0, which would read as a real quiet day. -->
+             Deliberately not 0, which would read as a real quiet day. Revenue is a
+             dash for a role that may not see report data.
+
+             Tests Booked, Reports Done and Tests Pending all count individual tests
+             on today's bookings, so the row adds up: booked = done + pending. -->
         <div class="ph-kpi-row">
           <div class="ph-kpi ph-kpi-d1">
             <div class="ph-kpi-icon ph-kpi-blue"><i class="fas fa-user-plus"></i></div>
@@ -60,16 +64,21 @@
             <div class="ph-kpi-lbl">Patients Today</div>
           </div>
           <div class="ph-kpi ph-kpi-d2">
+            <div class="ph-kpi-icon ph-kpi-teal"><i class="fas fa-vials"></i></div>
+            <div class="ph-kpi-num">{{ testsBookedToday !== null ? testsBookedToday : '—' }}</div>
+            <div class="ph-kpi-lbl">Tests Booked</div>
+          </div>
+          <div class="ph-kpi ph-kpi-d3">
             <div class="ph-kpi-icon ph-kpi-green"><i class="fas fa-file-medical-alt"></i></div>
             <div class="ph-kpi-num">{{ reportsDone !== null ? reportsDone : '—' }}</div>
             <div class="ph-kpi-lbl">Reports Done</div>
           </div>
-          <div class="ph-kpi ph-kpi-d3">
+          <div class="ph-kpi ph-kpi-d4">
             <div class="ph-kpi-icon ph-kpi-purple"><i class="fas fa-rupee-sign"></i></div>
             <div class="ph-kpi-num">{{ revenueToday !== null ? (revenueToday | number:'1.0-0') : '—' }}</div>
             <div class="ph-kpi-lbl">Revenue Today</div>
           </div>
-          <div class="ph-kpi ph-kpi-d4">
+          <div class="ph-kpi ph-kpi-d5">
             <div class="ph-kpi-icon ph-kpi-orange"><i class="fas fa-hourglass-half"></i></div>
             <div class="ph-kpi-num">{{ testsPending !== null ? testsPending : '—' }}</div>
             <div class="ph-kpi-lbl">Tests Pending</div>
@@ -98,8 +107,9 @@
               <span class="ph-vis-badge" [ngClass]="row.badgeClass">{{ row.status }}</span>
             </div>
 
+            <!-- Bookings, not registrations: a returning patient's visit belongs here too. -->
             <div class="ph-vis-empty" *ngIf="!isDashboardLoading && activityRows.length === 0">
-              No registrations yet today.
+              No bookings yet today.
             </div>
           </div>
 

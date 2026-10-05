@@ -276,6 +276,30 @@ small{
   }
 }
 
+// ─── Report on WhatsApp ────────────────────────────────────────────────────
+.whatsapp-icon {
+  color: #25a244;
+}
+
+.whatsapp-hint {
+  display: block;
+  margin-top: 0.3em;
+  font-size: 0.78em;
+  color: #1c7c3a;
+
+  .fa { color: #25a244; }
+}
+
+.whatsapp-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: #1E5BA8;
+  text-decoration: underline;
+}
+
 // ─── Test Input with browse icon ───────────────────────────────────────────
 .test-input-wrap {
   position: relative;

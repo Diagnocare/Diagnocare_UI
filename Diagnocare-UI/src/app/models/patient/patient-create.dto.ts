@@ -28,6 +28,13 @@ export interface PatientTestCreateDto {
   test_Id:          string;
   test_Name:         string;
   urgent_Report:     boolean;
+  /** Send this booking's report on WhatsApp (needs a valid patient mobile number). */
+  report_On_WhatsApp?: boolean;
+  /**
+   * Number to send this booking's report to. Empty = the patient's own number; a
+   * different one is stored on the booking only.
+   */
+  whatsApp_Number?: string | null;
   test_Amount:       number;
   referred_By_Type:  string;
   referred_By:  string;

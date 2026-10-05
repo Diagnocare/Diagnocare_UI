@@ -172,7 +172,7 @@
 /* KPI row — slides down and overlaps content below */
 .ph-kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   position: relative;
   z-index: 3;
@@ -180,7 +180,10 @@
 .ph-kpi {
   background: #fff;
   border-radius: 14px;
-  padding: 16px 16px 13px;
+  /* Narrower than the four-tile row it replaced, so the side padding is tighter
+     and min-width:0 lets a long number shrink instead of widening its column. */
+  padding: 16px 13px 13px;
+  min-width: 0;
   box-shadow: 0 8px 28px rgba(10, 31, 60, .13);
   border: 1px solid #dde3f0;
   display: flex;
@@ -193,6 +196,7 @@
 .ph-kpi-d2 { animation-delay: .28s; }
 .ph-kpi-d3 { animation-delay: .36s; }
 .ph-kpi-d4 { animation-delay: .44s; }
+.ph-kpi-d5 { animation-delay: .52s; }
 @keyframes phKpiSlide {
   from { opacity: 0; transform: translateY(45px); }
   to   { opacity: 1; transform: translateY(28px); }
@@ -209,8 +213,9 @@
 .ph-kpi-green  { background: linear-gradient(135deg, #00b894, #00695c); }
 .ph-kpi-purple { background: linear-gradient(135deg, #6c5ce7, #4834d4); }
 .ph-kpi-orange { background: linear-gradient(135deg, #fd7c3a, #c0562a); }
+.ph-kpi-teal   { background: linear-gradient(135deg, #0aa3bf, #06758a); }
 
-.ph-kpi-num { font-size: 1.55rem; font-weight: 800; color: #0a1f3c; line-height: 1; }
+.ph-kpi-num { font-size: 1.5rem; font-weight: 800; color: #0a1f3c; line-height: 1; }
 .ph-kpi-lbl { font-size: .72rem; color: #8898b0; }
 
 /* ── Hero right — animated visual card ── */
@@ -803,10 +808,17 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════════════ */
+/* The squeeze band: the hero still shows its visual card here, so the five tiles
+   share a narrow left column. Three per row keeps the numbers readable; below
+   1100px the visual card is gone and the full width is available again. */
+@media (min-width: 1101px) and (max-width: 1300px) {
+  .ph-kpi-row      { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 1100px) {
   .ph-hero-inner   { grid-template-columns: 1fr; }
   .ph-hero-visual  { display: none; }
-  .ph-kpi-row      { grid-template-columns: repeat(2, 1fr); }
+  .ph-kpi-row      { grid-template-columns: repeat(3, 1fr); }
   .ph-steps-grid   { grid-template-columns: repeat(2, 1fr); }
   .ph-steps-connector { display: none; }
   .ph-video-section { grid-template-columns: 1fr; }
@@ -821,6 +833,9 @@
   .ph-footer       { flex-direction: column; text-align: center; padding: .75rem 1rem; }
   .ph-steps-grid   { grid-template-columns: 1fr; }
   .ph-kpi-row      { grid-template-columns: 1fr 1fr; }
+  /* Five tiles over two columns leave one on its own — give it the whole row
+     rather than a half-width tile with a gap beside it. */
+  .ph-kpi-row .ph-kpi:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 520px) {
@@ -828,6 +843,7 @@
   .ph-showcase-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
   .ph-sc-tall      { grid-row: auto; }
   .ph-kpi-row      { grid-template-columns: 1fr 1fr; }
+  .ph-kpi-row .ph-kpi:last-child { grid-column: 1 / -1; }
   .ph-lic-band     { flex-direction: column; align-items: flex-start; }
 }
 
