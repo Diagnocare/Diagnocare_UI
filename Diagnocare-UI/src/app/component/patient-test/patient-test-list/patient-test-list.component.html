@@ -616,7 +616,11 @@
         </p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" (click)="saveTestReport()">
+        <button class="btn btn-primary" (click)="saveTestReport()"
+                [disabled]="hasInvalidResults"
+                [title]="hasInvalidResults
+                          ? 'One or more results are not numbers — fix them before saving.'
+                          : 'Save the entered results'">
           <i class="fa fa-save"></i> Save results
         </button>
         <!-- Pay Now — payment not yet complete -->
@@ -733,17 +737,28 @@
               <td class="col-result">
                 <div class="result-field"
                      [class.result-field--high]="resultFlag(param) === 'H'"
-                     [class.result-field--low]="resultFlag(param) === 'L'">
+                     [class.result-field--low]="resultFlag(param) === 'L'"
+                     [class.result-field--invalid]="resultError(param)">
+                  <!-- Numeric parameters take a decimal only: letters are refused at the
+                       keystroke and on paste, so a value like "abcd" never reaches the
+                       field. Qualitative parameters (Positive/Negative, blood group) have
+                       no unit and no numeric range, so they stay free text. -->
                   <input
                     type="text"
                     class="form-control result-input"
-                    placeholder="Enter result"
+                    [appDecimalOnly]="isNumericParam(param)"
+                    [attr.inputmode]="isNumericParam(param) ? 'decimal' : null"
+                    [placeholder]="isNumericParam(param) ? 'Enter number' : 'Enter result'"
                     [attr.aria-label]="param.parameterName + ' result'"
+                    [attr.aria-invalid]="resultError(param) ? 'true' : null"
                     [(ngModel)]="param.resultValue"
                     (input)="updateParameterResult(param, $any($event.target).value)">
                   <span class="result-unit" *ngIf="param.parameterUnit">{{ param.parameterUnit }}</span>
                   <span class="result-flag" *ngIf="resultFlag(param) as flag"
                         [title]="flag === 'H' ? 'Above reference range' : 'Below reference range'">{{ flag }}</span>
+                </div>
+                <div class="result-error" *ngIf="resultError(param) as err">
+                  <i class="fa fa-exclamation-circle"></i> {{ err }}
                 </div>
               </td>
             </tr>
@@ -756,8 +771,16 @@
           <i class="fa" [ngClass]="canIssueReport ? 'fa-check-circle' : 'fa-clock-o'"></i>
           {{ savedResultCount }} of {{ testParameters.length }} results saved
         </span>
-        <span class="param-hint">
-          {{ canIssueReport ? 'Report is ready to view or print.' : 'Save all results to unlock View Report and PDF.' }}
+        <span class="param-hint" [class.param-hint--invalid]="hasInvalidResults">
+          <ng-container *ngIf="hasInvalidResults; else readyHint">
+            <i class="fa fa-exclamation-circle"></i>
+            {{ invalidResultParams.length === 1
+                 ? 'One result is not a number.'
+                 : invalidResultParams.length + ' results are not numbers.' }}
+          </ng-container>
+          <ng-template #readyHint>
+            {{ canIssueReport ? 'Report is ready to view or print.' : 'Save all results to unlock View Report and PDF.' }}
+          </ng-template>
         </span>
       </div>
     </div>

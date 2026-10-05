@@ -2492,6 +2492,31 @@
 .parameter-list-table .result-field--high .result-input { border-color: rgba(220, 38, 38, 0.55); color: #b91c1c; }
 .parameter-list-table .result-field--low  .result-input { border-color: rgba(217, 119, 6, 0.55);  color: #b45309; }
 
+/* ── Rejected result: a number was required and something else was typed ──
+   Red rather than the amber/red of H and L, and paired with a message, so it
+   does not read as "out of range" — the value is not a measurement at all. */
+.parameter-list-table .result-field--invalid .result-input,
+.parameter-list-table .result-field--invalid .result-input:hover {
+  border-color: #dc2626;
+  color: #b91c1c;
+  background: color-mix(in srgb, #dc2626 4%, var(--bg-white));
+}
+.parameter-list-table .result-field--invalid .result-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+}
+.result-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+  margin-top: 0.4em;
+  font-size: 0.78em;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #b91c1c;
+}
+.result-error i { margin-top: 0.15em; }
+
 /* ── Footer summary ─────────────────────────────────────────────────────── */
 .param-footer {
   display: flex;
@@ -2513,6 +2538,14 @@
 .param-progress i { color: #d97706; }
 .param-progress--done i { color: #16a34a; }
 
+.param-hint--invalid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 /* ── Dark themes: lift the flagged text so it stays readable ────────────── */
 :host-context(html[data-theme="dark"]) .parameter-list-table .result-field--high .result-input,
 :host-context(html[data-theme="system"]) .parameter-list-table .result-field--high .result-input,
@@ -2520,6 +2553,15 @@
 :host-context(html[data-theme="dark"]) .parameter-list-table .result-field--low .result-input,
 :host-context(html[data-theme="system"]) .parameter-list-table .result-field--low .result-input,
 :host-context(html[data-theme="midnight"]) .parameter-list-table .result-field--low .result-input { color: #fcd34d; }
+:host-context(html[data-theme="dark"]) .parameter-list-table .result-field--invalid .result-input,
+:host-context(html[data-theme="system"]) .parameter-list-table .result-field--invalid .result-input,
+:host-context(html[data-theme="midnight"]) .parameter-list-table .result-field--invalid .result-input { color: #fca5a5; }
+:host-context(html[data-theme="dark"]) .result-error,
+:host-context(html[data-theme="system"]) .result-error,
+:host-context(html[data-theme="midnight"]) .result-error,
+:host-context(html[data-theme="dark"]) .param-hint--invalid,
+:host-context(html[data-theme="system"]) .param-hint--invalid,
+:host-context(html[data-theme="midnight"]) .param-hint--invalid { color: #fca5a5; }
 
 @media (max-width: 48em) {
   .parameter-container { width: 96%; max-height: 94vh; }

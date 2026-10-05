@@ -29,6 +29,7 @@ import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.c
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import { DecimalOnlyDirective } from 'src/app/shared/directives/decimal-only.directive';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
 import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
@@ -77,7 +78,7 @@ export interface VisitView {
 @Component({
   selector: 'app-patient-test-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent, DecimalOnlyDirective],
   templateUrl: './patient-test-list.component.html',
   styleUrls: ['./patient-test-list.component.css']
 })
@@ -1389,6 +1390,24 @@ export class PatientTestListComponent implements OnInit {
       this.toastr.warning('There is nothing to save for this test.', 'No parameters');
       return;
     }
+
+    // The input directive blocks bad characters as they are typed, but a value
+    // can still arrive past it — autofill, a browser extension, an older row
+    // loaded from the database, or the directive being switched off because the
+    // parameter looked qualitative at the time. The save is the last point at
+    // which a non-number can be kept out of a report, so it is checked here too
+    // rather than trusted to the field.
+    const invalid = this.invalidResultParams;
+    if (invalid.length > 0) {
+      const names = invalid.map(p => p.parameterName).join(', ');
+      const reason = invalid.length === 1
+        ? `${names} must be a number — nothing was saved.`
+        : `These must be numbers: ${names}. Nothing was saved.`;
+      this.parameterErrorMessage = reason;
+      this.toastr.error(reason, 'Check the results');
+      return;
+    }
+
     this.isLoadingParameters = true;
     this.parameterErrorMessage = '';
 
@@ -1758,6 +1777,80 @@ export class PatientTestListComponent implements OnInit {
           console.error('sendReportOnWhatsApp error:', err);
         }
       });
+  }
+
+  // ── Result validation ──────────────────────────────────────────────────────
+  //
+  // A parameter carries no data type: the `type` field on testParameter is a
+  // CRUD flag ('Add' | 'Modified' | 'Delete') consumed by the parameter-editing
+  // endpoint, and the API dropped its own Type column (migration
+  // RemoveTypeFromTestPamater). So whether a result is a number has to be read
+  // off what the parameter master does carry — its unit and its reference range.
+  //
+  // The rule is deliberately one-sided. A parameter is treated as numeric only
+  // on positive evidence; anything unrecognised stays free text. Letting a
+  // stray number through on a qualitative parameter is a cosmetic problem,
+  // whereas refusing "Positive" on a serology parameter stops the lab working.
+
+  /** "1.4-50", "80000-140000", "13.5 – 17.5", or a single "5". */
+  private static readonly NUMERIC_RANGE_RE =
+    /^\s*-?\d+(?:\.\d+)?\s*(?:[-–—]\s*-?\d+(?:\.\d+)?\s*)?$/;
+
+  /** "< 200", "<=5", "≥ 40" — a bound rather than a span, still numeric. */
+  private static readonly COMPARISON_RANGE_RE =
+    /^\s*(?:<|>|≤|≥|<=|>=)\s*-?\d+(?:\.\d+)?\s*$/;
+
+  /** A complete decimal number — what a numeric result must look like. */
+  private static readonly DECIMAL_RE = /^-?\d+(?:\.\d+)?$/;
+
+  /**
+   * Whether this parameter's result must be a number.
+   *
+   * True when the parameter master gives either signal:
+   *   • a unit  — "g/L", "cells/mcL"; qualitative parameters do not carry one
+   *   • a numeric reference range — "80000-140000", "< 200"
+   *
+   * False for "Positive / Negative", "Clear", blood group, and for any
+   * parameter configured with neither, where the safe answer is free text.
+   */
+  isNumericParam(param: testParameter): boolean {
+    if ((param?.parameterUnit ?? '').toString().trim()) return true;
+
+    const range = (param?.parameterRange ?? '').toString().trim();
+    if (!range) return false;
+
+    return PatientTestListComponent.NUMERIC_RANGE_RE.test(range)
+        || PatientTestListComponent.COMPARISON_RANGE_RE.test(range);
+  }
+
+  /**
+   * Why this row's typed value cannot be saved — '' when it is fine.
+   *
+   * An empty field is not an error here: "not entered yet" is already carried
+   * by savedResultCount and the report lock, and flagging every blank row red
+   * the moment the screen opens would be noise.
+   */
+  resultError(param: testParameter): string {
+    if (!this.isNumericParam(param)) return '';
+
+    const raw = (param?.resultValue ?? '').toString().trim();
+    if (raw === '') return '';
+
+    if (!PatientTestListComponent.DECIMAL_RE.test(raw)) {
+      return 'Numbers only — this parameter is measured in '
+           + ((param.parameterUnit ?? '').toString().trim() || 'a numeric range') + '.';
+    }
+    return '';
+  }
+
+  /** Rows currently holding a value that cannot be saved. */
+  get invalidResultParams(): testParameter[] {
+    return this.testParameters.filter(p => this.resultError(p) !== '');
+  }
+
+  /** Blocks the Save button while any typed result is not a number. */
+  get hasInvalidResults(): boolean {
+    return this.invalidResultParams.length > 0;
   }
 
   /** Numeric "low-high" normal range → flag for an out-of-range result, else ''. */
