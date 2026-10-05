@@ -28,6 +28,7 @@ import { ReportPrintStatusDto } from 'src/app/models/report-print-status/report-
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
+import { toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
 import { DecimalOnlyDirective } from 'src/app/shared/directives/decimal-only.directive';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
@@ -1624,51 +1625,220 @@ export class PatientTestListComponent implements OnInit {
    * Bare 10-digit numbers are treated as Indian mobiles.
    */
   get patientWhatsAppNumber(): string | null {
-    const raw = (this.patientContact || '').trim();
-    if (!raw) return null;
-    const hasCountryCode = raw.startsWith('+') || raw.startsWith('00');
-    let digits = raw.replace(/\D/g, '');
-    if (raw.startsWith('00')) digits = digits.slice(2);
-    if (!hasCountryCode) {
-      digits = digits.replace(/^0+/, '');
-      if (digits.length === 10) return '91' + digits;
-      if (digits.length === 12 && digits.startsWith('91')) return digits;
+    return toWhatsAppNumber(this.patientContact);
+  }
+
+  // ── Report on WhatsApp: one dialog for everything ─────────────────────
+  //
+  // Every WhatsApp button on this screen opens the same dialog. It shows the number
+  // the report will go to — the number given for this booking, otherwise the
+  // patient's own mobile — and lets staff change it. Then it either sends the report
+  // link (when the report is ready) or just saves the choice for later.
+  //
+  // A number that differs from the patient's is stored on the booking only
+  // (PatientTest.WhatsApp_Number); the patient's own mobile is not touched. If the
+  // patient has no mobile at all, the API saves the typed number as theirs.
+
+  /** Booking the WhatsApp dialog is open for. */
+  whatsAppDialogFor: patientTest | null = null;
+  /** 'visit' sends the visit's Smart Report link; 'test' sends the open test's report link. */
+  whatsAppDialogMode: 'visit' | 'test' = 'visit';
+  whatsAppNumberInput = '';
+  whatsAppNumberError = '';
+  /** Booking whose WhatsApp choice is being saved or sent (dialog spinner). */
+  savingWhatsAppPrefFor: patientTest['patient_Test_Id'] | null = null;
+
+  /** Number a booking's report goes to, ready for wa.me ("919876543210"), or null. */
+  bookingWhatsAppNumber(test: patientTest | null | undefined): string | null {
+    return toWhatsAppNumber(test?.whatsApp_Number) ?? this.patientWhatsAppNumber;
+  }
+
+  /** True when the booking sends to a number other than the patient's own. */
+  usesOtherWhatsAppNumber(test: patientTest | null | undefined): boolean {
+    const own = toWhatsAppNumber(test?.whatsApp_Number);
+    return !!own && own !== this.patientWhatsAppNumber;
+  }
+
+  /** "+91 98765 43210" for display; empty when the number is not usable. */
+  formatWhatsAppNumber(raw: string | null | undefined): string {
+    const n = toWhatsAppNumber(raw);
+    if (!n) return '';
+    return n.length === 12 && n.startsWith('91') ? `+91 ${n.slice(2, 7)} ${n.slice(7)}` : `+${n}`;
+  }
+
+  /** Tooltip for the WhatsApp button and pill. */
+  whatsAppTitle(test: patientTest): string {
+    const number = this.formatWhatsAppNumber(test.whatsApp_Number || this.patientContact);
+    if (test.report_On_WhatsApp) {
+      return number ? `Report on WhatsApp to ${number}` : 'Report on WhatsApp';
+    }
+    return number ? `Send the report on WhatsApp (${number})` : 'Send the report on WhatsApp';
+  }
+
+  /** The report the dialog would send is ready to go. */
+  get whatsAppDialogReady(): boolean {
+    const test = this.whatsAppDialogFor;
+    if (!test) return false;
+    return this.whatsAppDialogMode === 'test'
+      ? this.canIssueReport
+      : this.reportStatus(test) !== 'Pending';
+  }
+
+  /** The number typed in the dialog is the patient's own mobile. */
+  get whatsAppDialogIsPatientNumber(): boolean {
+    const typed = toWhatsAppNumber(`${this.whatsAppNumberInput ?? ''}`);
+    return !!typed && typed === this.patientWhatsAppNumber;
+  }
+
+  /** A stored number as staff type it: Indian numbers lose the 91 prefix. */
+  private toDialogNumber(raw: string | null | undefined): string {
+    const n = toWhatsAppNumber(raw);
+    if (!n) return '';
+    return n.length === 12 && n.startsWith('91') ? n.slice(2) : `+${n}`;
+  }
+
+  openWhatsAppDialog(test: patientTest | null | undefined, event?: Event, mode: 'visit' | 'test' = 'visit'): void {
+    event?.stopPropagation();
+    if (!test) return;
+    this.whatsAppDialogFor   = test;
+    this.whatsAppDialogMode  = mode;
+    this.whatsAppNumberInput = this.toDialogNumber(test.whatsApp_Number) || this.toDialogNumber(this.patientContact);
+    this.whatsAppNumberError = '';
+  }
+
+  closeWhatsAppDialog(): void {
+    this.whatsAppDialogFor   = null;
+    this.whatsAppNumberInput = '';
+    this.whatsAppNumberError = '';
+  }
+
+  usePatientNumberInDialog(): void {
+    this.whatsAppNumberInput = this.toDialogNumber(this.patientContact);
+    this.whatsAppNumberError = '';
+  }
+
+  /** The typed number if it is usable; otherwise sets the dialog error and returns null. */
+  private readDialogNumber(): string | null {
+    const typed = `${this.whatsAppNumberInput ?? ''}`.trim();
+    if (!toWhatsAppNumber(typed)) {
+      this.whatsAppNumberError = 'Enter a 10-digit mobile number (or +country code and number).';
       return null;
     }
-    return digits.length >= 11 && digits.length <= 15 ? digits : null;
+    this.whatsAppNumberError = '';
+    return typed;
+  }
+
+  /** Applies a saved WhatsApp choice to the rows on screen, without a reload. */
+  private applyWhatsAppChoice(test: patientTest, on: boolean, typed: string | null): void {
+    let bookingNumber: string | null = null;
+    if (on && typed) {
+      if (!(this.patientContact || '').trim()) {
+        this.patientContact = typed;              // the API saved it as the patient's number
+      } else if (toWhatsAppNumber(typed) !== this.patientWhatsAppNumber) {
+        bookingNumber = typed;
+      }
+    }
+    for (const row of [test, this.selectedPatientTest]) {
+      if (row && row.patient_Test_Id === test.patient_Test_Id) {
+        row.report_On_WhatsApp = on;
+        row.whatsApp_Number    = bookingNumber;
+      }
+    }
+  }
+
+  /** Dialog "Save": record the choice and number; nothing is sent. */
+  saveWhatsAppDialog(): void {
+    const test  = this.whatsAppDialogFor;
+    const typed = this.readDialogNumber();
+    if (!test || !typed) return;
+
+    this.savingWhatsAppPrefFor = test.patient_Test_Id;
+    this.patientService.updateReportOnWhatsApp(Number(test.patient_Test_Id), true, typed).subscribe({
+      next: () => {
+        this.savingWhatsAppPrefFor = null;
+        this.applyWhatsAppChoice(test, true, typed);
+        this.closeWhatsAppDialog();
+        this.toastr.success(
+          `The report for this visit will go to ${this.formatWhatsAppNumber(typed)} on WhatsApp.`, 'Saved');
+      },
+      error: (err: any) => {
+        this.savingWhatsAppPrefFor = null;
+        this.whatsAppNumberError = err?.error?.message || 'Could not save the WhatsApp number.';
+      },
+    });
+  }
+
+  /** Dialog "Turn off": the patient no longer wants this visit's report on WhatsApp. */
+  turnOffWhatsAppFromDialog(): void {
+    const test = this.whatsAppDialogFor;
+    if (!test) return;
+
+    this.savingWhatsAppPrefFor = test.patient_Test_Id;
+    this.patientService.updateReportOnWhatsApp(Number(test.patient_Test_Id), false).subscribe({
+      next: () => {
+        this.savingWhatsAppPrefFor = null;
+        this.applyWhatsAppChoice(test, false, null);
+        this.closeWhatsAppDialog();
+        this.toastr.success('WhatsApp report turned off for this visit.', 'Saved');
+      },
+      error: (err: any) => {
+        this.savingWhatsAppPrefFor = null;
+        this.whatsAppNumberError = err?.error?.message || 'Could not save the WhatsApp preference.';
+      },
+    });
   }
 
   /**
-   * Sends the booking's Smart Health Report on WhatsApp as a link.
+   * Dialog "Send on WhatsApp": saves the number on the booking, then opens the chat
+   * for that number with the report link filled in. The operator presses send.
    *
-   * Same flow as {@link sendReportOnWhatsApp}: the WhatsApp tab is opened inside
-   * the click (so pop-up blockers allow it), the backend issues the signed short
-   * link, then the tab is pointed at the patient's chat with the message filled
-   * in. The operator presses send. The patient's link opens a verification page
-   * (name masked) with a button to the full Smart Report — no login needed.
+   * The WhatsApp tab is opened synchronously inside the click, before any API call,
+   * so pop-up blockers allow it; it is pointed at the chat once the link arrives, or
+   * closed if anything fails.
    */
-  sendSmartReportOnWhatsApp(test: patientTest, event?: Event): void {
-    event?.stopPropagation();
-
-    const phone = this.patientWhatsAppNumber;
-    if (!phone) {
-      this.toastr.warning(
-        'This patient has no valid mobile number. Add one in the patient details and try again.',
-        'WhatsApp');
-      return;
-    }
+  sendFromWhatsAppDialog(): void {
+    const test  = this.whatsAppDialogFor;
+    const typed = this.readDialogNumber();
+    if (!test || !typed || !this.whatsAppDialogReady) return;
+    const phone = toWhatsAppNumber(typed)!;
+    const mode  = this.whatsAppDialogMode;
 
     const waWindow = window.open('', '_blank');
     if (!waWindow) {
-      this.toastr.warning('The WhatsApp window was blocked. Allow pop-ups for this site and try again.',
-        'WhatsApp');
+      this.whatsAppNumberError = 'The WhatsApp window was blocked. Allow pop-ups for this site and try again.';
       return;
     }
-    waWindow.opener = null;
+    waWindow.opener = null; // the WhatsApp page must not be able to reach back into the app
     waWindow.document.title = 'Opening WhatsApp…';
     waWindow.document.body.innerHTML =
-      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the health report link, then opening WhatsApp…</p>';
+      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the report link, then opening WhatsApp…</p>';
 
+    this.savingWhatsAppPrefFor = test.patient_Test_Id;
+    this.patientService.updateReportOnWhatsApp(Number(test.patient_Test_Id), true, typed).subscribe({
+      next: () => {
+        this.savingWhatsAppPrefFor = null;
+        this.applyWhatsAppChoice(test, true, typed);
+        this.closeWhatsAppDialog();
+        if (mode === 'test') {
+          this.sendTestReportLink(phone, waWindow);
+        } else {
+          this.sendSmartReportLink(test, phone, waWindow);
+        }
+      },
+      error: (err: any) => {
+        this.savingWhatsAppPrefFor = null;
+        waWindow.close();
+        this.whatsAppNumberError = err?.error?.message || 'Could not save the WhatsApp number.';
+      },
+    });
+  }
+
+  /**
+   * Points the WhatsApp tab at `phone` with the visit's Smart Health Report link.
+   * The patient's link opens a verification page (name masked) with a button to the
+   * full Smart Report — no login needed.
+   */
+  private sendSmartReportLink(test: patientTest, phone: string, waWindow: Window): void {
     this.sendingSmartWhatsAppFor = test.patient_Test_Id;
 
     this.testReportGenerationService
@@ -1701,48 +1871,24 @@ export class PatientTestListComponent implements OnInit {
           waWindow.close();
           this.toastr.error(err?.error?.error || 'The health report link could not be created. Please try again.',
             'WhatsApp');
-          console.error('sendSmartReportOnWhatsApp error:', err);
+          console.error('sendSmartReportLink error:', err);
         }
       });
   }
 
   /**
-   * Sends the current report on WhatsApp as a link.
-   *
-   * Asks the backend for the report's patient link (the same verified URL the
-   * printed QR carries), then opens the patient's WhatsApp chat with a message
-   * containing it. The operator only presses send; the patient taps the link to
-   * see the verified report and open the full copy. No file changes hands.
-   *
-   * The WhatsApp tab is opened synchronously inside the click, before the API
-   * call, so pop-up blockers do not stop it; it is pointed at the chat once the
-   * link arrives, or closed if it cannot be created.
+   * Points the WhatsApp tab at `phone` with the open test's report link — the same
+   * verified URL the printed QR carries. No file changes hands.
    */
-  sendReportOnWhatsApp(): void {
-    if (!this.selectedPatientTest || !this.selectedTestDetail) return;
-
-    const phone = this.patientWhatsAppNumber;
-    if (!phone) {
-      this.toastr.warning(
-        'This patient has no valid mobile number. Add one in the patient details and try again.',
-        'WhatsApp');
+  private sendTestReportLink(phone: string, waWindow: Window): void {
+    if (!this.selectedPatientTest || !this.selectedTestDetail) {
+      waWindow.close();
       return;
     }
 
     const patientTestId = Number(this.selectedPatientTest.patient_Test_Id);
     const testCode      = this.selectedTestDetail.testCode;
     const testName      = this.selectedTestDetail.testName || testCode;
-
-    const waWindow = window.open('', '_blank');
-    if (!waWindow) {
-      this.toastr.warning('The WhatsApp window was blocked. Allow pop-ups for this site and try again.',
-        'WhatsApp');
-      return;
-    }
-    waWindow.opener = null; // WhatsApp page must not be able to reach back into the app
-    waWindow.document.title = 'Opening WhatsApp…';
-    waWindow.document.body.innerHTML =
-      '<p style="font-family:sans-serif;padding:2em;color:#555">Preparing the report link, then opening WhatsApp…</p>';
 
     this.isSendingWhatsApp = true;
 
@@ -1758,8 +1904,6 @@ export class PatientTestListComponent implements OnInit {
             return;
           }
 
-          // Nothing but a line break after the link, so WhatsApp's link detection
-          // never folds trailing punctuation into it.
           const greeting = this.patientName ? `Dear ${this.patientName},` : 'Dear Patient,';
           const message  = `${greeting}\n\n`
                          + `Your ${testName} test report is ready.\n\n`
@@ -1774,7 +1918,7 @@ export class PatientTestListComponent implements OnInit {
           waWindow.close();
           this.toastr.error(err?.error?.error || 'The report link could not be created. Please try again.',
             'WhatsApp');
-          console.error('sendReportOnWhatsApp error:', err);
+          console.error('sendTestReportLink error:', err);
         }
       });
   }

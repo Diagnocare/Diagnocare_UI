@@ -3,6 +3,18 @@
 /* @import "~font-awesome/css/font-awesome.css"; */
 @import "~@fortawesome/fontawesome-free/css/all.css";
 
+/* ── Simple UI kit tokens ──────────────────────────────────────────────────────
+   Defines the --dc-* layer that shared/simple/ components and the newer screens
+   (/work — worklist, verify) read. Those files were written against it but it
+   was never imported, so every token fell back to the light-mode hex baked into
+   the component and the screens ignored the five themes below, carried their own
+   font sizes, and looked like a different application.
+
+   It must stay up here with the other @imports: CSS requires @import before any
+   rule, and the tokens have to be defined before the theme blocks override them.
+   ────────────────────────────────────────────────────────────────────────────── */
+@import './app/shared/simple/simple-ui.css';
+
 /* Always reserve the vertical scrollbar gutter so centered layouts (e.g. the
    account pages) don't shift left/right when navigating between a short page
    (no scrollbar) and a tall page (scrollbar). */
@@ -1306,7 +1318,15 @@ body:has(#pinAuthModal.show) .spinner-container {
   justify-content: center;
   gap: 0.45em;
   font-family: inherit;
-  font-size: 0.9em;
+  /* rem, not em. font-size is the one property where em resolves against the
+     PARENT, so a button in a .data-table cell (0.875em = 14px) came out at
+     0.9 x 14 = 12.6px while the same button in a .page-header came out at
+     14.4px — the same class, two sizes, depending only on where it was put.
+     A button is the same size everywhere, so it is sized against the root.
+     The paddings below stay in em: on an element, em in any property other
+     than font-size resolves against that element's OWN size, so they follow
+     the button and stay in proportion. */
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.1;
   padding: 0.6em 1.2em;
@@ -1327,7 +1347,7 @@ body:has(#pinAuthModal.show) .spinner-container {
   filter: none;
 }
 .dc-btn i { font-size: 0.95em; }
-.dc-btn--sm { padding: 0.4em 0.85em; font-size: 0.82em; }
+.dc-btn--sm { padding: 0.4em 0.85em; font-size: 0.82rem; }
 .dc-btn--block { width: 100%; }
 
 /* ── Save / positive primary — brand blue gradient ───────────────────────── */
@@ -1726,7 +1746,13 @@ input.ng-invalid.ng-touched {
 
 .pagination-info {
   font-size: 0.875em;
-  color: var(--text-secondary);
+  /* The pagination row is a sibling of the table card, so it sits directly on
+     the page's gradient — not on a white surface. --text-secondary is a mid
+     grey meant for use on a card and is close to unreadable there. Every screen
+     that paginates (patients-list, worklist) places it the same way, so this
+     belongs here rather than in either component. */
+  color: var(--text-light);
+  opacity: 0.85;
 }
 
 /* ── Grid helpers ─────────────────────────────────────────────────────────── */
@@ -2593,7 +2619,8 @@ td .action-buttons,
 .btn-filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
 .btn-refresh:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg) {
   padding: 0.6em 1.2em !important;
-  font-size: 0.9em !important;
+  /* rem for the same reason as the base .dc-btn rule above. */
+  font-size: 0.9rem !important;
 }
 
 /* ── Resting state: solid brand blue, white label ─────────────────────────── */
@@ -2752,3 +2779,112 @@ html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-bt
 
 /* ── Full-width variant keeps the shared look, just wider ─────────────────── */
 .btn-full, .dc-btn--block { width: 100% !important; }
+
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+   ║  PAGE WIDTH LAYER — appended                                             ║
+   ║                                                                          ║
+   ║  Appended, like the responsive layer above it, so it wins without        ║
+   ║  !important. To remove it, delete from this banner to the end of the     ║
+   ║  file.                                                                   ║
+   ╚══════════════════════════════════════════════════════════════════════════╝ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — ONE PAGE COLUMN
+   ──────────────────────────────────────────────────────────────────────────────
+   The problem this solves. Screens handled their own width, three different
+   ways, and none of them was the whole app:
+
+     · Most screens had no cap at all, so on a 2560px monitor a seven-column
+       table stretched from bezel to bezel and the eye had to cross the entire
+       desk to get from a patient's name to their button.
+     · A few capped and centred themselves (.page-inner, .vs-layout, .acct-page,
+       .help-page, .contact-list-container) — the right instinct, but each with
+       its own number, so two screens were never the same width.
+     · The worklist capped at 78rem and did NOT centre, so everything past
+       1248px was dead space on the right-hand side. That is the gap that was
+       reported, and it was visible on any monitor wider than about 1300px.
+
+   The fix is one column, defined once, that every screen inherits because every
+   screen is built from .page-header + .content-container.
+
+     --dc-page-max      how wide the content is allowed to get
+     --dc-page-gutter   the space between the content and the window edge; it is
+                        kept equal to .content-container's own horizontal
+                        padding at each width, because the header's alignment is
+                        calculated from it
+
+   Two things to know before changing this:
+
+   1. It only applies above 64em (1024px). Everything below that is already
+      tuned breakpoint by breakpoint in the responsive layer above, and a cap is
+      meaningless at a width narrower than the cap. Phones and tablets are
+      untouched by this layer.
+
+   2. The header is a full-bleed band — it carries .page-header's background and
+      bottom rule across the whole window, and it must keep doing that. So it is
+      not capped; instead its horizontal padding is grown to put its title on
+      the same line as the content below it:
+
+          (window - column) / 2    the gutter the centred column leaves
+        + --dc-page-gutter         the content's own padding
+
+      max(0px, …) covers the case where the window is narrower than the column,
+      which would otherwise compute a negative padding. If you change
+      --dc-page-max or the container's padding, both numbers come from the same
+      two variables, so the header follows automatically.
+
+   Why 120rem (1920px). It is the width of the most common large monitor in use,
+   so nothing changes on any display up to and including 1920px — no table that
+   fits today starts scrolling tomorrow. Above that, the gutters grow instead of
+   the line length. Lower it if lines still feel long on the big screens; the
+   tables will begin scrolling inside .table-container when it goes below their
+   natural width, which is the trade.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --dc-page-max:    120rem;   /* 1920px */
+  --dc-page-gutter: 2.5em;    /* matches .content-container's padding here */
+}
+
+/* ≥ 90em the container's padding opens up to 3.5em, so the gutter follows it. */
+@media (min-width: 90em) {
+  :root {
+    --dc-page-gutter: 3.5em;
+  }
+}
+
+@media (min-width: 64.0625em) {
+
+  /* The column. Centred, so space left over is shared evenly instead of all
+     landing on the right. */
+  .content-container {
+    max-width: var(--dc-page-max);
+    margin-inline: auto;
+  }
+
+  /* The band stays full width; only its contents move inward to line up with
+     the column. See the note above for the arithmetic. */
+  .page-header {
+    padding-inline: calc(
+      max(0px, (100% - var(--dc-page-max)) / 2) + var(--dc-page-gutter)
+    );
+  }
+
+  /* A screen that needs the full window — a designer canvas, a full-bleed
+     overlay — opts out by raising the cap on itself rather than by unsetting
+     max-width, so it still reads as a deliberate choice:
+         :host { --dc-page-max: 100vw; }                                      */
+}
+
+/* ── Phones: the header and the content on the same gutter ────────────────────
+   Not a wide-screen concern, but the same question — where does the page's
+   content start. The responsive layer narrows .content-container to 0.75em at
+   this width and leaves .page-header on the 1.25em it set at 64em, because the
+   two rules live in different blocks. The result is a title indented 8px
+   further than everything beneath it, which reads as a wobble rather than as a
+   margin. Same gutter for both. */
+@media (max-width: 30em) {
+  .page-header {
+    padding-inline: 0.75em;
+  }
+}

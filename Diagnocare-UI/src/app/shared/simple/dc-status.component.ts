@@ -79,10 +79,14 @@ const STATUS_MAP: Record<string, { tone: DcTone; icon: string }> = {
     .dc-status {
       display: inline-flex;
       align-items: center;
+      /* Geometry from the global .badge in styles.css. The one thing not
+         copied is text-transform: uppercase — a badge there is one short word
+         ("PAID"), whereas these carry a phrase, and a four-word phrase set in
+         caps is markedly slower to read. */
       gap: 0.4rem;
-      padding: 0.3rem 0.7rem;
-      border-radius: 999px;
-      font-size: var(--dc-text-sm, 0.875rem);
+      padding: 0.25em 0.625em;
+      border-radius: 1.25em;
+      font-size: var(--dc-text-micro, 0.75rem);
       font-weight: 600;
       line-height: 1.2;
       white-space: nowrap;

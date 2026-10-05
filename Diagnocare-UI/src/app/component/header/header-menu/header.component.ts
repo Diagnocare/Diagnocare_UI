@@ -283,10 +283,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     return parts.length ? `${parts.join(', ')} awaiting your decision` : '';
   }
 
-  /** Total on the User Panel button: unread notifications for the pages this role can open. */
-  get userPanelBadge(): number {
-    return this.visibleUserOptions.reduce((sum, item) => sum + this.badgeFor(item), 0);
-  }
+  // No total on the User Panel button on purpose: it would repeat the bell's count
+  // (same unread notifications). The bell carries the total; the per-item badges inside
+  // the User Panel dropdown only point to which page has something new.
 
   /** "9+" above nine, so the badge never widens the header. */
   badgeText(n: number): string {

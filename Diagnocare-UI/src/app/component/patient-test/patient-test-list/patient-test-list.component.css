@@ -36,7 +36,7 @@
 .ros-item:hover { background: rgba(255, 255, 255, 0.07); }
 
 .ros-label {
-  font-size: 0.62em;
+  font-size: 0.75em;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -44,7 +44,7 @@
 }
 
 .ros-value {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 800;
   color: #ffffff;
 }
@@ -59,7 +59,7 @@
   gap: 0.5em;
   padding: 0.4em 0.9em;
   margin-bottom: 0.4em;
-  font-size: 0.62em;
+  font-size: 0.75em;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -104,7 +104,7 @@
   border-radius: 50%;
   background: #1E5BA8;
   color: #fff;
-  font-size: 0.68em;
+  font-size: 0.75em;
   font-weight: 800;
 }
 
@@ -115,13 +115,13 @@
 }
 
 .ro-id {
-  font-size: 0.88em;
+  font-size: 0.875em;
   font-weight: 700;
   color: #1e293b;
 }
 
 .ro-date {
-  font-size: 0.72em;
+  font-size: 0.75em;
   color: #64748b;
 }
 
@@ -132,7 +132,7 @@
 }
 
 .ro-paid {
-  font-size: 0.95em;
+  font-size: 0.875em;
   font-weight: 800;
   color: #15803d;
   text-align: right;
@@ -140,7 +140,7 @@
 
 .ro-mode {
   display: inline-block;
-  font-size: 0.72em;
+  font-size: 0.75em;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 20px;
@@ -151,7 +151,7 @@
 
 .ro-type {
   display: inline-block;
-  font-size: 0.72em;
+  font-size: 0.75em;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 20px;
@@ -168,7 +168,7 @@
   padding: 6px 14px;
   border: none;
   border-radius: 8px;
-  font-size: 0.82em;
+  font-size: 0.8125em;
   font-weight: 600;
   cursor: pointer;
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
@@ -186,7 +186,7 @@
   padding: 6px 14px;
   border: none;
   border-radius: 8px;
-  font-size: 0.82em;
+  font-size: 0.8125em;
   font-weight: 600;
   cursor: pointer;
   background: #dc2626;
@@ -201,7 +201,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.78em;
+  font-size: 0.8125em;
   color: #dc2626;
   background: #fee2e2;
   border: 1px solid #fca5a5;
@@ -240,7 +240,7 @@
   padding: 7px 15px;
   border: none;
   border-radius: 8px;
-  font-size: 0.82em;
+  font-size: 0.8125em;
   font-weight: 600;
   color: #64748b;
   background: transparent;
@@ -252,7 +252,7 @@
 /* The check mark only shows on the selected option */
 .filter-mode-btn .filter-mode-check {
   display: none;
-  font-size: 0.9em;
+  font-size: 0.875em;
 }
 
 .filter-mode-btn:hover:not(.filter-mode-btn--active) {
@@ -303,7 +303,7 @@
 }
 
 .filter-mode-label {
-  font-size: 0.68em;
+  font-size: 0.75em;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -345,13 +345,13 @@
 }
 
 .history-banner-title {
-  font-size: 0.88em;
+  font-size: 0.875em;
   font-weight: 700;
   color: #78350f;
 }
 
 .history-banner-sub {
-  font-size: 0.8em;
+  font-size: 0.8125em;
   color: #92400e;
 }
 
@@ -364,7 +364,7 @@
   border: 1.5px solid #eab308;
   border-radius: 8px;
   color: #78350f;
-  font-size: 0.82em;
+  font-size: 0.8125em;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -388,13 +388,13 @@
 }
 
 .no-data-icon {
-  font-size: 3.5em;
+  font-size: 3em;
   color: #9ca3af;
   margin-bottom: 0.5em;
 }
 
 .no-data-title {
-  font-size: 1.35em;
+  font-size: 1.25em;
   font-weight: 700;
   color: #374151;
   margin: 0 0 0.4em;
@@ -402,7 +402,7 @@
 
 .no-data-message {
   color: #6b7280;
-  font-size: 0.95em;
+  font-size: 0.875em;
   margin-bottom: 1.75em;
   max-width: 28em;
   line-height: 1.6;
@@ -419,14 +419,14 @@
 }
 
 .no-recent-icon {
-  font-size: 4em;
+  font-size: 3em;
   color: #16a34a;
   margin-bottom: 0.3em;
   line-height: 1;
 }
 
 .no-recent-title {
-  font-size: 1.4em;
+  font-size: 1.25em;
   font-weight: 700;
   color: #15803d;
   margin: 0 0 0.45em;
@@ -434,7 +434,7 @@
 
 .no-recent-message {
   color: #ffffff;
-  font-size: 0.95em;
+  font-size: 0.875em;
   margin-bottom: 1.75em;
   max-width: 30em;
   line-height: 1.7;
@@ -551,13 +551,13 @@
 }
 
 .callout-title {
-  font-size: 0.88em;
+  font-size: 0.875em;
   font-weight: 700;
   color: #4c1d95;
 }
 
 .callout-sub {
-  font-size: 0.78em;
+  font-size: 0.8125em;
   color: #5b21b6;
 }
 
@@ -570,7 +570,7 @@
   border: none;
   border-radius: 8px;
   color: #fff;
-  font-size: 0.82em;
+  font-size: 0.8125em;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -601,7 +601,7 @@
   .btn-callout-action { width: 100%; justify-content: center; }
 
   .card-header-right { margin-top: 0.4em; }
-  .test-date-chip { font-size: 0.7em; }
+  .test-date-chip { font-size: 0.75em; }
 }
 /* Uses shared pathology-theme.css for base styles */
 
@@ -670,7 +670,7 @@
 }
 
 .tab-id {
-  font-size: 0.7em;
+  font-size: 0.75em;
   font-weight: 600;
   opacity: 0.9;
   margin-bottom: 0.5em;
@@ -713,7 +713,7 @@
 }
 
 .test-card .card-header h3 {
-  font-size: 1.125em;
+  font-size: 1.25em;
   margin: 0;
   color: var(--primary-color);
 }
@@ -774,7 +774,7 @@
 
 .payment-section h4 {
   margin: 0 0 0.75em 0;
-  font-size: 1em;
+  font-size: 0.875em;
   color: var(--primary-color);
   border-bottom: 0.125em solid var(--border-color);
   padding-bottom: 0.5em;
@@ -791,7 +791,7 @@
 }
 
 .amount.highlight {
-  font-size: 1em;
+  font-size: 0.875em;
   color: var(--secondary-color);
 }
 
@@ -1008,7 +1008,7 @@
 .detail-header h2 {
   margin: 0;
   color: var(--text-light);
-  font-size: 1.5em;
+  font-size: 1.25em;
 }
 
 .detail-header .subtitle {
@@ -1035,7 +1035,7 @@
   border: 1.5px solid rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
-  font-size: 1em;
+  font-size: 0.875em;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
   flex-shrink: 0;
@@ -1067,7 +1067,7 @@
   gap: 0.4em;
   padding: 0.5em 1em;
   border-radius: 8px;
-  font-size: 0.84em;
+  font-size: 0.8125em;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
@@ -1104,6 +1104,166 @@
 }
 .header-actions .btn .fa-spinner { opacity: 0.9; }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   CREATE TEST REPORT — refined surface
+   ──────────────────────────────────────────────────────────────────────────
+   The panel used to be one flat green gradient, which filled all the empty
+   space below the table and sat outside the product's palette. It now follows
+   the same identity as the rest of the app: brand-gradient header, calm neutral
+   work surface, and the data presented on a crisp white card.
+   ══════════════════════════════════════════════════════════════════════════ */
+.parameter-overlay-backdrop {
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.parameter-container {
+  /* Neutral work surface — replaces the full-panel green gradient */
+  background: #f6f8fc;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.42), 0 2px 10px rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+/* ── Header — the app's signature gradient ─────────────────────────────── */
+.parameter-header {
+  padding: 1.15em 1.6em;
+  background: linear-gradient(135deg, #1E5BA8 0%, #667eea 55%, #764ba2 100%);
+  border-bottom: none;
+  box-shadow: 0 2px 14px rgba(30, 91, 168, 0.28);
+}
+
+.parameter-header h2 {
+  font-size: 1.25em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+/* Test code / name reads as a subtle chip rather than loose grey text */
+.parameter-header .subtitle {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5em;
+  padding: 0.22em 0.7em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.8125em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.parameter-header .header-actions { gap: 0.5em; }
+
+/* Primary button colours come from the app-wide "UNIFIED PRIMARY BUTTON"
+   section in styles.css. */
+
+/* ── Data table — presented on a clean white card ──────────────────────── */
+.parameter-list-table {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.parameter-list-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef2f9;
+  color: #334155;
+  font-size: 0.8125em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85em 1em;
+  border: none;
+  border-bottom: 1px solid #dbe3ef;
+  white-space: nowrap;
+}
+
+.parameter-list-table tbody td {
+  padding: 0.7em 1em;
+  border: none;
+  border-bottom: 1px solid #eef2f7;
+  color: #1e293b;
+  font-size: 0.875em;
+  vertical-align: middle;
+}
+
+.parameter-list-table tbody tr:last-child td { border-bottom: none; }
+.parameter-list-table tbody tr { transition: background 0.14s ease; }
+.parameter-list-table tbody tr:hover { background: #f7faff; }
+
+/* Result inputs — quiet until focused, then brand-tinted */
+.parameter-list-table input.form-control,
+.parameter-list-table input[type="text"],
+.parameter-list-table input[type="number"] {
+  border: 1.5px solid #dbe3ef;
+  border-radius: 9px;
+  padding: 0.5em 0.8em;
+  font-size: 0.875em;
+  font-weight: 600;
+  color: #0f2744;
+  background: #fbfcfe;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.parameter-list-table input.form-control:focus,
+.parameter-list-table input[type="text"]:focus,
+.parameter-list-table input[type="number"]:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #1E5BA8;
+  box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.14);
+}
+
+/* ── Theme variants ────────────────────────────────────────────────────── */
+:host-context(html[data-theme="dark"]) .parameter-container,
+:host-context(html[data-theme="system"]) .parameter-container { background: #0f172a; border-color: #334155; }
+:host-context(html[data-theme="dark"]) .parameter-list-table,
+:host-context(html[data-theme="system"]) .parameter-list-table { background: #1e293b; }
+:host-context(html[data-theme="dark"]) .parameter-list-table thead th,
+:host-context(html[data-theme="system"]) .parameter-list-table thead th {
+  background: #273548; color: #cbd5e1; border-bottom-color: #334155;
+}
+:host-context(html[data-theme="dark"]) .parameter-list-table tbody td,
+:host-context(html[data-theme="system"]) .parameter-list-table tbody td { color: #e2e8f0; border-bottom-color: #273548; }
+:host-context(html[data-theme="dark"]) .parameter-list-table tbody tr:hover,
+:host-context(html[data-theme="system"]) .parameter-list-table tbody tr:hover { background: #223049; }
+:host-context(html[data-theme="dark"]) .parameter-list-table input,
+:host-context(html[data-theme="system"]) .parameter-list-table input {
+  background: #0f172a; border-color: #334155; color: #e2e8f0;
+}
+
+:host-context(html[data-theme="midnight"]) .parameter-container { background: #020408; border-color: #21262d; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table { background: #0d1117; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table thead th {
+  background: #161b22; color: #a6adc8; border-bottom-color: #21262d;
+}
+:host-context(html[data-theme="midnight"]) .parameter-list-table tbody td { color: #cdd6f4; border-bottom-color: #161b22; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table tbody tr:hover { background: #161b22; }
+:host-context(html[data-theme="midnight"]) .parameter-list-table input {
+  background: #020408; border-color: #21262d; color: #cdd6f4;
+}
+
+:host-context(html[data-theme="warm"]) .parameter-container { background: #f5ede0; border-color: #e8d9c0; }
+:host-context(html[data-theme="warm"]) .parameter-list-table { background: #fffdf7; }
+:host-context(html[data-theme="warm"]) .parameter-list-table thead th {
+  background: #f4e8d8; color: #5c4636; border-bottom-color: #e8d9c0;
+}
+:host-context(html[data-theme="warm"]) .parameter-list-table tbody td { color: #3d2b1f; border-bottom-color: #f0e6d6; }
+:host-context(html[data-theme="warm"]) .parameter-list-table tbody tr:hover { background: #fdf6ea; }
+:host-context(html[data-theme="warm"]) .parameter-list-table input {
+  background: #fffdf7; border-color: #ddc9a8; color: #3d2b1f;
+}
+
 /* Detail Loading */
 .detail-loading {
   display: flex;
@@ -1116,7 +1276,7 @@
 
 .detail-loading p {
   margin-top: 1em;
-  font-size: 1em;
+  font-size: 0.875em;
 }
 
 /* No Data Detail */
@@ -1136,7 +1296,7 @@
 }
 
 .no-data-detail p {
-  font-size: 1em;
+  font-size: 0.875em;
   opacity: 0.8;
 }
 
@@ -1174,7 +1334,7 @@
 
 /* Result Row Styling */
 .result-row .result-value {
-  font-size: 1.125em;
+  font-size: 1em;
   font-weight: 700;
   color: var(--primary-color);
 }
@@ -1300,13 +1460,13 @@
 .parameter-header h2 {
   margin: 0;
   color: var(--text-light);
-  font-size: 1.5em;
+  font-size: 1.25em;
 }
 
 .parameter-header .subtitle {
   margin: 0.25em 0 0 0;
   color: rgba(255, 255, 255, 0.85);
-  font-size: 0.9em;
+  font-size: 0.875em;
 }
 
 .parameter-header .header-actions {
@@ -1326,7 +1486,7 @@
 
 .parameter-loading p {
   margin-top: 1em;
-  font-size: 1em;
+  font-size: 0.875em;
 }
 
 /* No Data Parameter */
@@ -1346,7 +1506,7 @@
 }
 
 .no-data-parameter p {
-  font-size: 1em;
+  font-size: 0.875em;
   opacity: 0.8;
 }
 
@@ -1411,7 +1571,7 @@
 }
 
 .parameter-card .card-header h3 {
-  font-size: 1.125em;
+  font-size: 1.25em;
   margin: 0;
   color: #2e7d32;
 }
@@ -1445,7 +1605,7 @@
 
 .result-input-section h4 {
   margin: 0 0 1em 0;
-  font-size: 1em;
+  font-size: 0.875em;
   color: #2e7d32;
   font-weight: 600;
 }
@@ -1461,7 +1621,7 @@
   padding: 0.875em 1em;
   border: 0.125em solid #4CAF50;
   border-radius: var(--radius-md);
-  font-size: 1.125em;
+  font-size: 0.875em;
   font-weight: 600;
   transition: all 0.3s ease;
 }
@@ -1484,7 +1644,7 @@
 
 .range-hint {
   margin: 0.75em 0 0 0;
-  font-size: 0.85em;
+  font-size: 0.875em;
   color: var(--text-secondary);
   font-style: italic;
 }
@@ -1587,20 +1747,20 @@
 }
 
 .patient-id-input-section h3 {
-  font-size: 1.1em;
+  font-size: 1em;
   margin: 0 1em 0 0;
 }
 
 .patient-id-input-section input.form-control {
   width: 140px;
-  font-size: 0.95em;
+  font-size: 0.875em;
   padding: 0.25em 0.5em;
   display: inline-block;
 }
 
 .patient-id-input-section .btn-primary {
   padding: 0.25em 1em;
-  font-size: 0.95em;
+  /* No font-size: the canonical button system in styles.css sets it. */
 }
 
 /* ── Report blocked note ──────────────────────────────────────────────────
@@ -1615,7 +1775,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.28);
-  font-size: 12px;
+  font-size: 0.75em;
   font-weight: 600;
   color: #fff7ed;
   white-space: nowrap;
@@ -1784,7 +1944,7 @@
 /* Larger variant used in the report-actions header, next to View Report / PDF. */
 .print-status-chip--lg {
   margin-left: 0;
-  font-size: 0.85em;
+  font-size: 0.875em;
   padding: 0.35em 0.8em;
 }
 
@@ -1824,13 +1984,13 @@
 
 .rejection-banner-body strong {
   display: block;
-  font-size: 0.9em;
+  font-size: 0.875em;
   font-weight: 700;
 }
 
 .rejection-banner-reason {
   display: block;
-  font-size: 0.95em;
+  font-size: 0.875em;
   font-weight: 600;
   color: #7f1d1d;
   margin-top: 0.1em;
@@ -1851,7 +2011,7 @@
 .rejection-banner-link {
   flex-shrink: 0;
   align-self: center;
-  font-size: 0.8em;
+  font-size: 0.8125em;
   font-weight: 600;
   text-decoration: underline;
 }
@@ -1886,7 +2046,7 @@
 /* The method under the test name in the result-entry header. */
 .method-subtitle {
   margin: 0.2em 0 0;
-  font-size: 0.78em;
+  font-size: 0.8125em;
   opacity: 0.85;
   display: flex;
   align-items: center;
@@ -1940,13 +2100,13 @@
 /* ── Sections ─────────────────────────────────────────────────────────── */
 .ptl-section { display: flex; flex-direction: column; gap: 0.75em; }
 .ptl-section__head { display: flex; align-items: center; gap: 0.9em; flex-wrap: wrap; }
-.ptl-section__title { margin: 0; font-size: 1.4em; font-weight: 700; color: var(--text-light); }
-.ptl-section__sub { font-size: 1em; color: rgba(255, 255, 255, 0.85); }
+.ptl-section__title { margin: 0; font-size: 1.25em; font-weight: 700; color: var(--text-light); }
+.ptl-section__sub { font-size: 0.875em; color: rgba(255, 255, 255, 0.85); }
 .ptl .card { margin-bottom: 0; }
 
 .ptl-empty-today {
   display: flex; align-items: center; justify-content: space-between; gap: 1em;
-  font-size: 1.05em; color: var(--text-secondary); padding: 1.1em 1.5em;
+  font-size: 1em; color: var(--text-secondary); padding: 1.1em 1.5em;
 }
 .ptl-empty-today i { margin-right: 0.4em; }
 
@@ -1961,10 +2121,10 @@
 .ptl-visit__info { display: flex; flex-direction: column; gap: 0.6em; min-width: 0; }
 .ptl-visit__flags { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5em; flex-shrink: 0; }
 
-.ptl-meta { font-size: 0.92em; color: var(--text-secondary); }
+.ptl-meta { font-size: 0.875em; color: var(--text-secondary); }
 .ptl-names { display: flex; flex-wrap: wrap; gap: 0.5em; margin: 0; padding: 0; list-style: none; }
 .ptl-name {
-  font-size: 1.2em; font-weight: 700; color: var(--text-primary);
+  font-size: 1em; font-weight: 700; color: var(--text-primary);
   padding: 0.3em 0.8em; border-radius: var(--radius-md);
   background: var(--ptl-info-bg);
 }
@@ -1973,13 +2133,42 @@
 .ptl-pill {
   display: inline-flex; align-items: center; gap: 0.4em; white-space: nowrap;
   padding: 0.35em 0.85em; border-radius: 999px;
-  font-size: 0.95em; font-weight: 700;
+  font-size: 0.875em; font-weight: 700;
   background: var(--bg-light); color: var(--text-secondary);
 }
 .ptl-pill--ok     { background: var(--ptl-ok-bg);   color: var(--ptl-ok); }
 .ptl-pill--due    { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
 .ptl-pill--hold   { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
 .ptl-pill--urgent { background: var(--ptl-bad-bg);  color: var(--ptl-bad); }
+.ptl-pill--whatsapp { background: var(--ptl-ok-bg); color: var(--ptl-ok); }
+
+/* Report screen WhatsApp button when the patient asked for WhatsApp */
+.btn.ptl-whatsapp-requested {
+  background: #25a244; border-color: #25a244; color: #fff;
+}
+
+/* Dialog: mobile number for a WhatsApp report */
+.ptl-wa-dialog {
+  position: relative; z-index: 1;
+  width: min(26em, calc(100vw - 2em));
+  padding: 1.4em 1.5em;
+  border-radius: 12px;
+  background: var(--bg-card, #fff); color: var(--text-primary, #1f2937);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.ptl-wa-dialog h3 { margin: 0 0 0.5em; font-size: 1.1em; }
+.ptl-wa-dialog h3 .fa { color: #25a244; }
+.ptl-wa-dialog p  { margin: 0 0 0.9em; font-size: 0.9em; color: var(--text-secondary, #4b5563); }
+.ptl-wa-error { margin-top: 0.4em; font-size: 0.85em; color: var(--ptl-bad); }
+.ptl-wa-hint  { margin-top: 0.4em; font-size: 0.85em; color: var(--text-secondary, #4b5563); }
+.ptl-wa-link  {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; color: var(--primary-color, #1e5ba8); text-decoration: underline;
+}
+.ptl-wa-off   { margin-right: auto; }
+/* Above the visit and report screens, which are overlays too. */
+.ptl-wa-overlay { z-index: 1200; }
+.ptl-wa-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6em; margin-top: 1.1em; }
 
 /* Progress: Booked → Sample → Results → Report */
 .ptl-steps {
@@ -1988,27 +2177,32 @@
 }
 .ptl-step { display: flex; flex-direction: column; gap: 0.45em; }
 .ptl-step__bar { height: 0.5em; border-radius: 0.25em; background: var(--ptl-track); }
-.ptl-step__label { font-size: 0.95em; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35em; }
+.ptl-step__label { font-size: 0.875em; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35em; }
 .ptl-step--done .ptl-step__bar    { background: var(--ptl-ok); }
 .ptl-step--done .ptl-step__label  { color: var(--ptl-ok); font-weight: 700; }
 .ptl-step--current .ptl-step__bar { background: linear-gradient(90deg, var(--ptl-info) 40%, var(--ptl-track) 40%); }
 .ptl-step--current .ptl-step__label { color: var(--ptl-info); font-weight: 700; }
 
-.ptl-remark { margin: 0; font-size: 0.95em; color: var(--text-secondary); }
+.ptl-remark { margin: 0; font-size: 0.875em; color: var(--text-secondary); }
 
 .ptl-visit__bottom {
   display: flex; align-items: center; gap: 1em; flex-wrap: wrap;
   padding-top: 1.1em; border-top: 1px solid var(--border-color);
 }
-.ptl-next { margin: 0; flex: 1 1 18em; font-size: 1.1em; color: var(--text-primary); }
+.ptl-next { margin: 0; flex: 1 1 18em; font-size: 1em; color: var(--text-primary); }
 
 /* Buttons in this screen: a touch larger than the app default (≥44px). */
-.ptl .dc-btn,
-.ptl-visit-screen .dc-btn { min-height: 2.75rem; font-size: 0.95rem; }
+/* The canonical .dc-btn is NOT restyled here. It used to carry
+   min-height: 2.75rem and font-size: 0.95rem, which made every button on this
+   page 44px tall and 15.2px where the rest of the app is ~35px and 14.4px —
+   the single clearest reason this screen read as a different application.
+   styles.css owns button size; see the note in its canonical button section. */
 .ptl-actions { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; justify-content: flex-end; }
 .ptl-actions--left { justify-content: flex-start; }
 /* Secondary action that is still "go" (View reports, Enter results on a later row). */
-.dc-btn.ptl-btn-blue { color: var(--primary-color); border-color: var(--primary-color); }
+/* .ptl-btn-blue is gone: it recoloured the canonical outline button blue,
+   which styles.css asks components not to do. The app-wide secondary is the
+   grey outline of .dc-btn--clear, and that is what these buttons use now. */
 
 /* ── Sampling place picker ────────────────────────────────────────────── */
 .ptl-sampling {
@@ -2017,7 +2211,7 @@
   background: var(--ptl-warn-bg); color: var(--ptl-warn);
 }
 .ptl-sampling__label { font-weight: 700; margin: 0; }
-.ptl-sampling__select { flex: 0 1 16em; min-height: 2.75rem; font-size: 1rem; }
+.ptl-sampling__select { flex: 0 1 16em; min-height: 2.75rem; font-size: 0.875rem; }
 
 /* ── "More" menu ──────────────────────────────────────────────────────── */
 .ptl-more { position: relative; }
@@ -2031,7 +2225,7 @@
 .ptl-more__menu button {
   display: flex; align-items: center; gap: 0.6em; text-align: left;
   min-height: 2.75rem; padding: 0 0.9em; border: 0; border-radius: var(--radius-sm);
-  background: transparent; color: var(--text-primary); font: inherit; font-size: 0.98em; cursor: pointer;
+  background: transparent; color: var(--text-primary); font: inherit; font-size: 0.875em; cursor: pointer;
 }
 .ptl-more__menu button i { width: 1.1em; text-align: center; color: var(--text-secondary); }
 .ptl-more__menu button:hover:not(:disabled),
@@ -2051,16 +2245,16 @@
 .ptl-list > .ptl-month:first-child + .ptl-row { border-top: 0; }
 .ptl-row--cancelled { background: var(--bg-light); }
 .ptl-row__date { display: flex; flex-direction: column; gap: 0.1em; width: 9.5em; flex-shrink: 0; }
-.ptl-row__date strong { font-size: 1.15em; color: var(--text-primary); }
-.ptl-row__date span { font-size: 0.92em; color: var(--text-secondary); }
+.ptl-row__date strong { font-size: 1em; color: var(--text-primary); }
+.ptl-row__date span { font-size: 0.875em; color: var(--text-secondary); }
 .ptl-row__main { display: flex; flex-direction: column; gap: 0.3em; flex: 1; min-width: 0; }
-.ptl-row__names { font-size: 1.1em; font-weight: 700; color: var(--text-primary); }
+.ptl-row__names { font-size: 1em; font-weight: 700; color: var(--text-primary); }
 .ptl-row--cancelled .ptl-row__names { text-decoration: line-through; color: var(--text-secondary); }
-.ptl-row__status { font-size: 0.98em; font-weight: 700; display: flex; align-items: center; gap: 0.35em; flex-wrap: wrap; }
+.ptl-row__status { font-size: 0.875em; font-weight: 700; display: flex; align-items: center; gap: 0.35em; flex-wrap: wrap; }
 .ptl-urgent-text { color: var(--ptl-bad); font-weight: 700; }
 
 .ptl-month {
-  padding: 0.6em 1.9em; font-size: 0.9em; font-weight: 700; letter-spacing: 0.04em;
+  padding: 0.6em 1.9em; font-size: 0.875em; font-weight: 700; letter-spacing: 0.04em;
   color: var(--text-secondary); background: var(--bg-light);
   border-top: 1px solid var(--border-color);
 }
@@ -2078,7 +2272,7 @@
 .ptl-search:focus-within { border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--ptl-info-bg); }
 .ptl-search__input {
   flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
-  font: inherit; font-size: 1rem; color: var(--text-primary);
+  font: inherit; font-size: 0.875rem; color: var(--text-primary);
 }
 
 /* Tones */
@@ -2089,10 +2283,10 @@
 .ptl-tone--muted { color: var(--text-secondary); }
 
 /* ── Visit screen (replaces the second card deck) ─────────────────────── */
-.ptl-visit-screen .ptl-rel { font-weight: 400; opacity: 0.85; font-size: 0.8em; }
+.ptl-visit-screen .ptl-rel { font-weight: 400; opacity: 0.85; font-size: 0.8125em; }
 .ptl-visit-body {
   flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 1.25em;
-  padding: 1.5em 1.75em; background: var(--bg-light); font-size: 1rem;
+  padding: 1.5em 1.75em; background: var(--bg-light); font-size: 0.875rem;
 }
 /* The body scrolls as a whole; its blocks keep their natural height. */
 .ptl-visit-body > * { flex-shrink: 0; }
@@ -2107,7 +2301,7 @@
 }
 .ptl-table { width: 100%; border-collapse: collapse; }
 .ptl-table th {
-  text-align: left; padding: 0.8em 1.1em; font-size: 0.9em; font-weight: 700;
+  text-align: left; padding: 0.8em 1.1em; font-size: 0.875em; font-weight: 700;
   color: var(--text-secondary); background: var(--bg-light);
   border-bottom: 1px solid var(--border-color);
 }
@@ -2118,15 +2312,15 @@
 .ptl-table tbody tr:first-child td { border-top: 0; }
 .ptl-table__row--next td { background: var(--ptl-info-bg); }
 .ptl-table__act { text-align: right; width: 16em; }
-.ptl-table__name { font-size: 1.15em; font-weight: 700; }
-.ptl-table__sub { font-size: 0.88em; color: var(--text-secondary); margin-top: 0.2em; }
+.ptl-table__name { font-size: 1em; font-weight: 700; }
+.ptl-table__sub { font-size: 0.875em; color: var(--text-secondary); margin-top: 0.2em; }
 .ptl-table__chips { display: flex; gap: 0.4em; flex-wrap: wrap; margin-top: 0.45em; }
 .ptl-cell-strong { font-weight: 700; display: flex; align-items: center; gap: 0.35em; }
 
 .ptl-links { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.2em 0.9em; margin-top: 0.55em; }
 .ptl-link {
   border: 0; background: none; padding: 0.2em 0; cursor: pointer;
-  font: inherit; font-size: 0.88em; color: var(--primary-color); text-decoration: underline;
+  font: inherit; font-size: 0.875em; color: var(--primary-color); text-decoration: underline;
 }
 .ptl-link:hover { text-decoration: none; }
 
@@ -2136,7 +2330,7 @@
   padding: 1.25em 1.5em; background: var(--bg-white);
   border: 1px solid var(--border-color); border-radius: var(--radius-lg);
 }
-.ptl-panel__title { margin: 0; font-size: 1.2em; font-weight: 700; color: var(--text-primary); }
+.ptl-panel__title { margin: 0; font-size: 1em; font-weight: 700; color: var(--text-primary); }
 .ptl-callout {
   display: flex; gap: 0.7em; align-items: flex-start;
   padding: 0.8em 1em; border-radius: var(--radius-md);
@@ -2148,8 +2342,8 @@
 
 .ptl-money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75em; }
 .ptl-money > div { display: flex; flex-direction: column; gap: 0.15em; }
-.ptl-money span { font-size: 0.88em; color: var(--text-secondary); }
-.ptl-money strong { font-size: 1.4em; color: var(--text-primary); }
+.ptl-money span { font-size: 0.875em; color: var(--text-secondary); }
+.ptl-money strong { font-size: 1.25em; color: var(--text-primary); }
 .ptl-money .ptl-tone--warn span,
 .ptl-money .ptl-tone--warn strong { color: var(--ptl-warn); }
 
