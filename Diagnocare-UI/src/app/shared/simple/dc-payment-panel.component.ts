@@ -249,7 +249,7 @@ export interface DcPaymentDecision {
        the Add New Test card. */
     .dc-pay__choices {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(13em, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
       gap: 0.75em;
     }
     .dc-pay__choice {

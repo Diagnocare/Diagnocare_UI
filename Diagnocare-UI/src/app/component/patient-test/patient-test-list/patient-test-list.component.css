@@ -1,381 +1,4 @@
-/* Patient Test List Specific Styles */
 
-/* ══════════════════════════════════════════════════════════════════════
-   Receipt Overlay
-   ══════════════════════════════════════════════════════════════════════ */
-.receipt-overlay-body {
-  padding: 1.5em;
-  overflow-y: auto;
-  flex: 1;
-  background: #f4f7fb;
-}
-
-/* ── Summary bar ─────────────────────────────────────────────────────── */
-.receipt-overlay-summary {
-  display: flex;
-  gap: 0;
-  background: linear-gradient(135deg, #1e3a5f 0%, #1E5BA8 100%);
-  border-radius: 12px;
-  margin-bottom: 1.25em;
-  overflow: hidden;
-  box-shadow: 0 4px 14px rgba(30, 58, 95, 0.25);
-}
-
-.ros-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 1em 1.5em;
-  flex: 1;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  transition: background 0.15s;
-}
-
-.ros-item:last-child { border-right: none; }
-
-.ros-item:hover { background: rgba(255, 255, 255, 0.07); }
-
-.ros-label {
-  font-size: 0.75em;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.ros-value {
-  font-size: 1em;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-.ros-paid { color: #86efac; }   /* bright green on dark bg */
-.ros-due  { color: #fca5a5; }   /* bright red on dark bg   */
-
-/* ── Column header row ───────────────────────────────────────────────── */
-.ro-list-header {
-  display: grid;
-  grid-template-columns: 2em 1fr 1.8fr 1.1fr 1fr 1fr;
-  gap: 0.5em;
-  padding: 0.4em 0.9em;
-  margin-bottom: 0.4em;
-  font-size: 0.75em;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #64748b;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.ro-list-header .text-right { text-align: right; }
-
-/* ── Receipt list ────────────────────────────────────────────────────── */
-.receipt-overlay-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-}
-
-.ro-row {
-  display: grid;
-  grid-template-columns: 2em 1fr 1.8fr 1.1fr 1fr 1fr;
-  gap: 0.5em;
-  align-items: center;
-  padding: 0.7em 0.9em;
-  border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
-  background: #ffffff;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-
-.ro-row:hover {
-  background: #eef4ff;
-  border-color: #93c5fd;
-  box-shadow: 0 3px 12px rgba(30, 91, 168, 0.12);
-}
-
-/* ── Row cells ───────────────────────────────────────────────────────── */
-.ro-index {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.6em;
-  height: 1.6em;
-  border-radius: 50%;
-  background: #1E5BA8;
-  color: #fff;
-  font-size: 0.75em;
-  font-weight: 800;
-}
-
-.ro-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ro-id {
-  font-size: 0.875em;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.ro-date {
-  font-size: 0.75em;
-  color: #64748b;
-}
-
-.ro-row-right {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-}
-
-.ro-paid {
-  font-size: 0.875em;
-  font-weight: 800;
-  color: #15803d;
-  text-align: right;
-}
-
-.ro-mode {
-  display: inline-block;
-  font-size: 0.75em;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: #1E5BA8;
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-.ro-type {
-  display: inline-block;
-  font-size: 0.75em;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: #0f766e;
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-/* ── Pay Now button ──────────────────────────────────────────────────── */
-.btn-pay-now {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.8125em;
-  font-weight: 600;
-  cursor: pointer;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #fff;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.btn-pay-now:hover { opacity: 0.88; transform: translateY(-1px); }
-.btn-pay-now:active { transform: scale(0.97); }
-
-/* ── Cancel Booking button ───────────────────────────────────────────── */
-.btn-cancel-booking {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.8125em;
-  font-weight: 600;
-  cursor: pointer;
-  background: #dc2626;
-  color: #fff;
-  transition: background 0.15s, transform 0.1s, opacity 0.15s;
-}
-.btn-cancel-booking:hover  { background: #b91c1c; transform: translateY(-1px); }
-.btn-cancel-booking:active { transform: scale(0.97); }
-
-/* ── Cancelled info chip ─────────────────────────────────────────────── */
-.cancelled-info-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.8125em;
-  color: #dc2626;
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  border-radius: 6px;
-  padding: 4px 10px;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Header Actions Group */
-.header-actions-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  flex-wrap: wrap;
-}
-
-/* ── Filter mode segmented toggle ─────────────────────────────────── */
-.filter-mode-toggle {
-  display: inline-flex;
-  align-items: center;
-  background: #e2e8f0;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 3px;
-  gap: 3px;
-}
-
-.filter-mode-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 15px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.8125em;
-  font-weight: 600;
-  color: #64748b;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-  white-space: nowrap;
-}
-
-/* The check mark only shows on the selected option */
-.filter-mode-btn .filter-mode-check {
-  display: none;
-  font-size: 0.875em;
-}
-
-.filter-mode-btn:hover:not(.filter-mode-btn--active) {
-  background: #f8fafc;
-  color: #334155;
-}
-
-.filter-mode-btn:focus-visible {
-  outline: 2px solid #1E5BA8;
-  outline-offset: 2px;
-}
-
-/* Selected: solid brand fill + white text — unmistakable next to the grey track */
-.filter-mode-btn--active {
-  background: #1E5BA8;
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 2px 6px rgba(30, 91, 168, 0.35);
-}
-
-.filter-mode-btn--active .filter-mode-check {
-  display: inline-flex;
-}
-
-.filter-mode-btn--active .filter-mode-icon {
-  display: none;
-}
-
-.filter-mode-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #7c3aed;
-  color: #fff;
-  border-radius: 1em;
-  padding: 1px 7px;
-  font-size: 0.75em;
-  font-weight: 700;
-  min-width: 20px;
-  line-height: 1.5;
-}
-
-/* Label above the toggle so the control reads as a choice, not two actions */
-.filter-mode-wrap {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.filter-mode-label {
-  font-size: 0.75em;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #94a3b8;
-  padding-left: 2px;
-}
-
-/* ── Full-history mode banner ─────────────────────────────────────── */
-.history-mode-banner {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  background: #fefce8;
-  border: 1px solid #fde047;
-  border-left: 4px solid #eab308;
-  border-radius: 10px;
-  padding: 0.75em 1.25em;
-  margin-bottom: 1.25em;
-}
-
-.history-banner-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #fef08a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #a16207;
-  font-size: 1em;
-  flex-shrink: 0;
-}
-
-.history-banner-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.history-banner-title {
-  font-size: 0.875em;
-  font-weight: 700;
-  color: #78350f;
-}
-
-.history-banner-sub {
-  font-size: 0.8125em;
-  color: #92400e;
-}
-
-.btn-banner-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  background: #fff;
-  border: 1.5px solid #eab308;
-  border-radius: 8px;
-  color: #78350f;
-  font-size: 0.8125em;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.btn-banner-switch:hover {
-  background: #fef08a;
-  border-color: #ca8a04;
-}
 
 /* ── No tests at all ─────────────────────────────────────────────── */
 .no-data-state {
@@ -408,38 +31,6 @@
   line-height: 1.6;
 }
 
-/* ── No recent tests (has history, all old / complete) ───────────── */
-.no-recent-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4em 2em;
-  text-align: center;
-}
-
-.no-recent-icon {
-  font-size: 3em;
-  color: #16a34a;
-  margin-bottom: 0.3em;
-  line-height: 1;
-}
-
-.no-recent-title {
-  font-size: 1.25em;
-  font-weight: 700;
-  color: #15803d;
-  margin: 0 0 0.45em;
-}
-
-.no-recent-message {
-  color: #ffffff;
-  font-size: 0.875em;
-  margin-bottom: 1.75em;
-  max-width: 30em;
-  line-height: 1.7;
-}
-
 /* Shared action buttons row under empty states */
 .no-data-actions {
   display: flex;
@@ -448,351 +39,15 @@
   justify-content: center;
 }
 
-/* ── Card header additions ───────────────────────────────────────── */
-.card-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.45em;
-  flex-wrap: wrap;
-}
-
-/* Date chip inside card header */
-.test-date-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3em;
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.25);
-  border-radius: 1em;
-  padding: 0.15em 0.65em;
-  font-size: 0.75em;
-  font-weight: 600;
-  color: #1E5BA8;
-  white-space: nowrap;
-}
-
-.test-date-chip i {
-  font-size: 0.9em;
-}
-
-/* Report status chips */
-.report-status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3em;
-  border-radius: 1em;
-  padding: 0.2em 0.65em;
-  font-size: 0.75em;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.report-pending {
-  background: #fef9c3;
-  border: 1px solid #fde047;
-  color: #a16207;
-}
-
-.report-partial {
-  background: #fff7ed;
-  border: 1px solid #fdba74;
-  color: #c2410c;
-}
-
-.report-done {
-  background: #dcfce7;
-  border: 1px solid #86efac;
-  color: #15803d;
-}
-
-.report-cancelled {
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  color: #dc2626;
-}
-
-.urgent-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25em;
-}
-
-/* ── Archived records callout (shown below the card list) ────────── */
-.old-records-callout {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  background: #f5f3ff;
-  border: 1px solid #c4b5fd;
-  border-left: 4px solid #7c3aed;
-  border-radius: 10px;
-  padding: 0.85em 1.25em;
-  margin-top: 1.5em;
-}
-
-.callout-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #ede9fe;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #6d28d9;
-  font-size: 1em;
-  flex-shrink: 0;
-}
-
-.callout-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.callout-title {
-  font-size: 0.875em;
-  font-weight: 700;
-  color: #4c1d95;
-}
-
-.callout-sub {
-  font-size: 0.8125em;
-  color: #5b21b6;
-}
-
-.btn-callout-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  background: #7c3aed;
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 0.8125em;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
-}
-
-.btn-callout-action:hover {
-  background: #6d28d9;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-}
-
 /* ── Responsive tweaks ───────────────────────────────────────────── */
 @media (max-width: 48em) {
   .no-data-actions { flex-direction: column; align-items: stretch; }
-  .no-data-actions .btn { width: 100%; justify-content: center; }
-
-  .filter-mode-wrap { width: 100%; }
-  .filter-mode-toggle { width: 100%; }
-  .filter-mode-btn { flex: 1; justify-content: center; }
-
-  .history-mode-banner { flex-wrap: wrap; gap: 0.75em; }
-  .btn-banner-switch { width: 100%; justify-content: center; }
-
-  .old-records-callout { flex-wrap: wrap; gap: 0.75em; }
-  .btn-callout-action { width: 100%; justify-content: center; }
-
-  .card-header-right { margin-top: 0.4em; }
-  .test-date-chip { font-size: 0.75em; }
-}
-/* Uses shared pathology-theme.css for base styles */
-
-/* Test Cards Stack Layout - Overlapping Cards */
-.test-cards-stack {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  min-height: 500px;
-  padding: 2em;
-  padding-right: 15em; /* Space for card tabs on right */
-}
-
-/* Individual Test Card - Stacked */
-.test-card {
-  position: absolute;
-  left: 2em;
-  top: 2em;
-  width: calc(100% - 18em);
-  min-height: 450px;
-  display: flex;
-  flex-direction: row;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  cursor: pointer;
-  box-shadow: var(--shadow-medium);
-}
-
-.test-card:hover {
-  box-shadow: var(--shadow-heavy);
-}
-
-.test-card.active {
-  box-shadow: 0 0.75em 2.5em rgba(30, 91, 168, 0.3);
-}
-
-/* Card Tab - Right side visible strip */
-.card-tab {
-  position: absolute;
-  right: -4em;
-  top: 0;
-  width: 4em;
-  height: 100%;
-  background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 1em 0.5em;
-  color: var(--text-light);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transition: all 0.3s ease;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-}
-
-.card-tab:hover {
-  width: 5em;
-  right: -5em;
-  background: linear-gradient(180deg, var(--secondary-color) 0%, var(--accent-color) 100%);
-}
-
-.card-tab.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.tab-id {
-  font-size: 0.75em;
-  font-weight: 600;
-  opacity: 0.9;
-  margin-bottom: 0.5em;
-}
-
-.tab-count {
-  font-size: 0.75em;
-  font-weight: 700;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.3em 0.5em;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-}
-
-/* Card Content - Main area */
-.card-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-white);
-  border-radius: var(--radius-lg);
-}
-
-/* Card Header Override */
-.test-card .card-header {
-  background: linear-gradient(135deg, rgba(30, 91, 168, 0.1), rgba(102, 126, 234, 0.1));
-  margin: 0;
-  padding: 1.25em 1.5625em;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  border-bottom: 0.125em solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.test-card .card-header .header-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-}
-
-.test-card .card-header h3 {
-  font-size: 1.25em;
-  margin: 0;
-  color: var(--primary-color);
-}
-
-.test-count-badge {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: var(--text-light);
-  padding: 0.25em 0.75em;
-  border-radius: 1em;
-  font-size: 0.75em;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* Card Body - Scrollable content area */
-.test-card .card-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5em;
-}
-
-/* Test Details */
-.test-details {
-  margin-bottom: 1.25em;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5em 0;
-  border-bottom: 0.0625em solid rgba(0, 0, 0, 0.05);
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 0.875em;
-}
-
-.detail-value {
-  font-weight: 500;
-  color: var(--text-primary);
-  font-size: 0.875em;
-}
-
-/* Payment Section */
-.payment-section {
-  background: rgba(102, 126, 234, 0.05);
-  border-radius: var(--radius-md);
-  padding: 1em;
-  margin-bottom: 1.25em;
-}
-
-.payment-section h4 {
-  margin: 0 0 0.75em 0;
-  font-size: 0.875em;
-  color: var(--primary-color);
-  border-bottom: 0.125em solid var(--border-color);
-  padding-bottom: 0.5em;
-}
-
-.payment-details .detail-row {
-  padding: 0.375em 0;
-}
+  .no-data-actions .btn { width: 100%; justify-content: center; }}
 
 /* Amount Styling */
 .amount {
   color: var(--primary-color);
   font-weight: 600;
-}
-
-.amount.highlight {
-  font-size: 0.875em;
-  color: var(--secondary-color);
 }
 
 .discount {
@@ -808,49 +63,6 @@
   font-weight: 600;
 }
 
-/* Remarks Section */
-.remarks-section {
-  background: #fffde7;
-  border-radius: var(--radius-md);
-  padding: 1em;
-  margin-bottom: 1.25em;
-  border-left: 0.25em solid #ffc107;
-}
-
-.remarks-section h4 {
-  margin: 0 0 0.5em 0;
-  font-size: 0.875em;
-  color: #e65100;
-}
-
-.remark-text {
-  margin: 0;
-  font-size: 0.875em;
-  color: var(--text-primary);
-  line-height: 1.5;
-}
-
-/* Additional Info */
-.additional-info {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5em;
-  margin-bottom: 1em;
-}
-
-/* Card Footer */
-.card-footer {
-  margin-top: auto;
-  padding: 1em 1.5em;
-  border-top: 0.0625em solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5em;
-  flex-shrink: 0;
-  background: var(--bg-white);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
 /* Loading Spinner */
 .spinner {
   width: 3em;
@@ -864,85 +76,6 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-/* Responsive Adjustments */
-@media (max-width: 64em) {
-  .test-cards-stack {
-    padding-right: 10em;
-  }
-  
-  .test-card {
-    width: calc(100% - 14em);
-  }
-  
-  .card-tab {
-    width: 3em;
-    right: -3em;
-  }
-  
-  .card-tab:hover {
-    width: 4em;
-    right: -4em;
-  }
-}
-
-@media (max-width: 48em) {
-  .test-cards-stack {
-    flex-direction: column;
-    padding: 1em;
-    padding-right: 1em;
-    min-height: auto;
-  }
-  
-  .test-card {
-    position: relative;
-    left: auto;
-    top: auto;
-    width: 100%;
-    min-height: auto;
-    margin-bottom: 1em;
-    transform: none !important;
-  }
-  
-  .card-tab {
-    position: relative;
-    right: auto;
-    width: 100%;
-    height: auto;
-    writing-mode: horizontal-tb;
-    text-orientation: mixed;
-    flex-direction: row;
-    padding: 0.75em 1em;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    gap: 1em;
-  }
-  
-  .card-tab.hidden {
-    display: flex;
-    opacity: 1;
-    pointer-events: auto;
-  }
-  
-  .test-card .card-header {
-    padding: 0.9375em;
-  }
-  
-  .test-card.active .card-tab {
-    display: none;
-  }
-}
-
-@media (max-width: 30em) {
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25em;
-  }
-  
-  .detail-value {
-    padding-left: 1em;
   }
 }
 
@@ -1060,7 +193,6 @@
    uses for on-gradient toolbars (page headers, the close button above, the
    attendance legend) instead of the stock cyan .btn-info, which was off-palette.
    ══════════════════════════════════════════════════════════════════════════ */
-.overlay-header .header-actions .btn,
 .header-actions .btn {
   display: inline-flex;
   align-items: center;
@@ -1300,60 +432,6 @@
   opacity: 0.8;
 }
 
-/* Detail Cards Stack */
-.detail-cards-stack {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  flex: 1;
-  padding: 2em;
-  padding-right: 15em;
-  overflow: hidden;
-}
-
-.detail-card {
-  position: absolute;
-  left: 2em;
-  top: 2em;
-  width: calc(100% - 18em);
-  height: calc(100% - 4em);
-  display: flex;
-  flex-direction: row;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  cursor: pointer;
-  box-shadow: var(--shadow-medium);
-}
-
-.detail-card:hover {
-  box-shadow: var(--shadow-heavy);
-}
-
-.detail-card.active {
-  box-shadow: 0 0.75em 2.5em rgba(30, 91, 168, 0.3);
-}
-
-/* Result Row Styling */
-.result-row .result-value {
-  font-size: 1em;
-  font-weight: 700;
-  color: var(--primary-color);
-}
-
-.result-row.abnormal .result-value {
-  color: #c62828;
-}
-
-/* Responsive Detail Overlay */
-@media (max-width: 64em) {
-  .detail-cards-stack {
-    padding-right: 10em;
-  }
-  
-  .detail-card {
-    width: calc(100% - 14em);
-  }
-}
-
 @media (max-width: 48em) {
   .detail-container {
     width: 95%;
@@ -1368,49 +446,7 @@
   
   .detail-header h2 {
     font-size: 1.25em;
-  }
-  
-  .detail-cards-stack {
-    flex-direction: column;
-    padding: 1em;
-    padding-right: 1em;
-    overflow-y: auto;
-  }
-  
-  .detail-card {
-    position: relative;
-    left: auto;
-    top: auto;
-    width: 100%;
-    height: auto;
-    min-height: auto;
-    margin-bottom: 1em;
-    transform: none !important;
-  }
-  
-  .detail-card .card-tab {
-    position: relative;
-    right: auto;
-    width: 100%;
-    height: auto;
-    writing-mode: horizontal-tb;
-    text-orientation: mixed;
-    flex-direction: row;
-    padding: 0.75em 1em;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    gap: 1em;
-  }
-  
-  .detail-card .card-tab.hidden {
-    display: flex;
-    opacity: 1;
-    pointer-events: auto;
-  }
-  
-  .detail-card.active .card-tab {
-    display: none;
-  }
-}
+  }}
 
 /* =======================================
    Parameter Overlay Styles
@@ -1513,112 +549,6 @@
   opacity: 0.8;
 }
 
-/* Parameter Cards Stack */
-.parameter-cards-stack {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  flex: 1;
-  min-height: 0;
-  padding: 2em;
-  padding-right: 15em;
-  overflow: hidden;
-}
-
-.parameter-card {
-  position: absolute;
-  left: 2em;
-  top: 2em;
-  width: calc(100% - 18em);
-  height: calc(100% - 4em);
-  display: flex;
-  flex-direction: row;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  cursor: pointer;
-  box-shadow: var(--shadow-medium);
-}
-
-.parameter-card:hover {
-  box-shadow: var(--shadow-heavy);
-}
-
-.parameter-card.active {
-  box-shadow: 0 0.75em 2.5em rgba(46, 125, 50, 0.4);
-}
-
-.parameter-card .card-tab {
-  background: linear-gradient(180deg, #2e7d32 0%, #4CAF50 100%);
-}
-
-.parameter-card .card-tab:hover {
-  background: linear-gradient(180deg, #1b5e20 0%, #388e3c 100%);
-}
-
-/* Parameter Card Header */
-.parameter-card .card-header {
-  background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(76, 175, 80, 0.1));
-  margin: 0;
-  padding: 1.25em 1.5625em;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  border-bottom: 0.125em solid rgba(76, 175, 80, 0.3);
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.parameter-card .card-header .header-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-}
-
-.parameter-card .card-header h3 {
-  font-size: 1.25em;
-  margin: 0;
-  color: #2e7d32;
-}
-
-.parameter-card .test-count-badge {
-  background: linear-gradient(135deg, #2e7d32, #4CAF50);
-}
-
-/* Parameter Card Body */
-.parameter-card .card-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5em;
-  background: var(--bg-white);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-/* Parameter Details */
-.parameter-details {
-  margin-bottom: 1.5em;
-}
-
-/* Result Input Section */
-.result-input-section {
-  background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(76, 175, 80, 0.15));
-  border-radius: var(--radius-md);
-  padding: 1.25em;
-  margin-top: 1em;
-  border: 0.125em solid rgba(76, 175, 80, 0.3);
-}
-
-.result-input-section h4 {
-  margin: 0 0 1em 0;
-  font-size: 0.875em;
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-.result-input-section .input-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-}
-
 .result-input {
   flex: 1;
   padding: 0.875em 1em;
@@ -1635,34 +565,6 @@
   box-shadow: 0 0 0 0.25em rgba(76, 175, 80, 0.25);
 }
 
-.input-unit {
-  padding: 0.75em 1em;
-  background: #e8f5e9;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  color: #2e7d32;
-  min-width: 5em;
-  text-align: center;
-}
-
-.range-hint {
-  margin: 0.75em 0 0 0;
-  font-size: 0.875em;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-/* Responsive Parameter Overlay */
-@media (max-width: 64em) {
-  .parameter-cards-stack {
-    padding-right: 10em;
-  }
-  
-  .parameter-card {
-    width: calc(100% - 14em);
-  }
-}
-
 @media (max-width: 48em) {
   .parameter-container {
     width: 95%;
@@ -1677,58 +579,7 @@
   
   .parameter-header h2 {
     font-size: 1.25em;
-  }
-  
-  .parameter-cards-stack {
-    flex-direction: column;
-    padding: 1em;
-    padding-right: 1em;
-    overflow-y: auto;
-  }
-  
-  .parameter-card {
-    position: relative;
-    left: auto;
-    top: auto;
-    width: 100%;
-    height: auto;
-    min-height: auto;
-    margin-bottom: 1em;
-    transform: none !important;
-  }
-  
-  .parameter-card .card-tab {
-    position: relative;
-    right: auto;
-    width: 100%;
-    height: auto;
-    writing-mode: horizontal-tb;
-    text-orientation: mixed;
-    flex-direction: row;
-    padding: 0.75em 1em;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    gap: 1em;
-  }
-  
-  .parameter-card .card-tab.hidden {
-    display: flex;
-    opacity: 1;
-    pointer-events: auto;
-  }
-  
-  .parameter-card.active .card-tab {
-    display: none;
-  }
-
-  .result-input-section .input-group {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .input-unit {
-    min-width: auto;
-  }
-}
+  }}
 
 /* Patient ID Input Section */
 .patient-id-input-section {
@@ -1761,11 +612,6 @@
   display: inline-block;
 }
 
-.patient-id-input-section .btn-primary {
-  padding: 0.25em 1em;
-  /* No font-size: the canonical button system in styles.css sets it. */
-}
-
 /* ── Report blocked note ──────────────────────────────────────────────────
    Sits beside the disabled View / PDF buttons in the parameter overlay header
    and says why they cannot be used yet. */
@@ -1784,55 +630,6 @@
   white-space: nowrap;
 }
 .report-blocked-note i { color: #fdba74; }
-
-/* =======================================
-   Sample collection protocol entry points
-   ======================================= */
-
-/*
- * Booking-level button. Deliberately quieter than the primary actions — this is a
- * reference lookup, not something the operator has to do — but not a bare icon either:
- * "Sample Protocol" is what makes it findable by someone who has never clicked it.
- */
-.btn-protocol {
-  background: #ecfdf5;
-  color: #047857;
-  border: 0.0625em solid #a7f3d0;
-}
-
-.btn-protocol:hover:not(:disabled) {
-  background: #d1fae5;
-  border-color: #6ee7b7;
-}
-
-.btn-protocol:disabled {
-  opacity: 0.7;
-  cursor: default;
-}
-
-/* Per-test info icon inside the detail overlay, beside the test's name. */
-.protocol-info-btn {
-  border: none;
-  background: transparent;
-  color: #0d9488;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0.15em 0.25em;
-  margin-left: 0.4em;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.protocol-info-btn:hover {
-  background: rgba(13, 148, 136, 0.12);
-  color: #0f766e;
-}
-
-.protocol-info-btn:focus-visible {
-  outline: 2px solid #0d9488;
-  outline-offset: 2px;
-}
 
 /* =======================================
    Repeat-run entry points
@@ -1862,57 +659,6 @@
 
 .run-count-chip:hover {
   background: #e0e7ff;
-}
-
-/* Footer action inside the detail overlay. */
-.btn-runs {
-  background: #eef2ff;
-  color: #4338ca;
-  border: 0.0625em solid #c7d2fe;
-}
-
-.btn-runs:hover:not(:disabled) {
-  background: #e0e7ff;
-  border-color: #a5b4fc;
-}
-
-/* =======================================
-   Sample rejection
-   ======================================= */
-
-/*
- * Chip beside a test's name. Red only while the test is actually blocked; a rejection that
- * has been resolved goes grey, so red keeps meaning "something is waiting on you" rather
- * than becoming a permanent scar on the record.
- */
-.rejection-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3em;
-  margin-left: 0.5em;
-  border: 0.0625em solid #e2e8f0;
-  background: #f8fafc;
-  color: #64748b;
-  border-radius: 999px;
-  padding: 0.1em 0.6em;
-  font-size: 0.75em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.rejection-chip:hover {
-  background: #f1f5f9;
-}
-
-.rejection-chip--open {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.rejection-chip--open:hover {
-  background: #fee2e2;
 }
 
 /*
@@ -1951,101 +697,6 @@
   padding: 0.35em 0.8em;
 }
 
-/*
- * The banner sits where the result would be. A test whose sample was refused has no result,
- * and it is the unexplained blank that confuses whoever opens the record next — so the blank
- * is filled with what happened.
- */
-.rejection-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7em;
-  padding: 0.75em 0.9em;
-  margin-bottom: 1em;
-  border: 0.0625em solid #fca5a5;
-  border-left: 0.25em solid #dc2626;
-  background: #fef2f2;
-  border-radius: 0.5em;
-  color: #991b1b;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.rejection-banner:hover {
-  background: #fee2e2;
-}
-
-.rejection-banner > i {
-  margin-top: 0.15em;
-  font-size: 1.05em;
-}
-
-.rejection-banner-body {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.rejection-banner-body strong {
-  display: block;
-  font-size: 0.875em;
-  font-weight: 700;
-}
-
-.rejection-banner-reason {
-  display: block;
-  font-size: 0.875em;
-  font-weight: 600;
-  color: #7f1d1d;
-  margin-top: 0.1em;
-}
-
-.rejection-banner-cat {
-  display: inline-block;
-  margin-top: 0.3em;
-  background: #ffffff;
-  border: 0.0625em solid #e2e8f0;
-  border-radius: 999px;
-  padding: 0.05em 0.55em;
-  font-size: 0.75em;
-  font-weight: 600;
-  color: #475569;
-}
-
-.rejection-banner-link {
-  flex-shrink: 0;
-  align-self: center;
-  font-size: 0.8125em;
-  font-weight: 600;
-  text-decoration: underline;
-}
-
-/* Footer action inside the detail overlay. */
-.btn-rejection {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 0.0625em solid #fecaca;
-}
-
-.btn-rejection:hover:not(:disabled) {
-  background: #fee2e2;
-  border-color: #fca5a5;
-}
-
-/* =======================================
-   Method / technique
-   ======================================= */
-
-/*
- * "Not recorded" in the Method row. Muted and italic so it reads as an absence rather than
- * as a value called "Not recorded" — the row is always present, and the styling is what
- * carries the difference.
- */
-.detail-value--absent {
-  color: #94a3b8;
-  font-style: italic;
-  font-weight: 400;
-}
-
 /* The method under the test name in the result-entry header. */
 .method-subtitle {
   margin: 0.2em 0 0;
@@ -2055,24 +706,6 @@
   align-items: center;
   gap: 0.35em;
 }
-
-/* ── Sampling location picker (booking saved without one) ── */
-.sampling-missing {
-  color: #b45309;
-  font-style: italic;
-}
-.sampling-picker {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-.sampling-picker .form-select {
-  flex: 1 1 160px;
-  min-width: 0;
-}
-
 
 /* ══════════════════════════════════════════════════════════════════════════
    SIMPLE VIEW — Today / Still waiting / Past visits  +  one-table visit screen
@@ -2139,9 +772,9 @@
   font-size: 0.875em; font-weight: 700;
   background: var(--bg-light); color: var(--text-secondary);
 }
-.ptl-pill--ok     { background: var(--ptl-ok-bg);   color: var(--ptl-ok); }
-.ptl-pill--due    { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
-.ptl-pill--hold   { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
+.ptl-pill--ok { background: var(--ptl-ok-bg);   color: var(--ptl-ok); }
+.ptl-pill--due { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
+.ptl-pill--hold { background: var(--ptl-warn-bg); color: var(--ptl-warn); }
 .ptl-pill--urgent { background: var(--ptl-bad-bg);  color: var(--ptl-bad); }
 .ptl-pill--whatsapp { background: var(--ptl-ok-bg); color: var(--ptl-ok); }
 
@@ -2161,14 +794,14 @@
 }
 .ptl-wa-dialog h3 { margin: 0 0 0.5em; font-size: 1.1em; }
 .ptl-wa-dialog h3 .fa { color: #25a244; }
-.ptl-wa-dialog p  { margin: 0 0 0.9em; font-size: 0.9em; color: var(--text-secondary, #4b5563); }
+.ptl-wa-dialog p { margin: 0 0 0.9em; font-size: 0.9em; color: var(--text-secondary, #4b5563); }
 .ptl-wa-error { margin-top: 0.4em; font-size: 0.85em; color: var(--ptl-bad); }
-.ptl-wa-hint  { margin-top: 0.4em; font-size: 0.85em; color: var(--text-secondary, #4b5563); }
-.ptl-wa-link  {
+.ptl-wa-hint { margin-top: 0.4em; font-size: 0.85em; color: var(--text-secondary, #4b5563); }
+.ptl-wa-link {
   padding: 0; border: 0; background: none; cursor: pointer;
   font: inherit; color: var(--primary-color, #1e5ba8); text-decoration: underline;
 }
-.ptl-wa-off   { margin-right: auto; }
+.ptl-wa-off { margin-right: auto; }
 /* Above the visit and report screens, which are overlays too. */
 .ptl-wa-overlay { z-index: 1200; }
 .ptl-wa-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.6em; margin-top: 1.1em; }
@@ -2181,8 +814,8 @@
 .ptl-step { display: flex; flex-direction: column; gap: 0.45em; }
 .ptl-step__bar { height: 0.5em; border-radius: 0.25em; background: var(--ptl-track); }
 .ptl-step__label { font-size: 0.875em; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35em; }
-.ptl-step--done .ptl-step__bar    { background: var(--ptl-ok); }
-.ptl-step--done .ptl-step__label  { color: var(--ptl-ok); font-weight: 700; }
+.ptl-step--done .ptl-step__bar { background: var(--ptl-ok); }
+.ptl-step--done .ptl-step__label { color: var(--ptl-ok); font-weight: 700; }
 .ptl-step--current .ptl-step__bar { background: linear-gradient(90deg, var(--ptl-info) 40%, var(--ptl-track) 40%); }
 .ptl-step--current .ptl-step__label { color: var(--ptl-info); font-weight: 700; }
 
@@ -2279,9 +912,9 @@
 }
 
 /* Tones */
-.ptl-tone--ok   { color: var(--ptl-ok); }
+.ptl-tone--ok { color: var(--ptl-ok); }
 .ptl-tone--warn { color: var(--ptl-warn); }
-.ptl-tone--bad  { color: var(--ptl-bad); }
+.ptl-tone--bad { color: var(--ptl-bad); }
 .ptl-tone--info { color: var(--ptl-info); }
 .ptl-tone--muted { color: var(--text-secondary); }
 
@@ -2363,8 +996,7 @@
   .ptl-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ptl-panels, .ptl-money { grid-template-columns: minmax(0, 1fr); }
   .ptl-search { margin-left: 0; width: 100%; }
-  .ptl-table__act { width: auto; }
-}
+  .ptl-table__act { width: auto; }}
 
 /* ── Dark themes: status colours only; everything else follows the variables ── */
 :host-context(html[data-theme="dark"]) .ptl,
@@ -2390,8 +1022,7 @@
     --ptl-bad:     #ff8a80;
     --ptl-bad-bg:  rgba(255, 138, 128, 0.14);
     --ptl-info-bg: rgba(91, 156, 246, 0.14);
-  }
-}
+  }}
 
 /* The global dark/midnight themes force every span/p/li to light grey with
    !important. Status text here carries meaning in its colour, so it opts back in. */
@@ -2416,5 +1047,4 @@
   :host-context(html[data-theme="system"]) .ptl-step--done .ptl-step__label { color: var(--ptl-ok) !important; }
   :host-context(html[data-theme="system"]) .ptl-step--current .ptl-step__label { color: var(--ptl-info) !important; }
   :host-context(html[data-theme="system"]) .ptl-row__status span, :host-context(html[data-theme="system"]) .ptl-money .ptl-tone--warn span, :host-context(html[data-theme="system"]) .ptl-callout span { color: inherit !important; }
-  :host-context(html[data-theme="system"]) .ptl-search__input { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
-}
+  :host-context(html[data-theme="system"]) .ptl-search__input { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }}
