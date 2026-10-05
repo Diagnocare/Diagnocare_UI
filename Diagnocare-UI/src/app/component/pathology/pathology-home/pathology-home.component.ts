@@ -1,15 +1,25 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Subject, forkJoin, of } from 'rxjs';
-import { takeUntil, catchError } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
-import { PatientService } from 'src/app/services/patientServices/patient.service';
-import { buildPageSortRequest } from 'src/app/models/common/page-sort-request';
-import { SummaryReportService } from 'src/app/services/summaryServices/summary-report.service';
+import { DashboardService } from 'src/app/services/dashboardServices/dashboard.service';
+import { HomeSummary, HomeActivity, HomeWeekDay } from 'src/app/models/dashboard/home-summary';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role, RoleId } from 'src/app/constant/enums';
 import { MODULE_ACCESS, DEFAULT_ACCESS, ModuleAccess } from 'src/app/constant/module-access';
+
+/**
+ * A count the API sent, or null when it sent nothing usable.
+ *
+ * The tiles render null as a dash, so a missing figure reads as "not known" rather
+ * than as a genuinely quiet day. Revenue arrives as null by design for a role that
+ * may not see report data.
+ */
+function numberOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && !Number.isNaN(value) ? value : null;
+}
 
 /**
  * One tile in the "Every Module, at a Glance" gallery.
@@ -59,7 +69,7 @@ interface ActivityRow {
   dotColor: string;
 }
 
-/** One bar in the "Tests This Week" sparkline. */
+/** One bar in the hero's "Registrations This Week" sparkline. */
 interface SparkBar {
   /** Mon…Sun */
   label: string;
@@ -120,15 +130,24 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   isVideoOpen = false;
 
   // ── Dashboard state ─────────────────────────────────────────────────────
-  //  Null means "not loaded yet" so the template can show a dash instead of a
-  //  misleading 0 while the requests are still in flight (or after they fail).
+  //  Null means "no value": still loading, or the request failed. Deliberately
+  //  not 0, which would read as a real quiet day.
+  //
+  //  All five come from one call (see loadDashboard), and the three test counts
+  //  are at test grain, so the row adds up:
+  //  testsBookedToday = reportsDone + testsPending.
 
-  patientsToday: number | null = null;
-  reportsDone:   number | null = null;
-  testsPending:  number | null = null;
-  revenueToday:  number | null = null;
+  patientsToday:    number | null = null;
+  /** Individual tests booked today — a three-test visit counts three. */
+  testsBookedToday: number | null = null;
+  /** Of today's booked tests, how many have results. */
+  reportsDone:      number | null = null;
+  /** Of today's booked tests, how many are still waiting. */
+  testsPending:     number | null = null;
+  /** Null for a role that may not see report data — the tile shows a dash. */
+  revenueToday:     number | null = null;
 
-  /** Today's most recent registrations, newest first. Max 3. */
+  /** Today's most recent bookings, newest first. Max 3. */
   activityRows: ActivityRow[] = [];
 
   /** Mon–Sun registration counts for the current week. */
@@ -136,22 +155,11 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   isDashboardLoading = true;
 
-  /**
-   * Page size for the "today" lookup. The exact count always comes from the
-   * response total, so this only caps how many rows we can break down by
-   * status — well beyond a single lab's daily registrations.
-   */
-  private static readonly TODAY_PAGE_SIZE = 200;
-
-  /** Same idea for the week's sparkline buckets. */
-  private static readonly WEEK_PAGE_SIZE = 1000;
-
   private destroy$ = new Subject<void>();
 
   constructor(
     private pathologyService: PathologyService,
-    private patientService: PatientService,
-    private summaryReportService: SummaryReportService,
+    private dashboardService: DashboardService,
     private router: Router,
     private tokenService: TokenService,
     private cdr: ChangeDetectorRef,
@@ -208,118 +216,51 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   // ── Dashboard data ──────────────────────────────────────────────────────
 
   /**
-   * Loads everything the hero needs in three parallel requests:
+   * Loads the whole hero in one request.
    *
-   *   1. today   — the KPI tiles and the live-activity rows
-   *   2. week    — the sparkline buckets
-   *   3. revenue — today's collection
+   * It used to take four — two pages of the patient search, the daily-collection
+   * report and a booked-test count — and assemble the tiles here. That left the
+   * counts capped by a page size, had two of them counting patients while their
+   * labels said tests, and drew the hero in pieces as each call landed.
    *
-   * Today's rows are a subset of the week's, so this could be two requests.
-   * It isn't, deliberately: both requests ask for the oldest rows first, so
-   * page 1 of a busy week would not contain today's registrations at all.
-   * Scoping one request to today keeps the tiles and the activity list
-   * correct regardless of volume.
-   *
-   * Each request degrades on its own — a failing revenue report leaves the
-   * other three tiles populated rather than blanking the whole hero.
+   * The browser's own date is sent, so the figures follow the user's calendar day
+   * rather than the server's. On failure every tile stays null and shows a dash,
+   * which is the honest answer: nothing was read.
    */
   private loadDashboard(): void {
-    const today     = new Date();
-    const weekStart = this.startOfWeek(today);
-    const todayApi  = this.toApiDate(today);
-
-    // Oldest-first is requested explicitly: applyTodayStats() takes the LAST three
-    // rows as the newest registrations, and the API's default sort is newest-first.
-    const todayPatients$ = this.patientService
-      .searchPatients({
-        paging: buildPageSortRequest(1, PathologyHomeComponent.TODAY_PAGE_SIZE, 'regDate', 'asc'),
-        filter: { searchTerm: '', dateFrom: todayApi, dateTo: todayApi, status: '' },
-      })
-      .pipe(catchError(() => of(null)));
-
-    const weekPatients$ = this.patientService
-      .searchPatients({
-        paging: buildPageSortRequest(1, PathologyHomeComponent.WEEK_PAGE_SIZE, 'regDate', 'asc'),
-        filter: { searchTerm: '', dateFrom: this.toApiDate(weekStart), dateTo: todayApi, status: '' },
-      })
-      .pipe(catchError(() => of(null)));
-
-    // Period 'day' resolves to (today, today) server-side — see PeriodResolver.
-    //
-    // Uses daily-collection, NOT referrer-collection. The referrer report attributes
-    // one receipt to several rows (a panel referrer AND a collection boy), so summing
-    // its rows double-counts; it also drops walk-ins that have neither, and ignores
-    // refunds entirely. daily-collection counts each receipt once and nets off refunds.
-    const revenue$ = this.summaryReportService
-      .getTableReport('dailyCollection', { period: 'day' })
-      .pipe(catchError(() => of(null)));
-
-    forkJoin({ today: todayPatients$, week: weekPatients$, revenue: revenue$ })
+    this.dashboardService
+      .getHomeSummary(this.toApiDate(new Date()))
       .pipe(takeUntil(this.destroy$))
-      .subscribe(({ today: todayRes, week: weekRes, revenue: revenueRes }) => {
-        this.applyTodayStats(todayRes);
-        this.applyWeekSparkline(weekRes, weekStart);
-
-        // netCollection is already paid − refunded, floored at 0, server-side.
-        const net = revenueRes?.netCollection;
-        this.revenueToday = typeof net === 'number' ? net : null;
-
-        this.isDashboardLoading = false;
-        this.cdr.detectChanges();
+      .subscribe({
+        next: summary => {
+          this.applySummary(summary);
+          this.isDashboardLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.isDashboardLoading = false;
+          this.cdr.detectChanges();
+        },
       });
   }
 
-  /** KPI tiles + live-activity rows, from the today-scoped search response. */
-  private applyTodayStats(res: any): void {
-    if (!res) return;
+  /** Spreads the one response across the tiles, the activity card and the sparkline. */
+  private applySummary(summary: HomeSummary): void {
+    if (!summary) return;
 
-    const rows: any[] = Array.isArray(res.item2) ? res.item2 : [];
+    this.patientsToday    = numberOrNull(summary.patientsToday);
+    this.testsBookedToday = numberOrNull(summary.testsBooked);
+    this.reportsDone      = numberOrNull(summary.reportsDone);
+    this.testsPending     = numberOrNull(summary.testsPending);
+    this.revenueToday     = numberOrNull(summary.revenueToday);
 
-    // item1 is the true total for the range, so the headline count stays exact
-    // even if the range somehow exceeds TODAY_PAGE_SIZE.
-    this.patientsToday = typeof res.item1 === 'number' ? res.item1 : rows.length;
-
-    this.reportsDone  = rows.filter(r => this.statusOf(r) === 'completed').length;
-    this.testsPending = rows.filter(r => this.statusOf(r) === 'pending').length;
-
-    // Rows arrive oldest-first, so the newest registrations are at the end.
-    this.activityRows = rows
-      .slice(-3)
-      .reverse()
-      .map(r => this.toActivityRow(r));
+    this.activityRows = (summary.recentActivity ?? []).map(row => this.toActivityRow(row));
+    this.sparkBars    = this.toSparkBars(summary.weekRegistrations ?? []);
   }
 
-  /** Seven Mon–Sun buckets, counted from the week-scoped search response. */
-  private applyWeekSparkline(res: any, weekStart: Date): void {
-    const rows: any[] = res && Array.isArray(res.item2) ? res.item2 : [];
-
-    const counts = new Map<string, number>();
-    for (const r of rows) {
-      const key = this.regDateOf(r);
-      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-
-    const labels   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const todayKey = this.toApiDate(new Date());
-
-    const days = labels.map((label, i) => {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
-      const key = this.toApiDate(date);
-      return { label, count: counts.get(key) ?? 0, future: this.isAfterToday(key, todayKey, weekStart, i) };
-    });
-
-    // Scale against the busiest day so the tallest bar always fills the track.
-    const max = Math.max(1, ...days.map(d => d.count));
-
-    this.sparkBars = days.map(d => ({
-      ...d,
-      height: d.count === 0 ? 4 : Math.round(8 + (d.count / max) * 32),
-    }));
-  }
-
-  private toActivityRow(r: any): ActivityRow {
-    const status = this.statusOf(r);
+  /** Turns an API activity row into its pill, dot and wording. */
+  private toActivityRow(row: HomeActivity): ActivityRow {
+    const status = (row.status ?? '').trim().toLowerCase();
 
     const badgeClass =
       status === 'completed' ? 'vb-done' :
@@ -333,49 +274,35 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       status === 'completed' ? 'Report Ready' :
       status === 'partial'   ? 'In Lab' : 'Pending';
 
-    const salutation = r.patientSalutation ?? r.patient_Salutation ?? '';
-    const name       = r.patientName ?? r.patient_Name ?? 'Unknown';
-
     return {
-      name: `${salutation} ${name}`.trim(),
+      name: (row.patientName ?? '').trim() || 'Unknown',
       status: label,
       badgeClass,
       dotColor,
     };
   }
 
-  /** Normalises the API's TestStatus to a lowercase key. */
-  private statusOf(r: any): string {
-    return String(r?.testStatus ?? r?.status ?? r?.patientStatus ?? '').trim().toLowerCase();
+  /**
+   * Scales the week's counts into bar heights. Against the busiest day of the week,
+   * so the tallest bar always fills the track whatever the lab's volume; a day with
+   * nothing keeps a 4px stub rather than disappearing.
+   */
+  private toSparkBars(week: HomeWeekDay[]): SparkBar[] {
+    const max = Math.max(1, ...week.map(d => d.count ?? 0));
+
+    return week.map(d => ({
+      label: d.label,
+      count: d.count ?? 0,
+      future: d.future === true,
+      height: !d.count ? 4 : Math.round(8 + (d.count / max) * 32),
+    }));
   }
 
-  /** Registration date as dd-MM-yyyy, matching the API's own formatting. */
-  private regDateOf(r: any): string {
-    const raw = r?.patient_Reg_Date ?? r?.patientRegDate ?? '';
-    return typeof raw === 'string' ? raw.trim() : '';
-  }
-
-  /** dd-MM-yyyy — the format the patient search expects for date filters. */
+  /** dd-MM-yyyy — the one date format the API reads. */
   private toApiDate(d: Date): string {
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     return `${dd}-${mm}-${d.getFullYear()}`;
-  }
-
-  /** Monday of the week containing `date`, at local midnight. */
-  private startOfWeek(date: Date): Date {
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diff = (7 + (d.getDay() - 1)) % 7;   // getDay(): 0 = Sunday
-    d.setDate(d.getDate() - diff);
-    return d;
-  }
-
-  private isAfterToday(key: string, todayKey: string, weekStart: Date, index: number): boolean {
-    if (key === todayKey) return false;
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + index);
-    const today = new Date();
-    return day > new Date(today.getFullYear(), today.getMonth(), today.getDate());
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────
