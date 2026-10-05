@@ -55,24 +55,50 @@
   // class supplies the surface, padding, radius, shadow and the 1.25em gap
   // down to the table card, so nothing about the card is set here — only the
   // spacing between the two things inside it.
+  //
+  // Contrast note: everything else on this screen sits on a white card, so it
+  // can use the dc- kit's inks. The search block does not — it floats directly
+  // on .page-container's gradient. A slate ink (#64748b) and the kit's link blue
+  // (#1d4ed8) are both near-invisible there, which is what made the result count
+  // and the search note unreadable. On the gradient this screen follows the page
+  // header's own convention instead: white, or a softened white for secondary
+  // lines. Scoped to this block so the shared dc-search keeps its dark inks
+  // wherever it is used on a light surface, and so the link-btn inside the table
+  // rows below is untouched.
   &__search {
     margin: 1rem 0 0;
+
+    // The field's own label ("Find anything") and the live result line.
+    ::ng-deep .dc-search__label { color: var(--text-light, #ffffff); }
+    ::ng-deep .dc-search__count { color: rgba(255, 255, 255, 0.88); }
   }
 
   &__search-note {
     margin: 0.5rem 0 0;
     font-size: var(--dc-text-meta, 0.8125rem);
-    color: var(--dc-ink-3, #666666);
+    color: rgba(255, 255, 255, 0.88);
+
+    // The queue name inside the note — full white so it reads as the subject.
+    strong { color: #ffffff; font-weight: 600; }
+
+    .link-btn {
+      color: #ffffff;
+      font-weight: 600;
+      text-decoration: underline;
+
+      &:hover { text-decoration: none; }
+    }
   }
 
   // ── Loading ───────────────────────────────────────────────────────────
+  // On the gradient, like the search block above — not on a card.
   &__loading {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     padding: 2.5rem 1rem;
     justify-content: center;
-    color: var(--dc-ink-3, #666666);
+    color: rgba(255, 255, 255, 0.9);
     font-size: var(--dc-text-body, 0.875rem);
   }
 
