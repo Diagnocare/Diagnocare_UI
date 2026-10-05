@@ -1441,8 +1441,7 @@
   position: relative;
   width: 92%;
   max-width: 1300px;
-  height: 88vh;
-  background: linear-gradient(135deg, #2e7d32 0%, #4CAF50 50%, #81c784 100%);
+  max-height: 88vh;
   border-radius: var(--radius-xl);
   box-shadow: 0 1.5em 4em rgba(0, 0, 0, 0.5);
   display: flex;
@@ -1456,8 +1455,6 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25em 2em;
-  background: rgba(0, 0, 0, 0.15);
-  border-bottom: 0.125em solid rgba(255, 255, 255, 0.15);
 }
 
 .parameter-header h2 {
@@ -2417,4 +2414,353 @@
   :host-context(html[data-theme="system"]) .ptl-step--current .ptl-step__label { color: var(--ptl-info) !important; }
   :host-context(html[data-theme="system"]) .ptl-row__status span, :host-context(html[data-theme="system"]) .ptl-money .ptl-tone--warn span, :host-context(html[data-theme="system"]) .ptl-callout span { color: inherit !important; }
   :host-context(html[data-theme="system"]) .ptl-search__input { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CREATE TEST REPORT — result-entry panel
+   ──────────────────────────────────────────────────────────────────────────
+   Kept LAST in this file on purpose: the legacy "Parameter Overlay Styles"
+   above used identical selectors, so an earlier redesign placed before them
+   silently lost and the panel stayed a flat green gradient.
+
+   Everything reads from the global theme tokens (styles.css) so the panel
+   follows Light / Dark / Midnight / Warm / System without per-theme copies:
+     header   → var(--primary-gradient)     (brand gradient, as on page headers)
+     surface  → var(--bg-light)             (calm work area)
+     card     → var(--bg-white)             (data on a crisp card)
+     text     → var(--text-primary / -secondary), borders → var(--border-color)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.parameter-overlay-backdrop {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Panel hugs its content (no acres of empty colour under a 2-row table) and
+   scrolls internally once a long panel of parameters reaches the cap. */
+.parameter-container {
+  width: min(94%, 1120px);
+  height: auto;
+  max-height: 88vh;
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.35), 0 4px 14px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.parameter-header {
+  gap: 1.25em;
+  padding: 1.25em 1.5em 1.25em 1.75em;
+  background: var(--primary-gradient);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.parameter-header .header-left { min-width: 0; }
+
+.parameter-header h2 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  color: #ffffff;
+}
+
+.parameter-header .subtitle {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.45em 0 0;
+  padding: 0.2em 0.65em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.76em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.parameter-header .method-subtitle { color: rgba(255, 255, 255, 0.85); }
+
+.parameter-header .header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+
+/* Secondary actions — quiet translucent buttons on the gradient */
+.parameter-header .header-actions .btn.btn-info {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+.parameter-header .header-actions .btn.btn-info:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Printed status reads as a status, not a button: no fill, a small dot icon */
+.parameter-header .print-status-chip {
+  margin-left: 0.15em;
+  padding: 0.38em 0.8em;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.78em;
+}
+.parameter-header .print-status-chip--printed {
+  border-style: solid;
+  border-color: rgba(134, 239, 172, 0.7);
+  background: rgba(22, 163, 74, 0.22);
+  color: #ffffff;
+}
+.parameter-header .print-status-chip--printed i { color: #86efac; }
+
+.parameter-header .overlay-close-btn {
+  width: 2.1em;
+  height: 2.1em;
+  margin-left: 0.35em;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+}
+.parameter-header .overlay-close-btn:hover { background: rgba(255, 255, 255, 0.16); }
+
+/* ── Loading / empty states on the neutral surface ──────────────────────── */
+.parameter-loading,
+.no-data-parameter {
+  padding: 3.5em 1em;
+  color: var(--text-secondary);
+}
+.parameter-container > .alert { margin: 1.25em 1.5em 0; }
+
+/* ── Body ───────────────────────────────────────────────────────────────── */
+.parameter-list-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.5em 1.75em 1.25em;
+}
+
+.param-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+/* Bootstrap .table paints every cell with --bs-table-bg and adds borders —
+   neutralise both so the card, row hover and our hairlines show through. */
+.parameter-list-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text-primary);
+  margin: 0;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.parameter-list-table > :not(caption) > * > * {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.parameter-list-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.8em 1.1em;
+  background: color-mix(in srgb, var(--primary-color) 5%, var(--bg-white));
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.parameter-list-table tbody td {
+  padding: 0.75em 1.1em;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  color: var(--text-primary);
+  font-size: 0.9em;
+  vertical-align: middle;
+}
+.parameter-list-table tbody tr:last-child td { border-bottom: 0; }
+.parameter-list-table tbody tr { transition: background-color 0.15s ease; }
+.parameter-list-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--primary-color) 4%, transparent);
+}
+
+.parameter-list-table .col-idx {
+  width: 3.5em;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.parameter-list-table .col-result { width: 34%; min-width: 15em; }
+
+.param-name  { font-weight: 600; }
+.param-muted { color: var(--text-secondary) !important; }
+
+.range-pill {
+  display: inline-block;
+  padding: 0.18em 0.6em;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+  color: var(--text-primary);
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Result field: input with the unit tucked inside on the right ──────── */
+.result-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.parameter-list-table .result-field .result-input {
+  flex: 1;
+  width: 100%;
+  height: 2.5em;
+  padding: 0 4.5em 0 0.85em;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  font-size: 0.95em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.parameter-list-table .result-field .result-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  font-weight: 400;
+}
+.parameter-list-table .result-field .result-input:hover { border-color: color-mix(in srgb, var(--primary-color) 40%, var(--border-color)); }
+.parameter-list-table .result-field .result-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.result-unit {
+  position: absolute;
+  right: 0.85em;
+  pointer-events: none;
+  color: var(--text-secondary);
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+/* Out-of-range result — a quiet flag, not an alarm */
+.result-flag {
+  position: absolute;
+  right: -0.55em;
+  top: -0.55em;
+  min-width: 1.45em;
+  height: 1.45em;
+  padding: 0 0.3em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.68em;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px var(--bg-white);
+}
+.result-field--high .result-flag { background: #dc2626; }
+.result-field--low  .result-flag { background: #d97706; }
+.parameter-list-table .result-field--high .result-input { border-color: rgba(220, 38, 38, 0.55); color: #b91c1c; }
+.parameter-list-table .result-field--low  .result-input { border-color: rgba(217, 119, 6, 0.55);  color: #b45309; }
+
+/* ── Rejected result: a number was required and something else was typed ──
+   Red rather than the amber/red of H and L, and paired with a message, so it
+   does not read as "out of range" — the value is not a measurement at all. */
+.parameter-list-table .result-field--invalid .result-input,
+.parameter-list-table .result-field--invalid .result-input:hover {
+  border-color: #dc2626;
+  color: #b91c1c;
+  background: color-mix(in srgb, #dc2626 4%, var(--bg-white));
+}
+.parameter-list-table .result-field--invalid .result-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+}
+.result-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+  margin-top: 0.4em;
+  font-size: 0.78em;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #b91c1c;
+}
+.result-error i { margin-top: 0.15em; }
+
+/* ── Footer summary ─────────────────────────────────────────────────────── */
+.param-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5em 1em;
+  margin-top: 0.9em;
+  padding: 0 0.25em;
+  font-size: 0.82em;
+  color: var(--text-secondary);
+}
+.param-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-weight: 600;
+}
+.param-progress i { color: #d97706; }
+.param-progress--done i { color: #16a34a; }
+
+.param-hint--invalid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* ── Dark themes: lift the flagged text so it stays readable ────────────── */
+:host-context(html[data-theme="dark"]) .parameter-list-table .result-field--high .result-input,
+:host-context(html[data-theme="system"]) .parameter-list-table .result-field--high .result-input,
+:host-context(html[data-theme="midnight"]) .parameter-list-table .result-field--high .result-input { color: #fca5a5; }
+:host-context(html[data-theme="dark"]) .parameter-list-table .result-field--low .result-input,
+:host-context(html[data-theme="system"]) .parameter-list-table .result-field--low .result-input,
+:host-context(html[data-theme="midnight"]) .parameter-list-table .result-field--low .result-input { color: #fcd34d; }
+:host-context(html[data-theme="dark"]) .parameter-list-table .result-field--invalid .result-input,
+:host-context(html[data-theme="system"]) .parameter-list-table .result-field--invalid .result-input,
+:host-context(html[data-theme="midnight"]) .parameter-list-table .result-field--invalid .result-input { color: #fca5a5; }
+:host-context(html[data-theme="dark"]) .result-error,
+:host-context(html[data-theme="system"]) .result-error,
+:host-context(html[data-theme="midnight"]) .result-error,
+:host-context(html[data-theme="dark"]) .param-hint--invalid,
+:host-context(html[data-theme="system"]) .param-hint--invalid,
+:host-context(html[data-theme="midnight"]) .param-hint--invalid { color: #fca5a5; }
+
+@media (max-width: 48em) {
+  .parameter-container { width: 96%; max-height: 94vh; }
+  .parameter-header { align-items: flex-start; padding: 1em 1.1em; }
+  .parameter-header .header-actions { justify-content: flex-start; }
+  .parameter-list-section { padding: 1em; overflow-x: auto; }
+  .parameter-list-table .col-result { min-width: 12em; }
 }
