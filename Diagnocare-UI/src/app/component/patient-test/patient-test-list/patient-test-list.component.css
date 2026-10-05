@@ -477,8 +477,7 @@
   position: relative;
   width: 92%;
   max-width: 1300px;
-  height: 88vh;
-  background: linear-gradient(135deg, #2e7d32 0%, #4CAF50 50%, #81c784 100%);
+  max-height: 88vh;
   border-radius: var(--radius-xl);
   box-shadow: 0 1.5em 4em rgba(0, 0, 0, 0.5);
   display: flex;
@@ -492,8 +491,6 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25em 2em;
-  background: rgba(0, 0, 0, 0.15);
-  border-bottom: 0.125em solid rgba(255, 255, 255, 0.15);
 }
 
 .parameter-header h2 {

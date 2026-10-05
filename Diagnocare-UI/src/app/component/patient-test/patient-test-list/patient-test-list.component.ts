@@ -30,6 +30,7 @@ import { PatientService } from 'src/app/services/patientServices/patient.service
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import { DecimalOnlyDirective } from 'src/app/shared/directives/decimal-only.directive';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
 import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
@@ -78,7 +79,7 @@ export interface VisitView {
 @Component({
   selector: 'app-patient-test-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent, DecimalOnlyDirective],
   templateUrl: './patient-test-list.component.html',
   styleUrls: ['./patient-test-list.component.css']
 })
@@ -372,9 +373,20 @@ export class PatientTestListComponent implements OnInit {
 
   // ── Data loading ───────────────────────────────────────────────────────
 
-  loadPatientTests(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+  /**
+   * Reloads the patient's bookings.
+   *
+   * `silent` refreshes the list in the background without the full-page loading
+   * overlay. Use it whenever an overlay (parameter entry, detail view) is open and
+   * already showing its own spinner — two spinners on screen at once read as a
+   * stuck screen, and the page overlay belongs to the list the operator is not
+   * looking at.
+   */
+  loadPatientTests(silent: boolean = false): void {
+    if (!silent) {
+      this.isLoading = true;
+      this.errorMessage = '';
+    }
 
     this.loadPatientContact();
 
@@ -383,11 +395,13 @@ export class PatientTestListComponent implements OnInit {
         this.allPatientTests = data ?? [];
         this.filterTests();
         this.loadTestNames();
-        this.isLoading = false;
+        if (!silent) this.isLoading = false;
       },
       error: (error: Error) => {
-        this.errorMessage = 'Failed to load patient tests. Please try again.';
-        this.isLoading = false;
+        if (!silent) {
+          this.errorMessage = 'Failed to load patient tests. Please try again.';
+          this.isLoading = false;
+        }
         console.error('Error loading patient tests:', error);
       }
     });
@@ -1373,6 +1387,28 @@ export class PatientTestListComponent implements OnInit {
 
   saveTestReport(): void {
     if (!this.selectedTestDetail) return;
+    if (this.testParameters.length === 0) {
+      this.toastr.warning('There is nothing to save for this test.', 'No parameters');
+      return;
+    }
+
+    // The input directive blocks bad characters as they are typed, but a value
+    // can still arrive past it — autofill, a browser extension, an older row
+    // loaded from the database, or the directive being switched off because the
+    // parameter looked qualitative at the time. The save is the last point at
+    // which a non-number can be kept out of a report, so it is checked here too
+    // rather than trusted to the field.
+    const invalid = this.invalidResultParams;
+    if (invalid.length > 0) {
+      const names = invalid.map(p => p.parameterName).join(', ');
+      const reason = invalid.length === 1
+        ? `${names} must be a number — nothing was saved.`
+        : `These must be numbers: ${names}. Nothing was saved.`;
+      this.parameterErrorMessage = reason;
+      this.toastr.error(reason, 'Check the results');
+      return;
+    }
+
     this.isLoadingParameters = true;
     this.parameterErrorMessage = '';
 
@@ -1410,12 +1446,39 @@ export class PatientTestListComponent implements OnInit {
       : of(null);
 
     forkJoin([insert$, update$]).subscribe({
-      next: () => {
-        this.loadPatientTests();
-        // Re-read from the server so savedResults (and reportId) reflect what was
-        // actually persisted — this is what unlocks the View / PDF buttons.
-        this.loadTestParameters();
+      next: ([, updateResult]: [any, any]) => {
+        // The Update endpoint answers HTTP 200 even when it did not apply the
+        // change (OperationResult.success === false — e.g. no matching row). A 200
+        // is therefore not on its own proof of a save, and ErrorInterceptor only
+        // toasts HTTP failures, so this one is ours to catch.
+        if (toUpdate.length > 0 && updateResult && updateResult.success === false) {
+          this.isLoadingParameters = false;
+          const reason = updateResult.message || 'Results could not be saved.';
+          this.parameterErrorMessage = reason;
+          this.toastr.error(reason, 'Not saved');
+          return;
+        }
+
+        const saved = toInsert.length + toUpdate.length;
+        this.isLoadingParameters = false;
+        this.toastr.success(
+          saved === 1 ? 'Result saved.' : `${saved} results saved.`,
+          'Saved'
+        );
+
+        // Background refresh: nothing of the full-page loading overlay here — the
+        // operator is being returned to the visit screen, not made to watch it load.
+        this.loadPatientTests(true);
+
+        // Entry is done, so close the overlay. No loadTestParameters() is needed:
+        // closeParameterView() drops the in-memory parameters and refreshes the
+        // per-test result counts, and re-opening the overlay re-reads everything
+        // (including each row's reportId) from the server — which is what keeps a
+        // second save an UPDATE rather than a duplicate INSERT.
+        this.closeParameterView();
       },
+      // HTTP failures (4xx/5xx/network) are already toasted by ErrorInterceptor,
+      // so only the inline message inside the overlay is set here.
       error: (err) => {
         this.isLoadingParameters = false;
         this.parameterErrorMessage = 'Failed to save test report.';
@@ -1472,8 +1535,20 @@ export class PatientTestListComponent implements OnInit {
   }
 
   /**
-   * Downloads the current report as a real, full-A4 PDF (rendered server-side).
-   * Requests the file as a Blob from the backend and saves it via an anchor click.
+   * PDF button.
+   *
+   * The backend's `format=pdf` does NOT return PDF bytes for template reports: the
+   * hosting plan forbids a headless browser, so it returns a clean A4 HTML page that
+   * opens the browser's print dialog on load ("Save as PDF" from there). Saving that
+   * HTML under a `.pdf` name is what produced "Failed to load PDF document".
+   *
+   * So the response is inspected:
+   *   • application/pdf (QuestPDF fallback, no template) → downloaded as a real .pdf
+   *   • anything else (the print-ready HTML)             → opened in a new tab, where
+   *     the print dialog appears and the operator picks "Save as PDF".
+   *
+   * The tab is opened synchronously inside the click handler (before the request) so
+   * pop-up blockers treat it as user-initiated; it is pointed at the report once ready.
    */
   downloadReportPdf(): void {
     if (!this.selectedPatientTest || !this.selectedTestDetail) return;
@@ -1484,6 +1559,14 @@ export class PatientTestListComponent implements OnInit {
     this.isDownloadingPdf = true;
     this.errorMessage = '';
 
+    const tab = window.open('', '_blank');
+    if (tab) {
+      tab.document.title = 'Preparing report…';
+      tab.document.body.innerHTML =
+        '<p style="font:15px system-ui,sans-serif;color:#475569;text-align:center;margin-top:20vh">' +
+        'Preparing your report…</p>';
+    }
+
     this.testReportGenerationService
       .downloadTestReport(patientTestId, testCode, this.pathBranch || undefined)
       .subscribe({
@@ -1491,25 +1574,44 @@ export class PatientTestListComponent implements OnInit {
           this.isDownloadingPdf = false;
 
           if (!blob || blob.size === 0) {
+            tab?.close();
             this.toastr.warning('Report generated but no file was returned.', 'Warning');
             return;
           }
 
-          const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
-          const filename = `${safeName}_${testCode}.pdf`;
+          // ── Real PDF (QuestPDF fallback) → save to disk ────────────────────
+          if ((blob.type || '').toLowerCase().includes('application/pdf')) {
+            tab?.close();
+            const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
+            const url    = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href     = url;
+            anchor.download = `${safeName}_${testCode}.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            return;
+          }
 
-          const url    = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href     = url;
-          anchor.download = filename;
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          // ── Print-ready HTML → open it; its print dialog offers "Save as PDF" ─
+          const htmlBlob = new Blob([blob], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(htmlBlob);
+          if (tab && !tab.closed) {
+            tab.location.href = url;
+            tab.focus();
+          } else if (!window.open(url, '_blank')) {
+            this.toastr.warning(
+              'Pop-up was blocked. Please allow pop-ups for this site to save the report as PDF.',
+              'Pop-up blocked'
+            );
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
         },
         error: (err: unknown) => {
+          tab?.close();
           this.isDownloadingPdf = false;
-          this.errorMessage = 'Failed to download PDF. Please try again.';
+          this.errorMessage = 'Failed to prepare the PDF. Please try again.';
           console.error('downloadReportPdf error:', err);
         }
       });
@@ -1819,6 +1921,96 @@ export class PatientTestListComponent implements OnInit {
           console.error('sendTestReportLink error:', err);
         }
       });
+  }
+
+  // ── Result validation ──────────────────────────────────────────────────────
+  //
+  // A parameter carries no data type: the `type` field on testParameter is a
+  // CRUD flag ('Add' | 'Modified' | 'Delete') consumed by the parameter-editing
+  // endpoint, and the API dropped its own Type column (migration
+  // RemoveTypeFromTestPamater). So whether a result is a number has to be read
+  // off what the parameter master does carry — its unit and its reference range.
+  //
+  // The rule is deliberately one-sided. A parameter is treated as numeric only
+  // on positive evidence; anything unrecognised stays free text. Letting a
+  // stray number through on a qualitative parameter is a cosmetic problem,
+  // whereas refusing "Positive" on a serology parameter stops the lab working.
+
+  /** "1.4-50", "80000-140000", "13.5 – 17.5", or a single "5". */
+  private static readonly NUMERIC_RANGE_RE =
+    /^\s*-?\d+(?:\.\d+)?\s*(?:[-–—]\s*-?\d+(?:\.\d+)?\s*)?$/;
+
+  /** "< 200", "<=5", "≥ 40" — a bound rather than a span, still numeric. */
+  private static readonly COMPARISON_RANGE_RE =
+    /^\s*(?:<|>|≤|≥|<=|>=)\s*-?\d+(?:\.\d+)?\s*$/;
+
+  /** A complete decimal number — what a numeric result must look like. */
+  private static readonly DECIMAL_RE = /^-?\d+(?:\.\d+)?$/;
+
+  /**
+   * Whether this parameter's result must be a number.
+   *
+   * True when the parameter master gives either signal:
+   *   • a unit  — "g/L", "cells/mcL"; qualitative parameters do not carry one
+   *   • a numeric reference range — "80000-140000", "< 200"
+   *
+   * False for "Positive / Negative", "Clear", blood group, and for any
+   * parameter configured with neither, where the safe answer is free text.
+   */
+  isNumericParam(param: testParameter): boolean {
+    if ((param?.parameterUnit ?? '').toString().trim()) return true;
+
+    const range = (param?.parameterRange ?? '').toString().trim();
+    if (!range) return false;
+
+    return PatientTestListComponent.NUMERIC_RANGE_RE.test(range)
+        || PatientTestListComponent.COMPARISON_RANGE_RE.test(range);
+  }
+
+  /**
+   * Why this row's typed value cannot be saved — '' when it is fine.
+   *
+   * An empty field is not an error here: "not entered yet" is already carried
+   * by savedResultCount and the report lock, and flagging every blank row red
+   * the moment the screen opens would be noise.
+   */
+  resultError(param: testParameter): string {
+    if (!this.isNumericParam(param)) return '';
+
+    const raw = (param?.resultValue ?? '').toString().trim();
+    if (raw === '') return '';
+
+    if (!PatientTestListComponent.DECIMAL_RE.test(raw)) {
+      return 'Numbers only — this parameter is measured in '
+           + ((param.parameterUnit ?? '').toString().trim() || 'a numeric range') + '.';
+    }
+    return '';
+  }
+
+  /** Rows currently holding a value that cannot be saved. */
+  get invalidResultParams(): testParameter[] {
+    return this.testParameters.filter(p => this.resultError(p) !== '');
+  }
+
+  /** Blocks the Save button while any typed result is not a number. */
+  get hasInvalidResults(): boolean {
+    return this.invalidResultParams.length > 0;
+  }
+
+  /** Numeric "low-high" normal range → flag for an out-of-range result, else ''. */
+  resultFlag(param: testParameter): 'H' | 'L' | '' {
+    const m = /^\s*(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(param?.parameterRange ?? '');
+    const raw = (param?.resultValue ?? '').toString().trim();
+    if (!m || raw === '' || isNaN(Number(raw))) return '';
+    const v = Number(raw), lo = Number(m[1]), hi = Number(m[2]);
+    if (v > hi) return 'H';
+    if (v < lo) return 'L';
+    return '';
+  }
+
+  /** Parameters whose result has been saved to the server. */
+  get savedResultCount(): number {
+    return this.testParameters.length - this.missingResultCount;
   }
 
   /**
