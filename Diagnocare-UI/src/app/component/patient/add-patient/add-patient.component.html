@@ -691,7 +691,7 @@
         <!-- ═══════════════════════════════════════════════════════ NAV ACTIONS -->
         <div class="form-actions">
           <div class="actions-left">
-            <button type="button" class="btn btn-nav" (click)="handlePrevious()"
+            <button type="button" class="dc-btn dc-btn--back" (click)="handlePrevious()"
                     [disabled]="currentStep === 1">
               <i class="fa fa-arrow-left"></i> Previous
             </button>
@@ -704,11 +704,11 @@
           </div>
 
           <div class="actions-right">
-            <button type="button" class="btn btn-nav" (click)="handleNext()"
+            <button type="button" class="dc-btn dc-btn--save" (click)="handleNext()"
                     *ngIf="currentStep < 4">
               Next <i class="fa fa-arrow-right"></i>
             </button>
-            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 4">
+            <button type="submit" class="dc-btn dc-btn--submit" *ngIf="currentStep === 4">
               <i class="fa fa-check"></i> Register Patient
             </button>
           </div>
@@ -799,68 +799,39 @@
   </div>
 </div>
 
-<!-- ════════════════════════════════════════ MODAL: Partial Payment -->
-<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="fa fa-wallet"></i> Partial Payment Details
-        </h5>
-        <button type="button" class="btn-close" (click)="clearPaymentModal()"></button>
-      </div>
-      <div class="modal-body">
-        <form [formGroup]="patientForm">
+<!-- ════════════════════════════════════════ MODAL: Partial Payment ═══════════
+     THE payment dialog, shared with Patient Tests and Bill / Receipt. This
+     screen used to hand-roll a Bootstrap modal here with its own header,
+     labels, .btn buttons and a duplicate copy of the Amount Paid field — which
+     is why taking a payment while adding a patient looked and behaved unlike
+     taking one anywhere else in the application.
 
-          <!-- Net Amount — disabled: user cannot change it here -->
-          <div class="form-group mb-3">
-            <label class="form-label">Net Amount (₹)</label>
-            <div class="pm-locked-field">
-              <input type="text" class="form-control pm-disabled-input" formControlName="net_Amount"
-                     readonly tabindex="-1" />
-              <span class="pm-lock-badge">🔒 Fixed</span>
-            </div>
-          </div>
-
-          <!-- Amount Paid — live calculation on every keystroke -->
-          <!-- [attr.min], NOT a plain min="1": on a type=number input with formControlName,
-               a static min attribute makes Angular attach a Min validator to the
-               amount_Paid CONTROL itself. That control is shared with the main form,
-               so "No Payment" (amount_Paid = 0) could never pass validation.
-               confirmPayment() already rejects amounts <= 0 for Partial. -->
-          <div class="form-group mb-3">
-            <label class="form-label required">Amount Paid (₹)</label>
-            <input
-              type="number"
-              class="form-control"
-              [class.is-invalid]="!!amountPaidError"
-              formControlName="amount_Paid"
-              placeholder="Enter amount to pay now"
-              [attr.min]="1"
-              (input)="onAmountPaidInput($event)"
-            />
-            <div class="invalid-feedback" *ngIf="amountPaidError">{{ amountPaidError }}</div>
-          </div>
-
-          <!-- Amount Pending — auto-calculated, read-only -->
-          <div class="form-group mb-3">
-            <label class="form-label">Amount Pending (₹)</label>
-            <input type="text" class="form-control bg-light" formControlName="amount_Pending"
-                   readonly placeholder="Auto-calculated" />
-            <small>Calculated automatically as Net − Paid</small>
-          </div>
-
-          <div class="modal-footer-actions">
-            <button class="btn btn-cancel" type="button" (click)="clearPaymentModal()">Cancel</button>
-            <button class="btn btn-primary" type="button" (click)="confirmPayment()">
-              <i class="fa fa-check"></i> Confirm
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+     It is configured, not redesigned:
+       [autoSave]="false"    the booking is saved by registerPatient(), so the
+                             dialog collects and emits rather than posting a
+                             receipt of its own.
+       [amountOnly]="true"   Payment Type lives on the step above; the dialog
+       [presetMode]          and the Payment Mode select does too. Asking either
+                             again would let two answers disagree.
+       [initialPaid]         so Edit opens on the figure being amended.
+       [errorText]           this screen's own rule (a partial amount must be
+                             under the net amount) is shown in the dialog's
+                             error slot, next to the number that broke it. -->
+<app-payment-modal
+  [visible]="showPaymentModal"
+  [netAmount]="+(patientForm.get('net_Amount')?.value || 0)"
+  [testAmount]="+(patientForm.get('test_Amount')?.value || 0)"
+  [autoSave]="false"
+  [amountOnly]="true"
+  [presetMode]="patientForm.get('payment_Mode')?.value || ''"
+  [initialPaid]="paymentModalSeed"
+  [errorText]="amountPaidError"
+  heading="Partial Payment"
+  subheading="How much is being paid now"
+  confirmLabel="Confirm"
+  (confirmed)="onPaymentCollected($event)"
+  (cancelled)="clearPaymentModal()">
+</app-payment-modal>
 
 <!-- ════════════════════════════════════════ TPA DETAILS MODAL -->
 <app-tpa-details-modal

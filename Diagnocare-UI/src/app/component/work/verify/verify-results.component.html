@@ -93,7 +93,9 @@
       </div>
 
       <!-- ── Verifier's note ───────────────────────────────────────────── -->
-      <div class="verify__comment" *ngIf="rows.length > 0 && !showReturnPanel">
+      <!-- The note sits in a .card, the surface every other screen puts a form
+           control on. Bare on the page gradient it read as a stray field. -->
+      <div class="card verify__comment" *ngIf="rows.length > 0 && !showReturnPanel">
         <label for="verify-comment">Add a note (optional)</label>
         <textarea id="verify-comment"
                   class="form-control"
