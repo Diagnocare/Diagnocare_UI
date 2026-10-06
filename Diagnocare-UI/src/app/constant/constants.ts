@@ -169,12 +169,14 @@ export const apiEndpoints = {
   rejectSample:"Reject",
   /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
   resolveSampleRejection:"Resolve",
-  /** Printed flag for one report (testRegId + testCode). Defaults to not-printed, never 404s. */
+  /** Delivery status of one report (testRegId + testCode). Defaults to "nothing yet", never 404s. */
   getPrintStatus:"GetPrintStatus",
-  /** Printed flags for every test code on a booking — one call for the whole list. */
+  /** Delivery status for every test code on a booking — one call for the whole list. */
   getPrintStatuses:"GetPrintStatuses",
   /** Manually marks one report printed or not-printed. */
   setPrinted:"SetPrinted",
+  /** Records a CONFIRMED WhatsApp send of one report — never called on handoff alone. */
+  markSentOnWhatsApp:"MarkSentOnWhatsApp",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
   // Test catalogue import (TestImport controller)
   testImportTemplate:    'Template',
