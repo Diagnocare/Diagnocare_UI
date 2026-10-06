@@ -24,7 +24,7 @@ import { SampleRejectionModalComponent } from 'src/app/shared/sample-rejection-m
 import { SampleRejectionService } from 'src/app/services/sampleRejectionServices/sample-rejection.service';
 import { SampleRejectionSummaryDto } from 'src/app/models/sample-rejection/sample-rejection.model';
 import { ReportPrintStatusService } from 'src/app/services/patientTestReportServices/report-print-status.service';
-import { ReportPrintStatusDto } from 'src/app/models/report-print-status/report-print-status.model';
+import { ReportPrintStatusDto, SMART_REPORT_TEST_CODE } from 'src/app/models/report-print-status/report-print-status.model';
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
@@ -190,17 +190,22 @@ export class PatientTestListComponent implements OnInit {
   rejectionModalTestCode: string = '';
   rejectionModalTestName: string = '';
 
-  // ── Report print status ─────────────────────────────────────────────────
+  // ── Report delivery status (printed / sent on WhatsApp) ─────────────────
   /**
-   * "Has this report been printed?" flag for each test on the open booking, keyed
-   * by test code. Read-only here — the flag is set automatically by the Print
+   * How each report on the open booking has left the lab, keyed by test code —
+   * printed on paper, sent to the patient on WhatsApp, or neither. The Smart
+   * Health Report has its own entry under SMART_REPORT_TEST_CODE.
+   *
+   * The printed flag is read-only here: it is set automatically by the Print
    * button on the generated report itself (a different tab/window), never by
-   * clicking anything in this list. See ReportPrintStatusService.
+   * clicking anything in this list. The WhatsApp flag IS written from this screen,
+   * but only after the operator confirms the message went — see
+   * confirmWhatsAppSent(). See ReportPrintStatusService.
    *
    * Fetched when the detail overlay opens, alongside the run counts and rejection
    * summary, and refreshed when the report screen is closed so a print that just
    * happened in the other tab shows up without reopening the booking. A test code
-   * never printed has no entry here — treated the same as not printed, matching
+   * with neither flag has no entry here — treated the same as "neither", matching
    * how the API omits it too.
    */
   printStatus = new Map<string, ReportPrintStatusDto>();
@@ -1239,6 +1244,61 @@ export class PatientTestListComponent implements OnInit {
     return when ? `Printed ${when}${who}` : `Printed${who}`;
   }
 
+  // ── Sent on WhatsApp ───────────────────────────────────────────────────
+  //
+  // Same map, same lazy "no entry means no" rule as the printed flag. These take
+  // a bare test code rather than a testDetail so the Smart Report can use them
+  // too: it has no row in testDetails, only the reserved code INSIGHTS.
+
+  /** True once a WhatsApp send of this report has been confirmed. */
+  isSentOnWhatsApp(testCode: string | null | undefined): boolean {
+    return this.printStatus.get(testCode ?? '')?.sentOnWhatsApp === true;
+  }
+
+  /** True for a test row — the overload the test table reads. */
+  isTestSentOnWhatsApp(detail: testDetail): boolean {
+    return this.isSentOnWhatsApp(detail?.testCode);
+  }
+
+  /** True once the open booking's Smart Health Report has been sent. */
+  get isSmartReportSentOnWhatsApp(): boolean {
+    return this.isSentOnWhatsApp(SMART_REPORT_TEST_CODE);
+  }
+
+  /** Chip label: "Sent on WhatsApp", or "Sent ×3" once it has gone more than once. */
+  whatsAppSentLabel(testCode: string | null | undefined): string {
+    const entry = this.printStatus.get(testCode ?? '');
+    if (!entry?.sentOnWhatsApp) return 'Not sent';
+    return entry.whatsAppSentCount > 1
+      ? `Sent on WhatsApp ×${entry.whatsAppSentCount}`
+      : 'Sent on WhatsApp';
+  }
+
+  whatsAppSentTooltip(testCode: string | null | undefined): string {
+    const entry = this.printStatus.get(testCode ?? '');
+    if (!entry?.sentOnWhatsApp) {
+      return 'Not sent on WhatsApp yet — recorded when you confirm the message went';
+    }
+
+    const when   = entry.whatsAppSentAt ? new Date(entry.whatsAppSentAt).toLocaleString() : '';
+    const number = this.formatWhatsAppNumber(entry.whatsAppSentTo);
+    const again  = entry.whatsAppSentCount > 1 ? ` (${entry.whatsAppSentCount} times in all)` : '';
+
+    const parts = ['Sent on WhatsApp'];
+    if (number) parts.push(`to ${number}`);
+    if (when)   parts.push(when);
+    return parts.join(' ') + again;
+  }
+
+  /** The chip the test table and report screen read for a test row. */
+  testWhatsAppSentLabel(detail: testDetail): string {
+    return this.whatsAppSentLabel(detail?.testCode);
+  }
+
+  testWhatsAppSentTooltip(detail: testDetail): string {
+    return this.whatsAppSentTooltip(detail?.testCode);
+  }
+
   /**
    * Re-reads the printed flag for the open booking.
    *
@@ -1648,6 +1708,29 @@ export class PatientTestListComponent implements OnInit {
   /** Booking whose WhatsApp choice is being saved or sent (dialog spinner). */
   savingWhatsAppPrefFor: patientTest['patient_Test_Id'] | null = null;
 
+  /**
+   * The report handed off to WhatsApp and waiting to be confirmed, or null.
+   *
+   * wa.me opens the patient's chat with the message already typed and a human
+   * presses send there — on another origin, which tells this app nothing. So the
+   * handoff is NOT a send: the dialog switches to this step instead and records
+   * the status only if the operator says the message went. Closing the dialog,
+   * clicking the backdrop or answering "Not sent" all leave the report unsent,
+   * which is the honest answer when nobody can say otherwise.
+   */
+  whatsAppSentConfirm: {
+    patientTestId: number;
+    /** Report key: a lab test code, or SMART_REPORT_TEST_CODE for the Smart Report. */
+    testCode: string;
+    /** What to call the report in the dialog and the toast. */
+    label: string;
+    /** Number the chat was opened for, "919876543210". */
+    phone: string;
+  } | null = null;
+
+  /** True while the confirmed send is being recorded. */
+  markingWhatsAppSent = false;
+
   /** Number a booking's report goes to, ready for wa.me ("919876543210"), or null. */
   bookingWhatsAppNumber(test: patientTest | null | undefined): string | null {
     return toWhatsAppNumber(test?.whatsApp_Number) ?? this.patientWhatsAppNumber;
@@ -1684,6 +1767,43 @@ export class PatientTestListComponent implements OnInit {
       : this.reportStatus(test) !== 'Pending';
   }
 
+  /**
+   * Something the dialog started is still running: saving the number, or issuing
+   * the report link.
+   *
+   * The dialog used to close the moment the number was saved, so only the save
+   * could be in flight. It now stays open through the link call as well (it has
+   * to ask about the send afterwards), which would otherwise leave Send clickable
+   * a second time and open a second WhatsApp tab.
+   */
+  get whatsAppDialogBusy(): boolean {
+    const id = this.whatsAppDialogFor?.patient_Test_Id;
+    if (id == null) return false;
+    return this.savingWhatsAppPrefFor === id
+        || this.sendingSmartWhatsAppFor === id
+        || this.isSendingWhatsApp;
+  }
+
+  /** The report this dialog would send has already gone out at least once. */
+  get whatsAppDialogSentAlready(): boolean {
+    return this.isSentOnWhatsApp(this.whatsAppDialogTestCode);
+  }
+
+  /** "Sent on WhatsApp to +91 … <when>" for the report this dialog would send. */
+  get whatsAppDialogSentTooltip(): string {
+    return this.whatsAppSentTooltip(this.whatsAppDialogTestCode);
+  }
+
+  /**
+   * Which report's status the open dialog is about: the test on the report
+   * screen, or the booking's Smart Report under its reserved code.
+   */
+  private get whatsAppDialogTestCode(): string {
+    return this.whatsAppDialogMode === 'test'
+      ? (this.selectedTestDetail?.testCode ?? '')
+      : SMART_REPORT_TEST_CODE;
+  }
+
   /** The number typed in the dialog is the patient's own mobile. */
   get whatsAppDialogIsPatientNumber(): boolean {
     const typed = toWhatsAppNumber(`${this.whatsAppNumberInput ?? ''}`);
@@ -1707,9 +1827,13 @@ export class PatientTestListComponent implements OnInit {
   }
 
   closeWhatsAppDialog(): void {
-    this.whatsAppDialogFor   = null;
-    this.whatsAppNumberInput = '';
-    this.whatsAppNumberError = '';
+    this.whatsAppDialogFor     = null;
+    this.whatsAppNumberInput   = '';
+    this.whatsAppNumberError   = '';
+    // Dropping a pending confirmation records nothing, deliberately: an operator
+    // who walks away from the question has not told us the message went.
+    this.whatsAppSentConfirm   = null;
+    this.markingWhatsAppSent   = false;
   }
 
   usePatientNumberInDialog(): void {
@@ -1795,6 +1919,11 @@ export class PatientTestListComponent implements OnInit {
    * The WhatsApp tab is opened synchronously inside the click, before any API call,
    * so pop-up blockers allow it; it is pointed at the chat once the link arrives, or
    * closed if anything fails.
+   *
+   * The dialog is left open through all of this. Once the chat has actually been
+   * opened it turns into the "did it go?" step (see whatsAppSentConfirm) — the only
+   * route to recording the report as sent. Every failure below closes it instead,
+   * so nothing is recorded for a send that never happened.
    */
   sendFromWhatsAppDialog(): void {
     const test  = this.whatsAppDialogFor;
@@ -1818,7 +1947,6 @@ export class PatientTestListComponent implements OnInit {
       next: () => {
         this.savingWhatsAppPrefFor = null;
         this.applyWhatsAppChoice(test, true, typed);
-        this.closeWhatsAppDialog();
         if (mode === 'test') {
           this.sendTestReportLink(phone, waWindow);
         } else {
@@ -1831,6 +1959,78 @@ export class PatientTestListComponent implements OnInit {
         this.whatsAppNumberError = err?.error?.message || 'Could not save the WhatsApp number.';
       },
     });
+  }
+
+  // ── Confirming the send ────────────────────────────────────────────────
+  //
+  // Everything above ends at "the chat is open with the message typed". Whether
+  // the operator then pressed send happens inside WhatsApp, which reports nothing
+  // back, so the app asks. Only confirmWhatsAppSent() writes the status.
+
+  /**
+   * The chat is open: switch the dialog to the confirmation step.
+   *
+   * Called only from the success path of the two link senders, after the tab has
+   * been pointed at wa.me. If the operator closed the dialog while the link was
+   * being issued, the question is dropped rather than re-opened over whatever
+   * they moved on to.
+   */
+  private armWhatsAppSentConfirm(patientTestId: number, testCode: string, label: string, phone: string): void {
+    if (!this.whatsAppDialogFor) return;
+
+    this.whatsAppSentConfirm = { patientTestId, testCode, label, phone };
+    this.whatsAppNumberError = '';
+  }
+
+  /** The operator says the message went: record it, and show it immediately. */
+  confirmWhatsAppSent(): void {
+    const pending = this.whatsAppSentConfirm;
+    if (!pending || this.markingWhatsAppSent) return;
+
+    this.markingWhatsAppSent = true;
+    this.reportPrintStatusService.markSentOnWhatsApp({
+      testRegId:      pending.patientTestId,
+      testCode:       pending.testCode,
+      whatsAppNumber: pending.phone,
+    }).subscribe({
+      next: (status: ReportPrintStatusDto) => {
+        this.markingWhatsAppSent = false;
+
+        // Straight into the map the chips read, so the badge appears without a
+        // reload. The row is also persisted, so it survives a refresh.
+        if (status) {
+          this.printStatus.set(status.testCode, status);
+          // The API upper-cases the code; if the catalogue stores it differently
+          // the chips look it up under the original, so key it both ways.
+          if (status.testCode !== pending.testCode) {
+            this.printStatus.set(pending.testCode, status);
+          }
+        }
+
+        const repeat = (status?.whatsAppSentCount ?? 1) > 1 ? ' again' : '';
+        this.closeWhatsAppDialog();
+        this.toastr.success(
+          `${pending.label} marked as sent on WhatsApp${repeat} to ${this.formatWhatsAppNumber(pending.phone)}.`,
+          'Sent on WhatsApp');
+      },
+      error: (err: any) => {
+        this.markingWhatsAppSent = false;
+        // The message did go — only the bookkeeping failed, so the dialog stays
+        // on the question and the operator can answer again.
+        this.whatsAppNumberError =
+          err?.error?.error || err?.error?.message ||
+          'The report was sent, but recording it failed. Please try again.';
+      },
+    });
+  }
+
+  /**
+   * The operator says it did not go. Nothing is written — "not sent" is the
+   * absence of a record, so there is no request to make.
+   */
+  dismissWhatsAppSent(): void {
+    if (this.markingWhatsAppSent) return;
+    this.closeWhatsAppDialog();
   }
 
   /**
@@ -1849,6 +2049,7 @@ export class PatientTestListComponent implements OnInit {
 
           if (!link?.url) {
             waWindow.close();
+            this.closeWhatsAppDialog();
             this.toastr.error('The health report link could not be created.', 'WhatsApp');
             return;
           }
@@ -1865,10 +2066,17 @@ export class PatientTestListComponent implements OnInit {
                          + `Thank you.`;
 
           waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+          // Handed off — now ask whether it actually went. The Smart Report is
+          // per booking, so its status row uses the reserved code its share link
+          // already keys on rather than any one test code.
+          this.armWhatsAppSentConfirm(
+            Number(test.patient_Test_Id), SMART_REPORT_TEST_CODE, 'Health Insights report', phone);
         },
         error: (err: any) => {
           this.sendingSmartWhatsAppFor = null;
           waWindow.close();
+          this.closeWhatsAppDialog();
           this.toastr.error(err?.error?.error || 'The health report link could not be created. Please try again.',
             'WhatsApp');
           console.error('sendSmartReportLink error:', err);
@@ -1883,6 +2091,7 @@ export class PatientTestListComponent implements OnInit {
   private sendTestReportLink(phone: string, waWindow: Window): void {
     if (!this.selectedPatientTest || !this.selectedTestDetail) {
       waWindow.close();
+      this.closeWhatsAppDialog();
       return;
     }
 
@@ -1900,6 +2109,7 @@ export class PatientTestListComponent implements OnInit {
 
           if (!link?.url) {
             waWindow.close();
+            this.closeWhatsAppDialog();
             this.toastr.error('The report link could not be created.', 'WhatsApp');
             return;
           }
@@ -1912,10 +2122,14 @@ export class PatientTestListComponent implements OnInit {
                          + `Thank you.`;
 
           waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+          // Handed off — now ask whether it actually went.
+          this.armWhatsAppSentConfirm(patientTestId, testCode, `${testName} report`, phone);
         },
         error: (err: any) => {
           this.isSendingWhatsApp = false;
           waWindow.close();
+          this.closeWhatsAppDialog();
           this.toastr.error(err?.error?.error || 'The report link could not be created. Please try again.',
             'WhatsApp');
           console.error('sendTestReportLink error:', err);
