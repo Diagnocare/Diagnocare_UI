@@ -182,8 +182,14 @@
 .dc-nav {
   display: flex;
   align-items: center;
-  gap: 2em;
-  /*margin-left: 4em;*/
+  /* The nav takes all the room between the brand and the user section, and
+     its links are centred in it. Previously they were packed to the left, so
+     on a wide window every pixel of spare width piled up as one empty stretch
+     between "Admin Panel" and the bell. The gap is fluid so the links sit
+     closer together on a laptop and spread out on a large monitor. */
+  justify-content: center;
+  gap: clamp(0.25rem, 1.6vw, 2.5rem);
+  padding-inline: clamp(0.5rem, 1.5vw, 2rem);
   flex: 1;
 }
 
@@ -681,6 +687,28 @@
   height: 1px;
   background: #e5e7eb;
   margin: 0.5rem 0;
+}
+
+/* ── Wide screens: line the header up with the page column ──────────
+   The band stays full width, but its contents use the same inset as
+   .page-header / .content-container (see the PAGE WIDTH LAYER in
+   styles.css), so the logo sits above the page title and the avatar above
+   the right edge of the content on every monitor size. */
+@media (min-width: 64.0625em) {
+  .dc-header {
+    padding-inline: calc(
+      max(0px, (100% - var(--dc-page-max, 160rem)) / 2) + var(--dc-page-gutter, 2.5em)
+    );
+  }
+}
+
+/* Small laptops (1025–1280px): five dropdowns plus the user chip do not fit
+   beside the brand, and the links ended up drawn over the logo. Tighten the
+   links and drop the name pill — the name is still at the top of the profile
+   dropdown, exactly as on phones. */
+@media (min-width: 64.0625em) and (max-width: 80em) {
+  .dc-nav-link { padding: 0.45rem 0.55rem; }
+  .dc-username-chip { display: none; }
 }
 
 /* ── Responsive ─────────────────────────────────────────────────── */
