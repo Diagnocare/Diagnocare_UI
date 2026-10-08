@@ -293,6 +293,14 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           error: ()                  => { this.collectionBoys = []; },
         });
 
+    // Unticking Outside Collection means the sample is drawn at the lab, so nobody
+    // is sent: drop the collection boy and area rather than saving a stale pick.
+    this.patientForm.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.patientForm.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+      });
+
     // Keep amount_Paid in sync when payment type / net amount changes
     this.patientForm.get('payment_Type')?.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -460,6 +468,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   get isCurrentStepValid(): boolean {
     // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
     if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
+    // Outside collection needs a collection boy to send.
+    if (this.currentStep === 3 && this.collectorMissing) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
     // NoPayment: payment_Mode is not required (no payment is collected now)
@@ -1128,26 +1138,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.loadSelectedProtocols();
   }
 
-  // ── Collection Modal ───────────────────────────────────────────────────────
+  // ── Outside collection ─────────────────────────────────────────────────────
 
-  onCollectedOutsideClick(event: any) {
-    if (event.target.checked) {
-      const el = document.getElementById('collectionModal');
-      if (el) this.showModal('collectionModal');
-    }
-  }
-
-  modalCollectionClose() {
-    const el = document.getElementById('collectionModal');
-    if (el) this.hideModal('collectionModal');
-    if (!this.patientForm.get('area')?.value && !this.patientForm.get('collection_Assigned_To')?.value) {
-      this.patientForm.patchValue({ collected_Outside: false });
-    }
-  }
-
-  clearOutsideCollectionModal() {
-    this.patientForm.patchValue({ collected_By: '', collection_Assigned_To: '', area: '', collected_Outside: false });
-    this.modalCollectionClose();
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.patientForm.get('collected_Outside')?.value
+        && !this.patientForm.get('collection_Assigned_To')?.value;
   }
 
   // ── Payment ────────────────────────────────────────────────────────────────
@@ -1662,9 +1658,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       remark:            f.remark           ?? '',
       collected_Outside: f.collected_Outside ?? false,
       area:              f.area             ?? '',
-      // The API fills Collected_By with the collection boy's name when one is assigned.
-      collected_By:      f.collection_Assigned_To ? '' : (f.collected_By ?? ''),
-      collection_Assigned_To: f.collection_Assigned_To ? +f.collection_Assigned_To : null,
+      // The API fills Collected_By with the collection boy's name.
+      collected_By:      '',
+      // Only an outside collection sends a collection boy.
+      collection_Assigned_To: f.collected_Outside && f.collection_Assigned_To ? +f.collection_Assigned_To : null,
       // Must be sampling_Done_At — the API property is Sampling_Done_At, and the
       // old key 'sampling_Done' matched nothing, so the location was never saved.
       sampling_Done_At:  f.sampling_Done    ?? '',

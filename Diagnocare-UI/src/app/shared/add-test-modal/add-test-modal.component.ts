@@ -231,6 +231,13 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         next:  (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
         error: ()                  => { this.collectionBoys = []; },
       });
+
+    // Unticking Outside Collection means the sample is drawn at the lab.
+    this.form.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.form.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+      });
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -324,9 +331,15 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form.get('whatsApp_Number')?.setValue(this.toTypedNumber(this.patientContact));
   }
 
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.form.get('collected_Outside')?.value && !this.form.get('collection_Assigned_To')?.value;
+  }
+
   get isStep1Valid(): boolean {
     return (
       !this.whatsAppNeedsNumber &&
+      !this.collectorMissing &&
       !!this.form.get('test_Name')?.valid &&
       !!this.form.get('test_Amount')?.valid &&
       !!this.form.get('referred_By_Type')?.valid &&
@@ -1043,9 +1056,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         remark:            f.remark            ?? '',
         collected_Outside: f.collected_Outside ?? false,
         area:              f.area              ?? '',
-        // The API fills Collected_By with the collection boy's name when one is assigned.
-        collected_By:      f.collection_Assigned_To ? '' : (f.collected_By ?? ''),
-        collection_Assigned_To: f.collection_Assigned_To ? +f.collection_Assigned_To : null,
+        // The API fills Collected_By with the collection boy's name.
+        collected_By:      '',
+        // Only an outside collection sends a collection boy.
+        collection_Assigned_To: f.collected_Outside && f.collection_Assigned_To ? +f.collection_Assigned_To : null,
         // API property is Sampling_Done_At; 'sampling_Done' was silently dropped.
         sampling_Done_At:  f.sampling_Done     ?? '',
       },

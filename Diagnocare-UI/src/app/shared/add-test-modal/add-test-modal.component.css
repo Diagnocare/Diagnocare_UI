@@ -807,3 +807,9 @@
   color: #1e5ba8;
   text-decoration: underline;
 }
+
+/* "Choose who will go to collect the sample." under the Collection boy picker. */
+.form-hint--warn {
+  color: var(--dc-wait-ink, #b45309);
+  font-weight: 600;
+}

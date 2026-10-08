@@ -213,12 +213,13 @@
               <ng-template #waitingOnLab>
                 <span class="cell-sub">Waiting for the lab technician</span>
               </ng-template>
-              <!-- Who fetches the sample. Secondary, because the primary job on
-                   this queue is recording the collection itself. -->
+              <!-- Outside collection (home visit etc.): who fetches the sample.
+                   Secondary, because the primary job on this queue is recording the
+                   collection itself. Sending one makes the booking an outside collection. -->
               <button type="button" class="link-btn worklist__recall"
                       *ngIf="item.queue === 'to-collect'"
                       (click)="assign(item, $event)">
-                {{ item.collectionAssignedTo ? 'Reassign' : 'Assign collection boy' }}
+                {{ item.collectionAssignedTo ? 'Reassign collection boy' : 'Send for outside collection' }}
               </button>
               <!-- Only an issued report can be pulled back, so this appears
                    nowhere else. Secondary and quiet: recalling is rare and should

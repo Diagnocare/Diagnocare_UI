@@ -193,15 +193,6 @@
 
             <div class="form-section-label">Sample Collection</div>
             <div class="form-row">
-              <!-- Choosing a collection boy puts the pickup on his "My Pickups" list;
-                   results wait until the lab marks the sample received. -->
-              <div class="form-group">
-                <label class="form-label" for="atm-collectionAssignedTo">Sample collected by</label>
-                <select id="atm-collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
-                  <option value="">At the lab (no pickup)</option>
-                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
-                </select>
-              </div>
               <div class="form-group">
                 <label class="form-label">Sampling Done At</label>
                 <select formControlName="sampling_Done" class="form-select">
@@ -218,15 +209,23 @@
               </div>
             </div>
 
-            <!-- Shown inline when Collected Outside is checked -->
+            <!-- Outside collection (home visit etc.): a collection boy must be named.
+                 The pickup goes on his "My Pickups" list; results wait until the lab
+                 marks the sample received. -->
             <div class="form-row" *ngIf="form.get('collected_Outside')?.value">
+              <div class="form-group">
+                <label class="form-label required" for="atm-collectionAssignedTo">Collection boy</label>
+                <select id="atm-collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
+                  <option value="">-- Select collection boy --</option>
+                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                </select>
+                <small class="form-hint form-hint--warn" *ngIf="collectorMissing">
+                  Choose who will go to collect the sample.
+                </small>
+              </div>
               <div class="form-group">
                 <label class="form-label">Area</label>
                 <input type="text" class="form-control" formControlName="area" placeholder="Collection area" />
-              </div>
-              <div class="form-group" *ngIf="!form.get('collection_Assigned_To')?.value">
-                <label class="form-label">Collected By</label>
-                <input type="text" class="form-control" formControlName="collected_By" placeholder="Agent / collector name" />
               </div>
             </div>
 

@@ -28,7 +28,7 @@ import { MODAL_STYLES } from '../mark-collected/mark-collected-modal.component';
           <div class="mc-header-left">
             <h2 id="ac-title">
               <i class="fa fa-motorcycle" aria-hidden="true"></i>
-              {{ item?.collectionAssignedTo ? 'Reassign pickup' : 'Assign collection boy' }}
+              {{ item?.collectionAssignedTo ? 'Reassign collection boy' : 'Send for outside collection' }}
             </h2>
             <p class="mc-subtitle" *ngIf="item">
               {{ item.patientName }} · {{ item.patientAge }} / {{ item.patientGender }}
@@ -55,7 +55,8 @@ import { MODAL_STYLES } from '../mark-collected/mark-collected-modal.component';
             No active collection boys. Add one in Staff Management.
           </p>
           <p class="mc-hint">
-            It appears on his "My Pickups" list. Every test on this order moves together.
+            For samples collected outside the centre (home visits and the like). It appears
+            on his "My Pickups" list, and every test on this order moves together.
           </p>
         </div>
 

@@ -349,7 +349,7 @@ export class WorklistComponent implements OnInit, OnDestroy {
       const ago = waitingLabel(item.sampleCollectedAt);
       return `Collected by ${who}${ago ? ' · ' + ago + ' ago' : ''}`;
     }
-    return item.collectionAssignedTo ? `Pickup: ${who}` : 'No pickup assigned';
+    return item.collectionAssignedTo ? `Outside pickup: ${who}` : 'At the centre';
   }
 
   /** Opens the recall confirmation for an issued report. */
