@@ -196,15 +196,14 @@ export const routes: Routes = [
       { path: 'template', title: 'Report Templates',
         loadComponent: () => import('./component/template/template.component').then(m => m.TemplateComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
-      // Lab Setup & Profile — Admin may view, only Super Admin may save.
-      // The API enforces the write half (PathologyController writes are SuperAdminOnly);
-      // the components render read-only for Admin.
+      // Lab Setup & Profile — Super Admin ONLY, matching the API. No other role
+      // may open these pages; anyone else is sent to Access Denied.
       { path: 'lab-setup', title: 'Lab Setup',
         loadComponent: () => import('./component/lab-setup/lab-setup.component').then(m => m.LabSetupComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
       { path: 'lab-profile', title: 'Lab Profile',
         loadComponent: () => import('./component/lab-profile/lab-profile.component').then(m => m.LabProfileComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
 
       // Attendance / Salary / Holidays — Admin+
       // Attendance administration — Super Admin ONLY. An Admin records their own

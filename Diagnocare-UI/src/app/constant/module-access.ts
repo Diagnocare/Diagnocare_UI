@@ -11,7 +11,9 @@ import { Role, RoleId } from './enums';
  *                     API's ReportViewers policy and the /reports route guard,
  *                     which must list the same roles or the dropdown appears and
  *                     then every entry in it lands on Access Denied.
- *  labSetup         – "Lab Setup" dropdown (lab profile, sampling locations, etc.)
+ *  labSetup         – "Lab Setup" dropdown (lab profile, sampling locations, etc.).
+ *                     Super Admin only; kept in step with the API and the
+ *                     /lab-setup and /lab-profile route guards.
  *  adminPanel       – "Admin Panel" dropdown (users, attendance, salary, etc.)
  *  patientsLink     – Single "Patients" nav link (for Collection Boys with limited access)
  *  patientTestsLink – Single "My Reports" nav link (for Doctors reviewing test results)
@@ -57,7 +59,9 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     home: true,
     labOps: true,
     summaryReports: true,
-    labSetup: true,
+    // Lab Setup (Lab Profile + Lab Configuration) is Super Admin only, matching
+    // the API. Admin no longer sees the dropdown at all.
+    labSetup: false,
     adminPanel: true,
     patientsLink: false,
     patientTestsLink: false,
