@@ -226,6 +226,11 @@ export const routes: Routes = [
       { path: 'visit-schedule', title: 'Visit Schedule',
         loadComponent: () => import('./component/visit-schedule/visit-schedule.component').then(m => m.VisitScheduleComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      // My Pickups — the collection boy's samples to collect and hand over.
+      // Collection Boy only, matching the API's CollectionBoyOnly policy.
+      { path: 'my-pickups', title: 'My Pickups',
+        loadComponent: () => import('./component/my-pickups/my-pickups.component').then(m => m.MyPickupsComponent),
+        canActivate: [roleGuard(Role.Collection_Boy.id)] },
       { path: 'my-visits', title: 'My Visits Today',
         loadComponent: () => import('./component/my-visits/my-visits.component').then(m => m.MyVisitsComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },

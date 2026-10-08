@@ -35,6 +35,7 @@
  */
 export type WorkQueue =
   | 'to-collect'
+  | 'to-receive'
   | 'awaiting-results'
   | 'partly-entered'
   | 'returned'
@@ -45,6 +46,7 @@ export type WorkQueue =
 /** Display order — also the order the tiles appear in, left to right. */
 export const WORK_QUEUE_ORDER: readonly WorkQueue[] = [
   'to-collect',
+  'to-receive',
   'awaiting-results',
   'partly-entered',
   'returned',
@@ -89,6 +91,16 @@ export const WORK_QUEUE_META: Readonly<Record<WorkQueue, WorkQueueMeta>> = {
     tone: 'idle',
     icon: 'fa-flask',
     ownedByRoleIds: [1, 5],            // Receptionist, Collection Boy
+  },
+  // A collection boy has the sample; the lab has not taken it from him yet.
+  // Results cannot be entered on a sample the lab does not physically have.
+  'to-receive': {
+    label: 'To receive',
+    verb: 'Mark received at lab',
+    hint: 'Collection boy hands over',
+    tone: 'wait',
+    icon: 'fa-people-carry',
+    ownedByRoleIds: [2],               // Lab Assistant / technician
   },
   'awaiting-results': {
     label: 'Awaiting results',
@@ -193,6 +205,12 @@ export interface QueueDerivationInput {
   verifiedAt?: string | null;
   /** Anything actively blocking: 'Unpaid', 'Render failed', 'Critical value'. */
   blockedReason?: string | null;
+  /** Collection boy the sample was sent out with; null when drawn at the lab. */
+  collectionAssignedTo?: number | null;
+  /** Set when the sample was collected (collection boy or lab). */
+  sampleCollectedAt?: string | null;
+  /** Set when the lab received a sample brought in by a collection boy. */
+  sampleReceivedAt?: string | null;
 }
 
 /**
@@ -213,8 +231,14 @@ export function deriveQueue(item: QueueDerivationInput): WorkQueue {
   // Signed off — the report exists and the only thing left is handing it over.
   if ((item.verifiedAt || '').trim()) return 'ready-to-print';
 
-  // Nothing can be entered before there is a sample to run.
-  if (!(item.samplingDoneAt || '').trim()) return 'to-collect';
+  // Nothing can be entered before there is a sample to run — and when a
+  // collection boy fetches it, that means the lab has received it from him.
+  if (item.collectionAssignedTo) {
+    if (!item.sampleCollectedAt) return 'to-collect';
+    if (!item.sampleReceivedAt) return 'to-receive';
+  } else if (!(item.samplingDoneAt || '').trim()) {
+    return 'to-collect';
+  }
 
   const total = item.parameterCount ?? 0;
   const saved = item.savedResultCount ?? 0;

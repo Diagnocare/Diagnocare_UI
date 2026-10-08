@@ -228,6 +228,19 @@
 
   // A return reads like a blocker in weight but amber not red: it is actionable
   // bench work with a note attached, not something nobody can proceed with.
+  // Where a pickup stands: "Pickup: Ravi Kumar" / "Collected by Ravi · 2h ago".
+  .collection {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--dc-text-meta, 0.8125rem);
+    font-weight: 600;
+    color: var(--text-secondary, #475569);
+    // Wraps rather than truncates: the name and how long ago are both the point.
+    line-height: 1.3;
+    i { flex: 0 0 auto; }
+  }
+
   .returned {
     display: flex;
     align-items: center;

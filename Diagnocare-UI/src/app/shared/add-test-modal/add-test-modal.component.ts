@@ -46,6 +46,8 @@ import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-d
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
+import { MemberService }             from 'src/app/services/memberService/member.service';
+import { MemberDto }                 from 'src/app/models/member/member.dto';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
 import {
   TestBookingProtocolsDto,
@@ -179,6 +181,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  /** Active collection boys for the "Sample collected by" picker. */
+  collectionBoys: MemberDto[] = [];
+
   constructor(
     private fb:              FormBuilder,
     private _testService:    PathTestService,
@@ -190,6 +195,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private _contactService: ContactAddressService,
     private _token:          TokenService,
     private _sampleLabelService: SampleLabelService,
+    private _memberService:  MemberService,
   ) {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
@@ -204,6 +210,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       referred_By:       ['', Validators.required],
       sampling_Done:     [this._sampling.getDefault()],
       collected_Outside: [false],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
       area:              [''],
       collected_By:      [''],
       remark:            [''],
@@ -214,6 +222,15 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       amount_Paid:       ['', Validators.required],
       amount_Pending:    ['0', Validators.required],
     });
+
+    // Collection boys for "Sample collected by". The LabOperations-scoped lookup,
+    // so a receptionist / lab assistant is not 403'd.
+    this._memberService.getCollectionBoysLookup()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next:  (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
+        error: ()                  => { this.collectionBoys = []; },
+      });
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -1026,7 +1043,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         remark:            f.remark            ?? '',
         collected_Outside: f.collected_Outside ?? false,
         area:              f.area              ?? '',
-        collected_By:      f.collected_By      ?? '',
+        // The API fills Collected_By with the collection boy's name when one is assigned.
+        collected_By:      f.collection_Assigned_To ? '' : (f.collected_By ?? ''),
+        collection_Assigned_To: f.collection_Assigned_To ? +f.collection_Assigned_To : null,
         // API property is Sampling_Done_At; 'sampling_Done' was silently dropped.
         sampling_Done_At:  f.sampling_Done     ?? '',
       },
@@ -1154,6 +1173,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       collected_Outside: false,
       area:              '',
       collected_By:      '',
+      collection_Assigned_To: '',
       remark:            '',
       discount:          0,
       net_Amount:        0,

@@ -413,6 +413,20 @@
 
             <div class="form-section-label">Sample Collection</div>
             <div class="form-row">
+              <!-- Who fetches the sample. Choosing a collection boy puts the pickup on
+                   his "My Pickups" list; results cannot be entered until he has
+                   collected it AND the lab has marked it received. -->
+              <div class="form-group">
+                <label class="form-label" for="collectionAssignedTo">Sample collected by</label>
+                <select id="collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
+                  <option value="">At the lab (no pickup)</option>
+                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                </select>
+                <small class="form-hint" *ngIf="patientForm.get('collection_Assigned_To')?.value">
+                  Goes on his pickup list; the lab marks it received on hand-over.
+                </small>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Sampling Done At</label>
                 <select formControlName="sampling_Done" class="form-select" [attr.tabindex]="getTabIndex('sampling_Done')">
@@ -783,8 +797,8 @@
             </select>
           </div>
           <div class="form-group mb-3">
-            <label class="form-label">Collected By</label>
-            <select formControlName="collected_By" class="form-select">
+            <label class="form-label">Collection boy</label>
+            <select formControlName="collection_Assigned_To" class="form-select">
               <option value="">-- Select Collection Boy --</option>
               <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
             </select>

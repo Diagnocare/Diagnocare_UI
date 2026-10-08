@@ -25,6 +25,10 @@ import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
 import { DcSearchComponent } from 'src/app/shared/simple/dc-search.component';
 import { MarkCollectedModalComponent } from '../mark-collected/mark-collected-modal.component';
 import { RecallReportModalComponent } from '../recall-report/recall-report-modal.component';
+import { AssignCollectorModalComponent } from '../assign-collector/assign-collector-modal.component';
+import { SampleCollectionService } from 'src/app/services/sampleCollectionServices/sample-collection.service';
+import { TokenService } from 'src/app/core/interceptors/token.service';
+import { Role } from 'src/app/constant/enums';
 
 /**
  * The worklist — the lab's home screen.
@@ -63,6 +67,7 @@ import { RecallReportModalComponent } from '../recall-report/recall-report-modal
     DcSearchComponent,
     MarkCollectedModalComponent,
     RecallReportModalComponent,
+    AssignCollectorModalComponent,
   ],
   templateUrl: './worklist.component.html',
   styleUrls: ['./worklist.component.scss'],
@@ -83,6 +88,12 @@ export class WorklistComponent implements OnInit, OnDestroy {
   /** The issued report being pulled back, or null when the modal is closed. */
   recallingItem: WorklistItem | null = null;
 
+  /** The row whose pickup is being (re)assigned to a collection boy. */
+  assigningItem: WorklistItem | null = null;
+
+  /** testRegId currently being marked received, so its button can show progress. */
+  receivingId: number | null = null;
+
   pageNumber = 1;
   readonly pageSize = 50;
 
@@ -100,7 +111,18 @@ export class WorklistComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private toastr: ToastrService,
+    private sampleCollection: SampleCollectionService,
+    private tokenService: TokenService,
   ) {}
+
+  /**
+   * Receiving a sample from a collection boy is technician work — the API's
+   * TestResultEntry policy (Super Admin, Admin, Lab Assistant). Anyone else sees
+   * who it is waiting on instead of a button that would be refused.
+   */
+  get canReceive(): boolean {
+    return this.tokenService.hasRole(Role.Assistant.id, Role.Admin.id, Role.Super_Admin.id);
+  }
 
   ngOnInit(): void {
     // Land on the queue this person's role actually owns. A lab assistant opens
@@ -236,6 +258,11 @@ export class WorklistComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (item.queue === 'to-receive') {
+      this.markReceived(item);
+      return;
+    }
+
     if (item.queue === 'to-verify') {
       this.router.navigate(['/work/verify', item.testRegId], {
         queryParams: { testCode: item.testCode },
@@ -274,6 +301,55 @@ export class WorklistComponent implements OnInit, OnDestroy {
 
   onCollectCancelled(): void {
     this.collectingItem = null;
+  }
+
+  /** Opens the collection-boy picker for a row still waiting to be collected. */
+  assign(item: WorklistItem, event: Event): void {
+    event.stopPropagation();
+    this.assigningItem = item;
+  }
+
+  onAssigned(): void {
+    this.assigningItem = null;
+    this.load();
+  }
+
+  onAssignCancelled(): void {
+    this.assigningItem = null;
+  }
+
+  /**
+   * The lab has the sample in hand. One click, no dialog: the technician is
+   * standing at the bench with the tube, and the row already names the patient
+   * and order. Reloads because every test on the booking moves at once.
+   */
+  markReceived(item: WorklistItem): void {
+    if (this.receivingId !== null) return;
+    this.receivingId = item.testRegId;
+
+    this.sampleCollection.markReceived(item.testRegId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => {
+          this.receivingId = null;
+          this.toastr.success(res?.message || 'Sample received.', 'Received at lab');
+          this.load();
+        },
+        error: err => {
+          this.receivingId = null;
+          this.toastr.error(err?.error?.error || 'Could not record that. Please try again.', 'Not saved');
+        },
+      });
+  }
+
+  /** "Ravi Kumar · collected 2h" — where a pickup stands, for the Results column. */
+  collectionText(item: WorklistItem): string {
+    const who = item.collectionAssignedToName || 'collection boy';
+    if (item.queue === 'to-receive') {
+      const ago = waitingLabel(item.sampleCollectedAt);
+      return `Collected by ${who}${ago ? ' · ' + ago + ' ago' : ''}`;
+    }
+    return item.collectionAssignedTo ? `Pickup: ${who}` : 'No pickup assigned';
   }
 
   /** Opens the recall confirmation for an issued report. */

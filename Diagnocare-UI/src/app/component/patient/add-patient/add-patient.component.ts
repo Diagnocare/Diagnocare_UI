@@ -263,6 +263,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_Outside:    [false],
       area:                 [''],
       collected_By:         [''],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
       sampling_Done:        [this._sampling.getDefault(), Validators.required],   // index 0 of the list
       discount:             [0],
       // Required only while the discount is above the lab limit (it then goes to a
@@ -1138,13 +1140,13 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   modalCollectionClose() {
     const el = document.getElementById('collectionModal');
     if (el) this.hideModal('collectionModal');
-    if (!this.patientForm.get('area')?.value && !this.patientForm.get('collected_By')?.value) {
+    if (!this.patientForm.get('area')?.value && !this.patientForm.get('collection_Assigned_To')?.value) {
       this.patientForm.patchValue({ collected_Outside: false });
     }
   }
 
   clearOutsideCollectionModal() {
-    this.patientForm.patchValue({ collected_By: '', area: '', collected_Outside: false });
+    this.patientForm.patchValue({ collected_By: '', collection_Assigned_To: '', area: '', collected_Outside: false });
     this.modalCollectionClose();
   }
 
@@ -1660,7 +1662,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       remark:            f.remark           ?? '',
       collected_Outside: f.collected_Outside ?? false,
       area:              f.area             ?? '',
-      collected_By:      f.collected_By     ?? '',
+      // The API fills Collected_By with the collection boy's name when one is assigned.
+      collected_By:      f.collection_Assigned_To ? '' : (f.collected_By ?? ''),
+      collection_Assigned_To: f.collection_Assigned_To ? +f.collection_Assigned_To : null,
       // Must be sampling_Done_At — the API property is Sampling_Done_At, and the
       // old key 'sampling_Done' matched nothing, so the location was never saved.
       sampling_Done_At:  f.sampling_Done    ?? '',

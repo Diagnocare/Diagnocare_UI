@@ -8,95 +8,10 @@ import { WorklistItem } from 'src/app/models/worklist/worklist.models';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
 
 /**
- * "Mark sample collected" — one question, asked where the work is.
- *
- * Why a modal and not a screen
- * ────────────────────────────
- * Recording a collection is a single choice from a short list. Navigating away
- * to make it would cost the person their place in a queue they are working
- * down, and they would have to find their way back for the next one. The modal
- * keeps the list behind it, so the answer to "what did I just do and what is
- * next" never leaves the screen.
- *
- * The dropdown is the same SamplingLocationService list used when registering a
- * patient, so the locations are the ones this lab already maintains and nothing
- * new has to be configured or learnt.
- *
- * The grain is the booking, not the test: one needle draw covers every test on
- * the visit, so this is asked once and moves all of them.
+ * Shared look for the worklist's one-question dialogs (mark collected, assign
+ * collection boy), so they read as the same kind of object.
  */
-@Component({
-  selector: 'app-mark-collected-modal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
-    <div class="mc-overlay" *ngIf="visible" role="dialog" aria-modal="true"
-         aria-labelledby="mc-title" (keydown.escape)="close()">
-      <div class="mc-backdrop" (click)="close()"></div>
-
-      <div class="mc-container">
-
-        <!-- Header, body, footer in the shape the rest of the app's dialogs use
-             (sample-rejection, test-run, protocol-view): a coloured bar carrying
-             an icon, a title and the context line, a close circle on the right,
-             a tinted body and a white footer with the actions on the right. -->
-        <div class="mc-header">
-          <div class="mc-header-left">
-            <h2 id="mc-title">
-              <i class="fa fa-flask" aria-hidden="true"></i>
-              Mark sample collected
-            </h2>
-
-            <!-- Who and what, restated. The person clicked a row a moment ago,
-                 but a dialog that does not say which order it is about is how
-                 the wrong booking gets marked on a busy morning. -->
-            <p class="mc-subtitle" *ngIf="item">
-              {{ item.patientName }} · {{ item.patientAge }} / {{ item.patientGender }}
-              · {{ item.patientId }} · order {{ item.testRegId }}
-            </p>
-          </div>
-
-          <button type="button" class="mc-close" (click)="close()" aria-label="Close">
-            <i class="fa fa-times" aria-hidden="true"></i>
-          </button>
-        </div>
-
-        <div class="mc-body">
-          <p class="mc-test" *ngIf="item">{{ item.testName }}</p>
-
-          <label class="mc-label" for="mc-location">Where was the sample collected?</label>
-          <select id="mc-location" class="form-select"
-                  [(ngModel)]="location" [disabled]="isSaving">
-            <option value="">-- Select --</option>
-            <option *ngFor="let entry of locations" [value]="entry">{{ entry }}</option>
-          </select>
-
-          <p class="mc-hint" *ngIf="locations.length === 0">
-            No sampling locations are set up yet. Add them where you register a patient.
-          </p>
-
-          <!-- The disabled Save explains itself rather than sitting greyed out in
-               silence — the kit's fourth rule. -->
-          <p class="mc-hint mc-hint--warn" *ngIf="locations.length > 0 && !location">
-            Choose a location to enable Save.
-          </p>
-        </div>
-
-        <div class="mc-footer">
-          <button type="button" class="dc-btn dc-btn--cancel" (click)="close()" [disabled]="isSaving">
-            Cancel
-          </button>
-          <button type="button" class="dc-btn dc-btn--save"
-                  [disabled]="!location || isSaving"
-                  (click)="save()">
-            <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
-            {{ isSaving ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
+export const MODAL_STYLES = `
     /* Geometry copied from the app's other dialogs so this reads as the same
        kind of object: 14px radius, 1.1rem/1.4rem header, 1.2rem/1.4rem body,
        0.8rem/1.4rem footer, a 2rem close circle. Colours and type come from the
@@ -236,7 +151,98 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
     @media (prefers-reduced-motion: reduce) {
       .mc-close { transition: none; }
     }
-  `]
+  `;
+
+/**
+ * "Mark sample collected" — one question, asked where the work is.
+ *
+ * Why a modal and not a screen
+ * ────────────────────────────
+ * Recording a collection is a single choice from a short list. Navigating away
+ * to make it would cost the person their place in a queue they are working
+ * down, and they would have to find their way back for the next one. The modal
+ * keeps the list behind it, so the answer to "what did I just do and what is
+ * next" never leaves the screen.
+ *
+ * The dropdown is the same SamplingLocationService list used when registering a
+ * patient, so the locations are the ones this lab already maintains and nothing
+ * new has to be configured or learnt.
+ *
+ * The grain is the booking, not the test: one needle draw covers every test on
+ * the visit, so this is asked once and moves all of them.
+ */
+@Component({
+  selector: 'app-mark-collected-modal',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="mc-overlay" *ngIf="visible" role="dialog" aria-modal="true"
+         aria-labelledby="mc-title" (keydown.escape)="close()">
+      <div class="mc-backdrop" (click)="close()"></div>
+
+      <div class="mc-container">
+
+        <!-- Header, body, footer in the shape the rest of the app's dialogs use
+             (sample-rejection, test-run, protocol-view): a coloured bar carrying
+             an icon, a title and the context line, a close circle on the right,
+             a tinted body and a white footer with the actions on the right. -->
+        <div class="mc-header">
+          <div class="mc-header-left">
+            <h2 id="mc-title">
+              <i class="fa fa-flask" aria-hidden="true"></i>
+              Mark sample collected
+            </h2>
+
+            <!-- Who and what, restated. The person clicked a row a moment ago,
+                 but a dialog that does not say which order it is about is how
+                 the wrong booking gets marked on a busy morning. -->
+            <p class="mc-subtitle" *ngIf="item">
+              {{ item.patientName }} · {{ item.patientAge }} / {{ item.patientGender }}
+              · {{ item.patientId }} · order {{ item.testRegId }}
+            </p>
+          </div>
+
+          <button type="button" class="mc-close" (click)="close()" aria-label="Close">
+            <i class="fa fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="mc-body">
+          <p class="mc-test" *ngIf="item">{{ item.testName }}</p>
+
+          <label class="mc-label" for="mc-location">Where was the sample collected?</label>
+          <select id="mc-location" class="form-select"
+                  [(ngModel)]="location" [disabled]="isSaving">
+            <option value="">-- Select --</option>
+            <option *ngFor="let entry of locations" [value]="entry">{{ entry }}</option>
+          </select>
+
+          <p class="mc-hint" *ngIf="locations.length === 0">
+            No sampling locations are set up yet. Add them where you register a patient.
+          </p>
+
+          <!-- The disabled Save explains itself rather than sitting greyed out in
+               silence — the kit's fourth rule. -->
+          <p class="mc-hint mc-hint--warn" *ngIf="locations.length > 0 && !location">
+            Choose a location to enable Save.
+          </p>
+        </div>
+
+        <div class="mc-footer">
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="close()" [disabled]="isSaving">
+            Cancel
+          </button>
+          <button type="button" class="dc-btn dc-btn--save"
+                  [disabled]="!location || isSaving"
+                  (click)="save()">
+            <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
+            {{ isSaving ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [MODAL_STYLES]
 })
 export class MarkCollectedModalComponent {
   /** The row that was clicked. Null closes the modal. */
@@ -278,8 +284,12 @@ export class MarkCollectedModalComponent {
       .subscribe({
         next: () => {
           this.isSaving = false;
+          // A sample sent out with a collection boy still has to be received
+          // at the lab before anyone can enter results.
           this.toastr.success(
-            `Sample recorded at ${this.location}. Results can now be entered.`,
+            this.item?.collectionAssignedTo
+              ? `Sample recorded at ${this.location}. Mark it received when it reaches the lab.`
+              : `Sample recorded at ${this.location}. Results can now be entered.`,
             'Collected',
           );
           this.reset();
