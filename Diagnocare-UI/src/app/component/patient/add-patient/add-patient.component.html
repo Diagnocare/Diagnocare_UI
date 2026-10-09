@@ -441,10 +441,17 @@
                   <option value="">-- Select collection boy --</option>
                   <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
                 </select>
-                <small class="form-hint form-hint--warn" *ngIf="!patientForm.get('collection_Assigned_To')?.value">
+                <!-- Nobody to send. Said here rather than left as an empty dropdown the
+                     user keeps opening: the booking cannot be saved as an outside
+                     collection until a collection boy exists, and the API refuses it. -->
+                <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
+                  No active collection boys are set up. Add one under Staff, or untick
+                  Outside Collection to record this as collected at the centre.
+                </small>
+                <small class="form-hint form-hint--warn" *ngIf="!noCollectionBoys && collectorMissing">
                   Choose who will go to collect the sample.
                 </small>
-                <small class="form-hint" *ngIf="patientForm.get('collection_Assigned_To')?.value">
+                <small class="form-hint" *ngIf="!collectorMissing">
                   Goes on his pickup list; the lab marks it received on hand-over.
                 </small>
               </div>
