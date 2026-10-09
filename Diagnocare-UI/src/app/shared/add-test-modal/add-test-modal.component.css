@@ -401,67 +401,15 @@
 .hint-dot--active { width: 22px; border-radius: 4px; background: linear-gradient(90deg, #1E5BA8, #667eea); }
 .hint-dot--done   { background: #4CAF50; }
 
-/* ─── Amount Pending helper text ─────────────────────────────────────────── */
-.amount-pending-hint {
-  display: block;
-  width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin-top: 2px;
-  margin-bottom: 0;
-}
-
-/* ─── Partial Payment Modal helpers ──────────────────────────────────────── */
-.pm-locked-field {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-}
-.pm-disabled-input {
-  flex: 1;
-  background: #f3f4f6 !important;
-  color: #6b7280 !important;
-  cursor: not-allowed;
-  border-color: #d1d5db !important;
-  font-weight: 600;
-}
-.pm-lock-badge {
-  font-size: 0.72em;
-  font-weight: 700;
-  color: #6b7280;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 1em;
-  padding: 0.2em 0.55em;
-  white-space: nowrap;
-  user-select: none;
-}
-.modal-footer-actions {
-  display: flex;
-  gap: 0.75em;
-  justify-content: flex-end;
-  padding: 1em 1.25em 1em;
-  border-top: 1px solid #eef1f8;
-}
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1em 1.25em;
-  border-bottom: 1px solid #e8edf5;
-}
-.modal-header .modal-title {
-  font-weight: 700;
-  font-size: 1em;
-  color: #1a2e4a;
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0;
-}
-.modal-body { padding: 1.25em; }
+/* ─── Removed with this screen's own Partial Payment modal ───────────────────
+   .amount-pending-hint, .pm-locked-field, .pm-disabled-input, .pm-lock-badge,
+   .modal-footer-actions, .modal-header, .modal-title and .modal-body all
+   existed to dress the hand-rolled Bootstrap payment dialog that used to live
+   at the bottom of this template. The screen opens the shared
+   <app-payment-modal> now, which brings its own shell, so none of these match
+   anything any more — and between them they hard-coded eight greys and three
+   font sizes that never themed. Deleted rather than left behind, so nobody
+   styles a future dialog to match them. */
 
 /* ═══════════════════════════ TEST CATALOG ════════════════════════════════ */
 .atm-catalog-card { overflow: hidden; }
@@ -858,4 +806,10 @@
   font: inherit;
   color: #1e5ba8;
   text-decoration: underline;
+}
+
+/* "Choose who will go to collect the sample." under the Collection boy picker. */
+.form-hint--warn {
+  color: var(--dc-wait-ink, #b45309);
+  font-weight: 600;
 }

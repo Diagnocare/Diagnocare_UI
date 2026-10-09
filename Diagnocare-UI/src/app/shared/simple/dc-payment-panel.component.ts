@@ -50,15 +50,47 @@ export interface DcPaymentDecision {
  *                     (decisionChange)="onPaymentDecision($event)"
  *                     (confirmed)="submit()">
  *   </dc-payment-panel>
+ *
+ * Narrower callers
+ * ────────────────
+ * Some screens have already asked part of the question before the panel opens.
+ * Add New Patient, for example, carries Payment Type radios and a Payment Mode
+ * select on its own payment step, and only needs the one number the step cannot
+ * collect: how much is being handed over now. Those screens suppress the
+ * sections they own rather than growing a second, smaller payment dialog of
+ * their own:
+ *
+ *   <dc-payment-panel [netAmount]="net"
+ *                     [showChoices]="false"      <!-- step owns Full/Partial -->
+ *                     presetChoice="part"
+ *                     [showModes]="false"        <!-- step owns Payment Mode -->
+ *                     [presetMode]="mode"
+ *                     [initialPaid]="alreadyEntered"
+ *                     confirmLabel="Confirm">
+ *   </dc-payment-panel>
+ *
+ * Everything still rendered — the stepper, the cash-given block, the save bar,
+ * the type scale, the brand blue — is the same markup every other caller gets,
+ * which is the whole point of suppressing sections instead of rewriting them.
  */
 @Component({
   selector: 'dc-payment-panel',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="dc-pay">
+    <div class="dc-pay"
+         [class.dc-pay--dense]="dense"
+         [class.dc-pay--wide-amount]="dense && showModes">
 
-      <!-- ── 1 · How much ────────────────────────────────────────────────── -->
+      <!-- ── 1 · How much ──────────────────────────────────────────────────
+           Hidden when the calling screen has already asked (Add New Patient
+           has Full / Partial / No Payment radios on the step itself).
+
+           Each question is wrapped in a .dc-pay__group so [dense] can place
+           two of them side by side. In the ordinary single-column layout the
+           wrapper changes nothing: it has no padding or border, so the
+           headings' top margins collapse through it exactly as before. -->
+      <div class="dc-pay__group dc-pay__group--choice" *ngIf="showChoices">
       <h3 class="dc-pay__q">How much is the patient paying today?</h3>
       <p class="dc-pay__ask">
         The bill is <strong>₹{{ netAmount }}</strong>. Whatever is not paid now is
@@ -90,10 +122,15 @@ export interface DcPaymentDecision {
           <span class="dc-pay__sub">Full ₹{{ netAmount }} due at pickup</span>
         </button>
       </div>
+      </div>
 
       <!-- ── 2 · How much exactly (part only) ────────────────────────────── -->
-      <ng-container *ngIf="choice === 'part'">
-        <h3 class="dc-pay__q dc-pay__q--later">How much is he handing over?</h3>
+      <div class="dc-pay__group dc-pay__group--amount" *ngIf="choice === 'part'">
+        <h3 class="dc-pay__q" [class.dc-pay__q--later]="showChoices">How much is he handing over?</h3>
+        <!-- The bill is not restated here. Where the choice row is shown it
+             says it, and inside the dialog the amount strip two inches above
+             says it formatted (₹1,200.00) — restating it raw (₹1200) put two
+             spellings of the same figure on one screen. -->
         <p class="dc-pay__ask">Use the buttons or type it. It will not let you go over ₹{{ netAmount }}.</p>
 
         <div class="dc-pay__stepper">
@@ -116,11 +153,14 @@ export interface DcPaymentDecision {
           <span *ngIf="pending > 0"><strong>₹{{ pending }}</strong> still due at report pickup.</span>
           <span *ngIf="pending === 0">That covers the whole bill — nothing left to collect.</span>
         </p>
-      </ng-container>
+      </div>
 
-      <!-- ── 3 · How ─────────────────────────────────────────────────────── -->
-      <ng-container *ngIf="choice && choice !== 'none'">
-        <h3 class="dc-pay__q dc-pay__q--later">How is he paying?</h3>
+      <!-- ── 3 · How ───────────────────────────────────────────────────────
+           Hidden when the calling screen owns the Payment Mode control, so the
+           operator is never asked the same question twice with two answers
+           able to disagree. presetMode supplies the answer in that case. -->
+      <div class="dc-pay__group dc-pay__group--method" *ngIf="showModes && choice && choice !== 'none'">
+        <h3 class="dc-pay__q" [class.dc-pay__q--later]="showChoices || choice === 'part'">How is he paying?</h3>
         <div class="dc-pay__methods">
           <button type="button" class="dc-pay__method" *ngFor="let m of modes"
                   [class.dc-pay__method--on]="mode === m"
@@ -129,11 +169,12 @@ export interface DcPaymentDecision {
             <span>{{ m }}</span>
           </button>
         </div>
-      </ng-container>
+      </div>
 
       <!-- ── 4 · Cash given, in place — no calculator to open ────────────── -->
-      <ng-container *ngIf="mode === cashMode && choice && choice !== 'none'">
-        <h3 class="dc-pay__q dc-pay__q--later">Cash given by the patient</h3>
+      <div class="dc-pay__group dc-pay__group--cash" *ngIf="mode === cashMode && choice && choice !== 'none'">
+        <h3 class="dc-pay__q"
+            [class.dc-pay__q--later]="showChoices || showModes || choice === 'part'">Cash given by the patient</h3>
         <p class="dc-pay__ask">Optional — fill it in and the change works itself out.</p>
 
         <div class="dc-pay__stepper">
@@ -168,7 +209,7 @@ export interface DcPaymentDecision {
           </span>
           <span *ngIf="cashGiven !== null && cashGiven === amountPaid">Exact amount — no change needed.</span>
         </p>
-      </ng-container>
+      </div>
 
       <!-- ── Save bar — always says where things stand ───────────────────── -->
       <div class="dc-pay__bar">
@@ -179,7 +220,8 @@ export interface DcPaymentDecision {
           </p>
           <p class="dc-pay__state-sub">
             <ng-container *ngIf="!choice">Nothing is saved until you press the button.</ng-container>
-            <ng-container *ngIf="choice && !complete">Still needed: how he is paying.</ng-container>
+            <ng-container *ngIf="choice && !complete && showModes">Still needed: how he is paying.</ng-container>
+            <ng-container *ngIf="choice && !complete && !showModes">Enter the amount being paid now.</ng-container>
             <ng-container *ngIf="choice === 'none' && complete">Nothing collected today.</ng-container>
             <ng-container *ngIf="choice && choice !== 'none' && complete">Paying by {{ mode }}.</ng-container>
           </p>
@@ -352,7 +394,6 @@ export interface DcPaymentDecision {
     /* ── Payment mode ──────────────────────────────────────────────────────── */
     .dc-pay__methods {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(9em, 1fr));
       gap: 0.5em;
     }
     .dc-pay__method {
@@ -413,6 +454,72 @@ export interface DcPaymentDecision {
       .dc-pay__bar { flex-direction: column; align-items: stretch; }
       .dc-pay__save { width: 100%; }
     }
+
+    /* ── Dense: two questions per row ────────────────────────────────────────
+       The panel stacks its questions one per row, which is right on the Add
+       New Test step where there is a whole card to scroll. Inside the payment
+       dialog it is not: four stacked questions made the dialog 968px tall, so
+       on a 1366×768 laptop the operator scrolled a dialog to reach the button
+       that takes the money.
+
+       [dense] pairs them up instead, using the same two-column idea and the
+       same 36em breakpoint .pm-form already uses for its fields — so this is
+       the dialog's existing layout pattern applied one level in, not a new
+       one. "How much" and the save bar still span the full width: the first
+       is already a row of three cards, and the second must stay the widest
+       thing on screen. */
+    @media (min-width: 36em) {
+      .dc-pay--dense {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-content: start;
+        gap: 1.25em;
+      }
+      .dc-pay--dense .dc-pay__group--choice,
+      .dc-pay--dense .dc-pay__bar { grid-column: 1 / -1; }
+
+      /* Which pair goes side by side is worth being deliberate about: a
+         half-width column makes a block taller, and the wrong pairing gives
+         back everything the columns saved. Measured at 600px / 290px:
+
+           how much (choices)   155 / 246     always full width
+           amount stepper       151 / 170
+           method chips         105 / 239     a row of five — hates narrow
+           cash stepper         151 / 189
+           save bar              66 / 116     always full width
+
+         The questions have to stay in the order they are asked — the cash
+         block exists *because* Cash was picked, so it cannot be moved above
+         the method chips, and reordering grid items visually without
+         reordering the markup puts a screen reader out of step with the
+         screen. With that fixed, there are only three arrangements, and with
+         an amount stepper to place this is the shortest of them:
+
+           amount full width, method | cash paired   671px
+           amount | method paired, cash alone        709px
+           method full width, amount and cash alone  765px
+
+         Where there is no stepper (a payment in full) only two blocks are
+         left and letting them pair is already shortest, so the rule is tied
+         to showModes — which is also what tells us a method row exists to
+         pair the cash block with. */
+      .dc-pay--dense.dc-pay--wide-amount .dc-pay__group--amount { grid-column: 1 / -1; }
+
+      /* "The bill is ₹450. Whatever is not paid now is recorded as due at
+         report pickup." — two lines, 54px with its margin, and in the dialog
+         both halves are already on screen: the amount strip directly above
+         states the figure, and the choice cards underneath say "Nothing left
+         to collect" and "Rest due at pickup" in as many words. Dropping it
+         here is what brings the fullest dialog under a 900px screen. It still
+         shows on the Add New Test step, which has neither of those. */
+      .dc-pay--dense .dc-pay__group--choice .dc-pay__ask { display: none; }
+
+      /* The gap does the separating now. Leaving these margins on would add a
+         second helping of space to every row and give back what the columns
+         just saved. */
+      .dc-pay--dense .dc-pay__q--later { margin-top: 0; }
+      .dc-pay--dense .dc-pay__bar      { margin-top: 0; }
+    }
   `]
 })
 export class DcPaymentPanelComponent implements OnChanges {
@@ -437,6 +544,38 @@ export class DcPaymentPanelComponent implements OnChanges {
   @Input() busyLabel = 'Saving…';
   @Input() confirmLabel = 'Save payment';
 
+  // ── Section configuration ─────────────────────────────────────────────────
+  // A caller that already owns one of these questions turns that section off
+  // and supplies the answer, rather than asking it again inside the panel.
+  // Everything else about the panel stays identical, so the dialog looks the
+  // same wherever it opens.
+
+  /**
+   * Two questions per row instead of one per row, from 36em up. On for the
+   * payment dialog, where the height has to fit a laptop screen; off on a
+   * step inside a scrolling card, where one question at a time is the point.
+   */
+  @Input() dense = false;
+
+  /** Show the All / Part / Nothing row. Off when the screen has its own. */
+  @Input() showChoices = true;
+
+  /** Show the payment-method row. Off when the screen has its own select. */
+  @Input() showModes = true;
+
+  /** Answer for the hidden choice row: 'all' | 'part' | 'none'. */
+  @Input() presetChoice: 'all' | 'part' | 'none' | null = null;
+
+  /** Answer for the hidden method row — one of `modes`. */
+  @Input() presetMode = '';
+
+  /**
+   * Amount to open the part-payment stepper at, when the operator has already
+   * entered one and is coming back to amend it. 0 falls back to the usual
+   * half-the-bill opening figure.
+   */
+  @Input() initialPaid = 0;
+
   /** Emits on every change, so the caller can keep its own form in step. */
   @Output() decisionChange = new EventEmitter<DcPaymentDecision>();
 
@@ -449,13 +588,41 @@ export class DcPaymentPanelComponent implements OnChanges {
   cashGiven: number | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
+    let touched = false;
+
+    // A suppressed section's answer arrives as an input instead of a click.
+    if (changes['presetMode'] && this.presetMode) {
+      this.mode = this.presetMode;
+      touched = true;
+    }
+    if (changes['presetChoice'] && this.presetChoice) {
+      this.choice = this.presetChoice;
+      touched = true;
+    }
+
+    // Reopening to amend: start at what was entered last time, not at the
+    // opening guess, so Edit shows the number the operator is editing.
+    if (changes['initialPaid']) {
+      const seed = this.clamp(this.initialPaid || 0);
+      if (seed > 0) { this.paidNow = seed; touched = true; }
+    }
+
     // If the bill changes underneath us (a discount was applied on a previous
     // step), keep the part-payment inside the new maximum rather than silently
     // carrying an impossible number forward.
     if (changes['netAmount']) {
       this.paidNow = Math.min(this.paidNow, this.netAmount);
-      this.emit();
+      touched = true;
     }
+
+    // Same opening figure pick() uses, for a part payment that arrived as a
+    // preset rather than through the choice row.
+    if (this.choice === 'part' && this.paidNow === 0 && this.netAmount > 0) {
+      this.paidNow = Math.floor(this.netAmount / 20) * 10;
+      touched = true;
+    }
+
+    if (touched) this.emit();
   }
 
   get amountPaid(): number {
@@ -472,7 +639,10 @@ export class DcPaymentPanelComponent implements OnChanges {
   get complete(): boolean {
     if (!this.choice) return false;
     if (this.choice === 'none') return true;
-    if (!this.mode) return false;
+    // A method is only a requirement when the panel is the thing asking for
+    // it. Where the screen owns that control, it has already been validated
+    // there and an empty presetMode must not block this button.
+    if (this.showModes && !this.mode) return false;
     if (this.choice === 'part') return this.amountPaid > 0;
     return true;
   }

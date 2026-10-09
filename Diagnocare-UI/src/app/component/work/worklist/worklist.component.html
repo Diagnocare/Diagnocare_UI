@@ -18,37 +18,48 @@
 
   <div class="content-container">
 
-    <!-- ── Queues ────────────────────────────────────────────────────────
-         The only navigation on the screen. Every item is in exactly one, so
-         the counts always add up and an empty queue genuinely means nothing
-         is waiting — which is what lets the filters go away entirely. -->
-    <dc-queue-tabs
-      [tabs]="queueTabs"
-      [active]="queue"
-      ariaLabel="Work queues"
-      (select)="onQueueChange($event)">
-    </dc-queue-tabs>
+    <!-- ── Queues and search ─────────────────────────────────────────────
+         Both live in a .search-section, the same white card every other list
+         screen puts its filters in (patients-list, staff, pathTest …). Before
+         this they sat bare on the page gradient, which is what made the screen
+         read as a different layout: the other screens have a clear rhythm of
+         header → filter card → table card, and this one had floating controls.
 
-    <!-- ── Search ────────────────────────────────────────────────────────
-         One box across every field a person might be holding: the patient's
-         name, their ID, the order number off a sample label, or the referring
-         doctor. Nobody has to choose which field they are searching. -->
-    <div class="worklist__search">
-      <dc-search
-        label="Find anything"
-        placeholder="Patient name, patient ID, order number or doctor…"
-        resultNoun="item"
-        [value]="searchTerm"
-        [resultCount]="searchTerm ? (page?.totalItems ?? null) : null"
-        (search)="onSearch($event)">
-      </dc-search>
+         The queues are the only navigation on the screen. Every item is in
+         exactly one, so the counts always add up and an empty queue genuinely
+         means nothing is waiting — which is what lets the filters go away. -->
+    <div class="search-section worklist__filters">
+      <dc-queue-tabs
+        [tabs]="queueTabs"
+        [active]="queue"
+        ariaLabel="Work queues"
+        (select)="onQueueChange($event)">
+      </dc-queue-tabs>
 
-      <!-- Said out loud, because a search that quietly widened its own scope
-           would look like the queue counts had gone wrong. -->
+      <!-- One box across every field a person might be holding: the patient's
+           name, their ID, the order number off a sample label, or the referring
+           doctor. Nobody has to choose which field they are searching. -->
+      <div class="worklist__search">
+        <dc-search
+          label="Find anything"
+          placeholder="Patient name, patient ID, order number or doctor…"
+          resultNoun="item"
+          [value]="searchTerm"
+          [resultCount]="searchTerm ? (page?.totalItems ?? null) : null"
+          (search)="onSearch($event)">
+        </dc-search>
+
+      <!-- Said out loud, because the counts move when a search is running: they
+           describe the matches, not the whole lab, and the tiles are how someone
+           reaches a match that is sitting in a different queue. -->
       <p class="worklist__search-note" *ngIf="searchTerm">
-        Searching every queue, not just the one you were in.
+        Showing matches in <strong>{{ currentQueueLabel }}</strong>, including work older than the usual window.
+        <ng-container *ngIf="matchesInOtherQueues as elsewhere">
+          The tiles show {{ elsewhere }} more in other queues.
+        </ng-container>
         <button type="button" class="link-btn" (click)="clearSearch()">Clear the search</button>
       </p>
+      </div>
     </div>
 
     <!-- ── Loading ───────────────────────────────────────────────────── -->
@@ -195,7 +206,14 @@
                    answers from the list what "Partial" made you open the item
                    to find out, and the bar makes it comparable down the column
                    without reading every number. -->
-              <ng-container *ngIf="!item.blockedReason && !item.returnedReason">
+              <!-- Before the lab has the sample, progress is meaningless ("0 of 12
+                   entered"); what matters is who has the sample and where it is. -->
+              <span class="collection" *ngIf="!item.blockedReason && !item.returnedReason && (item.queue === 'to-collect' || item.queue === 'to-receive')">
+                <i class="fa" [ngClass]="item.queue === 'to-receive' ? 'fa-people-carry' : 'fa-motorcycle'" aria-hidden="true"></i>
+                {{ collectionText(item) }}
+              </span>
+
+              <ng-container *ngIf="!item.blockedReason && !item.returnedReason && item.queue !== 'to-collect' && item.queue !== 'to-receive'">
                 <span class="prog__text">{{ progressText(item) }}</span>
                 <span class="prog__bar" *ngIf="item.parameterCount > 0" aria-hidden="true">
                   <i [style.width.%]="progressPct(item)"></i>
@@ -210,8 +228,23 @@
             <td class="ta-right">
               <!-- One button, carrying the queue's own verb. The row never shows
                    two competing primary actions, so there is nothing to choose. -->
-              <button type="button" class="dc-btn dc-btn--save worklist__go" (click)="open(item)">
-                {{ queueVerb(item.queue) }}
+              <ng-container *ngIf="item.queue !== 'to-receive' || canReceive; else waitingOnLab">
+                <button type="button" class="dc-btn dc-btn--save worklist__go" (click)="open(item)"
+                        [disabled]="receivingId === item.testRegId">
+                  <i class="fa fa-spinner fa-spin" *ngIf="receivingId === item.testRegId" aria-hidden="true"></i>
+                  {{ queueVerb(item.queue) }}
+                </button>
+              </ng-container>
+              <ng-template #waitingOnLab>
+                <span class="cell-sub">Waiting for the lab technician</span>
+              </ng-template>
+              <!-- Outside collection (home visit etc.): who fetches the sample.
+                   Secondary, because the primary job on this queue is recording the
+                   collection itself. Sending one makes the booking an outside collection. -->
+              <button type="button" class="link-btn worklist__recall"
+                      *ngIf="item.queue === 'to-collect'"
+                      (click)="assign(item, $event)">
+                {{ item.collectionAssignedTo ? 'Reassign collection boy' : 'Send for outside collection' }}
               </button>
               <!-- Only an issued report can be pulled back, so this appears
                    nowhere else. Secondary and quiet: recalling is rare and should
@@ -243,7 +276,7 @@
     </div>
 
     <!-- ── Paging ────────────────────────────────────────────────────── -->
-    <div class="pagination worklist__paging"
+    <div class="pagination"
          *ngIf="!isLoading && page && page.totalItems > page.pageSize">
       <span class="pagination-info">
         Showing {{ ((page.pageNumber - 1) * page.pageSize) + 1 }}–{{ (page.pageNumber - 1) * page.pageSize + items.length }}
@@ -275,6 +308,13 @@
   (recalled)="onRecalled()"
   (cancelled)="onRecallCancelled()">
 </app-recall-report-modal>
+
+<app-assign-collector-modal
+  [visible]="!!assigningItem"
+  [item]="assigningItem"
+  (saved)="onAssigned()"
+  (cancelled)="onAssignCancelled()">
+</app-assign-collector-modal>
 
 <app-mark-collected-modal
   [visible]="!!collectingItem"

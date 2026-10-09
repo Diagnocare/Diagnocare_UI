@@ -333,6 +333,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   private buildCards(): void {
     const isAdmin      = this.tokenService.isAdmin();
+    const isSuperAdmin = this.tokenService.isSuperAdmin();
 
     const patientCards: ActionCard[] = [
       {
@@ -403,6 +404,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     }
 
     const systemCards: ActionCard[] = [];
+    // Lab Profile and Lab Setup are Super Admin only (route guard + API).
+    if (isSuperAdmin) {
       systemCards.push(
         {
           title: 'Lab Profile',
@@ -418,14 +421,15 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
           route: '/lab-setup',
           color: 'slate'
         },
-        {
-          title: 'Report Templates',
-          description: 'Design and manage report templates',
-          icon: 'fa-file-text',
-          route: '/template',
-          color: 'violet'
-        },
       );
+    }
+    systemCards.push({
+      title: 'Report Templates',
+      description: 'Design and manage report templates',
+      icon: 'fa-file-text',
+      route: '/template',
+      color: 'violet'
+    });
 
     const accountCards: ActionCard[] = [
       {

@@ -49,6 +49,12 @@
       <i class="fa fa-home"></i><span>Home</span>
     </a>
 
+    <!-- My Pickups — the collection boy's samples to collect and hand over -->
+    <a *ngIf="access.myPickups" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'my-pickups'}); $event.preventDefault()">
+      <i class="fa fa-motorcycle"></i><span>My Pickups</span>
+    </a>
+
     <!-- Patients link — Collection Boy direct access -->
     <a *ngIf="access.patientsLink" class="dc-nav-link" href="#"
        (click)="redirectionToModule({route:'patients'}); $event.preventDefault()">
@@ -318,6 +324,12 @@
   <a *ngIf="access.home" class="dc-mobile-item" href="#"
      (click)="redirectionToModule({route:'pathology'}); mobileNavOpen=false; $event.preventDefault()">
     <i class="fa fa-home"></i> Home
+  </a>
+
+  <!-- My Pickups (Collection Boy) -->
+  <a *ngIf="access.myPickups" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'my-pickups'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-motorcycle"></i> My Pickups
   </a>
 
   <!-- Patients link (Collection Boy) -->

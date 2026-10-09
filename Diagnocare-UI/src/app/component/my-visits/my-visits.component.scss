@@ -154,7 +154,7 @@
   .vs-layout {
     grid-template-columns: 380px 1fr;
     padding: 1.5rem 2rem 2.5rem;
-    max-width: 1600px;
+    max-width: var(--dc-page-max, 160rem);
     margin: 0 auto;
   }
 }

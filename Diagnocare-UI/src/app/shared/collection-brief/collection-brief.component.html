@@ -103,8 +103,10 @@
         </app-test-protocol-panel>
       </div>
 
-      <!-- Nothing came back at all — a different thing from a failed request. -->
-      <div class="cb-state cb-state--idle" *ngIf="!hasGroups">
+      <!-- Nothing came back at all — a different thing from a failed request, and a
+           different thing again from never having named a test. `hasCodes` keeps this
+           from claiming no protocol exists when none was asked for. -->
+      <div class="cb-state cb-state--idle" *ngIf="!hasGroups && hasCodes">
         <i class="fa fa-flask" aria-hidden="true"></i>
         <span>No collection protocol is recorded for this test. Ask the laboratory before collecting.</span>
       </div>

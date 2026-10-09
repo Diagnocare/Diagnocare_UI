@@ -26,6 +26,10 @@ import { DcSearchComponent } from 'src/app/shared/simple/dc-search.component';
 import { MarkCollectedModalComponent } from '../mark-collected/mark-collected-modal.component';
 import { RecallReportModalComponent } from '../recall-report/recall-report-modal.component';
 import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
+import { AssignCollectorModalComponent } from '../assign-collector/assign-collector-modal.component';
+import { SampleCollectionService } from 'src/app/services/sampleCollectionServices/sample-collection.service';
+import { TokenService } from 'src/app/core/interceptors/token.service';
+import { Role } from 'src/app/constant/enums';
 
 /**
  * The worklist — the lab's home screen.
@@ -65,6 +69,7 @@ import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collec
     MarkCollectedModalComponent,
     RecallReportModalComponent,
     CollectionBriefComponent,
+    AssignCollectorModalComponent,
   ],
   templateUrl: './worklist.component.html',
   styleUrls: ['./worklist.component.scss'],
@@ -84,6 +89,12 @@ export class WorklistComponent implements OnInit, OnDestroy {
 
   /** The issued report being pulled back, or null when the modal is closed. */
   recallingItem: WorklistItem | null = null;
+
+  /** The row whose pickup is being (re)assigned to a collection boy. */
+  assigningItem: WorklistItem | null = null;
+
+  /** testRegId currently being marked received, so its button can show progress. */
+  receivingId: number | null = null;
 
   /**
    * Rows whose collection details are showing, by the same key the trackBy uses.
@@ -111,7 +122,18 @@ export class WorklistComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private toastr: ToastrService,
+    private sampleCollection: SampleCollectionService,
+    private tokenService: TokenService,
   ) {}
+
+  /**
+   * Receiving a sample from a collection boy is technician work — the API's
+   * TestResultEntry policy (Super Admin, Admin, Lab Assistant). Anyone else sees
+   * who it is waiting on instead of a button that would be refused.
+   */
+  get canReceive(): boolean {
+    return this.tokenService.hasRole(Role.Assistant.id, Role.Admin.id, Role.Super_Admin.id);
+  }
 
   ngOnInit(): void {
     // Land on the queue this person's role actually owns. A lab assistant opens
@@ -146,10 +168,14 @@ export class WorklistComponent implements OnInit, OnDestroy {
 
     this.worklist
       .getWorklist({
-        // A search deliberately ignores the queue: someone hunting for a patient
-        // does not know which queue their work is in, and "not found" when it is
-        // one tile away is how people lose trust in a search box.
-        queue: this.searchTerm ? null : this.queue,
+        // The selected tile governs the list at all times, search included. A
+        // search that quietly dropped the queue filter returned rows from every
+        // queue while one tile stayed highlighted, so the list disagreed with the
+        // tile above it and the count on that tile described neither. Matches in
+        // other queues are not lost — the counts show where they are, one click
+        // away. A search still reaches past the default date window; that part is
+        // the server's doing and is what makes older work findable.
+        queue: this.queue,
         searchTerm: this.searchTerm || null,
         pageNumber: this.pageNumber,
         pageSize: this.pageSize,
@@ -248,6 +274,11 @@ export class WorklistComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (item.queue === 'to-receive') {
+      this.markReceived(item);
+      return;
+    }
+
     if (item.queue === 'to-verify') {
       this.router.navigate(['/work/verify', item.testRegId], {
         queryParams: { testCode: item.testCode },
@@ -338,6 +369,57 @@ export class WorklistComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Outside pickups ─────────────────────────────────────────────────────
+
+  /** Opens the collection-boy picker for a row still waiting to be collected. */
+  assign(item: WorklistItem, event: Event): void {
+    event.stopPropagation();
+    this.assigningItem = item;
+  }
+
+  onAssigned(): void {
+    this.assigningItem = null;
+    this.load();
+  }
+
+  onAssignCancelled(): void {
+    this.assigningItem = null;
+  }
+
+  /**
+   * The lab has the sample in hand. One click, no dialog: the technician is
+   * standing at the bench with the tube, and the row already names the patient
+   * and order. Reloads because every test on the booking moves at once.
+   */
+  markReceived(item: WorklistItem): void {
+    if (this.receivingId !== null) return;
+    this.receivingId = item.testRegId;
+
+    this.sampleCollection.markReceived(item.testRegId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => {
+          this.receivingId = null;
+          this.toastr.success(res?.message || 'Sample received.', 'Received at lab');
+          this.load();
+        },
+        error: err => {
+          this.receivingId = null;
+          this.toastr.error(err?.error?.error || 'Could not record that. Please try again.', 'Not saved');
+        },
+      });
+  }
+
+  /** "Ravi Kumar · collected 2h" — where a pickup stands, for the Results column. */
+  collectionText(item: WorklistItem): string {
+    const who = item.collectionAssignedToName || 'collection boy';
+    if (item.queue === 'to-receive') {
+      const ago = waitingLabel(item.sampleCollectedAt);
+      return `Collected by ${who}${ago ? ' · ' + ago + ' ago' : ''}`;
+    }
+    return item.collectionAssignedTo ? `Outside pickup: ${who}` : 'At the centre';
+  }
+
   /** Opens the recall confirmation for an issued report. */
   recall(item: WorklistItem, event: Event): void {
     event.stopPropagation();
@@ -398,13 +480,36 @@ export class WorklistComponent implements OnInit, OnDestroy {
     return Math.max(0, Math.min(100, Math.round((saved / total) * 100)));
   }
 
+  /** The selected queue's label, for copy that has to name it. */
+  get currentQueueLabel(): string {
+    return WORK_QUEUE_META[this.queue].label;
+  }
+
+  /**
+   * How many rows the current search matched in the queues the user is NOT
+   * looking at. This is what turns an empty result into a signpost: the row they
+   * are hunting for is usually a tile away, not absent.
+   */
+  get matchesInOtherQueues(): number {
+    if (!this.searchTerm) return 0;
+    return (this.page?.counts ?? [])
+      .filter(c => c.queue !== this.queue)
+      .reduce((sum, c) => sum + (c.count ?? 0), 0);
+  }
+
   get emptyTitle(): string {
-    if (this.searchTerm) return 'Nothing matches that search';
+    if (this.searchTerm) return `No match in ${this.currentQueueLabel.toLowerCase()}`;
     return `Nothing in ${WORK_QUEUE_META[this.queue].label.toLowerCase()}`;
   }
 
   get emptyMessage(): string {
     if (this.searchTerm) {
+      const elsewhere = this.matchesInOtherQueues;
+      if (elsewhere > 0) {
+        return elsewhere === 1
+          ? 'One match is in another queue — the tiles above show which one.'
+          : `${elsewhere} matches are in other queues — the tiles above show which ones.`;
+      }
       return 'Try just the first few letters of the patient’s name, or the order number from the sample label.';
     }
     // An empty queue is good news here, so say so. "No records found" reads like

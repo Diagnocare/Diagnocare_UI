@@ -24,12 +24,13 @@ import { SampleRejectionModalComponent } from 'src/app/shared/sample-rejection-m
 import { SampleRejectionService } from 'src/app/services/sampleRejectionServices/sample-rejection.service';
 import { SampleRejectionSummaryDto } from 'src/app/models/sample-rejection/sample-rejection.model';
 import { ReportPrintStatusService } from 'src/app/services/patientTestReportServices/report-print-status.service';
-import { ReportPrintStatusDto } from 'src/app/models/report-print-status/report-print-status.model';
+import { ReportPrintStatusDto, SMART_REPORT_TEST_CODE } from 'src/app/models/report-print-status/report-print-status.model';
 import { RefundModalComponent } from 'src/app/shared/refund-modal/refund-modal.component';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
 import { toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
+import { DecimalOnlyDirective } from 'src/app/shared/directives/decimal-only.directive';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
 import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
@@ -78,7 +79,7 @@ export interface VisitView {
 @Component({
   selector: 'app-patient-test-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent, DecimalOnlyDirective],
   templateUrl: './patient-test-list.component.html',
   styleUrls: ['./patient-test-list.component.css']
 })
@@ -189,17 +190,22 @@ export class PatientTestListComponent implements OnInit {
   rejectionModalTestCode: string = '';
   rejectionModalTestName: string = '';
 
-  // ── Report print status ─────────────────────────────────────────────────
+  // ── Report delivery status (printed / sent on WhatsApp) ─────────────────
   /**
-   * "Has this report been printed?" flag for each test on the open booking, keyed
-   * by test code. Read-only here — the flag is set automatically by the Print
+   * How each report on the open booking has left the lab, keyed by test code —
+   * printed on paper, sent to the patient on WhatsApp, or neither. The Smart
+   * Health Report has its own entry under SMART_REPORT_TEST_CODE.
+   *
+   * The printed flag is read-only here: it is set automatically by the Print
    * button on the generated report itself (a different tab/window), never by
-   * clicking anything in this list. See ReportPrintStatusService.
+   * clicking anything in this list. The WhatsApp flag IS written from this screen,
+   * but only after the operator confirms the message went — see
+   * confirmWhatsAppSent(). See ReportPrintStatusService.
    *
    * Fetched when the detail overlay opens, alongside the run counts and rejection
    * summary, and refreshed when the report screen is closed so a print that just
    * happened in the other tab shows up without reopening the booking. A test code
-   * never printed has no entry here — treated the same as not printed, matching
+   * with neither flag has no entry here — treated the same as "neither", matching
    * how the API omits it too.
    */
   printStatus = new Map<string, ReportPrintStatusDto>();
@@ -372,9 +378,20 @@ export class PatientTestListComponent implements OnInit {
 
   // ── Data loading ───────────────────────────────────────────────────────
 
-  loadPatientTests(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+  /**
+   * Reloads the patient's bookings.
+   *
+   * `silent` refreshes the list in the background without the full-page loading
+   * overlay. Use it whenever an overlay (parameter entry, detail view) is open and
+   * already showing its own spinner — two spinners on screen at once read as a
+   * stuck screen, and the page overlay belongs to the list the operator is not
+   * looking at.
+   */
+  loadPatientTests(silent: boolean = false): void {
+    if (!silent) {
+      this.isLoading = true;
+      this.errorMessage = '';
+    }
 
     this.loadPatientContact();
 
@@ -383,11 +400,13 @@ export class PatientTestListComponent implements OnInit {
         this.allPatientTests = data ?? [];
         this.filterTests();
         this.loadTestNames();
-        this.isLoading = false;
+        if (!silent) this.isLoading = false;
       },
       error: (error: Error) => {
-        this.errorMessage = 'Failed to load patient tests. Please try again.';
-        this.isLoading = false;
+        if (!silent) {
+          this.errorMessage = 'Failed to load patient tests. Please try again.';
+          this.isLoading = false;
+        }
         console.error('Error loading patient tests:', error);
       }
     });
@@ -1225,6 +1244,61 @@ export class PatientTestListComponent implements OnInit {
     return when ? `Printed ${when}${who}` : `Printed${who}`;
   }
 
+  // ── Sent on WhatsApp ───────────────────────────────────────────────────
+  //
+  // Same map, same lazy "no entry means no" rule as the printed flag. These take
+  // a bare test code rather than a testDetail so the Smart Report can use them
+  // too: it has no row in testDetails, only the reserved code INSIGHTS.
+
+  /** True once a WhatsApp send of this report has been confirmed. */
+  isSentOnWhatsApp(testCode: string | null | undefined): boolean {
+    return this.printStatus.get(testCode ?? '')?.sentOnWhatsApp === true;
+  }
+
+  /** True for a test row — the overload the test table reads. */
+  isTestSentOnWhatsApp(detail: testDetail): boolean {
+    return this.isSentOnWhatsApp(detail?.testCode);
+  }
+
+  /** True once the open booking's Smart Health Report has been sent. */
+  get isSmartReportSentOnWhatsApp(): boolean {
+    return this.isSentOnWhatsApp(SMART_REPORT_TEST_CODE);
+  }
+
+  /** Chip label: "Sent on WhatsApp", or "Sent ×3" once it has gone more than once. */
+  whatsAppSentLabel(testCode: string | null | undefined): string {
+    const entry = this.printStatus.get(testCode ?? '');
+    if (!entry?.sentOnWhatsApp) return 'Not sent';
+    return entry.whatsAppSentCount > 1
+      ? `Sent on WhatsApp ×${entry.whatsAppSentCount}`
+      : 'Sent on WhatsApp';
+  }
+
+  whatsAppSentTooltip(testCode: string | null | undefined): string {
+    const entry = this.printStatus.get(testCode ?? '');
+    if (!entry?.sentOnWhatsApp) {
+      return 'Not sent on WhatsApp yet — recorded when you confirm the message went';
+    }
+
+    const when   = entry.whatsAppSentAt ? new Date(entry.whatsAppSentAt).toLocaleString() : '';
+    const number = this.formatWhatsAppNumber(entry.whatsAppSentTo);
+    const again  = entry.whatsAppSentCount > 1 ? ` (${entry.whatsAppSentCount} times in all)` : '';
+
+    const parts = ['Sent on WhatsApp'];
+    if (number) parts.push(`to ${number}`);
+    if (when)   parts.push(when);
+    return parts.join(' ') + again;
+  }
+
+  /** The chip the test table and report screen read for a test row. */
+  testWhatsAppSentLabel(detail: testDetail): string {
+    return this.whatsAppSentLabel(detail?.testCode);
+  }
+
+  testWhatsAppSentTooltip(detail: testDetail): string {
+    return this.whatsAppSentTooltip(detail?.testCode);
+  }
+
   /**
    * Re-reads the printed flag for the open booking.
    *
@@ -1373,6 +1447,28 @@ export class PatientTestListComponent implements OnInit {
 
   saveTestReport(): void {
     if (!this.selectedTestDetail) return;
+    if (this.testParameters.length === 0) {
+      this.toastr.warning('There is nothing to save for this test.', 'No parameters');
+      return;
+    }
+
+    // The input directive blocks bad characters as they are typed, but a value
+    // can still arrive past it — autofill, a browser extension, an older row
+    // loaded from the database, or the directive being switched off because the
+    // parameter looked qualitative at the time. The save is the last point at
+    // which a non-number can be kept out of a report, so it is checked here too
+    // rather than trusted to the field.
+    const invalid = this.invalidResultParams;
+    if (invalid.length > 0) {
+      const names = invalid.map(p => p.parameterName).join(', ');
+      const reason = invalid.length === 1
+        ? `${names} must be a number — nothing was saved.`
+        : `These must be numbers: ${names}. Nothing was saved.`;
+      this.parameterErrorMessage = reason;
+      this.toastr.error(reason, 'Check the results');
+      return;
+    }
+
     this.isLoadingParameters = true;
     this.parameterErrorMessage = '';
 
@@ -1410,12 +1506,39 @@ export class PatientTestListComponent implements OnInit {
       : of(null);
 
     forkJoin([insert$, update$]).subscribe({
-      next: () => {
-        this.loadPatientTests();
-        // Re-read from the server so savedResults (and reportId) reflect what was
-        // actually persisted — this is what unlocks the View / PDF buttons.
-        this.loadTestParameters();
+      next: ([, updateResult]: [any, any]) => {
+        // The Update endpoint answers HTTP 200 even when it did not apply the
+        // change (OperationResult.success === false — e.g. no matching row). A 200
+        // is therefore not on its own proof of a save, and ErrorInterceptor only
+        // toasts HTTP failures, so this one is ours to catch.
+        if (toUpdate.length > 0 && updateResult && updateResult.success === false) {
+          this.isLoadingParameters = false;
+          const reason = updateResult.message || 'Results could not be saved.';
+          this.parameterErrorMessage = reason;
+          this.toastr.error(reason, 'Not saved');
+          return;
+        }
+
+        const saved = toInsert.length + toUpdate.length;
+        this.isLoadingParameters = false;
+        this.toastr.success(
+          saved === 1 ? 'Result saved.' : `${saved} results saved.`,
+          'Saved'
+        );
+
+        // Background refresh: nothing of the full-page loading overlay here — the
+        // operator is being returned to the visit screen, not made to watch it load.
+        this.loadPatientTests(true);
+
+        // Entry is done, so close the overlay. No loadTestParameters() is needed:
+        // closeParameterView() drops the in-memory parameters and refreshes the
+        // per-test result counts, and re-opening the overlay re-reads everything
+        // (including each row's reportId) from the server — which is what keeps a
+        // second save an UPDATE rather than a duplicate INSERT.
+        this.closeParameterView();
       },
+      // HTTP failures (4xx/5xx/network) are already toasted by ErrorInterceptor,
+      // so only the inline message inside the overlay is set here.
       error: (err) => {
         this.isLoadingParameters = false;
         this.parameterErrorMessage = 'Failed to save test report.';
@@ -1472,8 +1595,20 @@ export class PatientTestListComponent implements OnInit {
   }
 
   /**
-   * Downloads the current report as a real, full-A4 PDF (rendered server-side).
-   * Requests the file as a Blob from the backend and saves it via an anchor click.
+   * PDF button.
+   *
+   * The backend's `format=pdf` does NOT return PDF bytes for template reports: the
+   * hosting plan forbids a headless browser, so it returns a clean A4 HTML page that
+   * opens the browser's print dialog on load ("Save as PDF" from there). Saving that
+   * HTML under a `.pdf` name is what produced "Failed to load PDF document".
+   *
+   * So the response is inspected:
+   *   • application/pdf (QuestPDF fallback, no template) → downloaded as a real .pdf
+   *   • anything else (the print-ready HTML)             → opened in a new tab, where
+   *     the print dialog appears and the operator picks "Save as PDF".
+   *
+   * The tab is opened synchronously inside the click handler (before the request) so
+   * pop-up blockers treat it as user-initiated; it is pointed at the report once ready.
    */
   downloadReportPdf(): void {
     if (!this.selectedPatientTest || !this.selectedTestDetail) return;
@@ -1484,6 +1619,14 @@ export class PatientTestListComponent implements OnInit {
     this.isDownloadingPdf = true;
     this.errorMessage = '';
 
+    const tab = window.open('', '_blank');
+    if (tab) {
+      tab.document.title = 'Preparing report…';
+      tab.document.body.innerHTML =
+        '<p style="font:15px system-ui,sans-serif;color:#475569;text-align:center;margin-top:20vh">' +
+        'Preparing your report…</p>';
+    }
+
     this.testReportGenerationService
       .downloadTestReport(patientTestId, testCode, this.pathBranch || undefined)
       .subscribe({
@@ -1491,25 +1634,44 @@ export class PatientTestListComponent implements OnInit {
           this.isDownloadingPdf = false;
 
           if (!blob || blob.size === 0) {
+            tab?.close();
             this.toastr.warning('Report generated but no file was returned.', 'Warning');
             return;
           }
 
-          const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
-          const filename = `${safeName}_${testCode}.pdf`;
+          // ── Real PDF (QuestPDF fallback) → save to disk ────────────────────
+          if ((blob.type || '').toLowerCase().includes('application/pdf')) {
+            tab?.close();
+            const safeName = (this.patientName || 'Report').replace(/\s+/g, '_');
+            const url    = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href     = url;
+            anchor.download = `${safeName}_${testCode}.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            return;
+          }
 
-          const url    = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href     = url;
-          anchor.download = filename;
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          // ── Print-ready HTML → open it; its print dialog offers "Save as PDF" ─
+          const htmlBlob = new Blob([blob], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(htmlBlob);
+          if (tab && !tab.closed) {
+            tab.location.href = url;
+            tab.focus();
+          } else if (!window.open(url, '_blank')) {
+            this.toastr.warning(
+              'Pop-up was blocked. Please allow pop-ups for this site to save the report as PDF.',
+              'Pop-up blocked'
+            );
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
         },
         error: (err: unknown) => {
+          tab?.close();
           this.isDownloadingPdf = false;
-          this.errorMessage = 'Failed to download PDF. Please try again.';
+          this.errorMessage = 'Failed to prepare the PDF. Please try again.';
           console.error('downloadReportPdf error:', err);
         }
       });
@@ -1545,6 +1707,29 @@ export class PatientTestListComponent implements OnInit {
   whatsAppNumberError = '';
   /** Booking whose WhatsApp choice is being saved or sent (dialog spinner). */
   savingWhatsAppPrefFor: patientTest['patient_Test_Id'] | null = null;
+
+  /**
+   * The report handed off to WhatsApp and waiting to be confirmed, or null.
+   *
+   * wa.me opens the patient's chat with the message already typed and a human
+   * presses send there — on another origin, which tells this app nothing. So the
+   * handoff is NOT a send: the dialog switches to this step instead and records
+   * the status only if the operator says the message went. Closing the dialog,
+   * clicking the backdrop or answering "Not sent" all leave the report unsent,
+   * which is the honest answer when nobody can say otherwise.
+   */
+  whatsAppSentConfirm: {
+    patientTestId: number;
+    /** Report key: a lab test code, or SMART_REPORT_TEST_CODE for the Smart Report. */
+    testCode: string;
+    /** What to call the report in the dialog and the toast. */
+    label: string;
+    /** Number the chat was opened for, "919876543210". */
+    phone: string;
+  } | null = null;
+
+  /** True while the confirmed send is being recorded. */
+  markingWhatsAppSent = false;
 
   /** Number a booking's report goes to, ready for wa.me ("919876543210"), or null. */
   bookingWhatsAppNumber(test: patientTest | null | undefined): string | null {
@@ -1582,6 +1767,43 @@ export class PatientTestListComponent implements OnInit {
       : this.reportStatus(test) !== 'Pending';
   }
 
+  /**
+   * Something the dialog started is still running: saving the number, or issuing
+   * the report link.
+   *
+   * The dialog used to close the moment the number was saved, so only the save
+   * could be in flight. It now stays open through the link call as well (it has
+   * to ask about the send afterwards), which would otherwise leave Send clickable
+   * a second time and open a second WhatsApp tab.
+   */
+  get whatsAppDialogBusy(): boolean {
+    const id = this.whatsAppDialogFor?.patient_Test_Id;
+    if (id == null) return false;
+    return this.savingWhatsAppPrefFor === id
+        || this.sendingSmartWhatsAppFor === id
+        || this.isSendingWhatsApp;
+  }
+
+  /** The report this dialog would send has already gone out at least once. */
+  get whatsAppDialogSentAlready(): boolean {
+    return this.isSentOnWhatsApp(this.whatsAppDialogTestCode);
+  }
+
+  /** "Sent on WhatsApp to +91 … <when>" for the report this dialog would send. */
+  get whatsAppDialogSentTooltip(): string {
+    return this.whatsAppSentTooltip(this.whatsAppDialogTestCode);
+  }
+
+  /**
+   * Which report's status the open dialog is about: the test on the report
+   * screen, or the booking's Smart Report under its reserved code.
+   */
+  private get whatsAppDialogTestCode(): string {
+    return this.whatsAppDialogMode === 'test'
+      ? (this.selectedTestDetail?.testCode ?? '')
+      : SMART_REPORT_TEST_CODE;
+  }
+
   /** The number typed in the dialog is the patient's own mobile. */
   get whatsAppDialogIsPatientNumber(): boolean {
     const typed = toWhatsAppNumber(`${this.whatsAppNumberInput ?? ''}`);
@@ -1605,9 +1827,13 @@ export class PatientTestListComponent implements OnInit {
   }
 
   closeWhatsAppDialog(): void {
-    this.whatsAppDialogFor   = null;
-    this.whatsAppNumberInput = '';
-    this.whatsAppNumberError = '';
+    this.whatsAppDialogFor     = null;
+    this.whatsAppNumberInput   = '';
+    this.whatsAppNumberError   = '';
+    // Dropping a pending confirmation records nothing, deliberately: an operator
+    // who walks away from the question has not told us the message went.
+    this.whatsAppSentConfirm   = null;
+    this.markingWhatsAppSent   = false;
   }
 
   usePatientNumberInDialog(): void {
@@ -1693,6 +1919,11 @@ export class PatientTestListComponent implements OnInit {
    * The WhatsApp tab is opened synchronously inside the click, before any API call,
    * so pop-up blockers allow it; it is pointed at the chat once the link arrives, or
    * closed if anything fails.
+   *
+   * The dialog is left open through all of this. Once the chat has actually been
+   * opened it turns into the "did it go?" step (see whatsAppSentConfirm) — the only
+   * route to recording the report as sent. Every failure below closes it instead,
+   * so nothing is recorded for a send that never happened.
    */
   sendFromWhatsAppDialog(): void {
     const test  = this.whatsAppDialogFor;
@@ -1716,7 +1947,6 @@ export class PatientTestListComponent implements OnInit {
       next: () => {
         this.savingWhatsAppPrefFor = null;
         this.applyWhatsAppChoice(test, true, typed);
-        this.closeWhatsAppDialog();
         if (mode === 'test') {
           this.sendTestReportLink(phone, waWindow);
         } else {
@@ -1729,6 +1959,78 @@ export class PatientTestListComponent implements OnInit {
         this.whatsAppNumberError = err?.error?.message || 'Could not save the WhatsApp number.';
       },
     });
+  }
+
+  // ── Confirming the send ────────────────────────────────────────────────
+  //
+  // Everything above ends at "the chat is open with the message typed". Whether
+  // the operator then pressed send happens inside WhatsApp, which reports nothing
+  // back, so the app asks. Only confirmWhatsAppSent() writes the status.
+
+  /**
+   * The chat is open: switch the dialog to the confirmation step.
+   *
+   * Called only from the success path of the two link senders, after the tab has
+   * been pointed at wa.me. If the operator closed the dialog while the link was
+   * being issued, the question is dropped rather than re-opened over whatever
+   * they moved on to.
+   */
+  private armWhatsAppSentConfirm(patientTestId: number, testCode: string, label: string, phone: string): void {
+    if (!this.whatsAppDialogFor) return;
+
+    this.whatsAppSentConfirm = { patientTestId, testCode, label, phone };
+    this.whatsAppNumberError = '';
+  }
+
+  /** The operator says the message went: record it, and show it immediately. */
+  confirmWhatsAppSent(): void {
+    const pending = this.whatsAppSentConfirm;
+    if (!pending || this.markingWhatsAppSent) return;
+
+    this.markingWhatsAppSent = true;
+    this.reportPrintStatusService.markSentOnWhatsApp({
+      testRegId:      pending.patientTestId,
+      testCode:       pending.testCode,
+      whatsAppNumber: pending.phone,
+    }).subscribe({
+      next: (status: ReportPrintStatusDto) => {
+        this.markingWhatsAppSent = false;
+
+        // Straight into the map the chips read, so the badge appears without a
+        // reload. The row is also persisted, so it survives a refresh.
+        if (status) {
+          this.printStatus.set(status.testCode, status);
+          // The API upper-cases the code; if the catalogue stores it differently
+          // the chips look it up under the original, so key it both ways.
+          if (status.testCode !== pending.testCode) {
+            this.printStatus.set(pending.testCode, status);
+          }
+        }
+
+        const repeat = (status?.whatsAppSentCount ?? 1) > 1 ? ' again' : '';
+        this.closeWhatsAppDialog();
+        this.toastr.success(
+          `${pending.label} marked as sent on WhatsApp${repeat} to ${this.formatWhatsAppNumber(pending.phone)}.`,
+          'Sent on WhatsApp');
+      },
+      error: (err: any) => {
+        this.markingWhatsAppSent = false;
+        // The message did go — only the bookkeeping failed, so the dialog stays
+        // on the question and the operator can answer again.
+        this.whatsAppNumberError =
+          err?.error?.error || err?.error?.message ||
+          'The report was sent, but recording it failed. Please try again.';
+      },
+    });
+  }
+
+  /**
+   * The operator says it did not go. Nothing is written — "not sent" is the
+   * absence of a record, so there is no request to make.
+   */
+  dismissWhatsAppSent(): void {
+    if (this.markingWhatsAppSent) return;
+    this.closeWhatsAppDialog();
   }
 
   /**
@@ -1747,6 +2049,7 @@ export class PatientTestListComponent implements OnInit {
 
           if (!link?.url) {
             waWindow.close();
+            this.closeWhatsAppDialog();
             this.toastr.error('The health report link could not be created.', 'WhatsApp');
             return;
           }
@@ -1763,10 +2066,17 @@ export class PatientTestListComponent implements OnInit {
                          + `Thank you.`;
 
           waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+          // Handed off — now ask whether it actually went. The Smart Report is
+          // per booking, so its status row uses the reserved code its share link
+          // already keys on rather than any one test code.
+          this.armWhatsAppSentConfirm(
+            Number(test.patient_Test_Id), SMART_REPORT_TEST_CODE, 'Health Insights report', phone);
         },
         error: (err: any) => {
           this.sendingSmartWhatsAppFor = null;
           waWindow.close();
+          this.closeWhatsAppDialog();
           this.toastr.error(err?.error?.error || 'The health report link could not be created. Please try again.',
             'WhatsApp');
           console.error('sendSmartReportLink error:', err);
@@ -1781,6 +2091,7 @@ export class PatientTestListComponent implements OnInit {
   private sendTestReportLink(phone: string, waWindow: Window): void {
     if (!this.selectedPatientTest || !this.selectedTestDetail) {
       waWindow.close();
+      this.closeWhatsAppDialog();
       return;
     }
 
@@ -1798,6 +2109,7 @@ export class PatientTestListComponent implements OnInit {
 
           if (!link?.url) {
             waWindow.close();
+            this.closeWhatsAppDialog();
             this.toastr.error('The report link could not be created.', 'WhatsApp');
             return;
           }
@@ -1810,15 +2122,109 @@ export class PatientTestListComponent implements OnInit {
                          + `Thank you.`;
 
           waWindow.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+          // Handed off — now ask whether it actually went.
+          this.armWhatsAppSentConfirm(patientTestId, testCode, `${testName} report`, phone);
         },
         error: (err: any) => {
           this.isSendingWhatsApp = false;
           waWindow.close();
+          this.closeWhatsAppDialog();
           this.toastr.error(err?.error?.error || 'The report link could not be created. Please try again.',
             'WhatsApp');
           console.error('sendTestReportLink error:', err);
         }
       });
+  }
+
+  // ── Result validation ──────────────────────────────────────────────────────
+  //
+  // A parameter carries no data type: the `type` field on testParameter is a
+  // CRUD flag ('Add' | 'Modified' | 'Delete') consumed by the parameter-editing
+  // endpoint, and the API dropped its own Type column (migration
+  // RemoveTypeFromTestPamater). So whether a result is a number has to be read
+  // off what the parameter master does carry — its unit and its reference range.
+  //
+  // The rule is deliberately one-sided. A parameter is treated as numeric only
+  // on positive evidence; anything unrecognised stays free text. Letting a
+  // stray number through on a qualitative parameter is a cosmetic problem,
+  // whereas refusing "Positive" on a serology parameter stops the lab working.
+
+  /** "1.4-50", "80000-140000", "13.5 – 17.5", or a single "5". */
+  private static readonly NUMERIC_RANGE_RE =
+    /^\s*-?\d+(?:\.\d+)?\s*(?:[-–—]\s*-?\d+(?:\.\d+)?\s*)?$/;
+
+  /** "< 200", "<=5", "≥ 40" — a bound rather than a span, still numeric. */
+  private static readonly COMPARISON_RANGE_RE =
+    /^\s*(?:<|>|≤|≥|<=|>=)\s*-?\d+(?:\.\d+)?\s*$/;
+
+  /** A complete decimal number — what a numeric result must look like. */
+  private static readonly DECIMAL_RE = /^-?\d+(?:\.\d+)?$/;
+
+  /**
+   * Whether this parameter's result must be a number.
+   *
+   * True when the parameter master gives either signal:
+   *   • a unit  — "g/L", "cells/mcL"; qualitative parameters do not carry one
+   *   • a numeric reference range — "80000-140000", "< 200"
+   *
+   * False for "Positive / Negative", "Clear", blood group, and for any
+   * parameter configured with neither, where the safe answer is free text.
+   */
+  isNumericParam(param: testParameter): boolean {
+    if ((param?.parameterUnit ?? '').toString().trim()) return true;
+
+    const range = (param?.parameterRange ?? '').toString().trim();
+    if (!range) return false;
+
+    return PatientTestListComponent.NUMERIC_RANGE_RE.test(range)
+        || PatientTestListComponent.COMPARISON_RANGE_RE.test(range);
+  }
+
+  /**
+   * Why this row's typed value cannot be saved — '' when it is fine.
+   *
+   * An empty field is not an error here: "not entered yet" is already carried
+   * by savedResultCount and the report lock, and flagging every blank row red
+   * the moment the screen opens would be noise.
+   */
+  resultError(param: testParameter): string {
+    if (!this.isNumericParam(param)) return '';
+
+    const raw = (param?.resultValue ?? '').toString().trim();
+    if (raw === '') return '';
+
+    if (!PatientTestListComponent.DECIMAL_RE.test(raw)) {
+      return 'Numbers only — this parameter is measured in '
+           + ((param.parameterUnit ?? '').toString().trim() || 'a numeric range') + '.';
+    }
+    return '';
+  }
+
+  /** Rows currently holding a value that cannot be saved. */
+  get invalidResultParams(): testParameter[] {
+    return this.testParameters.filter(p => this.resultError(p) !== '');
+  }
+
+  /** Blocks the Save button while any typed result is not a number. */
+  get hasInvalidResults(): boolean {
+    return this.invalidResultParams.length > 0;
+  }
+
+  /** Numeric "low-high" normal range → flag for an out-of-range result, else ''. */
+  resultFlag(param: testParameter): 'H' | 'L' | '' {
+    const m = /^\s*(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(param?.parameterRange ?? '');
+    const raw = (param?.resultValue ?? '').toString().trim();
+    if (!m || raw === '' || isNaN(Number(raw))) return '';
+    const v = Number(raw), lo = Number(m[1]), hi = Number(m[2]);
+    if (v > hi) return 'H';
+    if (v < lo) return 'L';
+    return '';
+  }
+
+  /** Parameters whose result has been saved to the server. */
+  get savedResultCount(): number {
+    return this.testParameters.length - this.missingResultCount;
   }
 
   /**

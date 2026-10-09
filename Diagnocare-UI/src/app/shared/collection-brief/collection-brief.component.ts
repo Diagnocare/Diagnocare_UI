@@ -140,6 +140,17 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
     return (this.testRegId ?? 0) > 0;
   }
 
+  /**
+   * Whether any test was named at all.
+   *
+   * When nothing was, the protocol section is left out entirely rather than showing its
+   * "no protocol is recorded" state — nobody asked about a protocol, so saying none exists
+   * would be inventing an answer. The tube summary still stands on its own.
+   */
+  get hasCodes(): boolean {
+    return this.codes.length > 0;
+  }
+
   ngOnChanges(_changes: SimpleChanges): void {
     this.loadIfNeeded();
   }

@@ -1,0 +1,107 @@
+<div class="page-container my-pickups">
+
+  <div class="page-header">
+    <div class="header-left">
+      <h2><i class="fa fa-motorcycle" aria-hidden="true"></i> My Pickups</h2>
+      <p class="subtitle">
+        {{ openCount }} {{ openCount === 1 ? 'sample' : 'samples' }} still with you or waiting to be collected
+      </p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="dc-btn dc-btn--search" (click)="load()" [disabled]="isLoading">
+        <i class="fa" [ngClass]="isLoading ? 'fa-spinner fa-spin' : 'fa-refresh'" aria-hidden="true"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="content-container">
+
+    <div class="mp-state" *ngIf="isLoading && pickups.length === 0">
+      <i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading your pickups…
+    </div>
+
+    <div class="alert alert-danger" *ngIf="errorMessage && !isLoading">
+      <p>{{ errorMessage }}</p>
+      <button type="button" class="dc-btn dc-btn--search" (click)="load()">Try again</button>
+    </div>
+
+    <div class="mp-state mp-state--ok" *ngIf="!isLoading && !errorMessage && pickups.length === 0">
+      <i class="fa fa-check-circle" aria-hidden="true"></i>
+      <strong>No pickups right now.</strong>
+      <span>New ones appear here (and in your notifications) as soon as the lab assigns them.</span>
+    </div>
+
+    <ng-container *ngFor="let g of groups">
+      <section class="mp-group" *ngIf="g.items.length > 0" [ngClass]="'mp-group--' + g.stage">
+        <header class="mp-group__head">
+          <h3><i class="fa" [ngClass]="g.icon" aria-hidden="true"></i> {{ g.title }} <span class="mp-count">{{ g.items.length }}</span></h3>
+          <p>{{ g.hint }}</p>
+        </header>
+
+        <div class="mp-grid">
+          <article class="mp-card" *ngFor="let p of g.items; trackBy: trackById" [class.mp-card--urgent]="p.urgent">
+            <div class="mp-card__top">
+              <div>
+                <h4>{{ p.patientName }}</h4>
+                <span class="mp-sub">{{ p.patientAge }} / {{ p.patientGender }} · {{ p.patientId }} · order {{ p.testRegId }}</span>
+              </div>
+              <span class="mp-badge mp-badge--urgent" *ngIf="p.urgent"><i class="fa fa-bolt" aria-hidden="true"></i> Urgent</span>
+            </div>
+
+            <ul class="mp-tests" aria-label="Tests">
+              <li *ngFor="let t of p.testNames">{{ t }}</li>
+            </ul>
+
+            <div class="mp-where" *ngIf="p.patientAddress || p.area">
+              <i class="fa fa-map-marker-alt" aria-hidden="true"></i>
+              <span>{{ p.patientAddress }}<ng-container *ngIf="p.patientAddress && p.area">, </ng-container>{{ p.area }}</span>
+            </div>
+            <p class="mp-remark" *ngIf="p.remark"><i class="fa fa-sticky-note" aria-hidden="true"></i> {{ p.remark }}</p>
+
+            <!-- ── What to collect ──────────────────────────────────────────────
+                 The card names the tests; this says what to actually draw — how
+                 many tubes, which container, whether the patient had to fast,
+                 and the full protocol behind each test.
+
+                 Closed by default: a collector working down a round of pickups
+                 does not want a protocol block on every card, and the one who
+                 needs it is one tap away without leaving the list. Dropped on
+                 cards at every stage, including handed over, because "what was
+                 in that tube?" is asked after the fact as often as before. -->
+            <div class="mp-brief">
+              <app-collection-brief
+                [testRegId]="p.testRegId"
+                [testCodes]="codesFor(p)"
+                [collapsible]="true">
+              </app-collection-brief>
+            </div>
+
+            <div class="mp-meta">
+              <span *ngIf="p.stage === 'to-collect'">Assigned {{ waitingLabel(p.assignedAt || p.bookedAt) }} ago</span>
+              <span *ngIf="p.stage === 'to-hand-over'">Collected {{ waitingLabel(p.collectedAt) }} ago</span>
+              <span *ngIf="p.stage === 'handed-over'">Received {{ waitingLabel(p.receivedAt) }} ago<ng-container *ngIf="p.receivedBy"> by {{ p.receivedBy }}</ng-container></span>
+            </div>
+
+            <div class="mp-actions" *ngIf="p.stage !== 'handed-over'">
+              <a class="dc-btn dc-btn--cancel mp-btn" *ngIf="telHref(p) as tel" [href]="tel">
+                <i class="fa fa-phone" aria-hidden="true"></i> Call
+              </a>
+              <a class="dc-btn dc-btn--cancel mp-btn" *ngIf="mapHref(p) as map" [href]="map" target="_blank" rel="noopener">
+                <i class="fa fa-directions" aria-hidden="true"></i> Directions
+              </a>
+              <button type="button" class="dc-btn dc-btn--save mp-btn mp-btn--primary" *ngIf="p.stage === 'to-collect'"
+                      [disabled]="collectingId === p.testRegId" (click)="markCollected(p)">
+                <i class="fa" [ngClass]="collectingId === p.testRegId ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
+                Mark collected
+              </button>
+              <span class="mp-status" *ngIf="p.stage === 'to-hand-over'">
+                <i class="fa fa-hourglass-half" aria-hidden="true"></i> Waiting for the lab to receive it
+              </span>
+            </div>
+          </article>
+        </div>
+      </section>
+    </ng-container>
+  </div>
+</div>
