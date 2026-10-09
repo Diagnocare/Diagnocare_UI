@@ -18,23 +18,71 @@
 /* ── The toggle ───────────────────────────────────────────────────────────── */
 
 /*
- * Quiet on purpose. The row's primary action is "Mark sample collected"; this must not
- * compete with it, and a tired thumb must never hit it by accident on the way there.
- * .link-btn carries the global link-button look; only the layout is local.
+ * Quiet on purpose. The card's primary action is "Mark collected"; this must not compete
+ * with it, and a tired thumb must never hit it by accident on the way there.
+ *
+ * Styled in full here, assuming nothing. An earlier version put `.link-btn` on the button
+ * and relied on a global definition of it — there is no global `.link-btn`. The class is
+ * declared locally in four component stylesheets (`worklist`, `test-reminders`,
+ * `discount-approvals` and this one), and Angular's emulated encapsulation keeps each of
+ * those inside its own component, so on a My Pickups card and in the mark-collected dialog
+ * this button fell back to the browser's default chrome: a grey bordered box in the system
+ * font at the system size. That is what made it look pasted on instead of part of the card.
+ * The worklist's own toggle is a different button in the worklist's own template, which is
+ * why only these two places looked wrong.
  */
 .cb-toggle {
-  display: inline-flex;
+  /* A row, not an inline link: full width so the hit area spans the card and the label
+     cannot end up floating beside the chevron on a narrow phone. */
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.15rem 0;
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+  /* Flush left, so it lines up with .mp-where and .mp-remark above it rather than sitting
+     indented by button padding. Height, not a bare 13px link: My Pickups is used
+     one-handed standing at a door, and the cards' own rule for that is .mp-btn's 2.6rem. */
+  min-height: 2.25rem;
+  padding: 0.35rem 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-size: var(--dc-text-meta, 0.8125rem);
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.3;
+  text-align: left;
+  color: var(--dc-link, #1e5ba8);
+  cursor: pointer;
 }
 
-.cb-toggle .fa-chevron-right,
-.cb-toggle .fa-chevron-down {
+.cb-toggle:hover .cb-toggle__label { text-decoration: underline; }
+
+.cb-toggle:focus-visible {
+  outline: 3px solid var(--dc-focus-color, #1e5ba8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Fixed width so the label starts at the same x whether the chevron points right or down —
+   otherwise the text shifts by a pixel or two on every toggle, which reads as a jump. */
+.cb-toggle__chevron {
+  flex: 0 0 0.7rem;
+  width: 0.7rem;
+  text-align: center;
   font-size: var(--dc-text-micro, 0.75rem);
+}
+
+/* Same width as the icons in the card's other rows, so the column of glyphs lines up. */
+.cb-toggle__icon {
+  flex: 0 0 1rem;
+  width: 1rem;
+  text-align: center;
+}
+
+/* Takes the remaining width, so a long label wraps instead of widening the row. */
+.cb-toggle__label {
+  flex: 1 1 auto;
+  white-space: normal;
 }
 
 /* ── Body ─────────────────────────────────────────────────────────────────── */
@@ -84,6 +132,27 @@
   border-color: var(--dc-danger-line, #fecaca);
   background: var(--dc-danger-wash, #fef2f2);
   color: var(--dc-danger-ink, #b91c1c);
+}
+
+/* Spelled out for the same reason as .cb-toggle: `.link-btn` is not global, so this used
+   to render as a default grey button inside the red error strip. It inherits the strip's
+   colour instead, which is what a link inside a coloured callout should do. */
+.cb-retry {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cb-retry:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* ── Alert strips ──────────────────────────────────────────────────────────
