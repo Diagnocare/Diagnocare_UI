@@ -1746,7 +1746,13 @@ input.ng-invalid.ng-touched {
 
 .pagination-info {
   font-size: 0.875em;
-  color: var(--text-secondary);
+  /* The pagination row is a sibling of the table card, so it sits directly on
+     the page's gradient — not on a white surface. --text-secondary is a mid
+     grey meant for use on a card and is close to unreadable there. Every screen
+     that paginates (patients-list, worklist) places it the same way, so this
+     belongs here rather than in either component. */
+  color: var(--text-light);
+  opacity: 0.85;
 }
 
 /* ── Grid helpers ─────────────────────────────────────────────────────────── */
@@ -2407,11 +2413,16 @@ td .action-buttons,
 
   /* The date range: From and To stack, with the arrow between them hidden —
      it means nothing once they are one above the other. */
+  /* !important because each screen's own .date-inputs rule is scoped by
+     Angular (an extra attribute selector) and loads after this file, so its
+     align-items: center otherwise wins and shrinks both pickers to their
+     content width in the middle of the row. */
   .date-inputs {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: column !important;
+    align-items: stretch !important;
     gap: 0.5em;
   }
+  .date-inputs > app-date-picker { width: 100%; }
   /* Two selectors deep, to beat the per-screen rule that sets it to flex. */
   .date-inputs .date-sep,
   .date-range .date-sep {
@@ -2836,7 +2847,7 @@ html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-bt
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --dc-page-max:    120rem;   /* 1920px */
+  --dc-page-max:    160rem;   /* 2560px — see "Using big screens" below */
   --dc-page-gutter: 2.5em;    /* matches .content-container's padding here */
 }
 
@@ -2881,4 +2892,28 @@ html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-bt
   .page-header {
     padding-inline: 0.75em;
   }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   USING BIG SCREENS
+   ──────────────────────────────────────────────────────────────────────────────
+   At 120rem the column stopped at 1920px, so a 2560px (QHD) monitor showed a
+   quarter of the window as empty gutter on either side, and everything inside
+   it was still drawn at laptop size. Two changes, both above 1920px only:
+
+   1. The cap moves to 160rem (set on :root above), so QHD screens are used
+      edge to edge and only ultra-wide / 4K monitors get centred gutters.
+   2. The root font size grows a step at 1920px and again at 2560px. Almost
+      every size in the app is in rem/em, so text, controls, tables, the header
+      and spacing all scale together instead of floating small in a big window.
+      Media queries are measured against the browser default (16px), not the
+      root size, so no breakpoint moves because of this.
+   Laptops, tablets and phones (≤ 1920px) are untouched.
+   ══════════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 120.0625em) {
+  html { font-size: 106.25%; }   /* 17px */
+}
+@media (min-width: 160em) {
+  html { font-size: 112.5%; }    /* 18px */
 }

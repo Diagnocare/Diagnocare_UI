@@ -415,6 +415,15 @@
                       <i class="fa" [ngClass]="isPrinted(detail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
                       {{ isPrinted(detail) ? 'Printed' : 'Not printed' }}
                     </span>
+                    <!-- Only shown once the report HAS gone: a chip on every
+                         unsent report would be noise on a list where most
+                         reports are collected in person. -->
+                    <span class="print-status-chip wa-sent-chip"
+                          *ngIf="isTestSentOnWhatsApp(detail)"
+                          [title]="testWhatsAppSentTooltip(detail)">
+                      <i class="fa fa-whatsapp"></i>
+                      {{ testWhatsAppSentLabel(detail) }}
+                    </span>
                   </div>
                 </td>
 
@@ -512,6 +521,15 @@
                 Smart Report
               </button>
               <ng-container *ngTemplateOutlet="whatsAppButton; context: { $implicit: selectedPatientTest }"></ng-container>
+
+              <!-- The visit's WhatsApp button sends the Smart Report, so its sent
+                   state belongs here rather than on any one test row. -->
+              <span class="print-status-chip wa-sent-chip"
+                    *ngIf="isSmartReportSentOnWhatsApp"
+                    [title]="whatsAppSentTooltip('INSIGHTS')">
+                <i class="fa fa-whatsapp"></i>
+                {{ whatsAppSentLabel('INSIGHTS') }}
+              </span>
             </div>
           </div>
 
@@ -586,10 +604,56 @@
   <div class="detail-overlay-backdrop" (click)="closeWhatsAppDialog()"></div>
   <div class="ptl-wa-dialog" role="dialog" aria-modal="true" aria-labelledby="ptl-wa-h">
     <h3 id="ptl-wa-h"><i class="fa fa-whatsapp" aria-hidden="true"></i> Report on WhatsApp</h3>
+
+    <!-- ══ Step 2: did it actually go? ═══════════════════════════════════
+         WhatsApp opened in another tab and tells this app nothing about what
+         happened there, so the only way to know is to ask. "Yes, sent" is the
+         one path that records the report as sent — every other way out of this
+         dialog, including closing it, leaves the report unsent. -->
+    <ng-container *ngIf="whatsAppSentConfirm as pending">
+      <p class="ptl-wa-confirm__lead">
+        <i class="fa fa-external-link" aria-hidden="true"></i>
+        WhatsApp is open for <strong>{{ formatWhatsAppNumber(pending.phone) }}</strong>
+        with the {{ pending.label }} link already written.
+      </p>
+      <p class="ptl-wa-confirm__ask">Did you send the message?</p>
+      <p class="ptl-wa-hint">
+        Answer once you have pressed send in WhatsApp. This only records what happened —
+        it sends nothing itself, and nothing is recorded unless you say the message went.
+      </p>
+
+      <div class="ptl-wa-error" *ngIf="whatsAppNumberError">{{ whatsAppNumberError }}</div>
+
+      <div class="ptl-wa-actions">
+        <button type="button" class="dc-btn dc-btn--cancel"
+                [disabled]="markingWhatsAppSent"
+                title="Nothing is recorded — the report stays unsent"
+                (click)="dismissWhatsAppSent()">
+          Not sent
+        </button>
+        <button type="button" class="dc-btn dc-btn--save"
+                [disabled]="markingWhatsAppSent"
+                title="Record this report as sent on WhatsApp"
+                (click)="confirmWhatsAppSent()">
+          <i class="fa" [ngClass]="markingWhatsAppSent ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ markingWhatsAppSent ? 'Recording…' : 'Yes, sent' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ══ Step 1: the number, then send or save ════════════════════════ -->
+    <ng-container *ngIf="!whatsAppSentConfirm">
     <p>
       Order {{ waTest.patient_Test_Id }}<span *ngIf="whatsAppDialogMode === 'test' && selectedTestDetail"> &middot; {{ selectedTestDetail.testName || selectedTestDetail.testCode }}</span>.
       <span *ngIf="whatsAppDialogReady">The report link will open in WhatsApp for this number; you press send.</span>
       <span *ngIf="!whatsAppDialogReady">The report is not ready yet. Save the number now and send it when the report is ready.</span>
+    </p>
+
+    <!-- Re-sending is normal (a lost message, a second number). Saying so up
+         front stops it looking like a mistake, and shows where it went last time. -->
+    <p class="ptl-wa-sent-note" *ngIf="whatsAppDialogSentAlready">
+      <i class="fa fa-check-circle" aria-hidden="true"></i>
+      {{ whatsAppDialogSentTooltip }}. Sending again is fine.
     </p>
 
     <label class="form-label required" for="ptl-wa-number">Send to mobile number</label>
@@ -615,7 +679,7 @@
     <div class="ptl-wa-actions">
       <button type="button" class="dc-btn dc-btn--clear ptl-wa-off"
               *ngIf="waTest.report_On_WhatsApp"
-              [disabled]="savingWhatsAppPrefFor === waTest.patient_Test_Id"
+              [disabled]="whatsAppDialogBusy"
               title="The patient no longer wants this visit's report on WhatsApp"
               (click)="turnOffWhatsAppFromDialog()">
         Turn off
@@ -623,18 +687,21 @@
       <button type="button" class="dc-btn dc-btn--cancel" (click)="closeWhatsAppDialog()">Cancel</button>
       <button type="button" class="dc-btn dc-btn--save"
               *ngIf="!whatsAppDialogReady"
-              [disabled]="savingWhatsAppPrefFor === waTest.patient_Test_Id"
+              [disabled]="whatsAppDialogBusy"
               (click)="saveWhatsAppDialog()">
-        <i class="fa" [ngClass]="savingWhatsAppPrefFor === waTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-check'"></i> Save
+        <i class="fa" [ngClass]="whatsAppDialogBusy ? 'fa-spinner fa-spin' : 'fa-check'"></i> Save
       </button>
+      <!-- Stays disabled through the link call as well, so a second click cannot
+           open a second WhatsApp tab while the first is still being prepared. -->
       <button type="button" class="dc-btn dc-btn--save"
               *ngIf="whatsAppDialogReady"
-              [disabled]="savingWhatsAppPrefFor === waTest.patient_Test_Id"
+              [disabled]="whatsAppDialogBusy"
               (click)="sendFromWhatsAppDialog()">
-        <i class="fa" [ngClass]="savingWhatsAppPrefFor === waTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
-        Send on WhatsApp
+        <i class="fa" [ngClass]="whatsAppDialogBusy ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+        {{ whatsAppDialogBusy ? 'Preparing…' : (whatsAppDialogSentAlready ? 'Send again' : 'Send on WhatsApp') }}
       </button>
     </div>
+    </ng-container>
   </div>
 </div>
 
@@ -679,7 +746,11 @@
         </p>
       </div>
       <div class="header-actions">
-        <button class="dc-btn dc-btn--save" (click)="saveTestReport()">
+        <button class="dc-btn dc-btn--save" (click)="saveTestReport()"
+                [disabled]="hasInvalidResults"
+                [title]="hasInvalidResults
+                          ? 'One or more results are not numbers — fix them before saving.'
+                          : 'Save the entered results'">
           <i class="fa fa-save"></i> Save results
         </button>
         <!-- Pay Now — payment not yet complete -->
@@ -712,7 +783,7 @@
                   (click)="downloadReportPdf()"
                   [disabled]="isDownloadingPdf || !canIssueReport"
                   [title]="!canIssueReport ? reportBlockedReason
-                            : (isDownloadingPdf ? 'Preparing PDF…' : 'Download the report as a PDF file')">
+                            : (isDownloadingPdf ? 'Preparing PDF…' : 'Open the print-ready report — choose “Save as PDF” in the print dialog')">
             <i class="fa" [ngClass]="isDownloadingPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf-o'"></i>
             {{ isDownloadingPdf ? 'Preparing…' : 'PDF' }}
           </button>
@@ -743,6 +814,16 @@
             <i class="fa" [ngClass]="isPrinted(selectedTestDetail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
             {{ isPrinted(selectedTestDetail) ? 'Printed' : 'Not Printed' }}
           </span>
+
+          <!-- Sent on WhatsApp — set from the WhatsApp dialog, but only once the
+               operator has confirmed the message went. Shown next to the printed
+               chip because this is the screen they are on right after sending. -->
+          <span class="print-status-chip print-status-chip--lg wa-sent-chip"
+                *ngIf="selectedTestDetail && isTestSentOnWhatsApp(selectedTestDetail)"
+                [title]="testWhatsAppSentTooltip(selectedTestDetail)">
+            <i class="fa fa-whatsapp"></i>
+            {{ testWhatsAppSentLabel(selectedTestDetail) }}
+          </span>
         </ng-container>
         <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">
           <i class="fa fa-times"></i>
@@ -770,35 +851,78 @@
 
     <!-- Parameter Table -->
     <div *ngIf="!isLoadingParameters && testParameters.length > 0" class="parameter-list-section">
-      <table class="table table-bordered parameter-list-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Parameter Name</th>
-            <th>Unit</th>
-            <th>Normal Range</th>
-            <th>Type</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let param of testParameters; let i = index">
-            <td>{{ i + 1 }}</td>
-            <td>{{ param.parameterName }}</td>
-            <td>{{ param.parameterUnit || 'N/A' }}</td>
-            <td>{{ param.parameterRange || 'N/A' }}</td>
-            <td>{{ param.type || 'N/A' }}</td>
-            <td>
-              <input
-                type="text"
-                class="form-control result-input"
-                [placeholder]="'Enter result (' + param.parameterUnit + ')'"
-                [(ngModel)]="param.resultValue"
-                (input)="updateParameterResult(param, $any($event.target).value)">
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="param-card">
+        <table class="table parameter-list-table">
+          <thead>
+            <tr>
+              <th class="col-idx">#</th>
+              <th>Parameter</th>
+              <th>Unit</th>
+              <th>Reference Range</th>
+              <th>Type</th>
+              <th class="col-result">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let param of testParameters; let i = index"
+                [class.row-flagged]="resultFlag(param)">
+              <td class="col-idx">{{ i + 1 }}</td>
+              <td class="param-name">{{ param.parameterName }}</td>
+              <td class="param-muted">{{ param.parameterUnit || '—' }}</td>
+              <td>
+                <span class="range-pill" *ngIf="param.parameterRange; else noRange">{{ param.parameterRange }}</span>
+                <ng-template #noRange><span class="param-muted">—</span></ng-template>
+              </td>
+              <td class="param-muted">{{ param.type || '—' }}</td>
+              <td class="col-result">
+                <div class="result-field"
+                     [class.result-field--high]="resultFlag(param) === 'H'"
+                     [class.result-field--low]="resultFlag(param) === 'L'"
+                     [class.result-field--invalid]="resultError(param)">
+                  <!-- Numeric parameters take a decimal only: letters are refused at the
+                       keystroke and on paste, so a value like "abcd" never reaches the
+                       field. Qualitative parameters (Positive/Negative, blood group) have
+                       no unit and no numeric range, so they stay free text. -->
+                  <input
+                    type="text"
+                    class="form-control result-input"
+                    [appDecimalOnly]="isNumericParam(param)"
+                    [attr.inputmode]="isNumericParam(param) ? 'decimal' : null"
+                    [placeholder]="isNumericParam(param) ? 'Enter number' : 'Enter result'"
+                    [attr.aria-label]="param.parameterName + ' result'"
+                    [attr.aria-invalid]="resultError(param) ? 'true' : null"
+                    [(ngModel)]="param.resultValue"
+                    (input)="updateParameterResult(param, $any($event.target).value)">
+                  <span class="result-unit" *ngIf="param.parameterUnit">{{ param.parameterUnit }}</span>
+                  <span class="result-flag" *ngIf="resultFlag(param) as flag"
+                        [title]="flag === 'H' ? 'Above reference range' : 'Below reference range'">{{ flag }}</span>
+                </div>
+                <div class="result-error" *ngIf="resultError(param) as err">
+                  <i class="fa fa-exclamation-circle"></i> {{ err }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="param-footer">
+        <span class="param-progress" [class.param-progress--done]="canIssueReport">
+          <i class="fa" [ngClass]="canIssueReport ? 'fa-check-circle' : 'fa-clock-o'"></i>
+          {{ savedResultCount }} of {{ testParameters.length }} results saved
+        </span>
+        <span class="param-hint" [class.param-hint--invalid]="hasInvalidResults">
+          <ng-container *ngIf="hasInvalidResults; else readyHint">
+            <i class="fa fa-exclamation-circle"></i>
+            {{ invalidResultParams.length === 1
+                 ? 'One result is not a number.'
+                 : invalidResultParams.length + ' results are not numbers.' }}
+          </ng-container>
+          <ng-template #readyHint>
+            {{ canIssueReport ? 'Report is ready to view or print.' : 'Save all results to unlock View Report and PDF.' }}
+          </ng-template>
+        </span>
+      </div>
     </div>
   </div>
 </div>

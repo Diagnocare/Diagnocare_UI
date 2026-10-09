@@ -32,6 +32,12 @@ import { TestItem } from 'src/app/models/path-test/test/test.model';
 import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-details-modal.component';
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
+// The one payment dialog. This screen used to carry its own Bootstrap modal
+// with its own markup, labels and buttons; it now opens the same component
+// Patient Tests and Bill / Receipt open, configured to collect only the figure
+// this step cannot (how much is being paid now) and to save nothing, because
+// the payment is written with the booking in registerPatient().
+import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
 // The catalogue itself. Shared with AddTestModalComponent so registration and
@@ -59,6 +65,7 @@ import {
     FormKeyboardDirective,
     NumericOnlyDirective,
     PaymentCalculatorComponent,
+    PaymentModalComponent,
     TestProtocolPanelComponent,
     DcTestPickerComponent,
   ],
@@ -95,6 +102,14 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   paymentConfirmed = false;
   /** Inline error shown inside the Partial Payment modal. */
   amountPaidError  = '';
+
+  // ── Shared payment dialog ──────────────────────────────────────────────────
+  // Visibility is a plain boolean now, not a Bootstrap show/hide call, because
+  // the dialog is an Angular component bound with [visible] exactly as it is on
+  // Patient Tests and Bill / Receipt.
+  showPaymentModal = false;
+  /** Amount the dialog opens at, so Edit shows the figure being amended. */
+  paymentModalSeed = 0;
   /**
    * True when a discount edit has just reset a Partial payment back to Full.
    * Drives the note on the payment step — the payment type changes under the
@@ -248,6 +263,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_Outside:    [false],
       area:                 [''],
       collected_By:         [''],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
       sampling_Done:        [this._sampling.getDefault(), Validators.required],   // index 0 of the list
       discount:             [0],
       // Required only while the discount is above the lab limit (it then goes to a
@@ -275,6 +292,14 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           next: (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
           error: ()                  => { this.collectionBoys = []; },
         });
+
+    // Unticking Outside Collection means the sample is drawn at the lab, so nobody
+    // is sent: drop the collection boy and area rather than saving a stale pick.
+    this.patientForm.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.patientForm.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+      });
 
     // Keep amount_Paid in sync when payment type / net amount changes
     this.patientForm.get('payment_Type')?.valueChanges
@@ -443,6 +468,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   get isCurrentStepValid(): boolean {
     // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
     if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
+    // Outside collection needs a collection boy to send.
+    if (this.currentStep === 3 && this.collectorMissing) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
     // NoPayment: payment_Mode is not required (no payment is collected now)
@@ -1111,26 +1138,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.loadSelectedProtocols();
   }
 
-  // ── Collection Modal ───────────────────────────────────────────────────────
+  // ── Outside collection ─────────────────────────────────────────────────────
 
-  onCollectedOutsideClick(event: any) {
-    if (event.target.checked) {
-      const el = document.getElementById('collectionModal');
-      if (el) this.showModal('collectionModal');
-    }
-  }
-
-  modalCollectionClose() {
-    const el = document.getElementById('collectionModal');
-    if (el) this.hideModal('collectionModal');
-    if (!this.patientForm.get('area')?.value && !this.patientForm.get('collected_By')?.value) {
-      this.patientForm.patchValue({ collected_Outside: false });
-    }
-  }
-
-  clearOutsideCollectionModal() {
-    this.patientForm.patchValue({ collected_By: '', area: '', collected_Outside: false });
-    this.modalCollectionClose();
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.patientForm.get('collected_Outside')?.value
+        && !this.patientForm.get('collection_Assigned_To')?.value;
   }
 
   // ── Payment ────────────────────────────────────────────────────────────────
@@ -1321,37 +1334,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.validateDiscountLimit(discount);
   }
 
-  /**
-   * Live calculation — bound to (input) on the Amount Paid field inside the
-   * Partial Payment modal. Updates amount_Pending in real time.
-   *
-   * Reads value from the DOM event directly (not from the form control) to avoid
-   * the NumberValueAccessor timing gap where the control value hasn't been updated
-   * yet when the (input) handler fires.
-   *
-   * Does NOT use { emitEvent: false } so that Angular's FormControlName directive
-   * receives the valueChanges notification and calls writeValue() on the step-4
-   * readonly input — keeping both bound inputs in sync.
-   */
-  onAmountPaidInput(event: Event) {
-    this.amountPaidError = '';
-    const raw        = (event.target as HTMLInputElement).value;
-    const amountPaid = parseFloat(raw) || 0;
-    const netAmount  = parseFloat(this.patientForm.get('net_Amount')?.value) || 0;
-
-    if (amountPaid <= 0) {
-      this.patientForm.patchValue({ amount_Pending: '' });
-      return;
-    }
-    if (amountPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Use "Full" payment type instead.`;
-      this.patientForm.patchValue({ amount_Pending: 0 });
-      return;
-    }
-
-    const pending = +(netAmount - amountPaid).toFixed(2);
-    this.patientForm.patchValue({ amount_Pending: pending });
-  }
+  // The live amount-pending calculation that used to sit here belonged to this
+  // screen's own Amount Paid field, inside its own Partial Payment modal. The
+  // shared dialog works the running total out itself and shows it beside the
+  // figure being typed, so there is no second field to keep in step and no
+  // NumberValueAccessor timing gap to work around. onPaymentCollected() patches
+  // both amounts once, when the operator confirms.
 
   onTpaConfirmed(details: TpaDetails): void {
     this.tpaDetails   = details;
@@ -1399,7 +1387,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     } else {
       // Partial — reset amounts and open modal for the user to enter how much they're paying
       this.clearPartialAmounts();
-      this.showModal('paymentModal');
+      this.openPaymentModal();
     }
   }
 
@@ -1422,26 +1410,38 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.paymentConfirmed = false;
       this.amountPaidError  = '';
       this.clearPartialAmounts();
-      this.showModal('paymentModal');
+      this.openPaymentModal();
     }
   }
 
   /**
-   * Called when the user clicks "Confirm" in the Partial Payment modal.
-   *
-   * Reads the modal's native input value directly (not from the form control)
-   * to avoid any NumberValueAccessor timing gap, then explicitly patches both
-   * amount_Paid and amount_Pending without emitEvent:false so that Angular's
-   * FormControlName directive propagates writeValue() to the step-4 readonly
-   * inputs and the view updates reliably when the modal closes.
+   * Opens the shared payment dialog, seeded with whatever is already entered so
+   * reopening to amend shows the figure being amended rather than a fresh guess.
    */
-  confirmPayment() {
-    // Read directly from the DOM to avoid form-control timing issues
-    const modalInput = document.querySelector<HTMLInputElement>(
-      '#paymentModal input[formcontrolname="amount_Paid"], #paymentModal input[ng-reflect-name="amount_Paid"]'
-    );
-    const rawValue   = modalInput?.value ?? (this.patientForm.get('amount_Paid')?.value ?? '');
-    const amountPaid = parseFloat(String(rawValue)) || 0;
+  private openPaymentModal(): void {
+    this.amountPaidError  = '';   // never greet the operator with last time's error
+    this.paymentModalSeed = parseFloat(String(this.patientForm.get('amount_Paid')?.value)) || 0;
+    this.showPaymentModal = true;
+  }
+
+  /**
+   * Called when the user confirms in the shared payment dialog.
+   *
+   * The dialog hands back the figures; the rules about them stay here, because
+   * they belong to this booking and not to the dialog. A partial amount has to
+   * be strictly less than the net amount — equal means the booking is paid in
+   * full and should be recorded as Full, which is a different payment type and
+   * a different receipt, not a partial payment that happens to add up.
+   *
+   * The error is pushed back into the dialog's own error slot rather than
+   * shown behind it, so the message appears where the number was typed.
+   *
+   * Both values are patched without emitEvent:false so Angular's
+   * FormControlName directive propagates writeValue() to the step-4 readonly
+   * inputs and the view updates reliably when the dialog closes.
+   */
+  onPaymentCollected(result: PaymentModalResult): void {
+    const amountPaid = result.amountPaid || 0;
     const netAmount  = parseFloat(String(this.patientForm.get('net_Amount')?.value)) || 0;
 
     if (amountPaid <= 0) {
@@ -1449,7 +1449,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       return;
     }
     if (amountPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}).`;
+      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Choose "Full" instead.`;
       return;
     }
 
@@ -1457,9 +1457,6 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
     this.amountPaidError = '';
 
-    // Explicitly patch both values — this fires valueChanges (no emitEvent:false)
-    // so FormControlName's writeValue() runs on every bound input including the
-    // step-4 readonly fields, guaranteeing the view shows the confirmed values.
     this.patientForm.patchValue({
       amount_Paid:    amountPaid,
       amount_Pending: pending
@@ -1470,8 +1467,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   modalPaymentClose() {
-    const el = document.getElementById('paymentModal');
-    if (el) this.hideModal('paymentModal');
+    this.showPaymentModal = false;
   }
 
   /**
@@ -1501,7 +1497,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   editPaymentDetails() {
     this.paymentConfirmed = false;
     this.amountPaidError  = '';
-    this.showModal('paymentModal');
+    this.openPaymentModal();
   }
 
   clearPaymentModal() {
@@ -1662,7 +1658,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       remark:            f.remark           ?? '',
       collected_Outside: f.collected_Outside ?? false,
       area:              f.area             ?? '',
-      collected_By:      f.collected_By     ?? '',
+      // The API fills Collected_By with the collection boy's name.
+      collected_By:      '',
+      // Only an outside collection sends a collection boy.
+      collection_Assigned_To: f.collected_Outside && f.collection_Assigned_To ? +f.collection_Assigned_To : null,
       // Must be sampling_Done_At — the API property is Sampling_Done_At, and the
       // old key 'sampling_Done' matched nothing, so the location was never saved.
       sampling_Done_At:  f.sampling_Done    ?? '',
