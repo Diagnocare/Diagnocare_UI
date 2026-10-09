@@ -14,6 +14,8 @@
    rule, and the tokens have to be defined before the theme blocks override them.
    ────────────────────────────────────────────────────────────────────────────── */
 @import './app/shared/simple/simple-ui.css';
+/* Sidebar shell + home dashboard palette (see the file header). */
+@import './app/shared/simple/shell-tokens.css';
 
 /* Always reserve the vertical scrollbar gutter so centered layouts (e.g. the
    account pages) don't shift left/right when navigating between a short page

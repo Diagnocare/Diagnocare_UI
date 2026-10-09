@@ -136,7 +136,19 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     this.dateTo = "";
     // Restore the Status filter chosen earlier in this session (see key doc above).
     this.statusFilter = this.readStoredStatusFilter() ?? this.statusFilter;
-    this.loadPatients();
+
+    // `?search=` is how the sidebar shell's "Find a patient" box lands here. A
+    // subscription rather than a snapshot: searching again from the top bar while
+    // already on this page reuses the component and only changes the query param.
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const term = (params.get('search') ?? '').trim();
+      if (term.length >= 2) {
+        this.searchTerm = term;
+        this.searchPatients();
+      } else {
+        this.loadPatients();
+      }
+    });
   }
 
   /**

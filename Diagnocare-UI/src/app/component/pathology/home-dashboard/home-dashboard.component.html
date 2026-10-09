@@ -1,0 +1,174 @@
+<div class="hd">
+
+  <!-- ── Greeting ──────────────────────────────────────────────────────────── -->
+  <section class="hd-greet">
+    <div>
+      <h2>{{ greeting }}<ng-container *ngIf="userName">, {{ userName }}</ng-container></h2>
+      <p>{{ todayLabel }}</p>
+    </div>
+    <span class="hd-chip hd-chip--ok" *ngIf="!isLicenceExpired && licenceDaysLeft !== null && licenceDaysLeft > 15">
+      <i class="fa fa-circle-check" aria-hidden="true"></i> Licence active
+    </span>
+    <span class="hd-chip hd-chip--wait" *ngIf="!isLicenceExpired && licenceDaysLeft !== null && licenceDaysLeft <= 15">
+      <i class="fa fa-clock" aria-hidden="true"></i> Licence ends in {{ licenceDaysLeft }} day{{ licenceDaysLeft !== 1 ? 's' : '' }}
+    </span>
+  </section>
+
+  <!-- ── Licence expired: nothing else on this page can be acted on ────────── -->
+  <section class="hd-panel hd-locked" *ngIf="isLicenceExpired">
+    <i class="fa fa-lock" aria-hidden="true"></i>
+    <h3>The lab licence has expired</h3>
+    <p>Every screen is locked until it is renewed. Please call your administrator — your patients and reports are safe and will be there when it is.</p>
+  </section>
+
+  <ng-container *ngIf="!isLicenceExpired">
+
+    <!-- ── 1. What do you want to do? ─────────────────────────────────────── -->
+    <section aria-labelledby="hdTasks">
+      <h3 class="hd-section" id="hdTasks">What do you want to do?</h3>
+      <div class="hd-tasks">
+        <a *ngFor="let t of tasks; let first = first"
+           class="hd-task hd-task--{{ t.tone }}"
+           [class.hd-task--lead]="first && t.tone === 'primary'"
+           [routerLink]="t.route" [queryParams]="t.query">
+          <span class="hd-task-top">
+            <span class="hd-task-icon"><i class="fa {{ t.icon }}" aria-hidden="true"></i></span>
+            <span class="hd-task-count" *ngIf="t.count !== null">
+              <strong>{{ t.count }}</strong>
+              <small>waiting</small>
+            </span>
+            <i class="fa fa-arrow-right hd-task-go" *ngIf="t.count === null" aria-hidden="true"></i>
+          </span>
+          <span class="hd-task-label">{{ t.label }}</span>
+          <span class="hd-task-hint">{{ t.hint }}</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ── 2. Today in numbers ────────────────────────────────────────────── -->
+    <section class="hd-kpis" aria-label="Today in numbers">
+      <div class="hd-kpi">
+        <div class="hd-kpi-top">
+          <span class="hd-kpi-label">Patients registered today</span>
+          <span class="hd-kpi-icon hd-tint--blue"><i class="fa fa-user-plus" aria-hidden="true"></i></span>
+        </div>
+        <div class="hd-kpi-value">{{ patientsToday ?? '—' }}</div>
+        <div class="hd-kpi-foot">New people, not repeat visits</div>
+      </div>
+
+      <div class="hd-kpi">
+        <div class="hd-kpi-top">
+          <span class="hd-kpi-label">Tests booked today</span>
+          <span class="hd-kpi-icon hd-tint--primary"><i class="fa fa-vials" aria-hidden="true"></i></span>
+        </div>
+        <div class="hd-kpi-value">{{ testsBooked ?? '—' }}</div>
+        <div class="hd-kpi-foot" *ngIf="testsPending !== null">{{ testsPending }} still waiting for results</div>
+      </div>
+
+      <div class="hd-kpi">
+        <div class="hd-kpi-top">
+          <span class="hd-kpi-label">Reports ready</span>
+          <span class="hd-kpi-icon hd-tint--green"><i class="fa fa-file-circle-check" aria-hidden="true"></i></span>
+        </div>
+        <div class="hd-kpi-value">{{ reportsDone ?? '—' }}</div>
+        <div class="hd-progress" *ngIf="testsBooked" role="img"
+             [attr.aria-label]="progressPct + '% of today\'s tests are done'">
+          <span [style.width.%]="progressPct"></span>
+        </div>
+        <div class="hd-kpi-foot" *ngIf="testsBooked">{{ progressPct }}% of today's tests done</div>
+      </div>
+
+      <div class="hd-kpi">
+        <div class="hd-kpi-top">
+          <span class="hd-kpi-label">Money collected today</span>
+          <span class="hd-kpi-icon hd-tint--amber"><i class="fa fa-indian-rupee-sign" aria-hidden="true"></i></span>
+        </div>
+        <div class="hd-kpi-value">
+          <ng-container *ngIf="revenueToday !== null; else noRevenue">₹{{ revenueToday | number:'1.0-0':'en-IN' }}</ng-container>
+          <ng-template #noRevenue>—</ng-template>
+        </div>
+        <div class="hd-kpi-foot">{{ revenueToday !== null ? 'After refunds' : 'Shown to admins only' }}</div>
+      </div>
+    </section>
+
+    <p class="hd-error" *ngIf="summaryFailed" role="alert">
+      <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+      Today's numbers could not be loaded. Check the internet connection, then refresh the page.
+    </p>
+
+    <!-- ── 3. Where is today's work? ──────────────────────────────────────── -->
+    <section class="hd-panel" *ngIf="canSeeWork">
+      <div class="hd-panel-head">
+        <div>
+          <h3>Where the work is</h3>
+          <p>Every sample moves left to right. Tap a step to see who is in it.</p>
+        </div>
+        <a routerLink="/work" class="hd-link">Open work queue <i class="fa fa-arrow-right" aria-hidden="true"></i></a>
+      </div>
+
+      <ol class="hd-pipe">
+        <li *ngFor="let s of pipeline; let last = last">
+          <a class="hd-stage hd-stage--{{ s.tone }}" [routerLink]="'/work'" [queryParams]="{ queue: s.queue }">
+            <i class="fa {{ s.icon }}" aria-hidden="true"></i>
+            <span class="hd-stage-num">{{ s.count ?? '—' }}</span>
+            <span class="hd-stage-label">{{ s.label }}</span>
+            <span class="hd-stage-hint">{{ s.hint }}</span>
+          </a>
+          <i *ngIf="!last" class="fa fa-chevron-right hd-pipe-arrow" aria-hidden="true"></i>
+        </li>
+      </ol>
+
+      <a *ngIf="attentionCount" class="hd-attention" routerLink="/work" [queryParams]="{ queue: 'needs-attention' }">
+        <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+        <span><strong>{{ attentionCount }} item{{ attentionCount === 1 ? '' : 's' }} need attention</strong> — unpaid, cancelled or stuck. Tap to sort them out.</span>
+        <i class="fa fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </section>
+
+    <!-- ── 4. Latest bookings + this week ─────────────────────────────────── -->
+    <div class="hd-two">
+      <section class="hd-panel">
+        <div class="hd-panel-head">
+          <h3>Latest bookings</h3>
+          <a *ngIf="access.labOps || access.patientsLink" routerLink="/patients" class="hd-link">All patients <i class="fa fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
+
+        <ul class="hd-list" *ngIf="bookings.length > 0">
+          <li *ngFor="let b of bookings">
+            <span class="hd-avatar">{{ b.name.charAt(0) }}</span>
+            <span class="hd-list-main">
+              <strong>{{ b.name }}</strong>
+              <small>{{ b.patientId }}</small>
+            </span>
+            <span class="hd-pill hd-pill--{{ b.tone }}">{{ b.label }}</span>
+          </li>
+        </ul>
+
+        <div class="hd-empty" *ngIf="!summaryLoading && bookings.length === 0">
+          <i class="fa fa-calendar-day" aria-hidden="true"></i>
+          <p><strong>No bookings yet today.</strong> They appear here as soon as the first patient is registered.</p>
+          <a *ngIf="access.labOps" routerLink="/patients/add" class="hd-btn">Register a patient</a>
+        </div>
+        <div class="hd-empty" *ngIf="summaryLoading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading…</div>
+      </section>
+
+      <section class="hd-panel">
+        <div class="hd-panel-head">
+          <h3>Patients registered this week</h3>
+        </div>
+        <div class="hd-week" *ngIf="week.length > 0" role="list">
+          <div class="hd-week-col" *ngFor="let d of week" role="listitem"
+               [class.is-future]="d.future" [class.is-today]="d.today"
+               [attr.aria-label]="d.label + ': ' + d.count + ' patients'">
+            <span class="hd-week-num">{{ d.future ? '' : d.count }}</span>
+            <span class="hd-week-track"><span class="hd-week-bar" [style.height.%]="d.future ? 0 : (d.pct || 2)"></span></span>
+            <span class="hd-week-day">{{ d.label }}</span>
+          </div>
+        </div>
+        <div class="hd-empty" *ngIf="!summaryLoading && week.length === 0">
+          <p>No registrations this week yet.</p>
+        </div>
+      </section>
+    </div>
+  </ng-container>
+</div>

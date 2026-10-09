@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from '../header/header-menu/header.component';
+import { AppShellComponent } from './shell/app-shell.component';
+import { USE_SIDEBAR_SHELL } from '../../shared/simple/simple-ui.flags';
 
 /** How close the deadline is. Drives colour, icon and wording together. */
 type ExpiryTone = 'info' | 'soon' | 'urgent';
@@ -9,7 +11,7 @@ type ExpiryTone = 'info' | 'soon' | 'urgent';
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterModule, CommonModule, HeaderComponent],
+  imports: [RouterModule, CommonModule, HeaderComponent, AppShellComponent],
   templateUrl: './layout.component.html',
   styles: [`
     /* Colours chain kit tokens → the app's theme variables → literals, so the
@@ -180,6 +182,7 @@ type ExpiryTone = 'info' | 'soon' | 'urgent';
   `],
 })
 export class LayoutComponent implements OnInit {
+  readonly useShell = USE_SIDEBAR_SHELL;
   passwordExpiryDaysLeft: number | null = null;
 
   ngOnInit(): void {

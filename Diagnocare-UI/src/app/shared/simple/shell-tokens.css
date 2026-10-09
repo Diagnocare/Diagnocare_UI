@@ -1,0 +1,147 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — SIDEBAR SHELL  ·  design tokens
+   ──────────────────────────────────────────────────────────────────────────────
+   The colours, surfaces and shapes used by the sidebar shell
+   (component/layout/shell) and the task-first home dashboard
+   (component/pathology/home-dashboard).
+
+   The palette is a calm clinical teal on a warm off-white page, with one dark
+   sidebar. Warm grey instead of pure white is easier on the eyes for people who
+   look at this screen eight hours a day, and a single strong accent means the
+   one thing that is coloured is the thing to press.
+
+   Only the light theme gets the teal palette. The dark, midnight and warm themes
+   remap every token onto that theme's own variables, so the shell never shows a
+   bright panel in a dark theme.
+
+   Imported once from src/styles.css, after simple-ui.css.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --sh-bg:            #f2f3ee;
+  --sh-surface:       #ffffff;
+  --sh-surface-soft:  #fafaf6;
+  --sh-ink:           #152420;
+  --sh-ink-soft:      #5b655f;
+  --sh-ink-faint:     #7a8079;
+  --sh-line:          #dee0d4;
+
+  --sh-sidebar:       #0c2a2b;
+  --sh-sidebar-text:  #afc8c3;
+  --sh-sidebar-muted: rgba(255, 255, 255, 0.45);
+
+  --sh-primary:       #0f7a6e;
+  --sh-primary-dark:  #0b5a52;
+  --sh-primary-tint:  #e3f3ef;
+  /* Teal used as text (links, active labels) — separate from the fill so a
+     dark theme can lighten the text without washing out white-on-teal buttons. */
+  --sh-primary-ink:   #0b5a52;
+
+  --sh-amber:  #c7791f;  --sh-amber-tint:  #fbeeda;
+  --sh-blue:   #2a5fa5;  --sh-blue-tint:   #e7eef8;
+  --sh-red:    #b4402f;  --sh-red-tint:    #fbeae6;
+  --sh-green:  #2e7d4f;  --sh-green-tint:  #e7f3eb;
+  --sh-purple: #6e58b0;  --sh-purple-tint: #ede9f7;
+
+  --sh-radius:     10px;
+  --sh-radius-lg:  14px;
+  --sh-sidebar-w:  248px;
+  --sh-topbar-h:   68px;
+}
+
+/* Dark-family themes: the page and panels follow the theme, the accent stays
+   teal but lifted so it keeps contrast on a dark surface. */
+html[data-theme="dark"],
+html[data-theme="midnight"] {
+  --sh-bg:            var(--bg-light);
+  --sh-surface:       var(--bg-white);
+  --sh-surface-soft:  var(--bg-light);
+  --sh-ink:           var(--text-primary);
+  --sh-ink-soft:      var(--text-secondary);
+  --sh-ink-faint:     var(--text-secondary);
+  --sh-line:          var(--border-color);
+  --sh-sidebar:       #071a1b;
+  --sh-primary:       #168275;
+  --sh-primary-dark:  #0f6b60;
+  --sh-primary-ink:   #5fd0c1;
+  --sh-primary-tint:  rgba(43, 179, 162, 0.16);
+  --sh-amber-tint:  rgba(199, 121, 31, 0.22);
+  --sh-blue-tint:   rgba(42, 95, 165, 0.28);
+  --sh-red-tint:    rgba(180, 64, 47, 0.26);
+  --sh-green-tint:  rgba(46, 125, 79, 0.26);
+  --sh-purple-tint: rgba(110, 88, 176, 0.26);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] {
+    --sh-bg:            var(--bg-light);
+    --sh-surface:       var(--bg-white);
+    --sh-surface-soft:  var(--bg-light);
+    --sh-ink:           var(--text-primary);
+    --sh-ink-soft:      var(--text-secondary);
+    --sh-ink-faint:     var(--text-secondary);
+    --sh-line:          var(--border-color);
+    --sh-sidebar:       #071a1b;
+    --sh-primary:       #168275;
+    --sh-primary-dark:  #0f6b60;
+    --sh-primary-ink:   #5fd0c1;
+    --sh-primary-tint:  rgba(43, 179, 162, 0.16);
+    --sh-amber-tint:  rgba(199, 121, 31, 0.22);
+    --sh-blue-tint:   rgba(42, 95, 165, 0.28);
+    --sh-red-tint:    rgba(180, 64, 47, 0.26);
+    --sh-green-tint:  rgba(46, 125, 79, 0.26);
+    --sh-purple-tint: rgba(110, 88, 176, 0.26);
+  }
+}
+
+html[data-theme="warm"] {
+  --sh-bg:       #f5ede0;
+  --sh-surface:  #fffaf2;
+  --sh-line:     #e6d9c4;
+  --sh-ink:      #3d2b1f;
+  --sh-sidebar:  #2b1d14;
+  --sh-sidebar-text: #dccab5;
+}
+
+/* Large-text mode (Settings) grows the shell with the rest of the kit. */
+html[data-dc-size="large"] {
+  --sh-sidebar-w: 280px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXISTING PAGES INSIDE THE SHELL
+   ──────────────────────────────────────────────────────────────────────────────
+   Every older screen paints a full-height purple gradient (.page-container)
+   with a translucent white-text header (.page-header). Inside the shell that
+   reads as a second app inside the first. These rules calm it down to the
+   shell's page colour and a plain dark heading, without editing 28 templates.
+   Scoped to .sh-content, so the classic frame (USE_SIDEBAR_SHELL = false) is
+   untouched. A page with its own component-scoped gradient keeps it until that
+   page is migrated.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.sh-content {
+  --primary-gradient: var(--sh-bg);
+}
+.sh-content .page-container {
+  min-height: 0;
+  background: var(--sh-bg);
+}
+.sh-content .page-header {
+  background: transparent;
+  color: var(--sh-ink);
+  border-bottom: 0;
+  padding: 18px 28px 6px;
+}
+.sh-content .page-header h1,
+.sh-content .page-header h2 {
+  color: var(--sh-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.sh-content .page-header .subtitle { color: var(--sh-ink-soft); }
+.sh-content .content-container { padding: 12px 28px 40px; }
+
+@media (max-width: 980px) {
+  .sh-content .page-header { padding: 14px 16px 4px; }
+  .sh-content .content-container { padding: 10px 16px 32px; }
+}

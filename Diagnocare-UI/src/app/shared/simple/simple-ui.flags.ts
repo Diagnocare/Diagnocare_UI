@@ -15,3 +15,17 @@
  * then the old path stays reachable, which is the point.
  */
 export const USE_NEW_UI = true;
+
+/**
+ * Sidebar shell + task-first home dashboard.
+ *
+ *   USE_SIDEBAR_SHELL = true   →  persistent left sidebar, top bar with page
+ *                                 title, "Find a patient" and "Register patient",
+ *                                 and the new home dashboard at /pathology
+ *   USE_SIDEBAR_SHELL = false  →  the top header with hover dropdowns and the
+ *                                 hero home page, exactly as before
+ *
+ * Every screen inside the app is unchanged either way — only the frame around
+ * it and the home page differ — so this is safe to flip back at any time.
+ */
+export const USE_SIDEBAR_SHELL = true;

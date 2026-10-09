@@ -1,0 +1,174 @@
+<div class="sh-app">
+
+  <!-- ══ Sidebar ══════════════════════════════════════════════════════════════
+       Every place this person may go, always visible, grouped by job. No hover
+       menus: nothing disappears when the mouse drifts. -->
+  <aside class="sh-sidebar" [class.is-open]="drawerOpen" aria-label="Main menu">
+    <a class="sh-brand" routerLink="/pathology" title="Go to Home">
+      <span class="sh-brand-logo"><i class="fa fa-heart-pulse" aria-hidden="true"></i></span>
+      <span class="sh-brand-text">
+        <span class="sh-brand-name">Diagnocare</span>
+        <span class="sh-brand-sub" *ngIf="roleLabel">{{ roleLabel }}</span>
+      </span>
+    </a>
+
+    <div class="sh-expired" *ngIf="isLicenceExpired">
+      <i class="fa fa-lock" aria-hidden="true"></i>
+      Licence expired — screens are locked
+    </div>
+
+    <nav class="sh-nav">
+      <ng-container *ngFor="let section of sections">
+        <div class="sh-nav-title">{{ section.title }}</div>
+        <a *ngFor="let item of section.items"
+           class="sh-nav-item"
+           [class.is-locked]="isLicenceExpired"
+           [routerLink]="routeFor(item)"
+           [queryParams]="item.query"
+           routerLinkActive="is-active"
+           [routerLinkActiveOptions]="{ exact: !!item.query || item.route === 'pathology' }">
+          <i class="fa {{ item.icon }}" aria-hidden="true"></i>
+          <span class="sh-nav-label">{{ item.label }}</span>
+          <span class="sh-nav-count" *ngIf="liveBadge(item) > 0">{{ badgeText(liveBadge(item)) }}</span>
+          <i class="fa fa-lock sh-nav-lock" *ngIf="isLicenceExpired" aria-hidden="true"></i>
+        </a>
+
+        <!-- Business reports fold: twelve entries would push everything else
+             off the screen. Click to open — it never opens or closes by itself. -->
+        <ng-container *ngIf="section.title === 'Reports'">
+          <button type="button" class="sh-nav-item sh-nav-group"
+                  [class.is-locked]="isLicenceExpired"
+                  [attr.aria-expanded]="reportsOpen"
+                  (click)="reportsOpen = !reportsOpen">
+            <i class="fa fa-chart-column" aria-hidden="true"></i>
+            <span class="sh-nav-label">Business reports</span>
+            <i class="fa sh-nav-caret" [ngClass]="reportsOpen ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i>
+          </button>
+          <div class="sh-subnav" *ngIf="reportsOpen">
+            <a *ngFor="let r of summaryReportMenu"
+               class="sh-subnav-item"
+               [routerLink]="reportRoute(r.id)"
+               routerLinkActive="is-active">{{ r.label }}</a>
+          </div>
+        </ng-container>
+      </ng-container>
+    </nav>
+
+    <div class="sh-sidebar-foot">
+      <a routerLink="/help" class="sh-help">
+        <i class="fa fa-life-ring" aria-hidden="true"></i>
+        <span>Help &amp; support</span>
+      </a>
+      <span class="sh-lab-id" *ngIf="pathologyId">Lab ID · {{ pathologyId }}</span>
+    </div>
+  </aside>
+
+  <div class="sh-scrim" *ngIf="drawerOpen" (click)="drawerOpen = false" aria-hidden="true"></div>
+
+  <!-- ══ Main column ═════════════════════════════════════════════════════════ -->
+  <div class="sh-main">
+
+    <!-- Licence / PIN notices — same conditions as the old header. -->
+    <div class="sh-banner sh-banner--danger" *ngIf="isLicenceExpired" role="alert">
+      <i class="fa fa-lock" aria-hidden="true"></i>
+      <span>Your lab licence <strong>expired on {{ formattedExpiryDate }}</strong>. All screens are locked until it is renewed — please call your administrator.</span>
+    </div>
+    <div class="sh-banner sh-banner--warn" *ngIf="isLicenceExpiringSoon && !isLicenceExpired" role="status">
+      <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+      <span>Your lab licence ends on <strong>{{ formattedExpiryDate }}</strong> — <strong>{{ licenceDaysLeft }} day{{ licenceDaysLeft !== 1 ? 's' : '' }}</strong> left. Ask your administrator to renew it.</span>
+    </div>
+    <div class="sh-banner sh-banner--info" *ngIf="isPinExpiringSoon" role="status">
+      <i class="fa fa-key" aria-hidden="true"></i>
+      <span>Your PIN expires in <strong>{{ pinDaysLeft }} day{{ pinDaysLeft !== 1 ? 's' : '' }}</strong>.</span>
+      <a routerLink="/change-pin" class="sh-banner-action">Change PIN</a>
+    </div>
+
+    <header class="sh-topbar">
+      <button type="button" class="sh-menu-btn" (click)="drawerOpen = !drawerOpen"
+              [attr.aria-expanded]="drawerOpen" aria-label="Open the menu">
+        <i class="fa fa-bars" aria-hidden="true"></i>
+        <span>Menu</span>
+      </button>
+
+      <div class="sh-title">
+        <h1>{{ pageTitle }}</h1>
+        <p *ngIf="pageHint">{{ pageHint }}</p>
+      </div>
+
+      <form class="sh-find" *ngIf="canFind && !isLicenceExpired" (ngSubmit)="findPatient()" role="search">
+        <label for="shFind" class="visually-hidden">Find a patient</label>
+        <i class="fa fa-magnifying-glass" aria-hidden="true"></i>
+        <input id="shFind" name="find" type="search" autocomplete="off"
+               [(ngModel)]="findTerm"
+               placeholder="Find a patient — name, phone or ID">
+        <button type="submit" class="sh-find-go" [disabled]="findTerm.trim().length < 2">Find</button>
+      </form>
+
+      <a *ngIf="canRegister && !isLicenceExpired" routerLink="/patients/add" class="sh-btn sh-btn--primary">
+        <i class="fa fa-user-plus" aria-hidden="true"></i>
+        <span>Register patient</span>
+      </a>
+
+      <!-- Notification bell — same data and behaviour as the old header. -->
+      <div class="sh-pop-host dc-bell-host" *ngIf="!isLicenceExpired">
+        <button class="sh-icon-btn" type="button" (click)="toggleBell($event)"
+                [attr.aria-expanded]="bellOpen" aria-haspopup="true"
+                [attr.aria-label]="notificationCounts.unread > 0 ? notificationCounts.unread + ' unread notifications' : 'Notifications'">
+          <i class="fa fa-bell" aria-hidden="true"></i>
+          <span class="sh-dot-count" *ngIf="notificationCounts.unread > 0">{{ badgeText(notificationCounts.unread) }}</span>
+        </button>
+
+        <div class="sh-pop sh-pop--bell" *ngIf="bellOpen" role="menu" (click)="$event.stopPropagation()">
+          <div class="sh-pop-head">
+            <strong>Notifications</strong>
+            <button type="button" class="sh-link" *ngIf="hasUnreadInBell" (click)="markAllNotificationsRead($event)">Mark all as read</button>
+          </div>
+          <div class="sh-pop-empty" *ngIf="bellLoading"><i class="fa fa-spinner fa-spin"></i> Loading…</div>
+          <div class="sh-pop-empty" *ngIf="!bellLoading && bellItems.length === 0">
+            <i class="fa fa-circle-check"></i> You're all caught up.
+          </div>
+          <ul class="sh-bell-list" *ngIf="!bellLoading && bellItems.length > 0">
+            <li *ngFor="let n of bellItems" [class.is-unread]="!n.isRead" tabindex="0" role="menuitem"
+                (click)="openNotification(n)" (keydown.enter)="openNotification(n)">
+              <i class="fa {{ notificationIcon(n.module) }}" aria-hidden="true"></i>
+              <div>
+                <div class="sh-bell-title">{{ n.title }}</div>
+                <div class="sh-bell-msg">{{ n.message }}</div>
+                <div class="sh-bell-time">{{ timeAgo(n.createdAt) }}</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Account — click to open (works on touch screens), not hover. -->
+      <div class="sh-pop-host">
+        <button type="button" class="sh-avatar" (click)="toggleProfile($event)"
+                [attr.aria-expanded]="profileOpen" aria-haspopup="true" aria-label="Your account">
+          <img *ngIf="hasPhoto" [src]="profilePhotoUrl" alt="">
+          <span *ngIf="!hasPhoto">{{ initials }}</span>
+        </button>
+
+        <div class="sh-pop sh-pop--profile" *ngIf="profileOpen" role="menu" (click)="$event.stopPropagation()">
+          <div class="sh-profile-head">
+            <strong>{{ userName || 'User' }}</strong>
+            <span *ngIf="roleLabel">{{ roleLabel }}</span>
+          </div>
+          <a *ngFor="let item of profileMenu" class="sh-pop-item" href="#"
+             (click)="onProfileMenuClick(item, $event); profileOpen = false">
+            <i class="fa fa-{{ item.icon }}" aria-hidden="true"></i> {{ item.label }}
+          </a>
+          <a class="sh-pop-item sh-pop-item--danger" href="#" (click)="profileOpen = false; logout($event)">
+            <i class="fa fa-right-from-bracket" aria-hidden="true"></i> Sign out
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="sh-content">
+      <ng-content></ng-content>
+    </main>
+  </div>
+</div>
+
+<app-confirm-modal></app-confirm-modal>
