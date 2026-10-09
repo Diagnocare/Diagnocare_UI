@@ -42,6 +42,12 @@ export const controllerEndpoints = {
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
   sampleRejection: 'api/SampleRejection/',
+  /**
+   * The sample breakdown — how a booking's tests distribute across the tubes that have to
+   * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
+   * this one answers how many tubes there are.
+   */
+  sample: 'api/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
@@ -143,6 +149,14 @@ export const apiEndpoints = {
   getTestProtocols:"GetTestProtocols",
   /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
   getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /**
+   * The tube count for an existing booking. Attribute-routed on the API
+   * (api/Sample/booking/{testRegId}), so the id is appended to this path by the caller
+   * rather than passed as a query string.
+   */
+  getSampleBreakdownForBooking:"booking/",
+  /** The tube count for a basket of test codes, before a booking exists. POST. */
+  getSampleBreakdownByCodes:"by-codes",
   /** Which library protocol a test's name suggests. Admin / Super Admin only. */
   suggestTestProtocol:"SuggestTestProtocol",
   /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */

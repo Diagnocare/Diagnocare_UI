@@ -1,0 +1,141 @@
+/*
+ * Collection brief.
+ *
+ * Two panels that already have their own look, plus a toggle and two alert strips to sit
+ * between them. So this file deliberately styles very little: it owns the toggle, the
+ * spacing between the pieces, and the fasting and missing-protocol strips. The tube summary
+ * and the protocol blocks keep their own styling, because they are the same objects here as
+ * on the booking screen and a collector should recognise them.
+ *
+ * Sizes and colours are tokens with a hex fallback, the convention the newer work screens
+ * follow, so all five themes work with no extra rules.
+ */
+
+:host {
+  display: block;
+}
+
+/* ── The toggle ───────────────────────────────────────────────────────────── */
+
+/*
+ * Quiet on purpose. The row's primary action is "Mark sample collected"; this must not
+ * compete with it, and a tired thumb must never hit it by accident on the way there.
+ * .link-btn carries the global link-button look; only the layout is local.
+ */
+.cb-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+  font-size: var(--dc-text-meta, 0.8125rem);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cb-toggle .fa-chevron-right,
+.cb-toggle .fa-chevron-down {
+  font-size: var(--dc-text-micro, 0.75rem);
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+
+.cb-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+
+/* With no toggle of its own the body is the first child, and the gap the toggle needed
+   would read as stray padding at the top of the caller's own container. */
+.cb-body:first-child {
+  margin-top: 0;
+}
+
+.cb-protocols {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+/* ── States ───────────────────────────────────────────────────────────────── */
+
+.cb-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--dc-line, #cbd5e1);
+  border-radius: 10px;
+  background: var(--dc-surface-2, #f8fafc);
+  color: var(--dc-ink-3, #64748b);
+  font-size: var(--dc-text-meta, 0.8125rem);
+}
+
+.cb-state-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.cb-state--error {
+  border-style: solid;
+  border-color: var(--dc-danger-line, #fecaca);
+  background: var(--dc-danger-wash, #fef2f2);
+  color: var(--dc-danger-ink, #b91c1c);
+}
+
+/* ── Alert strips ──────────────────────────────────────────────────────────
+   Both say "something about this collection is not routine", so they share a
+   shape and differ only in colour: amber for a condition to check, red for
+   information that is missing. */
+
+.cb-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: var(--dc-text-meta, 0.8125rem);
+  line-height: 1.5;
+}
+
+.cb-alert > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cb-alert strong {
+  font-weight: 700;
+}
+
+.cb-alert-list {
+  font-weight: 600;
+}
+
+.cb-alert-hint {
+  font-size: var(--dc-text-micro, 0.75rem);
+  opacity: 0.85;
+}
+
+.cb-alert--fasting {
+  border-color: var(--dc-wait-line, #fcd34d);
+  background: var(--dc-wait-wash, #fffbeb);
+  color: var(--dc-wait-ink, #b45309);
+}
+
+.cb-alert--missing {
+  border-color: var(--dc-danger-line, #fecaca);
+  background: var(--dc-danger-wash, #fef2f2);
+  color: var(--dc-danger-ink, #b91c1c);
+}
+
+@media (max-width: 640px) {
+  .cb-state,
+  .cb-alert {
+    padding: 0.65rem 0.75rem;
+  }
+}

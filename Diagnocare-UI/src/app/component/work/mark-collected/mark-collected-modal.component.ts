@@ -6,6 +6,7 @@ import { ToastrService } from 'ngx-toastr';
 import { WorklistService } from 'src/app/services/worklistServices/worklist.service';
 import { WorklistItem } from 'src/app/models/worklist/worklist.models';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
+import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
 
 /**
  * Shared look for the worklist's one-question dialogs (mark collected, assign
@@ -170,11 +171,21 @@ export const MODAL_STYLES = `
  *
  * The grain is the booking, not the test: one needle draw covers every test on
  * the visit, so this is asked once and moves all of them.
+ *
+ * "What to collect", closed
+ * ─────────────────────────
+ * The tube count and the collection protocol are offered here too, behind the
+ * same disclosure the worklist row carries, and closed for the same reason:
+ * someone who opened this dialog to record a draw they have already made is
+ * answering one question and should see one question. But this is also where a
+ * collector lands when they are not sure yet, and sending them back out to the
+ * list to check the container would be a worse dialog than one that can answer
+ * it in place.
  */
 @Component({
   selector: 'app-mark-collected-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CollectionBriefComponent],
   template: `
     <div class="mc-overlay" *ngIf="visible" role="dialog" aria-modal="true"
          aria-labelledby="mc-title" (keydown.escape)="close()">
@@ -210,6 +221,19 @@ export const MODAL_STYLES = `
         <div class="mc-body">
           <p class="mc-test" *ngIf="item">{{ item.testName }}</p>
 
+          <!-- What to collect: closed, one click, never leaves the dialog. The
+               panel owns its own toggle here, because unlike the worklist row
+               there is no table to span. -->
+          <div class="mc-brief" *ngIf="item">
+            <app-collection-brief
+              [testRegId]="item.testRegId"
+              [testCode]="item.testCode"
+              [collapsible]="true"
+              [open]="briefOpen"
+              (openChange)="briefOpen = $event">
+            </app-collection-brief>
+          </div>
+
           <label class="mc-label" for="mc-location">Where was the sample collected?</label>
           <select id="mc-location" class="form-select"
                   [(ngModel)]="location" [disabled]="isSaving">
@@ -242,7 +266,21 @@ export const MODAL_STYLES = `
       </div>
     </div>
   `,
-  styles: [MODAL_STYLES]
+  // MODAL_STYLES is shared with the assign-collector dialog, so the one rule
+  // only this dialog needs lives in a second block rather than being added
+  // there for a dialog that has no disclosure to style.
+  // No backticks inside this literal: that has broken this file before.
+  styles: [MODAL_STYLES, `
+    /* Between the test and the question, separated by a rule, so the body reads
+       as two parts: what to collect, then where it was collected. Closed, it is
+       a single line and the dialog looks as it always did; open, the body
+       scrolls, which .mc-body already handles. */
+    .mc-brief {
+      margin: 0 0 0.9rem;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+  `]
 })
 export class MarkCollectedModalComponent {
   /** The row that was clicked. Null closes the modal. */
@@ -258,6 +296,13 @@ export class MarkCollectedModalComponent {
 
   location = '';
   isSaving = false;
+
+  /**
+   * Whether the collection details are showing. Closed every time the dialog opens: it is
+   * reset in `reset()` along with the location, so the next booking starts from the same
+   * one-question dialog rather than inheriting the last collector's curiosity.
+   */
+  briefOpen = false;
 
   constructor(
     private worklist: WorklistService,
@@ -310,5 +355,6 @@ export class MarkCollectedModalComponent {
 
   private reset(): void {
     this.location = '';
+    this.briefOpen = false;
   }
 }

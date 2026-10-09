@@ -120,9 +120,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of items; trackBy: trackByItem"
-              class="worklist__row"
-              [class.worklist__row--urgent]="item.urgent">
+          <!-- A to-collect row can carry a second row beneath it, so the loop wraps both
+               rather than sitting on the <tr>. -->
+          <ng-container *ngFor="let item of items; trackBy: trackByItem">
+          <tr class="worklist__row"
+              [class.worklist__row--urgent]="item.urgent"
+              [class.worklist__row--has-brief]="isBriefOpen(item)">
 
             <td class="ta-center">
               <i class="fa fa-bolt urgent-flag" *ngIf="item.urgent"
@@ -136,6 +139,28 @@
                 {{ item.testCode }} · {{ item.parameterCount }}
                 {{ item.parameterCount === 1 ? 'parameter' : 'parameters' }}
               </span>
+
+              <!-- ── What to collect ──────────────────────────────────────────
+                   Only on the queue that collects, and closed until asked for.
+                   A collector who already knows a CBC is one EDTA tube is
+                   working down a list and does not want a protocol block
+                   between every row; the one who does not know is one click
+                   away, without leaving the queue.
+
+                   It sits under the test rather than in the action column so it
+                   never competes with "Mark sample collected" for the same
+                   thumb — this reveals, that records. -->
+              <button type="button"
+                      class="link-btn worklist__brief-toggle"
+                      *ngIf="showsBrief(item)"
+                      [attr.aria-expanded]="isBriefOpen(item)"
+                      (click)="toggleBrief(item, $event)">
+                <i class="fa"
+                   [ngClass]="isBriefOpen(item) ? 'fa-chevron-down' : 'fa-chevron-right'"
+                   aria-hidden="true"></i>
+                <i class="fa fa-flask" aria-hidden="true"></i>
+                {{ isBriefOpen(item) ? 'Hide details' : 'What to collect' }}
+              </button>
             </td>
 
             <td>
@@ -231,6 +256,21 @@
               </button>
             </td>
           </tr>
+
+          <!-- ── The detail, in a row of its own ─────────────────────────────
+               Spanning every column, because a tube count and a protocol are
+               paragraphs and not cells. Rendered only while open, so a closed
+               row costs nothing and the panel fetches nothing. -->
+          <tr class="worklist__brief" *ngIf="isBriefOpen(item)">
+            <td colspan="7">
+              <app-collection-brief
+                [testRegId]="item.testRegId"
+                [testCode]="item.testCode"
+                [collapsible]="false">
+              </app-collection-brief>
+            </td>
+          </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
