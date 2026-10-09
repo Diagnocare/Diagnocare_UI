@@ -32,7 +32,10 @@
       <span>New ones appear here (and in your notifications) as soon as the lab assigns them.</span>
     </div>
 
-    <ng-container *ngFor="let g of groups">
+    <!-- trackBy is load-bearing, not an optimisation: without it NgForOf tracks these by
+         identity, and any new group array tears down every card beneath it — taking the
+         open "what to collect" panels, and their in-flight requests, with it. -->
+    <ng-container *ngFor="let g of groups; trackBy: trackByStage">
       <section class="mp-group" *ngIf="g.items.length > 0" [ngClass]="'mp-group--' + g.stage">
         <header class="mp-group__head">
           <h3><i class="fa" [ngClass]="g.icon" aria-hidden="true"></i> {{ g.title }} <span class="mp-count">{{ g.items.length }}</span></h3>

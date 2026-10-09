@@ -67,20 +67,45 @@ export class MyPickupsComponent implements OnInit, OnDestroy {
         next: list => {
           this.pickups = list ?? [];
           this.codeCache.clear();
+          this.rebuildGroups();
           this.isLoading = false;
         },
         error: () => {
           this.pickups = [];
           this.codeCache.clear();
+          this.rebuildGroups();
           this.errorMessage = 'Could not load your pickups. Please try again.';
           this.isLoading = false;
         },
       });
   }
 
-  get groups(): PickupGroup[] {
+  /**
+   * The three stage groups, rebuilt only when `pickups` changes.
+   *
+   * This used to be a getter, and that quietly broke the screen. A getter returned three
+   * **new** `PickupGroup` objects on every change-detection pass, and the template's outer
+   * `*ngFor` had no `trackBy`, so NgForOf — which tracks by identity by default — saw three
+   * removals and three insertions every pass and destroyed the whole subtree: every card,
+   * and every `app-collection-brief` inside them.
+   *
+   * The visible symptom was the protocol request showing as "(cancelled)" in the network
+   * panel. Tapping the toggle starts the request; the click's own change-detection pass
+   * destroys the component; `takeUntil(destroy$)` unsubscribes; the request is cancelled and
+   * a fresh, closed panel takes its place. The inner `*ngFor` over `g.items` does carry
+   * `trackById`, which is why this was easy to miss — it never got the chance to help,
+   * because its whole container was being replaced above it.
+   *
+   * A field plus `trackByStage` on the outer loop fixes both halves: the array is stable,
+   * and the loop would survive a new one anyway. It also stops three `filter()` passes over
+   * every pickup on every change-detection cycle, which was never free.
+   */
+  groups: PickupGroup[] = [];
+
+  /** Called wherever `pickups` is replaced. The only place `groups` is assigned. */
+  private rebuildGroups(): void {
     const of = (stage: CollectionStage) => this.pickups.filter(p => p.stage === stage);
-    return [
+    this.groups = [
       { stage: 'to-collect', title: 'To collect', hint: 'Collect the sample, then tap Mark collected.',
         icon: 'fa-motorcycle', items: of('to-collect') },
       { stage: 'to-hand-over', title: 'Hand over at the lab', hint: 'Give these to the lab technician — they will mark them received.',
@@ -151,4 +176,11 @@ export class MyPickupsComponent implements OnInit, OnDestroy {
   }
 
   trackById = (_: number, p: Pickup) => p.testRegId;
+
+  /**
+   * Keyed on the stage, which never changes, so the three group sections are never torn
+   * down and rebuilt. Belt and braces alongside the `groups` field: if someone turns
+   * `groups` back into a getter, the cards and their open panels still survive.
+   */
+  trackByStage = (_: number, g: PickupGroup) => g.stage;
 }
