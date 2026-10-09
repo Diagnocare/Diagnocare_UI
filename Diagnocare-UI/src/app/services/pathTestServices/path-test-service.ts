@@ -1,7 +1,8 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
+import { SKIP_ERROR_TOAST_HEADER } from 'src/app/core/interceptors/error.interceptor';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { CommonService } from 'src/app/shared/common.service';
 import { map } from 'rxjs/operators';
@@ -124,10 +125,38 @@ export class PathTestService {
    * One request for the whole basket rather than one per test — the booking screens call
    * this every time the selection changes.
    */
-  getTestProtocolsByCodes(testCodes: string[]): Observable<TestBookingProtocolsDto[]> {
+  getTestProtocolsByCodes(
+    testCodes: string[],
+    options: { handlesOwnErrors?: boolean } = {},
+  ): Observable<TestBookingProtocolsDto[]> {
     const codes = (testCodes ?? []).filter(c => !!c);
+
+    // `handlesOwnErrors` opts this request out of ErrorInterceptor's global handling — see
+    // SKIP_ERROR_TOAST_HEADER. Two things change, and the second is the point:
+    //
+    //   - The interceptor's generic "Error" toast is suppressed, because the caller raises
+    //     its own with wording that names what failed and what still holds.
+    //   - **No /access-denied redirect on 403.** That redirect is right for a page whose
+    //     whole purpose the role cannot do, and wrong for a panel someone opened out of
+    //     curiosity: a collection boy who taps "What to collect" mid-round was being thrown
+    //     off their pickup list, cancelling anything else in flight. The interceptor's own
+    //     comment says a speculative call must not yank the user off the page they are
+    //     working on; this is how a caller declares itself speculative.
+    //
+    // It does NOT mean failures go unreported. A caller passing this takes on saying so,
+    // and CollectionBriefComponent does both a toast and an inline strip. The interceptor
+    // still logs every failure to the console and still normalises the error to
+    // AppHttpError, so the caller gets `.status` and the server's own wording.
+    const headers = options.handlesOwnErrors
+      ? new HttpHeaders({ [SKIP_ERROR_TOAST_HEADER]: '1' })
+      : undefined;
+
     return this.httpClient
-      .post<TestBookingProtocolsDto[]>(this.pathTestApiUrl + apiEndpoints.getTestProtocolsByCodes, codes)
+      .post<TestBookingProtocolsDto[]>(
+        this.pathTestApiUrl + apiEndpoints.getTestProtocolsByCodes,
+        codes,
+        headers ? { headers } : {},
+      )
       .pipe(map(list => list ?? []));
   }
 

@@ -6,12 +6,13 @@
        alone, so a screen reader announces the state the arrow is drawing. -->
   <button *ngIf="collapsible"
           type="button"
-          class="cb-toggle link-btn"
+          class="cb-toggle"
           [attr.aria-expanded]="open"
           (click)="toggle()">
-    <i class="fa" [ngClass]="open ? 'fa-chevron-down' : 'fa-chevron-right'" aria-hidden="true"></i>
-    <i class="fa fa-flask" aria-hidden="true"></i>
-    <span>{{ open ? 'Hide collection details' : toggleLabel }}</span>
+    <i class="fa cb-toggle__chevron"
+       [ngClass]="open ? 'fa-chevron-down' : 'fa-chevron-right'" aria-hidden="true"></i>
+    <i class="fa fa-flask cb-toggle__icon" aria-hidden="true"></i>
+    <span class="cb-toggle__label">{{ open ? 'Hide collection details' : toggleLabel }}</span>
   </button>
 
   <div class="cb-body" *ngIf="isShowing">
@@ -41,7 +42,7 @@
       <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
       <div class="cb-state-body">
         <span>{{ errorMessage }}</span>
-        <button type="button" class="link-btn" (click)="retry()">Try again</button>
+        <button type="button" class="cb-retry" (click)="retry()">Try again</button>
       </div>
     </div>
 
