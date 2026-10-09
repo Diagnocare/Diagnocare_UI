@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { ToastrService } from 'ngx-toastr';
 
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { TestBookingProtocolsDto } from 'src/app/models/path-test/protocol/test-protocol.model';
@@ -129,7 +130,10 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
   /** Guards against a slower earlier response landing after a newer one. */
   private requestSeq = 0;
 
-  constructor(private pathTestService: PathTestService) {}
+  constructor(
+    private pathTestService: PathTestService,
+    private toastr: ToastrService,
+  ) {}
 
   /** Whether the body is on screen. With `collapsible` off there is nothing to open. */
   get isShowing(): boolean {
@@ -230,10 +234,11 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
     let answered = false;
 
     // One request for the whole set, as the protocol viewer does: a booking with eight tests
-    // costs one call rather than eight. `inlineErrors` keeps the failure in this panel and,
-    // more importantly, stops a 403 redirecting a collector off their pickup list.
+    // costs one call rather than eight. `handlesOwnErrors` means this component reports the
+    // failure itself — and, more importantly, stops a 403 redirecting a collector off their
+    // pickup list.
     this.pathTestService
-      .getTestProtocolsByCodes(codes, { inlineErrors: true })
+      .getTestProtocolsByCodes(codes, { handlesOwnErrors: true })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: groups => {
@@ -251,7 +256,16 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
           answered = true;
           this.groups = [];
           this.loading = false;
-          this.errorMessage = this.describeFailure(err);
+
+          // Both, deliberately. The strip is the answer in context — it sits where the
+          // protocol would have been, and it is still there a minute later when someone
+          // scrolls back. The toast is what gets noticed: a collector who taps the toggle
+          // and glances away needs the failure to announce itself rather than wait quietly
+          // inside a panel. ToastrModule is configured with preventDuplicates, so several
+          // cards failing the same way raise one toast, not one each.
+          const failure = this.describeFailure(err);
+          this.errorMessage = failure.inline;
+          this.toastr.error(failure.toast, failure.title);
         },
         // Completed with nothing: the request was cancelled. Say so rather than spinning.
         complete: () => {
@@ -264,35 +278,62 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
   }
 
   /**
-   * Turns a failure into something a collector can act on, and a developer can diagnose.
+   * Turns a failure into something a collector can act on and a developer can diagnose:
+   * a toast title, a short line for the toast, and a fuller line for the inline strip.
    *
-   * The status is named in the text on purpose. The generic version of this message sent
-   * someone to ring the laboratory about what turned out to be a 403 from a role rule and a
-   * 405 from a request that never reached the action — neither of which the laboratory can
-   * do anything about. A number in the message is the difference between a support call and
-   * a one-line fix.
+   * The status is named in the text on purpose. The one generic message this replaced told
+   * everyone to ring the laboratory — about what turned out to be a 403 from a role rule.
+   * The laboratory can do nothing about that, and "check with the laboratory" gave nobody a
+   * thread to pull. A number in the message is the difference between a support call and a
+   * one-line fix.
+   *
+   * The two wordings differ because the two places differ. A toast is read in a second and
+   * then gone, so it says what happened. The strip is read where the protocol should have
+   * been and persists, so it also says what to do and what still holds — the tube count
+   * above it is a separate request and usually succeeded, which matters: a collector can
+   * still draw the right tubes while the protocol is unavailable.
    */
-  private describeFailure(err: unknown): string {
+  private describeFailure(err: unknown): { title: string; toast: string; inline: string } {
     const status = (err as { status?: number } | null)?.status;
 
     if (status === 403) {
-      return 'Your role is not allowed to read collection protocols, so only the sample ' +
-        'summary above is shown. Ask an administrator to grant protocol access.';
+      return {
+        title: 'Not allowed',
+        toast: 'Your role cannot read collection protocols. The sample summary is still shown.',
+        inline:
+          'Your role is not allowed to read collection protocols, so only the sample summary ' +
+          'above is shown. Ask an administrator to grant protocol access.',
+      };
     }
 
     if (status === 404 || status === 405) {
-      return `The protocol service did not accept that request (HTTP ${status}). The sample ` +
-        'summary above still applies; confirm the protocol with the laboratory before collecting.';
+      return {
+        title: 'Protocol not loaded',
+        toast: `The protocol service did not accept that request (HTTP ${status}).`,
+        inline:
+          `The protocol service did not accept that request (HTTP ${status}). The sample ` +
+          'summary above still applies; confirm the protocol with the laboratory before collecting.',
+      };
     }
 
     if (status === 0) {
-      return 'The protocol service could not be reached — the request did not get there at ' +
-        'all. Check the connection, then try again.';
+      return {
+        title: 'No connection',
+        toast: 'Could not reach the protocol service.',
+        inline:
+          'The protocol service could not be reached — the request did not get there at all. ' +
+          'Check the connection, then try again.',
+      };
     }
 
     const suffix = status ? ` (HTTP ${status})` : '';
-    return `Could not load the sample collection protocol${suffix}. Check with the laboratory ` +
-      'before collecting.';
+    return {
+      title: 'Protocol not loaded',
+      toast: `Could not load the collection protocol${suffix}.`,
+      inline:
+        `Could not load the sample collection protocol${suffix}. Check with the laboratory ` +
+        'before collecting.',
+    };
   }
 
   get hasGroups(): boolean {
