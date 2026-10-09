@@ -220,14 +220,25 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
     const seq = ++this.requestSeq;
     this.loading = true;
 
+    /**
+     * Did anything at all arrive? A cancelled request emits neither a value nor an error —
+     * the stream simply completes — so without this the panel would keep its spinner for
+     * the rest of the session and say nothing. That is not hypothetical: `takeUntil` on
+     * `destroy$` completes the stream whenever this component is torn down, and the
+     * interceptor navigates on 403 and on refresh failure, which tears pages down.
+     */
+    let answered = false;
+
     // One request for the whole set, as the protocol viewer does: a booking with eight tests
-    // costs one call rather than eight.
+    // costs one call rather than eight. `inlineErrors` keeps the failure in this panel and,
+    // more importantly, stops a 403 redirecting a collector off their pickup list.
     this.pathTestService
-      .getTestProtocolsByCodes(codes)
+      .getTestProtocolsByCodes(codes, { inlineErrors: true })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: groups => {
           if (seq !== this.requestSeq) return;
+          answered = true;
           this.groups = groups ?? [];
           this.loading = false;
         },
@@ -235,14 +246,53 @@ export class CollectionBriefComponent implements OnChanges, OnDestroy {
         //
         // `attemptedKey` deliberately stays put: nothing retries this by itself on the next
         // change-detection pass, and Try again is the one thing that clears it.
-        error: () => {
+        error: (err: unknown) => {
           if (seq !== this.requestSeq) return;
+          answered = true;
           this.groups = [];
           this.loading = false;
+          this.errorMessage = this.describeFailure(err);
+        },
+        // Completed with nothing: the request was cancelled. Say so rather than spinning.
+        complete: () => {
+          if (seq !== this.requestSeq || answered) return;
+          this.loading = false;
           this.errorMessage =
-            'Could not load the sample collection protocol. Check with the laboratory before collecting.';
+            'That request was cancelled before it finished, so the protocol is not shown. Try again.';
         },
       });
+  }
+
+  /**
+   * Turns a failure into something a collector can act on, and a developer can diagnose.
+   *
+   * The status is named in the text on purpose. The generic version of this message sent
+   * someone to ring the laboratory about what turned out to be a 403 from a role rule and a
+   * 405 from a request that never reached the action — neither of which the laboratory can
+   * do anything about. A number in the message is the difference between a support call and
+   * a one-line fix.
+   */
+  private describeFailure(err: unknown): string {
+    const status = (err as { status?: number } | null)?.status;
+
+    if (status === 403) {
+      return 'Your role is not allowed to read collection protocols, so only the sample ' +
+        'summary above is shown. Ask an administrator to grant protocol access.';
+    }
+
+    if (status === 404 || status === 405) {
+      return `The protocol service did not accept that request (HTTP ${status}). The sample ` +
+        'summary above still applies; confirm the protocol with the laboratory before collecting.';
+    }
+
+    if (status === 0) {
+      return 'The protocol service could not be reached — the request did not get there at ' +
+        'all. Check the connection, then try again.';
+    }
+
+    const suffix = status ? ` (HTTP ${status})` : '';
+    return `Could not load the sample collection protocol${suffix}. Check with the laboratory ` +
+      'before collecting.';
   }
 
   get hasGroups(): boolean {
