@@ -219,7 +219,12 @@
                   <option value="">-- Select collection boy --</option>
                   <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
                 </select>
-                <small class="form-hint form-hint--warn" *ngIf="collectorMissing">
+                <!-- Nobody to send: said here rather than left as an empty dropdown. -->
+                <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
+                  No active collection boys are set up. Add one under Staff, or untick
+                  Outside Collection to record this as collected at the centre.
+                </small>
+                <small class="form-hint form-hint--warn" *ngIf="!noCollectionBoys && collectorMissing">
                   Choose who will go to collect the sample.
                 </small>
               </div>

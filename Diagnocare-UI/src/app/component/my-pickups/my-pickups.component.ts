@@ -6,6 +6,7 @@ import { ToastrService } from 'ngx-toastr';
 import { SampleCollectionService } from 'src/app/services/sampleCollectionServices/sample-collection.service';
 import { CollectionStage, Pickup } from 'src/app/models/sampleCollection/sample-collection.model';
 import { waitingLabel } from 'src/app/utilities/work-queue.util';
+import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
 
 interface PickupGroup {
   stage: CollectionStage;
@@ -29,7 +30,7 @@ interface PickupGroup {
 @Component({
   selector: 'app-my-pickups',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CollectionBriefComponent],
   templateUrl: './my-pickups.component.html',
   styleUrls: ['./my-pickups.component.scss'],
 })
@@ -40,6 +41,9 @@ export class MyPickupsComponent implements OnInit, OnDestroy {
   collectingId: number | null = null;
 
   readonly waitingLabel = waitingLabel;
+
+  /** Split test codes per pickup — see `codesFor`. Cleared whenever the list reloads. */
+  private readonly codeCache = new Map<number, string[]>();
 
   private readonly destroy$ = new Subject<void>();
 
@@ -60,9 +64,14 @@ export class MyPickupsComponent implements OnInit, OnDestroy {
     this.collection.myPickups(1)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: list => { this.pickups = list ?? []; this.isLoading = false; },
+        next: list => {
+          this.pickups = list ?? [];
+          this.codeCache.clear();
+          this.isLoading = false;
+        },
         error: () => {
           this.pickups = [];
+          this.codeCache.clear();
           this.errorMessage = 'Could not load your pickups. Please try again.';
           this.isLoading = false;
         },
@@ -101,6 +110,32 @@ export class MyPickupsComponent implements OnInit, OnDestroy {
           this.toastr.error(err?.error?.error || 'Could not save that. Please try again.', 'Not saved');
         },
       });
+  }
+
+  /**
+   * The test codes for one pickup, as a **stable** array.
+   *
+   * Two things make this a method with a cache rather than a getter or a template
+   * expression. An array built fresh on each call is a new reference every
+   * change-detection pass, and `app-collection-brief` watches that input to decide whether
+   * to fetch — a new reference every pass is an endless request loop. And `testCodes`
+   * arrives as one string, so it has to be split somewhere.
+   *
+   * The split is deliberately permissive — comma, semicolon, pipe or whitespace — because
+   * the API builds this string and the delimiter is its business, not ours. Getting it wrong
+   * would be a protocol section that silently shows nothing.
+   */
+  codesFor(p: Pickup): string[] {
+    const cached = this.codeCache.get(p.testRegId);
+    if (cached) return cached;
+
+    const codes = (p.testCodes || '')
+      .split(/[,;|\s]+/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
+
+    this.codeCache.set(p.testRegId, codes);
+    return codes;
   }
 
   /** tel: link; blank when the patient has no usable number. */

@@ -25,11 +25,11 @@ import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
 import { DcSearchComponent } from 'src/app/shared/simple/dc-search.component';
 import { MarkCollectedModalComponent } from '../mark-collected/mark-collected-modal.component';
 import { RecallReportModalComponent } from '../recall-report/recall-report-modal.component';
+import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
 import { AssignCollectorModalComponent } from '../assign-collector/assign-collector-modal.component';
 import { SampleCollectionService } from 'src/app/services/sampleCollectionServices/sample-collection.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role } from 'src/app/constant/enums';
-import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
 
 /**
  * The worklist — the lab's home screen.
@@ -68,8 +68,8 @@ import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collec
     DcSearchComponent,
     MarkCollectedModalComponent,
     RecallReportModalComponent,
-    AssignCollectorModalComponent,
     CollectionBriefComponent,
+    AssignCollectorModalComponent,
   ],
   templateUrl: './worklist.component.html',
   styleUrls: ['./worklist.component.scss'],
@@ -319,55 +319,6 @@ export class WorklistComponent implements OnInit, OnDestroy {
     this.collectingItem = null;
   }
 
-  /** Opens the collection-boy picker for a row still waiting to be collected. */
-  assign(item: WorklistItem, event: Event): void {
-    event.stopPropagation();
-    this.assigningItem = item;
-  }
-
-  onAssigned(): void {
-    this.assigningItem = null;
-    this.load();
-  }
-
-  onAssignCancelled(): void {
-    this.assigningItem = null;
-  }
-
-  /**
-   * The lab has the sample in hand. One click, no dialog: the technician is
-   * standing at the bench with the tube, and the row already names the patient
-   * and order. Reloads because every test on the booking moves at once.
-   */
-  markReceived(item: WorklistItem): void {
-    if (this.receivingId !== null) return;
-    this.receivingId = item.testRegId;
-
-    this.sampleCollection.markReceived(item.testRegId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: res => {
-          this.receivingId = null;
-          this.toastr.success(res?.message || 'Sample received.', 'Received at lab');
-          this.load();
-        },
-        error: err => {
-          this.receivingId = null;
-          this.toastr.error(err?.error?.error || 'Could not record that. Please try again.', 'Not saved');
-        },
-      });
-  }
-
-  /** "Ravi Kumar · collected 2h" — where a pickup stands, for the Results column. */
-  collectionText(item: WorklistItem): string {
-    const who = item.collectionAssignedToName || 'collection boy';
-    if (item.queue === 'to-receive') {
-      const ago = waitingLabel(item.sampleCollectedAt);
-      return `Collected by ${who}${ago ? ' · ' + ago + ' ago' : ''}`;
-    }
-    return item.collectionAssignedTo ? `Outside pickup: ${who}` : 'At the centre';
-  }
-
   // ── What to collect ─────────────────────────────────────────────────────
 
   /**
@@ -416,6 +367,57 @@ export class WorklistComponent implements OnInit, OnDestroy {
     for (const key of Array.from(this.openBriefs)) {
       if (!onPage.has(key)) this.openBriefs.delete(key);
     }
+  }
+
+  // ── Outside pickups ─────────────────────────────────────────────────────
+
+  /** Opens the collection-boy picker for a row still waiting to be collected. */
+  assign(item: WorklistItem, event: Event): void {
+    event.stopPropagation();
+    this.assigningItem = item;
+  }
+
+  onAssigned(): void {
+    this.assigningItem = null;
+    this.load();
+  }
+
+  onAssignCancelled(): void {
+    this.assigningItem = null;
+  }
+
+  /**
+   * The lab has the sample in hand. One click, no dialog: the technician is
+   * standing at the bench with the tube, and the row already names the patient
+   * and order. Reloads because every test on the booking moves at once.
+   */
+  markReceived(item: WorklistItem): void {
+    if (this.receivingId !== null) return;
+    this.receivingId = item.testRegId;
+
+    this.sampleCollection.markReceived(item.testRegId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => {
+          this.receivingId = null;
+          this.toastr.success(res?.message || 'Sample received.', 'Received at lab');
+          this.load();
+        },
+        error: err => {
+          this.receivingId = null;
+          this.toastr.error(err?.error?.error || 'Could not record that. Please try again.', 'Not saved');
+        },
+      });
+  }
+
+  /** "Ravi Kumar · collected 2h" — where a pickup stands, for the Results column. */
+  collectionText(item: WorklistItem): string {
+    const who = item.collectionAssignedToName || 'collection boy';
+    if (item.queue === 'to-receive') {
+      const ago = waitingLabel(item.sampleCollectedAt);
+      return `Collected by ${who}${ago ? ' · ' + ago + ' ago' : ''}`;
+    }
+    return item.collectionAssignedTo ? `Outside pickup: ${who}` : 'At the centre';
   }
 
   /** Opens the recall confirmation for an issued report. */

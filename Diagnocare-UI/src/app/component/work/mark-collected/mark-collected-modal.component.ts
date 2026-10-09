@@ -182,6 +182,24 @@ export const MODAL_STYLES = `
  * list to check the container would be a worse dialog than one that can answer
  * it in place.
  */
+
+/**
+ * The one rule this dialog needs on top of the shared look. Kept out of
+ * MODAL_STYLES because the assign-collector dialog shares that constant and has
+ * no brief to space.
+ */
+const MARK_COLLECTED_STYLES = `
+  /* The disclosure sits between the test and the question, separated by a rule
+     so the body reads as two parts: what to collect, then where it was
+     collected. Closed, it is a single line and the dialog looks as it always
+     did; open, the body scrolls, which .mc-body already handles. */
+  .mc-brief {
+    margin: 0 0 0.9rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+  }
+`;
+
 @Component({
   selector: 'app-mark-collected-modal',
   standalone: true,
@@ -266,21 +284,7 @@ export const MODAL_STYLES = `
       </div>
     </div>
   `,
-  // MODAL_STYLES is shared with the assign-collector dialog, so the one rule
-  // only this dialog needs lives in a second block rather than being added
-  // there for a dialog that has no disclosure to style.
-  // No backticks inside this literal: that has broken this file before.
-  styles: [MODAL_STYLES, `
-    /* Between the test and the question, separated by a rule, so the body reads
-       as two parts: what to collect, then where it was collected. Closed, it is
-       a single line and the dialog looks as it always did; open, the body
-       scrolls, which .mc-body already handles. */
-    .mc-brief {
-      margin: 0 0 0.9rem;
-      padding-bottom: 0.9rem;
-      border-bottom: 1px solid var(--border-color, #e2e8f0);
-    }
-  `]
+  styles: [MODAL_STYLES, MARK_COLLECTED_STYLES]
 })
 export class MarkCollectedModalComponent {
   /** The row that was clicked. Null closes the modal. */

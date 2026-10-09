@@ -95,6 +95,17 @@
 
 .mp-meta { font-size: 0.78rem; color: var(--text-secondary, #64748b); }
 
+// "What to collect". Closed, this is one quiet line of link text and the card
+// keeps the height it had; open, the card grows and the grid reflows around it,
+// which is the right trade for a phone held one-handed at a doorstep.
+//
+// A rule above it rather than a box around it: the card already has a border,
+// and a panel inside a panel inside a card is three frames for one thought.
+.mp-brief {
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color, #e2e8f0);
+}
+
 .mp-actions {
   display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
   margin-top: auto; padding-top: 0.3rem;
