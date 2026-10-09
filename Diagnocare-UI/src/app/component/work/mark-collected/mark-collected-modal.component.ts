@@ -6,6 +6,7 @@ import { ToastrService } from 'ngx-toastr';
 import { WorklistService } from 'src/app/services/worklistServices/worklist.service';
 import { WorklistItem } from 'src/app/models/worklist/worklist.models';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
+import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
 
 /**
  * "Mark sample collected" — one question, asked where the work is.
@@ -24,11 +25,21 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
  *
  * The grain is the booking, not the test: one needle draw covers every test on
  * the visit, so this is asked once and moves all of them.
+ *
+ * "What to collect", closed
+ * ─────────────────────────
+ * The tube count and the collection protocol are offered here too, behind the
+ * same disclosure the worklist row carries, and closed for the same reason:
+ * someone who opened this dialog to record a draw they have already made is
+ * answering one question and should see one question. But this is also where a
+ * collector lands when they are not sure yet, and sending them back out to the
+ * list to check the container would be a worse dialog than one that can answer
+ * it in place.
  */
 @Component({
   selector: 'app-mark-collected-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CollectionBriefComponent],
   template: `
     <div class="mc-overlay" *ngIf="visible" role="dialog" aria-modal="true"
          aria-labelledby="mc-title" (keydown.escape)="close()">
@@ -63,6 +74,19 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
 
         <div class="mc-body">
           <p class="mc-test" *ngIf="item">{{ item.testName }}</p>
+
+          <!-- What to collect: closed, one click, never leaves the dialog. The
+               panel owns its own toggle here, because unlike the worklist row
+               there is no table to span. -->
+          <div class="mc-brief" *ngIf="item">
+            <app-collection-brief
+              [testRegId]="item.testRegId"
+              [testCode]="item.testCode"
+              [collapsible]="true"
+              [open]="briefOpen"
+              (openChange)="briefOpen = $event">
+            </app-collection-brief>
+          </div>
 
           <label class="mc-label" for="mc-location">Where was the sample collected?</label>
           <select id="mc-location" class="form-select"
@@ -198,6 +222,16 @@ import { SamplingLocationService } from 'src/app/services/samplingServices/sampl
       color: var(--text-primary, #0f172a);
     }
 
+    /* The disclosure sits between the test and the question, separated by a
+       rule so the body reads as two parts: what to collect, then where it was
+       collected. Closed, it is a single line and the dialog looks as it always
+       did; open, the body scrolls, which .mc-body already handles. */
+    .mc-brief {
+      margin: 0 0 0.9rem;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+
     /* Stacked label, at the size styles.css gives a filter label. Not
        .form-label: that one is right-aligned for the 130px .form-group grid. */
     .mc-label {
@@ -253,6 +287,13 @@ export class MarkCollectedModalComponent {
   location = '';
   isSaving = false;
 
+  /**
+   * Whether the collection details are showing. Closed every time the dialog opens: it is
+   * reset in `reset()` along with the location, so the next booking starts from the same
+   * one-question dialog rather than inheriting the last collector's curiosity.
+   */
+  briefOpen = false;
+
   constructor(
     private worklist: WorklistService,
     private samplingLocations: SamplingLocationService,
@@ -300,5 +341,6 @@ export class MarkCollectedModalComponent {
 
   private reset(): void {
     this.location = '';
+    this.briefOpen = false;
   }
 }

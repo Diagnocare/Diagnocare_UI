@@ -1,0 +1,115 @@
+<div class="cb" [class.cb--open]="isShowing">
+
+  <!-- ── The toggle ───────────────────────────────────────────────────────────
+       Hidden mode is the default: this button is all the screen shows until
+       somebody asks for the detail. aria-expanded rather than a styled chevron
+       alone, so a screen reader announces the state the arrow is drawing. -->
+  <button *ngIf="collapsible"
+          type="button"
+          class="cb-toggle link-btn"
+          [attr.aria-expanded]="open"
+          (click)="toggle()">
+    <i class="fa" [ngClass]="open ? 'fa-chevron-down' : 'fa-chevron-right'" aria-hidden="true"></i>
+    <i class="fa fa-flask" aria-hidden="true"></i>
+    <span>{{ open ? 'Hide collection details' : toggleLabel }}</span>
+  </button>
+
+  <div class="cb-body" *ngIf="isShowing">
+
+    <!-- ── 1. How many tubes, of what ─────────────────────────────────────────
+         Keyed on the booking, not the row's test: one draw covers every test on
+         the visit, and the collector is carrying tubes for all of them. Self
+         fetching, with its own loading, error and empty states. -->
+    <app-sample-summary-panel
+      *ngIf="hasSampleBreakdown"
+      [testRegId]="testRegId"
+      [showHeading]="true"
+      [compact]="false">
+    </app-sample-summary-panel>
+
+    <!-- ── Loading the protocols ──────────────────────────────────────────── -->
+    <div class="cb-state" *ngIf="loading">
+      <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>Loading sample collection protocol…</span>
+    </div>
+
+    <!-- ── The fetch failed ──────────────────────────────────────────────────
+         Said in words, with a way to try again. A blank protocol section reads
+         as "nothing special is required", which is the one conclusion a
+         collector must not draw from a request that simply did not arrive. -->
+    <div class="cb-state cb-state--error" *ngIf="!loading && errorMessage">
+      <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+      <div class="cb-state-body">
+        <span>{{ errorMessage }}</span>
+        <button type="button" class="link-btn" (click)="retry()">Try again</button>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!loading && !errorMessage">
+
+      <!-- ── 2. Fasting, hoisted ─────────────────────────────────────────────
+           The one fact that changes what happens next. A patient who has eaten
+           goes home and comes back, and learning that three sections into a
+           protocol block is learning it too late. -->
+      <div class="cb-alert cb-alert--fasting" *ngIf="fastingTests.length > 0">
+        <i class="fa fa-hourglass-half" aria-hidden="true"></i>
+        <div>
+          <strong>Fasting required</strong>
+          <span class="cb-alert-list">
+            <span *ngFor="let t of fastingTests; let last = last">
+              {{ fastingText(t) }}<span *ngIf="!last">, </span>
+            </span>
+          </span>
+          <span class="cb-alert-hint">
+            Confirm the patient has fasted before drawing. The longest fast listed is the one
+            that applies.
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Tests nobody linked a protocol to ───────────────────────────────
+           Listed, never silently omitted. These are the tests whose container
+           and preparation the collector has to confirm by asking. -->
+      <div class="cb-alert cb-alert--missing" *ngIf="testsMissingProtocol.length > 0">
+        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+        <div>
+          <strong>No protocol linked for
+            {{ testsMissingProtocol.length }}
+            {{ testsMissingProtocol.length === 1 ? 'test' : 'tests' }}</strong>
+          <span class="cb-alert-list">
+            <span *ngFor="let g of testsMissingProtocol; let last = last">
+              {{ g.testName }}<span *ngIf="!last">, </span>
+            </span>
+          </span>
+          <span class="cb-alert-hint">
+            Confirm the sample type, container and preparation with the laboratory before
+            collecting.
+          </span>
+        </div>
+      </div>
+
+      <!-- ── 3. The protocol behind each test ───────────────────────────────
+           Full detail, not compact: this panel is only on screen because
+           somebody asked to read it, and the sections they came for are
+           preparation, procedure, storage and rejection criteria. -->
+      <div class="cb-protocols" *ngIf="hasGroups">
+        <app-test-protocol-panel
+          *ngFor="let g of groups; trackBy: trackByGroup"
+          [protocols]="g.protocols"
+          [testName]="g.testName"
+          [testCode]="g.testCode"
+          [showHeading]="true"
+          [compact]="false">
+        </app-test-protocol-panel>
+      </div>
+
+      <!-- Nothing came back at all — a different thing from a failed request. -->
+      <div class="cb-state cb-state--idle" *ngIf="!hasGroups">
+        <i class="fa fa-flask" aria-hidden="true"></i>
+        <span>No collection protocol is recorded for this test. Ask the laboratory before collecting.</span>
+      </div>
+
+    </ng-container>
+
+  </div>
+</div>

@@ -101,6 +101,49 @@
     box-shadow: inset 3px 0 0 var(--dc-wait-line, #fcd34d);
   }
 
+  // ── What to collect ───────────────────────────────────────────────────
+  // A disclosure under the test name, on to-collect rows only. Quiet by
+  // design: the row's one primary action is "Mark sample collected", and a
+  // second prominent control beside it would make the collector choose. This
+  // one reveals; that one records.
+  //
+  // Not a button of its own — .link-btn, the same treatment the patient name
+  // already uses on this screen, so nothing new has to be recognised.
+  &__brief-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+    font-size: var(--dc-text-micro, 0.75rem);
+    font-weight: 600;
+    white-space: nowrap;
+
+    .fa-chevron-right,
+    .fa-chevron-down {
+      font-size: 0.65rem;
+    }
+  }
+
+  // The open row and its detail read as one object: the pair is tinted
+  // together and the striping that would otherwise split them is overridden.
+  &__row--has-brief > td {
+    background: var(--dc-surface-2, #f8fafc);
+    border-bottom-color: transparent;
+  }
+
+  // ── The detail row ────────────────────────────────────────────────────
+  // Spans every column, because a tube count and a protocol are paragraphs
+  // rather than cells. `overflow: visible` undoes the table's clipping — this
+  // cell is the one place on the screen where content is meant to set its own
+  // height instead of being truncated to keep rows even.
+  &__brief > td {
+    overflow: visible;
+    white-space: normal;
+    padding: 0.25rem 1rem 1rem;
+    background: var(--dc-surface-2, #f8fafc);
+    box-shadow: inset 3px 0 0 var(--dc-line, #cbd5e1);
+  }
+
   // ── Cells ─────────────────────────────────────────────────────────────
   // Names truncate rather than wrap. A wrapped name makes its row taller than
   // its neighbours, and a column of uneven rows is markedly harder to scan
