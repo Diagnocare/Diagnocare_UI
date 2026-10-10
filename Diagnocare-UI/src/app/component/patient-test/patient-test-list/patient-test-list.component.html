@@ -415,6 +415,15 @@
                       <i class="fa" [ngClass]="isPrinted(detail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
                       {{ isPrinted(detail) ? 'Printed' : 'Not printed' }}
                     </span>
+                    <!-- Only shown once the report HAS gone: a chip on every
+                         unsent report would be noise on a list where most
+                         reports are collected in person. -->
+                    <span class="print-status-chip wa-sent-chip"
+                          *ngIf="isTestSentOnWhatsApp(detail)"
+                          [title]="testWhatsAppSentTooltip(detail)">
+                      <i class="fa fa-whatsapp"></i>
+                      {{ testWhatsAppSentLabel(detail) }}
+                    </span>
                   </div>
                 </td>
 
@@ -512,6 +521,15 @@
                 Smart Report
               </button>
               <ng-container *ngTemplateOutlet="whatsAppButton; context: { $implicit: selectedPatientTest }"></ng-container>
+
+              <!-- The visit's WhatsApp button sends the Smart Report, so its sent
+                   state belongs here rather than on any one test row. -->
+              <span class="print-status-chip wa-sent-chip"
+                    *ngIf="isSmartReportSentOnWhatsApp"
+                    [title]="whatsAppSentTooltip('INSIGHTS')">
+                <i class="fa fa-whatsapp"></i>
+                {{ whatsAppSentLabel('INSIGHTS') }}
+              </span>
             </div>
           </div>
 
@@ -586,10 +604,56 @@
   <div class="detail-overlay-backdrop" (click)="closeWhatsAppDialog()"></div>
   <div class="ptl-wa-dialog" role="dialog" aria-modal="true" aria-labelledby="ptl-wa-h">
     <h3 id="ptl-wa-h"><i class="fa fa-whatsapp" aria-hidden="true"></i> Report on WhatsApp</h3>
+
+    <!-- ══ Step 2: did it actually go? ═══════════════════════════════════
+         WhatsApp opened in another tab and tells this app nothing about what
+         happened there, so the only way to know is to ask. "Yes, sent" is the
+         one path that records the report as sent — every other way out of this
+         dialog, including closing it, leaves the report unsent. -->
+    <ng-container *ngIf="whatsAppSentConfirm as pending">
+      <p class="ptl-wa-confirm__lead">
+        <i class="fa fa-external-link" aria-hidden="true"></i>
+        WhatsApp is open for <strong>{{ formatWhatsAppNumber(pending.phone) }}</strong>
+        with the {{ pending.label }} link already written.
+      </p>
+      <p class="ptl-wa-confirm__ask">Did you send the message?</p>
+      <p class="ptl-wa-hint">
+        Answer once you have pressed send in WhatsApp. This only records what happened —
+        it sends nothing itself, and nothing is recorded unless you say the message went.
+      </p>
+
+      <div class="ptl-wa-error" *ngIf="whatsAppNumberError">{{ whatsAppNumberError }}</div>
+
+      <div class="ptl-wa-actions">
+        <button type="button" class="dc-btn dc-btn--cancel"
+                [disabled]="markingWhatsAppSent"
+                title="Nothing is recorded — the report stays unsent"
+                (click)="dismissWhatsAppSent()">
+          Not sent
+        </button>
+        <button type="button" class="dc-btn dc-btn--save"
+                [disabled]="markingWhatsAppSent"
+                title="Record this report as sent on WhatsApp"
+                (click)="confirmWhatsAppSent()">
+          <i class="fa" [ngClass]="markingWhatsAppSent ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ markingWhatsAppSent ? 'Recording…' : 'Yes, sent' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- ══ Step 1: the number, then send or save ════════════════════════ -->
+    <ng-container *ngIf="!whatsAppSentConfirm">
     <p>
       Order {{ waTest.patient_Test_Id }}<span *ngIf="whatsAppDialogMode === 'test' && selectedTestDetail"> &middot; {{ selectedTestDetail.testName || selectedTestDetail.testCode }}</span>.
       <span *ngIf="whatsAppDialogReady">The report link will open in WhatsApp for this number; you press send.</span>
       <span *ngIf="!whatsAppDialogReady">The report is not ready yet. Save the number now and send it when the report is ready.</span>
+    </p>
+
+    <!-- Re-sending is normal (a lost message, a second number). Saying so up
+         front stops it looking like a mistake, and shows where it went last time. -->
+    <p class="ptl-wa-sent-note" *ngIf="whatsAppDialogSentAlready">
+      <i class="fa fa-check-circle" aria-hidden="true"></i>
+      {{ whatsAppDialogSentTooltip }}. Sending again is fine.
     </p>
 
     <label class="form-label required" for="ptl-wa-number">Send to mobile number</label>
@@ -615,7 +679,7 @@
     <div class="ptl-wa-actions">
       <button type="button" class="dc-btn dc-btn--clear ptl-wa-off"
               *ngIf="waTest.report_On_WhatsApp"
-              [disabled]="savingWhatsAppPrefFor === waTest.patient_Test_Id"
+              [disabled]="whatsAppDialogBusy"
               title="The patient no longer wants this visit's report on WhatsApp"
               (click)="turnOffWhatsAppFromDialog()">
         Turn off
@@ -623,18 +687,21 @@
       <button type="button" class="dc-btn dc-btn--cancel" (click)="closeWhatsAppDialog()">Cancel</button>
       <button type="button" class="dc-btn dc-btn--save"
               *ngIf="!whatsAppDialogReady"
-              [disabled]="savingWhatsAppPrefFor === waTest.patient_Test_Id"
+              [disabled]="whatsAppDialogBusy"
               (click)="saveWhatsAppDialog()">
-        <i class="fa" [ngClass]="savingWhatsAppPrefFor === waTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-check'"></i> Save
+        <i class="fa" [ngClass]="whatsAppDialogBusy ? 'fa-spinner fa-spin' : 'fa-check'"></i> Save
       </button>
+      <!-- Stays disabled through the link call as well, so a second click cannot
+           open a second WhatsApp tab while the first is still being prepared. -->
       <button type="button" class="dc-btn dc-btn--save"
               *ngIf="whatsAppDialogReady"
-              [disabled]="savingWhatsAppPrefFor === waTest.patient_Test_Id"
+              [disabled]="whatsAppDialogBusy"
               (click)="sendFromWhatsAppDialog()">
-        <i class="fa" [ngClass]="savingWhatsAppPrefFor === waTest.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
-        Send on WhatsApp
+        <i class="fa" [ngClass]="whatsAppDialogBusy ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
+        {{ whatsAppDialogBusy ? 'Preparing…' : (whatsAppDialogSentAlready ? 'Send again' : 'Send on WhatsApp') }}
       </button>
     </div>
+    </ng-container>
   </div>
 </div>
 
@@ -661,7 +728,8 @@
 
 <!-- ══ Parameter Management Overlay ════════════════════════════════════ -->
 <div class="parameter-overlay" *ngIf="showParameterView">
-  <div class="parameter-overlay-backdrop" (click)="closeParameterView()"></div>
+  <!-- Guarded close: asks before discarding typed-but-unsaved results. -->
+  <div class="parameter-overlay-backdrop" (click)="requestCloseParameterView()"></div>
 
   <div class="parameter-container">
     <div class="parameter-header">
@@ -731,10 +799,14 @@
             <i class="fa" [ngClass]="isSendingWhatsApp ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
             {{ isSendingWhatsApp ? 'Preparing…' : 'WhatsApp' }}
           </button>
-          <span class="report-blocked-note"
-                *ngIf="!canIssueReport && !isLoadingParameters">
-            <i class="fa fa-exclamation-circle"></i> {{ reportBlockedReason }}
-          </span>
+          <!-- The standing "N results have not been entered and saved yet"
+               banner used to sit here. It showed for as long as any result was
+               missing, which is most of the time an operator spends entering
+               them, so it read as a complaint about work in progress. The same
+               sentence is still on each disabled button as its tooltip
+               (reportBlockedReason, above), the footer counts "N of M results
+               saved", and closing with unsaved edits now asks through the
+               shared unsaved-changes dialog. Nothing was lost with it. -->
 
           <!-- Same read-only printed flag as the test list, surfaced here too since
                this is the screen the operator is looking at right after printing.
@@ -747,8 +819,18 @@
             <i class="fa" [ngClass]="isPrinted(selectedTestDetail) ? 'fa-check-circle' : 'fa-circle-o'"></i>
             {{ isPrinted(selectedTestDetail) ? 'Printed' : 'Not Printed' }}
           </span>
+
+          <!-- Sent on WhatsApp — set from the WhatsApp dialog, but only once the
+               operator has confirmed the message went. Shown next to the printed
+               chip because this is the screen they are on right after sending. -->
+          <span class="print-status-chip print-status-chip--lg wa-sent-chip"
+                *ngIf="selectedTestDetail && isTestSentOnWhatsApp(selectedTestDetail)"
+                [title]="testWhatsAppSentTooltip(selectedTestDetail)">
+            <i class="fa fa-whatsapp"></i>
+            {{ testWhatsAppSentLabel(selectedTestDetail) }}
+          </span>
         </ng-container>
-        <button class="overlay-close-btn" (click)="closeParameterView()" title="Close">
+        <button class="overlay-close-btn" (click)="requestCloseParameterView()" title="Close">
           <i class="fa fa-times"></i>
         </button>
       </div>
@@ -778,11 +860,15 @@
         <table class="table parameter-list-table">
           <thead>
             <tr>
+              <!-- Column widths are fixed in CSS (table-layout: fixed). The
+                   Result column must never be sized by what is in it: an
+                   operator typing "10.5" would otherwise watch the table
+                   re-flow on every keystroke. -->
               <th class="col-idx">#</th>
-              <th>Parameter</th>
-              <th>Unit</th>
-              <th>Reference Range</th>
-              <th>Type</th>
+              <th class="col-param">Parameter</th>
+              <th class="col-unit">Unit</th>
+              <th class="col-range">Reference Range</th>
+              <th class="col-type">Type</th>
               <th class="col-result">Result</th>
             </tr>
           </thead>
@@ -790,13 +876,13 @@
             <tr *ngFor="let param of testParameters; let i = index"
                 [class.row-flagged]="resultFlag(param)">
               <td class="col-idx">{{ i + 1 }}</td>
-              <td class="param-name">{{ param.parameterName }}</td>
-              <td class="param-muted">{{ param.parameterUnit || '—' }}</td>
-              <td>
+              <td class="col-param param-name">{{ param.parameterName }}</td>
+              <td class="col-unit param-muted">{{ param.parameterUnit || '—' }}</td>
+              <td class="col-range">
                 <span class="range-pill" *ngIf="param.parameterRange; else noRange">{{ param.parameterRange }}</span>
                 <ng-template #noRange><span class="param-muted">—</span></ng-template>
               </td>
-              <td class="param-muted">{{ param.type || '—' }}</td>
+              <td class="col-type param-muted">{{ param.type || '—' }}</td>
               <td class="col-result">
                 <div class="result-field"
                      [class.result-field--high]="resultFlag(param) === 'H'"
@@ -815,10 +901,21 @@
                     [attr.aria-label]="param.parameterName + ' result'"
                     [attr.aria-invalid]="resultError(param) ? 'true' : null"
                     [(ngModel)]="param.resultValue"
-                    (input)="updateParameterResult(param, $any($event.target).value)">
+                    (input)="updateParameterResult(param, $any($event.target).value)"
+                    (blur)="commitParameterResult(param)">
                   <span class="result-unit" *ngIf="param.parameterUnit">{{ param.parameterUnit }}</span>
-                  <span class="result-flag" *ngIf="resultFlag(param) as flag"
-                        [title]="flag === 'H' ? 'Above reference range' : 'Below reference range'">{{ flag }}</span>
+                  <!-- The H/L badge keeps its slot whether or not it is lit.
+                       Rendered conditionally it used to appear mid-typing and
+                       squeeze the field, and sitting bare against the unit it
+                       read as part of it — "cells/mcL" + "L" looks exactly
+                       like "cells/mcLL". It is a bordered pill, held apart,
+                       and the unit text is never touched. -->
+                  <span class="result-flag"
+                        [class.result-flag--high]="resultFlag(param) === 'H'"
+                        [class.result-flag--low]="resultFlag(param) === 'L'"
+                        [attr.title]="resultFlag(param) === 'H' ? 'Above reference range'
+                                    : resultFlag(param) === 'L' ? 'Below reference range' : null"
+                        [attr.aria-hidden]="resultFlag(param) ? null : 'true'">{{ resultFlag(param) }}</span>
                 </div>
                 <div class="result-error" *ngIf="resultError(param) as err">
                   <i class="fa fa-exclamation-circle"></i> {{ err }}
@@ -885,3 +982,11 @@
   (closed)="closeRejectionView()"
   (changed)="onRejectionsChanged()">
 </app-sample-rejection-modal>
+
+<!-- ══ Shared unsaved-changes guard modal ══════════════════════════════════
+     Opened by UnsavedChangesModalService when the result-entry overlay is
+     closed with typed results that are not saved. The same dialog, through
+     the same service, as the attendance grid — see attendance.component.
+     `isLoadingParameters` is this screen's in-flight flag, so Save & Continue
+     shows its spinner while the save is actually running. -->
+<app-unsaved-changes-modal [saving]="isLoadingParameters"></app-unsaved-changes-modal>

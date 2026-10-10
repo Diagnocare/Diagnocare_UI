@@ -1,0 +1,129 @@
+.my-pickups {
+  .page-header h2 { display: flex; align-items: center; gap: 0.5rem; }
+}
+
+.mp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-white, #fff);
+  color: var(--text-secondary, #64748b);
+
+  .fa { font-size: 1.6rem; }
+  &--ok .fa { color: var(--dc-ok-ink, #15803d); }
+  strong { color: var(--text-primary, #1e293b); }
+}
+
+.mp-group {
+  margin-bottom: 1.5rem;
+
+  &__head {
+    margin-bottom: 0.75rem;
+    color: #fff;
+    h3 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.1rem; font-weight: 700; color: inherit; }
+    p  { margin: 0.2rem 0 0; font-size: 0.85rem; opacity: 0.85; color: inherit; }
+  }
+}
+
+.mp-count {
+  min-width: 1.6rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+// One column on a phone, as many ~340px cards as fit on anything wider.
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: 1rem;
+}
+
+.mp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-white, #fff);
+  border-left: 4px solid var(--primary-color, #1e5ba8);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
+  color: var(--text-primary, #1e293b);
+
+  &--urgent { border-left-color: #dc2626; }
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    h4 { margin: 0; font-size: 1.02rem; font-weight: 700; }
+  }
+}
+
+.mp-group--to-hand-over .mp-card { border-left-color: #d97706; }
+.mp-group--handed-over  .mp-card { border-left-color: #15803d; opacity: 0.85; }
+
+.mp-sub { font-size: 0.78rem; color: var(--text-secondary, #64748b); }
+
+.mp-badge--urgent {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.15rem 0.55rem; border-radius: 999px;
+  background: #fee2e2; color: #b91c1c; font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+}
+
+.mp-tests {
+  display: flex; flex-wrap: wrap; gap: 0.35rem;
+  margin: 0; padding: 0; list-style: none;
+  li {
+    padding: 0.15rem 0.55rem; border-radius: 6px;
+    background: var(--bg-light, #f1f5f9); font-size: 0.78rem; font-weight: 600;
+  }
+}
+
+.mp-where, .mp-remark {
+  display: flex; gap: 0.45rem; align-items: flex-start;
+  margin: 0; font-size: 0.85rem; color: var(--text-primary, #334155);
+  .fa { margin-top: 0.2rem; color: var(--text-secondary, #64748b); }
+}
+
+.mp-meta { font-size: 0.78rem; color: var(--text-secondary, #64748b); }
+
+// "What to collect". Closed, this is one quiet line of link text and the card
+// keeps the height it had; open, the card grows and the grid reflows around it,
+// which is the right trade for a phone held one-handed at a doorstep.
+//
+// A rule above it rather than a box around it: the card already has a border,
+// and a panel inside a panel inside a card is three frames for one thought.
+.mp-brief {
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color, #e2e8f0);
+}
+
+.mp-actions {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+  margin-top: auto; padding-top: 0.3rem;
+}
+
+// Big, thumb-sized targets: this screen is used one-handed, standing at a door.
+.mp-btn {
+  min-height: 2.6rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  text-decoration: none;
+  &--primary { flex: 1 1 10rem; }
+}
+
+.mp-status {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.82rem; font-weight: 600; color: #b45309;
+}
+
+@media (max-width: 30em) {
+  .mp-actions .mp-btn { flex: 1 1 auto; }
+}

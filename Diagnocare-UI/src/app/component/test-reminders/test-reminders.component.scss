@@ -1,4 +1,4 @@
-.tr-page { padding: 1rem 1.25rem 2rem; max-width: 1100px; }
+.tr-page { padding: 1rem 1.25rem 2rem; max-width: var(--dc-page-max, 160rem); margin-inline: auto; }
 
 .tr-hero {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;

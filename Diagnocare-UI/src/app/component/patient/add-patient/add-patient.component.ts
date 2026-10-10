@@ -1,5 +1,5 @@
 ﻿import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { StepperComponent } from '../stepper/stepper.component';
 import { ToastrService } from 'ngx-toastr';
@@ -263,6 +263,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_Outside:    [false],
       area:                 [''],
       collected_By:         [''],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
       sampling_Done:        [this._sampling.getDefault(), Validators.required],   // index 0 of the list
       discount:             [0],
       // Required only while the discount is above the lab limit (it then goes to a
@@ -290,6 +292,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           next: (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
           error: ()                  => { this.collectionBoys = []; },
         });
+
+    // Unticking Outside Collection means the sample is drawn at the lab, so nobody
+    // is sent: drop the collection boy and area rather than saving a stale pick.
+    this.patientForm.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.patientForm.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+        this.syncCollectorRule(!!outside);
+      });
 
     // Keep amount_Paid in sync when payment type / net amount changes
     this.patientForm.get('payment_Type')?.valueChanges
@@ -458,6 +469,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   get isCurrentStepValid(): boolean {
     // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
     if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
+    // Outside collection needs a collection boy to send.
+    if (this.currentStep === 3 && this.collectorMissing) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
     // NoPayment: payment_Mode is not required (no payment is collected now)
@@ -1126,27 +1139,64 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.loadSelectedProtocols();
   }
 
-  // ── Collection Modal ───────────────────────────────────────────────────────
+  // ── Outside collection ─────────────────────────────────────────────────────
 
-  onCollectedOutsideClick(event: any) {
-    if (event.target.checked) {
-      const el = document.getElementById('collectionModal');
-      if (el) this.showModal('collectionModal');
+  /**
+   * The collection boy's User_Id as a number, or 0 when nobody usable is chosen.
+   *
+   * A select's value is always a string, and "0" is truthy — so a plain truthiness test
+   * accepts an id of 0 and a non-numeric value alike, and the booking then fails at the API
+   * with "Choose the collection boy who will collect this outside sample." after the whole
+   * form has been filled in. Everything that asks "is a collector chosen?" goes through
+   * this, so the UI and `ApplyCollectionAssignmentAsync` on the API agree on the answer:
+   * the API requires `> 0`, and so does this.
+   */
+  private get collectorId(): number {
+    const raw = this.patientForm.get('collection_Assigned_To')?.value;
+    const id = Number(raw);
+    return Number.isFinite(id) && id > 0 ? id : 0;
+  }
+
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.patientForm.get('collected_Outside')?.value && this.collectorId <= 0;
+  }
+
+  /** True once the lookup has answered and there is nobody to send. */
+  get noCollectionBoys(): boolean {
+    return this.collectionBoys.length === 0;
+  }
+
+  /**
+   * Makes the collection boy required exactly while Outside Collection is on.
+   *
+   * Why a validator and not another check at the submit button: the wizard is a single
+   * `<form>`, so Enter submits it from any step, and `registerPatient()` gates on
+   * `patientForm.valid` alone. With no validator here the form was *valid* with the toggle
+   * on and nobody chosen, so Enter on step 3 sent the booking and the only complaint came
+   * back from the server. As a validator the rule holds on every path into submit, and
+   * `describeInvalidFields()` names the field in the toast like any other.
+   */
+  private syncCollectorRule(outside: boolean): void {
+    const boy = this.patientForm.get('collection_Assigned_To');
+    if (!boy) return;
+
+    if (outside) {
+      boy.addValidators(AddPatientComponent.positiveIdValidator);
+    } else {
+      boy.removeValidators(AddPatientComponent.positiveIdValidator);
     }
+    boy.updateValueAndValidity({ emitEvent: false });
   }
 
-  modalCollectionClose() {
-    const el = document.getElementById('collectionModal');
-    if (el) this.hideModal('collectionModal');
-    if (!this.patientForm.get('area')?.value && !this.patientForm.get('collected_By')?.value) {
-      this.patientForm.patchValue({ collected_Outside: false });
-    }
-  }
-
-  clearOutsideCollectionModal() {
-    this.patientForm.patchValue({ collected_By: '', area: '', collected_Outside: false });
-    this.modalCollectionClose();
-  }
+  /**
+   * Requires a positive numeric id. Not `Validators.required`: that passes on "0" and on a
+   * stray non-numeric value, which are the two ways this field actually goes wrong.
+   */
+  private static readonly positiveIdValidator = (c: AbstractControl): ValidationErrors | null => {
+    const id = Number(c.value);
+    return Number.isFinite(id) && id > 0 ? null : { collectorRequired: true };
+  };
 
   // ── Payment ────────────────────────────────────────────────────────────────
 
@@ -1570,6 +1620,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     test_Name: 'Test', test_Amount: 'Test Amount', referred_By_Type: 'Referred By Type',
     referred_By: 'Referred By', discount: 'Discount (%)', net_Amount: 'Net Amount',
     discount_Reason: 'Reason for Discount',
+    collection_Assigned_To: 'Collection boy',
     payment_Type: 'Payment Type', amount_Paid: 'Amount Paid',
     amount_Pending: 'Amount Pending', payment_Mode: 'Payment Mode',
   };
@@ -1660,7 +1711,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       remark:            f.remark           ?? '',
       collected_Outside: f.collected_Outside ?? false,
       area:              f.area             ?? '',
-      collected_By:      f.collected_By     ?? '',
+      // The API fills Collected_By with the collection boy's name.
+      collected_By:      '',
+      // Only an outside collection sends a collection boy, and only a usable id.
+      // `+value` on an empty or non-numeric select value is 0 or NaN, and both reach the
+      // API as a value it then refuses — null is the honest way to say "nobody".
+      collection_Assigned_To: f.collected_Outside && this.collectorId > 0 ? this.collectorId : null,
       // Must be sampling_Done_At — the API property is Sampling_Done_At, and the
       // old key 'sampling_Done' matched nothing, so the location was never saved.
       sampling_Done_At:  f.sampling_Done    ?? '',

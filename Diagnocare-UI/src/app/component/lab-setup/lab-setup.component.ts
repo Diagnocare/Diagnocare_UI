@@ -10,7 +10,6 @@ import { PathologyService }        from 'src/app/services/pathologyServices/path
 import { ConfirmModalService }     from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent }   from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { TokenService }            from 'src/app/core/interceptors/token.service';
-import { Role }                    from 'src/app/constant/enums';
 
 export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'policies';
 
@@ -69,10 +68,9 @@ export class LabSetupComponent implements OnInit {
   sessionLockoutError  = '';
   sessionLockoutSuccess = '';
 
-  /** True when the current user is an Admin or Super Admin — only they may edit policies. */
+  /** True only for Super Admin — the only role allowed to change lab setup. */
   get isAdmin(): boolean {
-    const role = this.tokenService.getUserRole();
-    return role === Role.Admin.id || role === Role.Super_Admin.id;
+    return this.tokenService.isSuperAdmin();
   }
 
   constructor(

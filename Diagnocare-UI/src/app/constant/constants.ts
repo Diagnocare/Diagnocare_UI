@@ -42,11 +42,19 @@ export const controllerEndpoints = {
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
   sampleRejection: 'api/SampleRejection/',
+  /**
+   * The sample breakdown — how a booking's tests distribute across the tubes that have to
+   * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
+   * this one answers how many tubes there are.
+   */
+  sample: 'api/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
   worklist: 'api/Worklist/',
+  /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
+  dashboard: 'api/Dashboard/',
   /**
    * The caller's own in-app notifications (header bell, User Panel badges).
    * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
@@ -74,6 +82,8 @@ export const apiEndpoints = {
   getPathologyExpiryDate:"GetPathologyExpiryDate",
   getSerialNPatientId:"GetSerialNPatientId",
   searchPatients:"SearchPatients",
+  /** GET api/Dashboard/GetHomeSummary?date= — the whole home hero in one call */
+  getHomeSummary:"GetHomeSummary",
   getDistinctReferredBy:"GetDistinctReferredBy",
   getAllStateCityList:"GetAllStateCityList",
   profileImage:"ProfileImage",
@@ -139,6 +149,14 @@ export const apiEndpoints = {
   getTestProtocols:"GetTestProtocols",
   /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
   getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /**
+   * The tube count for an existing booking. Attribute-routed on the API
+   * (api/Sample/booking/{testRegId}), so the id is appended to this path by the caller
+   * rather than passed as a query string.
+   */
+  getSampleBreakdownForBooking:"booking/",
+  /** The tube count for a basket of test codes, before a booking exists. POST. */
+  getSampleBreakdownByCodes:"by-codes",
   /** Which library protocol a test's name suggests. Admin / Super Admin only. */
   suggestTestProtocol:"SuggestTestProtocol",
   /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */
@@ -165,12 +183,14 @@ export const apiEndpoints = {
   rejectSample:"Reject",
   /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
   resolveSampleRejection:"Resolve",
-  /** Printed flag for one report (testRegId + testCode). Defaults to not-printed, never 404s. */
+  /** Delivery status of one report (testRegId + testCode). Defaults to "nothing yet", never 404s. */
   getPrintStatus:"GetPrintStatus",
-  /** Printed flags for every test code on a booking — one call for the whole list. */
+  /** Delivery status for every test code on a booking — one call for the whole list. */
   getPrintStatuses:"GetPrintStatuses",
   /** Manually marks one report printed or not-printed. */
   setPrinted:"SetPrinted",
+  /** Records a CONFIRMED WhatsApp send of one report — never called on handoff alone. */
+  markSentOnWhatsApp:"MarkSentOnWhatsApp",
   addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
   // Test catalogue import (TestImport controller)
   testImportTemplate:    'Template',

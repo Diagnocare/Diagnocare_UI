@@ -14,6 +14,7 @@ import {
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -46,6 +47,8 @@ import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-d
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
+import { MemberService }             from 'src/app/services/memberService/member.service';
+import { MemberDto }                 from 'src/app/models/member/member.dto';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
 import {
   TestBookingProtocolsDto,
@@ -179,6 +182,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  /** Active collection boys for the "Sample collected by" picker. */
+  collectionBoys: MemberDto[] = [];
+
   constructor(
     private fb:              FormBuilder,
     private _testService:    PathTestService,
@@ -190,6 +196,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private _contactService: ContactAddressService,
     private _token:          TokenService,
     private _sampleLabelService: SampleLabelService,
+    private _memberService:  MemberService,
   ) {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
@@ -204,6 +211,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       referred_By:       ['', Validators.required],
       sampling_Done:     [this._sampling.getDefault()],
       collected_Outside: [false],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
       area:              [''],
       collected_By:      [''],
       remark:            [''],
@@ -214,6 +223,23 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       amount_Paid:       ['', Validators.required],
       amount_Pending:    ['0', Validators.required],
     });
+
+    // Collection boys for "Sample collected by". The LabOperations-scoped lookup,
+    // so a receptionist / lab assistant is not 403'd.
+    this._memberService.getCollectionBoysLookup()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next:  (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
+        error: ()                  => { this.collectionBoys = []; },
+      });
+
+    // Unticking Outside Collection means the sample is drawn at the lab.
+    this.form.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.form.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+        this.syncCollectorRule(!!outside);
+      });
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -307,9 +333,55 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form.get('whatsApp_Number')?.setValue(this.toTypedNumber(this.patientContact));
   }
 
+  /**
+   * The collection boy's User_Id as a number, or 0 when nobody usable is chosen.
+   *
+   * A select's value is a string and "0" is truthy, so a plain truthiness test lets an id
+   * of 0 (or a non-numeric value) through and the booking is then refused by the API with
+   * "Choose the collection boy who will collect this outside sample." The API requires
+   * `> 0`; so does this. Mirrors AddPatientComponent — the two screens are the same job.
+   */
+  private get collectorId(): number {
+    const id = Number(this.form.get('collection_Assigned_To')?.value);
+    return Number.isFinite(id) && id > 0 ? id : 0;
+  }
+
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.form.get('collected_Outside')?.value && this.collectorId <= 0;
+  }
+
+  /** True once the lookup has answered and there is nobody to send. */
+  get noCollectionBoys(): boolean {
+    return this.collectionBoys.length === 0;
+  }
+
+  /**
+   * Makes the collection boy required exactly while Outside Collection is on, so the rule
+   * holds on the control itself rather than only in the step-validity getter.
+   */
+  private syncCollectorRule(outside: boolean): void {
+    const boy = this.form.get('collection_Assigned_To');
+    if (!boy) return;
+
+    if (outside) {
+      boy.addValidators(AddTestModalComponent.positiveIdValidator);
+    } else {
+      boy.removeValidators(AddTestModalComponent.positiveIdValidator);
+    }
+    boy.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Requires a positive numeric id — `Validators.required` passes on "0". */
+  private static readonly positiveIdValidator = (c: AbstractControl): ValidationErrors | null => {
+    const id = Number(c.value);
+    return Number.isFinite(id) && id > 0 ? null : { collectorRequired: true };
+  };
+
   get isStep1Valid(): boolean {
     return (
       !this.whatsAppNeedsNumber &&
+      !this.collectorMissing &&
       !!this.form.get('test_Name')?.valid &&
       !!this.form.get('test_Amount')?.valid &&
       !!this.form.get('referred_By_Type')?.valid &&
@@ -1026,7 +1098,12 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         remark:            f.remark            ?? '',
         collected_Outside: f.collected_Outside ?? false,
         area:              f.area              ?? '',
-        collected_By:      f.collected_By      ?? '',
+        // The API fills Collected_By with the collection boy's name.
+        collected_By:      '',
+        // Only an outside collection sends a collection boy, and only a usable id:
+        // `+value` on an empty or non-numeric select value is 0 or NaN, and the API
+        // refuses both. null is the honest way to say "nobody".
+        collection_Assigned_To: f.collected_Outside && this.collectorId > 0 ? this.collectorId : null,
         // API property is Sampling_Done_At; 'sampling_Done' was silently dropped.
         sampling_Done_At:  f.sampling_Done     ?? '',
       },
@@ -1154,6 +1231,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       collected_Outside: false,
       area:              '',
       collected_By:      '',
+      collection_Assigned_To: '',
       remark:            '',
       discount:          0,
       net_Amount:        0,

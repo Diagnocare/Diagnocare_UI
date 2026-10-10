@@ -333,6 +333,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       case 'visit':             return 'fa-route';
       case 'salary':            return 'fa-money-bill-wave';
       case 'attendanceRequest': return 'fa-clipboard-check';
+      case 'sampleCollection':  return 'fa-motorcycle';
       default:                  return 'fa-calendar-check';
     }
   }

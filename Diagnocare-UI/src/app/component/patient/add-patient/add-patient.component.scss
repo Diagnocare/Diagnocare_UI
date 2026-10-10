@@ -987,3 +987,9 @@ textarea.form-control {
   text-transform: none;
   letter-spacing: normal;
 }
+
+// "Choose who will go to collect the sample." under the Collection boy picker.
+.form-hint--warn {
+  color: var(--dc-wait-ink, #b45309);
+  font-weight: 600;
+}
