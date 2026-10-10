@@ -425,9 +425,42 @@
                 <div class="toggle-wrap">
                       <input type="checkbox" class="form-check-input" id="collectedOutside"
                         formControlName="collected_Outside"
-                        (change)="onCollectedOutsideClick($event)" [attr.tabindex]="getTabIndex('collected_Outside')" />
+                        [attr.tabindex]="getTabIndex('collected_Outside')" />
                   <label for="collectedOutside" class="toggle-label">Outside Collection</label>
                 </div>
+              </div>
+            </div>
+
+            <!-- Outside collection (home visit etc.): a collection boy must be named.
+                 The pickup goes on his "My Pickups" list, and results cannot be
+                 entered until he has collected it AND the lab has marked it received. -->
+            <div class="form-row" *ngIf="patientForm.get('collected_Outside')?.value">
+              <div class="form-group">
+                <label class="form-label required" for="collectionAssignedTo">Collection boy</label>
+                <select id="collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
+                  <option value="">-- Select collection boy --</option>
+                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                </select>
+                <!-- Nobody to send. Said here rather than left as an empty dropdown the
+                     user keeps opening: the booking cannot be saved as an outside
+                     collection until a collection boy exists, and the API refuses it. -->
+                <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
+                  No active collection boys are set up. Add one under Staff, or untick
+                  Outside Collection to record this as collected at the centre.
+                </small>
+                <small class="form-hint form-hint--warn" *ngIf="!noCollectionBoys && collectorMissing">
+                  Choose who will go to collect the sample.
+                </small>
+                <small class="form-hint" *ngIf="!collectorMissing">
+                  Goes on his pickup list; the lab marks it received on hand-over.
+                </small>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="collectionArea">Area</label>
+                <select id="collectionArea" formControlName="area" class="form-select">
+                  <option value="">-- Select Area --</option>
+                  <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
+                </select>
               </div>
             </div>
 
@@ -762,42 +795,6 @@
     </div><!-- /catalogue card -->
   </div><!-- /content-container -->
 </div><!-- /page-container -->
-
-<!-- ════════════════════════════════════════ MODAL: Outside Collection -->
-<div class="modal fade" id="collectionModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="fa fa-map-marker-alt"></i> Sample Collected Outside
-        </h5>
-        <button type="button" class="btn-close" (click)="modalCollectionClose()"></button>
-      </div>
-      <div class="modal-body">
-        <form [formGroup]="patientForm">
-          <div class="form-group mb-3">
-            <label class="form-label">Area</label>
-            <select formControlName="area" class="form-select">
-              <option value="">-- Select Area --</option>
-              <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
-            </select>
-          </div>
-          <div class="form-group mb-3">
-            <label class="form-label">Collected By</label>
-            <select formControlName="collected_By" class="form-select">
-              <option value="">-- Select Collection Boy --</option>
-              <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
-            </select>
-          </div>
-          <div class="modal-footer-actions">
-            <button class="btn btn-cancel" type="button" (click)="clearOutsideCollectionModal()">Cancel</button>
-            <button class="btn btn-primary" type="button" (click)="modalCollectionClose()">Confirm</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ════════════════════════════════════════ MODAL: Partial Payment ═══════════
      THE payment dialog, shared with Patient Tests and Bill / Receipt. This

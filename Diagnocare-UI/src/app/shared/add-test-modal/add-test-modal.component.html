@@ -209,15 +209,28 @@
               </div>
             </div>
 
-            <!-- Shown inline when Collected Outside is checked -->
+            <!-- Outside collection (home visit etc.): a collection boy must be named.
+                 The pickup goes on his "My Pickups" list; results wait until the lab
+                 marks the sample received. -->
             <div class="form-row" *ngIf="form.get('collected_Outside')?.value">
+              <div class="form-group">
+                <label class="form-label required" for="atm-collectionAssignedTo">Collection boy</label>
+                <select id="atm-collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
+                  <option value="">-- Select collection boy --</option>
+                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                </select>
+                <!-- Nobody to send: said here rather than left as an empty dropdown. -->
+                <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
+                  No active collection boys are set up. Add one under Staff, or untick
+                  Outside Collection to record this as collected at the centre.
+                </small>
+                <small class="form-hint form-hint--warn" *ngIf="!noCollectionBoys && collectorMissing">
+                  Choose who will go to collect the sample.
+                </small>
+              </div>
               <div class="form-group">
                 <label class="form-label">Area</label>
                 <input type="text" class="form-control" formControlName="area" placeholder="Collection area" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Collected By</label>
-                <input type="text" class="form-control" formControlName="collected_By" placeholder="Agent / collector name" />
               </div>
             </div>
 

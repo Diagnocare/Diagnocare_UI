@@ -11,7 +11,9 @@ import { Role, RoleId } from './enums';
  *                     API's ReportViewers policy and the /reports route guard,
  *                     which must list the same roles or the dropdown appears and
  *                     then every entry in it lands on Access Denied.
- *  labSetup         – "Lab Setup" dropdown (lab profile, sampling locations, etc.)
+ *  labSetup         – "Lab Setup" dropdown (lab profile, sampling locations, etc.).
+ *                     Super Admin only; kept in step with the API and the
+ *                     /lab-setup and /lab-profile route guards.
  *  adminPanel       – "Admin Panel" dropdown (users, attendance, salary, etc.)
  *  patientsLink     – Single "Patients" nav link (for Collection Boys with limited access)
  *  patientTestsLink – Single "My Reports" nav link (for Doctors reviewing test results)
@@ -48,6 +50,12 @@ export interface ModuleAccess {
   userPanel:        boolean;
   /** Attendance correction requests — shared view: staff raise/track, admins review. */
   attendanceRequests: boolean;
+  /**
+   * "My Pickups" nav link — the collection boy's list of samples to collect and
+   * hand over to the lab. Collection Boy only, matching the API's
+   * CollectionBoyOnly policy on api/SampleCollection/MyPickups.
+   */
+  myPickups:        boolean;
   /** Route to navigate to immediately after a successful login. */
   landingRoute:     string;
 }
@@ -57,7 +65,9 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     home: true,
     labOps: true,
     summaryReports: true,
-    labSetup: true,
+    // Lab Setup (Lab Profile + Lab Configuration) is Super Admin only, matching
+    // the API. Admin no longer sees the dropdown at all.
+    labSetup: false,
     adminPanel: true,
     patientsLink: false,
     patientTestsLink: false,
@@ -73,6 +83,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     userPanel: true,
     // Admin raises corrections for themselves; the Super Admin reviews them.
     attendanceRequests: true,
+    myPickups: false,
     landingRoute: '/pathology',
   },
   [Role.Super_Admin.id]: {
@@ -97,6 +108,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myHolidays: false,
     userPanel: false,
     attendanceRequests: true, // reviews everyone's, and can raise their own
+    myPickups: false,
     landingRoute: '/pathology',
   },
   [Role.User.id]: {
@@ -113,6 +125,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // staff can raise/track their own requests
+    myPickups: false,
     landingRoute: '/patients',
   },
   [Role.Assistant.id]: {
@@ -129,6 +142,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // staff can raise/track their own requests
+    myPickups: false,
     landingRoute: '/patients',
   },
   [Role.Collection_Boy.id]: {
@@ -145,7 +159,9 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // collection boys can raise/track their own requests
-    landingRoute: '/patients',
+    myPickups: true,
+    // Their day is the pickup list, so they open on it.
+    landingRoute: '/my-pickups',
   },
   [Role.Doctor.id]: {
     home: false,
@@ -161,6 +177,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myHolidays: true,
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // doctors can raise/track their own requests
+    myPickups: false,
     landingRoute: '/patient-tests',
   }
 };
@@ -180,5 +197,6 @@ export const DEFAULT_ACCESS: ModuleAccess = {
   myHolidays:       false,
   userPanel:        false,
   attendanceRequests: false,
+  myPickups:        false,
   landingRoute:     '/pathology',
 };

@@ -120,9 +120,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of items; trackBy: trackByItem"
-              class="worklist__row"
-              [class.worklist__row--urgent]="item.urgent">
+          <!-- A to-collect row can carry a second row beneath it, so the loop wraps both
+               rather than sitting on the <tr>. -->
+          <ng-container *ngFor="let item of items; trackBy: trackByItem">
+          <tr class="worklist__row"
+              [class.worklist__row--urgent]="item.urgent"
+              [class.worklist__row--has-brief]="isBriefOpen(item)">
 
             <td class="ta-center">
               <i class="fa fa-bolt urgent-flag" *ngIf="item.urgent"
@@ -136,6 +139,28 @@
                 {{ item.testCode }} · {{ item.parameterCount }}
                 {{ item.parameterCount === 1 ? 'parameter' : 'parameters' }}
               </span>
+
+              <!-- ── What to collect ──────────────────────────────────────────
+                   Only on the queue that collects, and closed until asked for.
+                   A collector who already knows a CBC is one EDTA tube is
+                   working down a list and does not want a protocol block
+                   between every row; the one who does not know is one click
+                   away, without leaving the queue.
+
+                   It sits under the test rather than in the action column so it
+                   never competes with "Mark sample collected" for the same
+                   thumb — this reveals, that records. -->
+              <button type="button"
+                      class="link-btn worklist__brief-toggle"
+                      *ngIf="showsBrief(item)"
+                      [attr.aria-expanded]="isBriefOpen(item)"
+                      (click)="toggleBrief(item, $event)">
+                <i class="fa"
+                   [ngClass]="isBriefOpen(item) ? 'fa-chevron-down' : 'fa-chevron-right'"
+                   aria-hidden="true"></i>
+                <i class="fa fa-flask" aria-hidden="true"></i>
+                {{ isBriefOpen(item) ? 'Hide details' : 'What to collect' }}
+              </button>
             </td>
 
             <td>
@@ -181,7 +206,14 @@
                    answers from the list what "Partial" made you open the item
                    to find out, and the bar makes it comparable down the column
                    without reading every number. -->
-              <ng-container *ngIf="!item.blockedReason && !item.returnedReason">
+              <!-- Before the lab has the sample, progress is meaningless ("0 of 12
+                   entered"); what matters is who has the sample and where it is. -->
+              <span class="collection" *ngIf="!item.blockedReason && !item.returnedReason && (item.queue === 'to-collect' || item.queue === 'to-receive')">
+                <i class="fa" [ngClass]="item.queue === 'to-receive' ? 'fa-people-carry' : 'fa-motorcycle'" aria-hidden="true"></i>
+                {{ collectionText(item) }}
+              </span>
+
+              <ng-container *ngIf="!item.blockedReason && !item.returnedReason && item.queue !== 'to-collect' && item.queue !== 'to-receive'">
                 <span class="prog__text">{{ progressText(item) }}</span>
                 <span class="prog__bar" *ngIf="item.parameterCount > 0" aria-hidden="true">
                   <i [style.width.%]="progressPct(item)"></i>
@@ -196,8 +228,23 @@
             <td class="ta-right">
               <!-- One button, carrying the queue's own verb. The row never shows
                    two competing primary actions, so there is nothing to choose. -->
-              <button type="button" class="dc-btn dc-btn--save worklist__go" (click)="open(item)">
-                {{ queueVerb(item.queue) }}
+              <ng-container *ngIf="item.queue !== 'to-receive' || canReceive; else waitingOnLab">
+                <button type="button" class="dc-btn dc-btn--save worklist__go" (click)="open(item)"
+                        [disabled]="receivingId === item.testRegId">
+                  <i class="fa fa-spinner fa-spin" *ngIf="receivingId === item.testRegId" aria-hidden="true"></i>
+                  {{ queueVerb(item.queue) }}
+                </button>
+              </ng-container>
+              <ng-template #waitingOnLab>
+                <span class="cell-sub">Waiting for the lab technician</span>
+              </ng-template>
+              <!-- Outside collection (home visit etc.): who fetches the sample.
+                   Secondary, because the primary job on this queue is recording the
+                   collection itself. Sending one makes the booking an outside collection. -->
+              <button type="button" class="link-btn worklist__recall"
+                      *ngIf="item.queue === 'to-collect'"
+                      (click)="assign(item, $event)">
+                {{ item.collectionAssignedTo ? 'Reassign collection boy' : 'Send for outside collection' }}
               </button>
               <!-- Only an issued report can be pulled back, so this appears
                    nowhere else. Secondary and quiet: recalling is rare and should
@@ -209,6 +256,21 @@
               </button>
             </td>
           </tr>
+
+          <!-- ── The detail, in a row of its own ─────────────────────────────
+               Spanning every column, because a tube count and a protocol are
+               paragraphs and not cells. Rendered only while open, so a closed
+               row costs nothing and the panel fetches nothing. -->
+          <tr class="worklist__brief" *ngIf="isBriefOpen(item)">
+            <td colspan="7">
+              <app-collection-brief
+                [testRegId]="item.testRegId"
+                [testCode]="item.testCode"
+                [collapsible]="false">
+              </app-collection-brief>
+            </td>
+          </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
@@ -246,6 +308,13 @@
   (recalled)="onRecalled()"
   (cancelled)="onRecallCancelled()">
 </app-recall-report-modal>
+
+<app-assign-collector-modal
+  [visible]="!!assigningItem"
+  [item]="assigningItem"
+  (saved)="onAssigned()"
+  (cancelled)="onAssignCancelled()">
+</app-assign-collector-modal>
 
 <app-mark-collected-modal
   [visible]="!!collectingItem"
