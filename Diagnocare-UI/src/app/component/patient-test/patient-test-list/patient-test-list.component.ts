@@ -31,6 +31,8 @@ import { ReceiptService } from 'src/app/services/receiptServices/receipt.service
 import { toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 import { forkJoin as forkJoinRxjs } from 'rxjs';
 import { DecimalOnlyDirective } from 'src/app/shared/directives/decimal-only.directive';
+import { UnsavedChangesModalComponent } from 'src/app/shared/unsaved-changes-modal/unsaved-changes-modal.component';
+import { UnsavedChangesModalService } from 'src/app/shared/unsaved-changes-modal/unsaved-changes-modal.service';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
 import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
@@ -79,7 +81,7 @@ export interface VisitView {
 @Component({
   selector: 'app-patient-test-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent, DecimalOnlyDirective],
+  imports: [CommonModule, RouterModule, FormsModule, PaymentModalComponent, AddTestModalComponent, CancelBookingModalComponent, ProtocolViewModalComponent, TestRunModalComponent, SampleRejectionModalComponent, DecimalOnlyDirective, UnsavedChangesModalComponent],
   templateUrl: './patient-test-list.component.html',
   styleUrls: ['./patient-test-list.component.css']
 })
@@ -246,6 +248,7 @@ export class PatientTestListComponent implements OnInit {
     private toastr: ToastrService,
     private sampleLabelService: SampleLabelService,
     private samplingLocationService: SamplingLocationService,
+    private unsavedModalSvc: UnsavedChangesModalService,
   ) {}
 
   // ── Sampling location & barcode ──────────────────────────────────────────
@@ -1404,6 +1407,61 @@ export class PatientTestListComponent implements OnInit {
       ? 'One result has not been entered and saved yet.'
       : `${n} results have not been entered and saved yet.`;
   }
+  // ── Unsaved-changes guard (shared) ─────────────────────────────────────────
+  //
+  // Same strategy as the attendance grid: `savedResults` is what the database
+  // holds, the inputs are what the operator has typed, and anything where the
+  // two disagree is a change that closing would throw away. The dialog is the
+  // app-wide `UnsavedChangesModalService`, so this screen and attendance ask
+  // the question the same way and in the same words.
+  //
+  // Deliberately counts *edits*, not blanks. A parameter nobody has typed into
+  // is not an unsaved change — closing loses nothing — and warning about it is
+  // the nag that used to sit permanently in the header. The footer's "3 of 5
+  // results saved" and the disabled report buttons already carry that state.
+
+  /** Typed values that differ from what is saved — what closing would discard. */
+  get dirtyResultCount(): number {
+    return this.testParameters
+      .filter(p => (p.resultValue ?? '').toString().trim()
+                !== (this.savedResults.get(p.parameterId) ?? '').trim())
+      .length;
+  }
+
+  /**
+   * The close the template asks for — guarded. Both ways out of the overlay
+   * (the backdrop and the X) come here.
+   *
+   * `closeParameterView()` itself stays unguarded on purpose, because two
+   * callers must never be interrupted: `payNowFromReport()`, which closes on
+   * its way to the payment modal, and the post-save path, where closing *is*
+   * the success case.
+   */
+  requestCloseParameterView(): void {
+    if (this.dirtyResultCount === 0) {
+      this.closeParameterView();
+      return;
+    }
+
+    this.unsavedModalSvc
+      .prompt({ changeCount: this.dirtyResultCount, context: 'to this test\'s results' })
+      .subscribe(result => {
+        // 'save' needs no continuation: saveTestReport() closes the overlay
+        // itself once the server has confirmed, and leaves it open on failure,
+        // which is the behaviour wanted here either way.
+        if (result === 'save')    { this.saveTestReport(); }
+        if (result === 'discard') { this.discardResultEdits(); this.closeParameterView(); }
+        // 'cancel' — stay in the overlay with the typed values intact.
+      });
+  }
+
+  /** Puts every field back to the value the database holds. */
+  private discardResultEdits(): void {
+    for (const p of this.testParameters) {
+      p.resultValue = (this.savedResults.get(p.parameterId) ?? '').toString();
+    }
+  }
+
   closeParameterView(): void {
     this.showParameterView = false;
     this.selectedTestDetail = null;
@@ -1445,6 +1503,49 @@ export class PatientTestListComponent implements OnInit {
     parameter.resultValue = value;
   }
 
+  /**
+   * Tidies a half-typed decimal into the number the operator meant, on blur.
+   *
+   * '12.' → '12', '.5' → '0.5', '-.5' → '-0.5', and a lone '.' or '-' back to
+   * empty. This is what keeps the lenient display rule honest: by the time the
+   * field is left, a trailing point is gone, so nothing downstream — the save
+   * check, the report, the H/L flag — ever sees one.
+   *
+   * Digits are moved, never recomputed. `Number('10.50')` would come back as
+   * 10.5 and quietly drop a significant figure the lab chose to report; a
+   * result of "10.50" means something different from "10.5" on a printed
+   * report, so the string is edited and the operator's precision kept.
+   */
+  private static normalizeDecimal(raw: string): string {
+    let v = (raw ?? '').toString().trim();
+    if (v === '') return '';
+    if (!PatientTestListComponent.PARTIAL_DECIMAL_RE.test(v)) return v;  // leave it to fail the strict check
+
+    const negative = v.startsWith('-');
+    if (negative) v = v.slice(1);
+
+    if (v.endsWith('.')) v = v.slice(0, -1);      // '12.'  → '12'
+    if (v.startsWith('.')) v = '0' + v;           // '.5'   → '0.5'
+
+    // A sign or a point with no digits is not a number yet — treat it as the
+    // operator having typed nothing, not as something to flag.
+    if (v === '') return '';
+
+    return negative ? '-' + v : v;
+  }
+
+  /**
+   * The operator has left the field — settle the value.
+   *
+   * Called on blur rather than on every keystroke so that typing '1', '1.',
+   * '1.5' is three states of one number instead of three validation verdicts.
+   */
+  commitParameterResult(parameter: testParameter): void {
+    if (!parameter || !this.isNumericParam(parameter)) return;
+    const tidied = PatientTestListComponent.normalizeDecimal(parameter.resultValue ?? '');
+    if (tidied !== parameter.resultValue) parameter.resultValue = tidied;
+  }
+
   saveTestReport(): void {
     if (!this.selectedTestDetail) return;
     if (this.testParameters.length === 0) {
@@ -1458,7 +1559,12 @@ export class PatientTestListComponent implements OnInit {
     // parameter looked qualitative at the time. The save is the last point at
     // which a non-number can be kept out of a report, so it is checked here too
     // rather than trusted to the field.
-    const invalid = this.invalidResultParams;
+    // Settle every field first. Save can be reached without the active input
+    // ever blurring — Enter, or a click straight onto the button — so the
+    // tidy-up that normally happens on blur is repeated here before judging.
+    for (const p of this.testParameters) this.commitParameterResult(p);
+
+    const invalid = this.unsavableResultParams;
     if (invalid.length > 0) {
       const names = invalid.map(p => p.parameterName).join(', ');
       const reason = invalid.length === 1
@@ -2162,6 +2268,18 @@ export class PatientTestListComponent implements OnInit {
   private static readonly DECIMAL_RE = /^-?\d+(?:\.\d+)?$/;
 
   /**
+   * A decimal that is still being typed: '', '-', '.', '12.', '.5', '-.' all
+   * match. Same shape as the keystroke guard in DecimalOnlyDirective, on
+   * purpose — the field must not report an error about a character it just
+   * accepted. '12.' is one keystroke away from '12.5', and reddening the row
+   * at that instant is the operator being told off mid-number.
+   *
+   * Leniency is only about *when* the message appears. The value is still
+   * normalised on blur and checked strictly before it can be saved.
+   */
+  private static readonly PARTIAL_DECIMAL_RE = /^-?\d*\.?\d*$/;
+
+  /**
    * Whether this parameter's result must be a number.
    *
    * True when the parameter master gives either signal:
@@ -2194,6 +2312,33 @@ export class PatientTestListComponent implements OnInit {
     const raw = (param?.resultValue ?? '').toString().trim();
     if (raw === '') return '';
 
+    // Mid-number states say nothing yet. '12.' is on its way to '12.5', and it
+    // is normalised to '12' the moment the field is left, so there is never a
+    // state where this leniency lets a bad value through — only one where the
+    // operator is not interrupted. The strict rule is `strictResultError`.
+    if (PatientTestListComponent.PARTIAL_DECIMAL_RE.test(raw) &&
+        !PatientTestListComponent.DECIMAL_RE.test(raw)) {
+      return '';
+    }
+
+    return this.strictResultError(param);
+  }
+
+  /**
+   * The canonical rule, with no allowance for typing in progress: what the
+   * value has to look like before it may be written to a report.
+   *
+   * Save goes through this, not `resultError`, so a half-typed value that was
+   * never blurred — Enter pressed straight into the Save button — is still
+   * caught rather than saved as "12.".
+   */
+  private strictResultError(param: testParameter): string {
+    if (!this.isNumericParam(param)) return '';
+
+    const raw = PatientTestListComponent.normalizeDecimal(
+      (param?.resultValue ?? '').toString());
+    if (raw === '') return '';
+
     if (!PatientTestListComponent.DECIMAL_RE.test(raw)) {
       return 'Numbers only — this parameter is measured in '
            + ((param.parameterUnit ?? '').toString().trim() || 'a numeric range') + '.';
@@ -2201,12 +2346,31 @@ export class PatientTestListComponent implements OnInit {
     return '';
   }
 
-  /** Rows currently holding a value that cannot be saved. */
+  /**
+   * Rows whose typed value the operator is being shown an error for.
+   *
+   * Display-time, so it follows the lenient rule and the footer hint stays
+   * quiet while a decimal is being typed. The save gate uses
+   * `unsavableResultParams`.
+   */
   get invalidResultParams(): testParameter[] {
     return this.testParameters.filter(p => this.resultError(p) !== '');
   }
 
-  /** Blocks the Save button while any typed result is not a number. */
+  /** Rows that cannot be written to a report, whatever the field is showing. */
+  get unsavableResultParams(): testParameter[] {
+    return this.testParameters.filter(p => this.strictResultError(p) !== '');
+  }
+
+  /**
+   * Blocks the Save button while any result is visibly wrong.
+   *
+   * Deliberately the lenient set: a field mid-decimal ('12.') leaves Save
+   * enabled, because pressing it normalises the value to '12' and saves the
+   * number the operator meant. Disabling the button on a trailing point would
+   * make Save flicker in and out of reach keystroke by keystroke. Values that
+   * really cannot be saved are refused inside `saveTestReport`.
+   */
   get hasInvalidResults(): boolean {
     return this.invalidResultParams.length > 0;
   }

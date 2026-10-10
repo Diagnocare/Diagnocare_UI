@@ -328,7 +328,10 @@
   font-size: 0.875em;
   vertical-align: middle;
 }
-
+.parameter-list-table td:nth-child(2),
+.parameter-list-table th:nth-child(2) {
+  width:25%;
+}
 .parameter-list-table tbody tr:last-child td { border-bottom: none; }
 .parameter-list-table tbody tr { transition: background 0.14s ease; }
 .parameter-list-table tbody tr:hover { background: #f7faff; }
@@ -340,7 +343,7 @@
   border: 1.5px solid #dbe3ef;
   border-radius: 9px;
   padding: 0.5em 0.8em;
-  font-size: 0.875em;
+  font-size: 0.875em;  
   font-weight: 600;
   color: #0f2744;
   background: #fbfcfe;
@@ -546,21 +549,187 @@
   opacity: 0.8;
 }
 
-.result-input {
+/* ── Result entry cell ─────────────────────────────────────────────────────
+   One rule governs this block: nothing in the Result cell may change the
+   column's width. The column is fixed, the input fills whatever it is given,
+   the unit and the H/L badge hold their slots whether or not they have
+   anything to show, and an error message wraps inside the cell instead of
+   stretching the table.
+
+   This is what was missing. The 5 Oct dead-code sweep (see
+   patient-test-list-global-styling.md) removed the result-entry rules as
+   unused while the markup using them was live, which left the cell to size
+   itself from its contents: the column grew when a validation message
+   appeared mid-decimal and snapped back when it cleared.
+
+   The old `.result-input` here was already dead weight — a green border and
+   focus ring that the higher-specificity
+   `.parameter-list-table input.form-control` rules above always beat. Its one
+   live declaration was `transition: all`, which animated the width changes
+   and turned a re-flow into a visible slide. Both gone. */
+
+.parameter-list-section {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  padding: 0.875em 1em;
-  border: 0.125em solid #4CAF50;
-  border-radius: var(--radius-md);
-  font-size: 0.875em;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  min-height: 0;
 }
 
-.result-input:focus {
-  outline: none;
-  border-color: #2e7d32;
-  box-shadow: 0 0 0 0.25em rgba(76, 175, 80, 0.25);
+/* Scrolls in both directions so a narrow overlay moves the table instead of
+   compressing the Result column. */
+.param-card {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
 }
+
+.parameter-list-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 48em;
+}
+
+/* Widths are read in the cell's own font-size (0.875em), so these are a touch
+   narrower than they look. The Result column is sized for the input, the unit
+   and the badge side by side with room to spare — see the comment above. */
+.parameter-list-table .col-idx    { width: 3em; text-align: center; }
+.parameter-list-table .col-unit   { width: 8em; }
+.parameter-list-table .col-range  { width: 10em; }
+.parameter-list-table .col-type   { width: 6em; }
+.parameter-list-table .col-result { width: 16em; }
+/* .col-param is left unsized on purpose — the parameter name is the one
+   column that should absorb a wider or narrower overlay. */
+
+.parameter-list-table .col-param,
+.parameter-list-table .col-unit,
+.parameter-list-table .col-type { overflow-wrap: break-word; }
+
+.param-name { font-weight: 600; }
+.param-muted { color: #64748b; }
+
+.range-pill {
+  display: inline-block;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  background: #eef2f9;
+  color: #334155;
+  font-size: 0.8125em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.result-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+/* min-width: 0 is what lets the input absorb the squeeze. Without it a flex
+   item refuses to shrink below its content width and pushes the cell wider —
+   the column growing as the operator types. */
+.result-input {
+  flex: 1 1 auto;
+  min-width: 3em;
+  width: 80%;
+  /* Even-width digits: '1' and '8' occupy the same space, so the value does
+     not creep sideways inside the field as it is typed. */
+  font-variant-numeric: tabular-nums;
+}
+
+.result-unit {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.75em;
+  font-weight: 600;
+  white-space: nowrap;
+  width :20%;
+}
+
+/* A bordered pill, held apart from the unit by the field's gap, and always
+   occupying its slot. Bare and conditional, the 'L' read as the last letter
+   of the unit beside it — "cells/mcL" followed by "L" is indistinguishable
+   from "cells/mcLL" — and it shoved the input sideways when it appeared. */
+.result-flag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75em;
+  height: 1.5em;
+  border-radius: 0.375em;
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.result-flag--high {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
+.result-flag--low {
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
+}
+
+/* Wraps within the fixed column. The message is the longest thing in the
+   cell, so left to grow it would set the column's width on its own. */
+.result-error {
+  margin-top: 0.4em;
+  color: #b91c1c;
+  font-size: 0.75em;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.parameter-list-table .result-field--invalid input.form-control {
+  border-color: #fca5a5;
+  background: #fff7f7;
+}
+
+.parameter-list-table .result-field--high input.form-control { border-color: #fca5a5; }
+.parameter-list-table .result-field--low  input.form-control { border-color: #93c5fd; }
+
+.row-flagged { background: #fffdf5; }
+
+.param-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  flex-wrap: wrap;
+  padding: 0.85em 0.25em 0;
+}
+
+.param-progress,
+.param-hint {
+  color: #64748b;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.param-progress--done { color: #15803d; }
+.param-hint--invalid { color: #b91c1c; }
+
+/* ── Result cell — theme variants ──────────────────────────────────────── */
+:host-context(html[data-theme="dark"]) .range-pill,
+:host-context(html[data-theme="system"]) .range-pill { background: #273548; color: #cbd5e1; }
+:host-context(html[data-theme="midnight"]) .range-pill { background: #161b22; color: #cdd6f4; }
+:host-context(html[data-theme="warm"]) .range-pill { background: #f0e6d6; color: #3d2b1f; }
+
+:host-context(html[data-theme="dark"]) .param-muted,
+:host-context(html[data-theme="system"]) .param-muted,
+:host-context(html[data-theme="dark"]) .result-unit,
+:host-context(html[data-theme="system"]) .result-unit,
+:host-context(html[data-theme="midnight"]) .param-muted,
+:host-context(html[data-theme="midnight"]) .result-unit { color: #94a3b8; }
+
+:host-context(html[data-theme="dark"]) .row-flagged,
+:host-context(html[data-theme="system"]) .row-flagged { background: #2a2a1f; }
+:host-context(html[data-theme="midnight"]) .row-flagged { background: #1c1a10; }
 
 @media (max-width: 48em) {
   .parameter-container {
@@ -609,24 +778,6 @@
   display: inline-block;
 }
 
-/* ── Report blocked note ──────────────────────────────────────────────────
-   Sits beside the disabled View / PDF buttons in the parameter overlay header
-   and says why they cannot be used yet. */
-.report-blocked-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 10px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-size: 0.75em;
-  font-weight: 600;
-  color: #fff7ed;
-  white-space: nowrap;
-}
-.report-blocked-note i { color: #fdba74; }
 
 /* =======================================
    Repeat-run entry points
