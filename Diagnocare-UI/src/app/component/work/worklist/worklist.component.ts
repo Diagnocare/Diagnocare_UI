@@ -25,6 +25,7 @@ import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
 import { DcSearchComponent } from 'src/app/shared/simple/dc-search.component';
 import { MarkCollectedModalComponent } from '../mark-collected/mark-collected-modal.component';
 import { RecallReportModalComponent } from '../recall-report/recall-report-modal.component';
+import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
 import { AssignCollectorModalComponent } from '../assign-collector/assign-collector-modal.component';
 import { SampleCollectionService } from 'src/app/services/sampleCollectionServices/sample-collection.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -68,6 +69,7 @@ import { Role } from 'src/app/constant/enums';
     MarkCollectedModalComponent,
     RecallReportModalComponent,
     AssignCollectorModalComponent,
+    CollectionBriefComponent,
   ],
   templateUrl: './worklist.component.html',
   styleUrls: ['./worklist.component.scss'],
@@ -93,6 +95,15 @@ export class WorklistComponent implements OnInit, OnDestroy {
 
   /** testRegId currently being marked received, so its button can show progress. */
   receivingId: number | null = null;
+
+  /**
+   * Rows whose collection details are showing, by the same key the trackBy uses.
+   *
+   * A set rather than a single id: a collector loading a van works through several bookings
+   * at once and comparing two rows means having both open. Empty by default — the detail is
+   * hidden until it is asked for, one row at a time, and only an open row fetches anything.
+   */
+  private readonly openBriefs = new Set<string>();
 
   pageNumber = 1;
   readonly pageSize = 50;
@@ -175,6 +186,11 @@ export class WorklistComponent implements OnInit, OnDestroy {
           this.page = page;
           this.items = page.items ?? [];
           this.isLoading = false;
+
+          // An open row stays open across a refresh — a collector who expanded a booking
+          // and pressed Refresh should still be looking at it. Rows that have left the
+          // queue are forgotten, so the set does not grow for the rest of the session.
+          this.pruneOpenBriefs();
         },
         error: () => {
           // The interceptor surfaces the message; this just leaves the screen in
@@ -350,6 +366,56 @@ export class WorklistComponent implements OnInit, OnDestroy {
       return `Collected by ${who}${ago ? ' · ' + ago + ' ago' : ''}`;
     }
     return item.collectionAssignedTo ? `Outside pickup: ${who}` : 'At the centre';
+  }
+
+  // ── What to collect ─────────────────────────────────────────────────────
+
+  /**
+   * Whether this row offers the collection details at all.
+   *
+   * Only the collecting queue. Once a sample is in a tube the protocol is history — a
+   * technician entering results does not need the container type, and a "what to collect"
+   * link on a row that has already been collected reads as an instruction to collect it
+   * again. Needs-attention is excluded for the same reason: whatever is blocking it there is
+   * not answered by a tube count.
+   */
+  showsBrief(item: WorklistItem): boolean {
+    return item.queue === 'to-collect';
+  }
+
+  isBriefOpen(item: WorklistItem): boolean {
+    return this.openBriefs.has(this.briefKey(item));
+  }
+
+  /**
+   * Shows or hides one row's collection details.
+   *
+   * `stopPropagation` because the row itself may become clickable later; the toggle reveals
+   * and must never also navigate.
+   */
+  toggleBrief(item: WorklistItem, event: Event): void {
+    event.stopPropagation();
+
+    const key = this.briefKey(item);
+    if (this.openBriefs.has(key)) {
+      this.openBriefs.delete(key);
+    } else {
+      this.openBriefs.add(key);
+    }
+  }
+
+  private briefKey(item: WorklistItem): string {
+    return `${item.testRegId}:${item.testCode}`;
+  }
+
+  /** Drops remembered rows that are no longer on the page. */
+  private pruneOpenBriefs(): void {
+    if (this.openBriefs.size === 0) return;
+
+    const onPage = new Set(this.items.map(i => this.briefKey(i)));
+    for (const key of Array.from(this.openBriefs)) {
+      if (!onPage.has(key)) this.openBriefs.delete(key);
+    }
   }
 
   /** Opens the recall confirmation for an issued report. */

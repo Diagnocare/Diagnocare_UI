@@ -32,7 +32,10 @@
       <span>New ones appear here (and in your notifications) as soon as the lab assigns them.</span>
     </div>
 
-    <ng-container *ngFor="let g of groups">
+    <!-- trackBy is load-bearing, not an optimisation: without it NgForOf tracks these by
+         identity, and any new group array tears down every card beneath it — taking the
+         open "what to collect" panels, and their in-flight requests, with it. -->
+    <ng-container *ngFor="let g of groups; trackBy: trackByStage">
       <section class="mp-group" *ngIf="g.items.length > 0" [ngClass]="'mp-group--' + g.stage">
         <header class="mp-group__head">
           <h3><i class="fa" [ngClass]="g.icon" aria-hidden="true"></i> {{ g.title }} <span class="mp-count">{{ g.items.length }}</span></h3>
@@ -58,6 +61,24 @@
               <span>{{ p.patientAddress }}<ng-container *ngIf="p.patientAddress && p.area">, </ng-container>{{ p.area }}</span>
             </div>
             <p class="mp-remark" *ngIf="p.remark"><i class="fa fa-sticky-note" aria-hidden="true"></i> {{ p.remark }}</p>
+
+            <!-- ── What to collect ──────────────────────────────────────────────
+                 The card names the tests; this says what to actually draw — how
+                 many tubes, which container, whether the patient had to fast,
+                 and the full protocol behind each test.
+
+                 Closed by default: a collector working down a round of pickups
+                 does not want a protocol block on every card, and the one who
+                 needs it is one tap away without leaving the list. Dropped on
+                 cards at every stage, including handed over, because "what was
+                 in that tube?" is asked after the fact as often as before. -->
+            <div class="mp-brief">
+              <app-collection-brief
+                [testRegId]="p.testRegId"
+                [testCodes]="codesFor(p)"
+                [collapsible]="true">
+              </app-collection-brief>
+            </div>
 
             <div class="mp-meta">
               <span *ngIf="p.stage === 'to-collect'">Assigned {{ waitingLabel(p.assignedAt || p.bookedAt) }} ago</span>
