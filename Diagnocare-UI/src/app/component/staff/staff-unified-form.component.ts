@@ -115,7 +115,7 @@ export class StaffUnifiedFormComponent implements OnInit {
         first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
         last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
         email:         ['', [Validators.required, Validators.email]],
-        contactPhone:  ['', [Validators.required, AppValidators.contactNumber()]],
+        contactPhone:  ['', [AppValidators.contactNumber()]],
         typeUserId:    ['', Validators.required],
         effectiveFrom: [null, Validators.required],
         deactivatedAt: [null],
@@ -123,8 +123,8 @@ export class StaffUnifiedFormComponent implements OnInit {
 
     } else {
       // Doctor / Collection Boy — same fields as User but with qualification/position.
-      // Email and phone are required: both roles sign in, and the generated password
-      // is emailed to them (the API rejects the save without them).
+      // Email is required: both roles sign in, and the generated password is emailed
+      // to them (the API rejects the save without it). Phone is optional.
       const isDoctor = this.formType === 'doctor';
       this.form = this.fb.group({
         id:            [0],
