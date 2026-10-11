@@ -1951,7 +1951,7 @@ input.ng-invalid.ng-touched {
 .no-data {
   text-align: center;
   padding: 2.5em 1.25em;
-  color: var(--text-secondary);
+  color: var(--text-light);
 }
 
 .no-data i { font-size: 3em; margin-bottom: 0.9375em; opacity: 0.5; }
