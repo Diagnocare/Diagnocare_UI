@@ -1509,6 +1509,7 @@ html[data-theme="warm"] .dc-btn--reset {
   color: var(--text-primary);
   font-size: 0.875em;
   text-align: right;
+  padding-top: 0.4em;
 }
 
 .form-label.required::after {
@@ -1519,6 +1520,7 @@ html[data-theme="warm"] .dc-btn--reset {
 .form-control {
   width: 100%;
   padding: 0.75em 0.9375em;
+  height: 2.5em;
   border: 0.125em solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 0.875em;
@@ -1526,6 +1528,7 @@ html[data-theme="warm"] .dc-btn--reset {
   background: var(--bg-white);
   color: var(--text-primary);
   box-sizing: border-box;
+
 }
 
 .form-control:focus {
@@ -1553,7 +1556,8 @@ input.ng-invalid.ng-touched {
 
 .form-select {
   width: 100%;
-  padding: 0.75em 0.9375em;
+  height: 2.5em;
+  /* padding: 0.75em 0.9375em; */
   border: 0.125em solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 0.875em;
