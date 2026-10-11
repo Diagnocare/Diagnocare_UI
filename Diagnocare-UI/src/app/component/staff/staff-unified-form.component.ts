@@ -52,9 +52,9 @@ export class StaffUnifiedFormComponent implements OnInit {
 
   /** Tab order varies by form type — user has contactPhone/typeUserId, doctor has qualification/position. */
   get tabFields(): string[] {
-    const common = ['user_Name', 'first_Name', 'last_Name', 'effectiveFrom', 'deactivatedAt'];
+    const common = ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'effectiveFrom', 'deactivatedAt'];
     if (this.formType === 'user')           return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'typeUserId', 'effectiveFrom', 'deactivatedAt'];
-    if (this.formType === 'doctor')         return ['user_Name', 'first_Name', 'last_Name', 'qualification', 'position', 'effectiveFrom', 'deactivatedAt'];
+    if (this.formType === 'doctor')         return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'qualification', 'position', 'effectiveFrom', 'deactivatedAt'];
     return common; // collection-boy
   }
 
@@ -115,14 +115,16 @@ export class StaffUnifiedFormComponent implements OnInit {
         first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
         last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
         email:         ['', [Validators.required, Validators.email]],
-        contactPhone:  ['', [Validators.required, AppValidators.contactNumber()]],
+        contactPhone:  ['', [AppValidators.contactNumber()]],
         typeUserId:    ['', Validators.required],
         effectiveFrom: [null, Validators.required],
         deactivatedAt: [null],
       });
 
     } else {
-      // Doctor / Collection Boy — same fields as User but with qualification/position
+      // Doctor / Collection Boy — same fields as User but with qualification/position.
+      // Email is required: both roles sign in, and the generated password is emailed
+      // to them (the API rejects the save without it). Phone is optional.
       const isDoctor = this.formType === 'doctor';
       this.form = this.fb.group({
         id:            [0],
@@ -136,6 +138,8 @@ export class StaffUnifiedFormComponent implements OnInit {
         ),
         first_Name:    ['', [Validators.required, AppValidators.stringOnly()]],
         last_Name:     ['', [Validators.required, AppValidators.stringOnly()]],
+        email:         ['', [Validators.required, Validators.email]],
+        contactPhone:  ['', [AppValidators.contactNumber()]],
         qualification:  ['', isDoctor ? Validators.required : []],
         position:       ['', isDoctor ? Validators.required : []],
         signature:      [''],
@@ -215,6 +219,8 @@ export class StaffUnifiedFormComponent implements OnInit {
 
         this.form.patchValue({
           ...data,
+          // Staff created before email/phone were collected have phone 0 — show blank.
+          contactPhone:  data.contactPhone || '',
           signature:     data.signatureImage || data.signatureBase64 || '',
           effectiveFrom: data.effectiveFrom ? this.toPickerDate(data.effectiveFrom as string) : null,
           deactivatedAt: data.deactivatedAt ? this.toPickerDate(data.deactivatedAt as string) : null,
