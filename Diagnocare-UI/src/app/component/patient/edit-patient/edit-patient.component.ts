@@ -250,7 +250,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
      * to the API, and the age group.
      *
      * `emitEvent: false` on the parts: they are written BY this method, and
-     * letting them emit would call onAgePartChange(), which writes the DOB back.
+     * letting them emit would call onAgePartChange(), which clears the DOB.
      */
     calculateAge(): void {
       const formDOB = this.editPatientForm.get('patient_DOB')?.value;
@@ -278,9 +278,9 @@ export class EditPatientComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Age → date of birth, for a patient who does not know the date. The DOB it
-     * produces is an approximation, which is what an age-only record is anyway,
-     * and it keeps every downstream consumer working off one field.
+     * Age typed directly, for a patient who does not know the date. The typed
+     * age is stored as-is and no DOB is derived from it; any DOB already in the
+     * box is cleared so it cannot disagree with the typed age.
      */
     onAgePartChange(): void {
       const f = this.editPatientForm.value;
@@ -307,7 +307,7 @@ export class EditPatientComponent implements OnInit, OnDestroy {
       this.editPatientForm.patchValue({
         patient_Age:       hasAge ? this._common.formatAgeParts(years, months, days) : '',
         patient_Age_Group: ageGroupValue,
-        patient_DOB:       hasAge ? this._common.dobFromAgeParts(years, months, days) : '',
+        patient_DOB:       '',
       }, { emitEvent: false });
 
       this.editPatientForm.get('patient_Age')?.markAsDirty();
