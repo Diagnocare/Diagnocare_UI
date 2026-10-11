@@ -126,7 +126,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // staff can raise/track their own requests
     myPickups: false,
-    landingRoute: '/patients',
+    landingRoute: '/pathology',
   },
   [Role.Assistant.id]: {
     home: true,
@@ -143,7 +143,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // staff can raise/track their own requests
     myPickups: false,
-    landingRoute: '/patients',
+    landingRoute: '/pathology',
   },
   [Role.Collection_Boy.id]: {
     home: false,
@@ -161,7 +161,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     attendanceRequests: true, // collection boys can raise/track their own requests
     myPickups: true,
     // Their day is the pickup list, so they open on it.
-    landingRoute: '/my-pickups',
+    landingRoute: '/pathology',
   },
   [Role.Doctor.id]: {
     home: false,
@@ -178,7 +178,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     userPanel: true, // self-service User Panel dropdown
     attendanceRequests: true, // doctors can raise/track their own requests
     myPickups: false,
-    landingRoute: '/patient-tests',
+    landingRoute: '/pathology',
   }
 };
 
