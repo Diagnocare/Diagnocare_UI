@@ -219,10 +219,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Id:           new FormControl({ value: '',  disabled: true }),
       patient_Salutation:   ['Mr.', Validators.required],
       patient_Name:         ['', [Validators.required, AppValidators.stringOnly()]],
-      // Date of birth is no longer required on its own: a patient who does not
-      // know it can be recorded by typing their age instead, and the DOB is
-      // back-calculated. `patient_Age` stays required, so one of the two routes
-      // must still be used — it is filled by whichever the operator chooses.
+      // Date of birth is optional: a patient who does not know it can be
+      // recorded by typing their age instead, and the DOB is left empty — it is
+      // never derived from the age. `patient_Age` stays required, so one of the
+      // two routes must still be used — it is filled by whichever the operator chooses.
       patient_DOB:          ['', [AppValidators.noFutureDate()]],
       patient_Age:          ['', Validators.required],
       patient_Age_Group:    ['', Validators.required],
@@ -796,8 +796,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * is sent to the API, and the age group.
    *
    * `emitEvent: false` on the parts: they are being written BY this method, and
-   * letting them emit would call onAgePartChange(), which writes the DOB back —
-   * a loop that would fight the operator mid-keystroke.
+   * letting them emit would call onAgePartChange(), which clears the DOB —
+   * wiping the date the operator just entered.
    */
   calculateAge() {
     if (this.patientForm.controls['patient_DOB'].errors?.['noFutureDate']) return;
@@ -820,12 +820,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Age → date of birth. The other direction, for the patient who knows they
-   * are "about 45" but not the date.
+   * Age typed directly, for the patient who knows they are "about 45" but not
+   * the date. The typed age is stored as-is and no DOB is derived from it.
    *
-   * The DOB it produces is an approximation, which is what an age-only record
-   * is regardless — writing it keeps every downstream consumer (reports, the
-   * report header, the age group) working off one field.
+   * Any DOB already in the box is cleared: the record is either DOB-based or
+   * age-based, and a leftover DOB would disagree with the typed age (and
+   * calculateAge() on blur would overwrite it).
    */
   onAgePartChange(): void {
     const f = this.patientForm.value;
@@ -853,7 +853,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.patientForm.patchValue({
       patient_Age:       hasAge ? this._common.formatAgeParts(clamped.years, clamped.months, clamped.days) : '',
       patient_Age_Group: hasAge ? this._common.calculateAgeRange(clamped.years) : '',
-      patient_DOB:       hasAge ? this._common.dobFromAgeParts(clamped.years, clamped.months, clamped.days) : '',
+      patient_DOB:       '',
     }, { emitEvent: false });
 
     this.patientForm.get('patient_Age')?.markAsDirty();
