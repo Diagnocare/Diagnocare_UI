@@ -56,7 +56,7 @@ export const routes: Routes = [
       // Address Manager — Admin+
       { path: 'contacts', title: 'Address Manager',
         loadComponent: () => import('./component/addressManager/contact-list.component').then(m => m.ContactListComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id,Role.Collection_Boy.id,Role.Doctor.id)] },
       { path: 'contacts/add', title: 'Add Contact',
         loadComponent: () => import('./component/addressManager/contact-form.component').then(m => m.ContactFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },

@@ -114,6 +114,9 @@
           <thead>
             <tr>
               <th>Name</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Phone</th>
               <th>Qualification</th>
               <th>Position</th>
               <th class="text-center">Actions</th>
@@ -125,6 +128,9 @@
                 {{ cb.first_Name }} {{ cb.last_Name }}
                 <span class="badge-inactive" *ngIf="!isMemberActive(cb)">Inactive</span>
               </td>
+              <td>{{ cb.user_Name || '—' }}</td>
+              <td>{{ cb.email || '—' }}</td>
+              <td>{{ cb.contactPhone || '—' }}</td>
               <td>{{ cb.qualification || '—' }}</td>
               <td>{{ cb.position || '—' }}</td>
               <td class="action-buttons">
@@ -153,6 +159,9 @@
           <thead>
             <tr>
               <th>Name</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Phone</th>
               <th>Qualification</th>
               <th>Position</th>
               <th>Signature</th>
@@ -165,6 +174,9 @@
                 {{ doc.first_Name }} {{ doc.last_Name }}
                 <span class="badge-inactive" *ngIf="!isMemberActive(doc)">Inactive</span>
               </td>
+              <td>{{ doc.user_Name || '—' }}</td>
+              <td>{{ doc.email || '—' }}</td>
+              <td>{{ doc.contactPhone || '—' }}</td>
               <td>{{ doc.qualification || '—' }}</td>
               <td>{{ doc.position || '—' }}</td>
               <td>

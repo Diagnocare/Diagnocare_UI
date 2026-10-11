@@ -126,7 +126,7 @@ small{
 }
 
 .form-group--narrow {
-  max-width: 320px;
+  width:max-content;
 }
 
 // ─── Input Combo (select + input side-by-side) ─────────────────────────────
@@ -253,7 +253,6 @@ small{
   display: flex;
   align-items: center;
   gap: 0.6em;
-  padding-top: 0.4em;
 
   input[type="checkbox"] {
     width: 1.1em;
@@ -364,6 +363,7 @@ small{
 .input-combo .combo-input {
   display: inline-flex;
   align-items: center;
+  height: 2.5em;
 }
 
 .combo-input {

@@ -213,7 +213,7 @@
               <div class="form-group">
                 <label class="form-label">Mobile Number</label>
                 <div style="display: flex; gap: 6px; align-items: center;">
-                  <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
+                  <select class="form-select" formControlName="country_Code" style="max-width: 30%;" [attr.tabindex]="getTabIndex('country_Code')">
                     <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                   </select>
                   <input type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
@@ -268,9 +268,10 @@
                 </div>
                 <app-field-error [control]="patientForm.get('test_Name')" label="Test Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
-
+              </div>
+              <div class="form-row">
               <div class="form-group form-group--narrow">
-                <label class="form-label">Urgent Report</label>
+                <label class="form-label form-group--narrow">Urgent Report</label>
                 <div class="toggle-wrap">
                   <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="urgentReport" [attr.tabindex]="getTabIndex('urgent_Report')" />
                   <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
@@ -278,7 +279,7 @@
               </div>
 
               <div class="form-group form-group--narrow">
-                <label class="form-label">Report on WhatsApp</label>
+                <label class="form-label form-group--narrow">Report on WhatsApp</label>
                 <div class="toggle-wrap">
                   <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
                   <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>

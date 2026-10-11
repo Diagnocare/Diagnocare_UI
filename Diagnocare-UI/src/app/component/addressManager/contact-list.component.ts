@@ -67,6 +67,13 @@ export class ContactListComponent implements OnInit {
     this.isLoading = true;
     this.contactService.getContacts().subscribe({
       next: (data: ContactAddressListDto[]) => {
+        data.forEach(c => {
+      c.contactNumber = c.contactNumber || '-';
+      c.contactPerson = c.contactPerson || '-';
+      c.contactNumber = c.contactNumber || '-';
+      c.email = c.email || '-';
+      c.city = c.city || '-';
+    });
         this.contacts = data;
         this.applyFilters();
         this.isLoading = false;
