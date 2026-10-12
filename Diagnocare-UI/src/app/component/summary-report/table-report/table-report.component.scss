@@ -166,8 +166,11 @@
   color: #1e293b;
   background: #fff;
   appearance: auto;
+  color-scheme: light;
   cursor: pointer;
   &:focus { outline: none; border-color: #0284c7; }
+  // Keep the native popup legible (see .rfb-select)
+  option { color: #1e293b; background: #fff; }
 }
 
 .tr-chart-canvas-wrap {
