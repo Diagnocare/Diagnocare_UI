@@ -4,6 +4,8 @@ export interface DateRangeParams {
   period?: string;
   year?: string;      // calendar year, e.g. '2025'
   chartType?: string; // informational — not used by backend
+  /** Level of aggregation for reports that support one: 'group' | 'subgroup' | 'test'. */
+  groupBy?: string;
   fromDate?: string;  // yyyy-MM-dd  (legacy; Year takes precedence)
   toDate?: string;    // yyyy-MM-dd  (legacy; Year takes precedence)
   /** Extra fields merged verbatim into the request body (e.g. { institutionType: 7 }). */
@@ -271,21 +273,39 @@ export interface MasterTestListDto {
   totalTests: number;
 }
 
-// ── Rate list ─────────────────────────────────────────────────────────────────
+// ── Test collection summary (Master Test List report) ─────────────────────────
+// Collection rolled up to one level of the catalogue hierarchy. The optional
+// fields are only present at the levels where they mean something — group rows
+// carry no sub-group, and only test rows carry a code and a catalogue rate.
 
-export interface RateListItemDto {
-  testCode: string;
-  testName: string;
-  price: number;
-  groupId: string;
-  groupName: string;
-  subGroupId: string;
-  subGroupName: string;
+export interface TestCollectionItemDto {
+  name: string;
+  groupName?: string;
+  subGroupName?: string;
+  testCode?: string;
+  price?: number;
+  testsInCatalogue?: number;
+  testsBooked: number;
+  totalPatients: number;
+  totalTestAmount: number;
+  totalDiscount: number;
+  totalNetCollection: number;
+  totalAmountPaid: number;
+  totalAmountPending: number;
 }
 
-export interface RateListDto {
-  data: RateListItemDto[];
-  totalTests: number;
+export interface TestCollectionSummaryDto {
+  /** Level the rows are grouped at: 'group' | 'subgroup' | 'test'. */
+  groupBy: string;
+  /** That level spelt for a human — 'Group', 'Sub Group', 'Test'. */
+  levelLabel: string;
+  fromDate: string | null;
+  toDate: string | null;
+  data: TestCollectionItemDto[];
+  totalRecords: number;
+  grandTotalNetCollection: number;
+  grandTotalAmountPaid: number;
+  grandTotalAmountPending: number;
 }
 
 // ── Referrer Collection (merged: Doctor + Collection Boy + Panel) ─────────────

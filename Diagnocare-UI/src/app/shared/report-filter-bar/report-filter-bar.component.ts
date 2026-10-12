@@ -31,7 +31,6 @@ export class ReportFilterBarComponent {
 
   // ── Period ────────────────────────────────────────────────────────────────────
   @Input() periodOptions: FilterPeriodOption[] = [
-    { label: 'Week',    value: 'week'    },
     { label: 'Month',   value: 'month'   },
     { label: 'Quarter', value: 'quarter' },
     { label: 'Year',    value: 'year'    },

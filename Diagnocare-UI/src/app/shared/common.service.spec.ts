@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonService } from './common.service';
-import { InstitutionType } from '../models/contactAddress/contactAddressModel';
+import { InstitutionType } from '../constant/enums';
 
 describe('CommonService', () => {
   let service: CommonService;
