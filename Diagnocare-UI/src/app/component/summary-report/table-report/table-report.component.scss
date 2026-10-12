@@ -156,6 +156,53 @@
   color: #64748b;
   margin: 0;
 }
+// ── "View by" level buttons ───────────────────────────────────────────────────
+// Deliberately the same shape and palette as the filter bar's Chart Type buttons
+// (.rfb-btn): both are a short, fixed set of choices where the current one should
+// be readable without opening anything.
+.tr-level-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+.tr-level-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  height: 2.1rem;
+  padding: 0 .75rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #475569;
+  background: #fff;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+
+  i { font-size: .75rem; }
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+  }
+
+  &--active {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      background: #0369a1;
+      border-color: #0369a1;
+    }
+  }
+
+  &:disabled { opacity: .45; cursor: default; }
+}
+
 .tr-chart-select {
   height: 2.1rem;
   min-width: 10rem;
@@ -192,12 +239,48 @@
   font-weight: 600;
 }
 
+// ── Grouping level in table header ────────────────────────────────────────────
+// Printed on reports whose rows are a roll-up rather than a record, so it is
+// never a guess whether a row is one test or a whole group of them.
+.tr-level {
+  margin-left: .6rem;
+  padding: .1rem .45rem;
+  border-radius: 6px;
+  font-size: .72rem;
+  font-weight: 600;
+  color: #0284c7;
+  background: rgba(2, 132, 199, .1);
+  i { margin-right: .25rem; }
+}
+
 // ── Sortable column headers ───────────────────────────────────────────────────
 .data-table th.sortable {
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
   &:hover { background: linear-gradient(135deg, #1557a0, #5b70d4); }
+
+  // inline-flex, not flex: the th must stay a table-cell so it keeps its column
+  // width, gradient background and sticky positioning. The inner span is the
+  // flex box; being inline-level, text-align still places it in the cell.
+  .tr-th-inner {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+  }
+
+  // Right-aligned columns: reverse the pair so the label — not the icon — ends
+  // flush with the cell's right padding edge, which is exactly where the
+  // right-aligned numbers in the body and totals row end. Left- and
+  // center-aligned headers are untouched.
+  &[data-align='right'] .tr-th-inner { flex-direction: row-reverse; }
+  &[data-align='right'] .tr-sort-icon { margin: 0 3px 0 0; }
+}
+
+.tr-sort-icon {
+  font-size: .68rem;
+  margin-left: 3px;
+  opacity: .55;
 }
 
 // ── Totals footer row ─────────────────────────────────────────────────────────
@@ -244,8 +327,13 @@
   .tr-chart-select  { background: #0f172a !important; color: #e2e8f0 !important;
                        border-color: #334155 !important;
                        &:focus { border-color: #5b9cf6 !important; } }
+  .tr-level-btn     { background: #0f172a !important; color: #94a3b8 !important;
+                       border-color: #334155 !important;
+                       &:hover:not(:disabled) { background: #1e2b3d !important; color: #e2e8f0 !important; }
+                       &.tr-level-btn--active { background: #0369a1 !important; border-color: #0369a1 !important; color: #fff !important; } }
   .tr-chart-note    { color: #475569 !important; }
   .tr-count         { color: #475569 !important; }
+  .tr-level         { color: #7dd3fc !important; background: rgba(125, 211, 252, .12) !important; }
   .tr-totals-row    { background: #082f49 !important;
                        td { border-top-color: #0c4a6e !important; } }
   .badge.b-g        { background: #052e16 !important; color: #86efac !important; }
@@ -263,8 +351,13 @@
   .tr-chart-label   { color: #6e7681 !important; }
   .tr-chart-select  { background: #020408 !important; color: #cdd6f4 !important;
                        border-color: #21262d !important; }
+  .tr-level-btn     { background: #020408 !important; color: #8b949e !important;
+                       border-color: #21262d !important;
+                       &:hover:not(:disabled) { background: #11161f !important; color: #cdd6f4 !important; }
+                       &.tr-level-btn--active { background: #1f6feb !important; border-color: #1f6feb !important; color: #fff !important; } }
   .tr-chart-note    { color: #30363d !important; }
   .tr-count         { color: #30363d !important; }
+  .tr-level         { color: #58a6ff !important; background: rgba(88, 166, 255, .12) !important; }
   .tr-totals-row    { background: #041f30 !important;
                        td { border-top-color: #075985 !important; } }
   .badge.b-g        { background: #031a0e !important; color: #6ee7b7 !important; }
@@ -278,6 +371,10 @@
   .tr-chart-label   { color: #9e8272 !important; }
   .tr-chart-select  { background: #fef9f0 !important; color: #3d2b1f !important;
                        border-color: #ddc9a8 !important; }
+  .tr-level-btn     { background: #fffdf7 !important; color: #6b5445 !important;
+                       border-color: #ddc9a8 !important;
+                       &:hover:not(:disabled) { background: #fef9f0 !important; color: #3d2b1f !important; }
+                       &.tr-level-btn--active { background: #b45309 !important; border-color: #b45309 !important; color: #fff !important; } }
   .tr-chart-note    { color: #9e8272 !important; }
   .tr-count         { color: #9e8272 !important; }
   .tr-totals-row    { background: #fef9f0 !important;
@@ -292,7 +389,10 @@
   :host-context(html[data-theme="system"]) {
     .tr-split__chart { background: #1e293b !important; border-color: #334155 !important; }
     .tr-chart-select { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    .tr-level-btn    { background: #0f172a !important; color: #94a3b8 !important; border-color: #334155 !important;
+                       &.tr-level-btn--active { background: #0369a1 !important; border-color: #0369a1 !important; color: #fff !important; } }
     .tr-count        { color: #475569 !important; }
+    .tr-level        { color: #7dd3fc !important; background: rgba(125, 211, 252, .12) !important; }
     .tr-totals-row   { background: #082f49 !important; td { border-top-color: #0c4a6e !important; } }
     .badge.b-g       { background: #052e16 !important; color: #86efac !important; }
     .badge.b-y       { background: #431407 !important; color: #fdba74 !important; }

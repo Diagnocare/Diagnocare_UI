@@ -18,7 +18,9 @@ export const summaryReportRoutes: Routes = [
       { path: 'patientDiagnosisReport', loadComponent: () => import('./reports/patient-diagnosis-report.component').then(m => m.PatientDiagnosisReportComponent) },
       { path: 'pndtTestReport', loadComponent: () => import('./reports/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
       { path: 'masterTestList', loadComponent: () => import('./reports/master-test-list.component').then(m => m.MasterTestListComponent) },
-      { path: 'rateList', loadComponent: () => import('./reports/rate-list.component').then(m => m.RateListComponent) },
+      // Rate List was folded into Master Test List, which lists every catalogue test
+      // with its rate at the Test level. Redirect kept so existing links still land.
+      { path: 'rateList', redirectTo: 'masterTestList', pathMatch: 'full' },
       { path: 'addressManagerReport', loadComponent: () => import('./reports/address-manager-report.component').then(m => m.AddressManagerReportComponent) },
       { path: 'tpaReport', loadComponent: () => import('./reports/tpa-report.component').then(m => m.TpaReportComponent) },
       { path: '', redirectTo: 'patientRegister', pathMatch: 'full' }

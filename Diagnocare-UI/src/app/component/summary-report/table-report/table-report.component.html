@@ -52,6 +52,11 @@
         <div class="table-container">
           <div class="card-header" style="padding:.6rem .75rem; margin-bottom:0;">
             <span class="tr-count">{{ totalLabel }}</span>
+            <!-- Which level the rows are rolled up to, so a screenshot of the table
+                 is not ambiguous about what one row stands for. -->
+            <span class="tr-level" *ngIf="isLevelReport && levelLabel">
+              <i class="fa fa-layer-group"></i> One row per {{ levelLabel | lowercase }}
+            </span>
           </div>
           <div class="table-responsive">
             <table class="data-table">
@@ -59,14 +64,21 @@
                 <tr>
                   <th *ngFor="let col of cols"
                       class="sortable"
+                      [attr.data-align]="col.align"
                       [style.text-align]="col.align"
                       (click)="sortBy(col.key)">
-                    {{ col.label }}
-                    <i class="fa"
-                       [class.fa-sort]="sortKey !== col.key"
-                       [class.fa-sort-up]="sortKey === col.key && sortAsc"
-                       [class.fa-sort-down]="sortKey === col.key && !sortAsc"
-                       style="font-size:.68rem;margin-left:3px;opacity:.55"></i>
+                    <!-- Label and sort icon are wrapped so they can be laid out
+                         as one unit: on a right-aligned column the icon has to
+                         move to the LEFT of the label, otherwise it sits between
+                         the label and the cell's right edge and leaves the header
+                         text standing ~11px inboard of the values below it. -->
+                    <span class="tr-th-inner">
+                      {{ col.label }}
+                      <i class="fa tr-sort-icon"
+                         [class.fa-sort]="sortKey !== col.key"
+                         [class.fa-sort-up]="sortKey === col.key && sortAsc"
+                         [class.fa-sort-down]="sortKey === col.key && !sortAsc"></i>
+                    </span>
                   </th>
                 </tr>
               </thead>
@@ -100,12 +112,33 @@
       <!-- ── Chart column (only when chart is active) ──────────────────────────── -->
       <div class="tr-split__chart" *ngIf="showChart">
 
-        <!-- Column selector — only for multi-column tabular reports -->
-        <div class="tr-chart-col-select" *ngIf="!isSummaryOnly && chartableNumericCols.length > 1">
-          <label class="tr-chart-label">Chart column</label>
-          <select class="tr-chart-select" [(ngModel)]="chartValueCol" (ngModelChange)="onChartColChange()">
-            <option *ngFor="let c of chartableNumericCols" [value]="c.key">{{ c.label }}</option>
-          </select>
+        <!-- Level + column selectors — only for multi-column tabular reports -->
+        <div class="tr-chart-col-select" *ngIf="!isSummaryOnly && (chartableNumericCols.length > 1 || isLevelReport)">
+
+          <!-- Level of aggregation. Styled as the Chart Type buttons are, because it
+               is the same kind of choice to make — one visible click, no dropdown to
+               open — but it is a question about the data, not a drawing style:
+               picking it re-fetches the report grouped by group, sub-group or test. -->
+          <ng-container *ngIf="isLevelReport">
+            <label class="tr-chart-label">View by</label>
+            <div class="tr-level-btn-row">
+              <button *ngFor="let l of config.levelOptions"
+                      type="button"
+                      class="tr-level-btn"
+                      [class.tr-level-btn--active]="groupLevel === l.value"
+                      (click)="onLevelChange(l.value)"
+                      [disabled]="isLoading">
+                <i class="fa {{ l.icon }}"></i> {{ l.label }}
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="chartableNumericCols.length > 1">
+            <label class="tr-chart-label">Chart column</label>
+            <select class="tr-chart-select" [(ngModel)]="chartValueCol" (ngModelChange)="onChartColChange()">
+              <option *ngFor="let c of chartableNumericCols" [value]="c.key">{{ c.label }}</option>
+            </select>
+          </ng-container>
         </div>
 
         <!-- Single canvas for all reports (dual Y-axes for summary-only) -->
@@ -115,7 +148,12 @@
 
         <p class="tr-chart-note" *ngIf="!isSummaryOnly">
           <i class="fa fa-info-circle"></i>
-          Top {{ rows.length > 20 ? 20 : rows.length }} rows by selected column.
+          <ng-container *ngIf="isLevelReport && levelLabel; else plainNote">
+            Top {{ rows.length > 20 ? 20 : rows.length }} {{ levelLabel | lowercase }} rows by selected column.
+          </ng-container>
+          <ng-template #plainNote>
+            Top {{ rows.length > 20 ? 20 : rows.length }} rows by selected column.
+          </ng-template>
         </p>
 
       </div>
