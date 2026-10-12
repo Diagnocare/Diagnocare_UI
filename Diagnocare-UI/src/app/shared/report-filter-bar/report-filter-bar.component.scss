@@ -69,8 +69,18 @@
   margin: 0;
 }
 
-// ── Year select ───────────────────────────────────────────────────────────────
+// ── Year dropdown ─────────────────────────────────────────────────────────────
+// Rendered in-page instead of a native <select>, whose OS popup flashes black
+// on Windows before its options paint.
+.rfb-dropdown {
+  position: relative;
+}
+
 .rfb-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   height: 2.1rem;
   min-width: 6rem;
   padding: 0 0.65rem;
@@ -79,12 +89,54 @@
   font-size: 0.82rem;
   color: #1e293b;
   background: #fff;
-  appearance: auto;
   transition: border-color 0.15s;
   cursor: pointer;
 
   &:focus { outline: none; border-color: #0284c7; }
   &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.rfb-caret {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  transition: transform 0.15s;
+
+  &--open { transform: rotate(180deg); }
+}
+
+.rfb-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1000;
+  min-width: 100%;
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.rfb-menu__item {
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #1e293b;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover { background: #f1f5f9; }
+
+  &--active,
+  &--active:hover {
+    background: #0284c7;
+    color: #fff;
+    font-weight: 600;
+  }
 }
 
 // ── Button row ────────────────────────────────────────────────────────────────

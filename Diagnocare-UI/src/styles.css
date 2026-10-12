@@ -379,6 +379,30 @@ html[data-theme="warm"] .form-input {
   background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important;
 }
 
+/* Native <select> popup (report Chart Column) — match the themed field instead
+   of falling back to the OS default (a black box on Windows dark mode). */
+html[data-theme="dark"]     .tr-chart-select,
+html[data-theme="system"]   .tr-chart-select,
+html[data-theme="midnight"] .tr-chart-select { color-scheme: dark; }
+html[data-theme="dark"]     .tr-chart-select option,
+html[data-theme="system"]   .tr-chart-select option { background: #0f172a !important; color: #e2e8f0 !important; }
+html[data-theme="midnight"] .tr-chart-select option { background: #020408 !important; color: #cdd6f4 !important; }
+html[data-theme="warm"]     .tr-chart-select option { background: #fef9f0 !important; color: #3d2b1f !important; }
+
+/* Report Year dropdown menu (custom, in-page) */
+html[data-theme="dark"]     .rfb-menu,
+html[data-theme="system"]   .rfb-menu { background: #0f172a !important; border-color: #334155 !important; }
+html[data-theme="midnight"] .rfb-menu { background: #020408 !important; border-color: #21262d !important; }
+html[data-theme="warm"]     .rfb-menu { background: #fef9f0 !important; border-color: #ddc9a8 !important; }
+html[data-theme="dark"]     .rfb-menu__item:not(.rfb-menu__item--active),
+html[data-theme="system"]   .rfb-menu__item:not(.rfb-menu__item--active) { color: #e2e8f0 !important; }
+html[data-theme="midnight"] .rfb-menu__item:not(.rfb-menu__item--active) { color: #cdd6f4 !important; }
+html[data-theme="warm"]     .rfb-menu__item:not(.rfb-menu__item--active) { color: #3d2b1f !important; }
+html[data-theme="dark"]     .rfb-menu__item:not(.rfb-menu__item--active):hover,
+html[data-theme="system"]   .rfb-menu__item:not(.rfb-menu__item--active):hover { background: #273548 !important; }
+html[data-theme="midnight"] .rfb-menu__item:not(.rfb-menu__item--active):hover { background: #161b22 !important; }
+html[data-theme="warm"]     .rfb-menu__item:not(.rfb-menu__item--active):hover { background: #f4e8d8 !important; }
+
 /* ── Radio / choice pills (Gender, Marital Status, Type, …) ───────────────────
    `.radio-pill span` is a near-white chip with dark ink. In the dark themes the
    blanket light-text rule turned the label white on that white chip, so the

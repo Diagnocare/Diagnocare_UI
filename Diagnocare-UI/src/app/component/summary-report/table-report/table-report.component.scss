@@ -6,25 +6,26 @@
 .tr-split { display: block; }
 
 .tr-split--with-chart {
-  // One height for both panels. Previously `align-items: flex-start` let each
-  // side take its natural height, so the table ran long past the bottom of the
-  // chart card (or fell short of it) and the two never lined up.
-  //
-  // A fixed height rather than `stretch`: with stretch, a 200-row table would
-  // drag the chart card to 4000px. The table scrolls inside its panel instead.
+  // A ceiling on the table panel, not a fixed height. A fixed height would let
+  // a 200-row table drag the chart card to 4000px; stretching to the chart left
+  // a short table — six rows against a 32rem panel — sitting on a slab of empty
+  // card below its totals row. A long table now scrolls inside the panel and
+  // still lines up with the chart; a short one ends where its rows end.
   --tr-panel-h: 32rem;
 
   display: flex;
   gap: 1rem;
-  align-items: stretch;
+  align-items: flex-start;
 
   .tr-split__table,
   .tr-split__chart {
     flex: 0 0 calc(50% - 0.5rem);
     max-width: calc(50% - 0.5rem);
     min-width: 0;
-    height: var(--tr-panel-h);
   }
+
+  .tr-split__chart { height: var(--tr-panel-h); }
+  .tr-split__table { max-height: var(--tr-panel-h); }
 
   // The table panel becomes a column: fixed header strip, scrolling body.
   .tr-split__table {
@@ -124,6 +125,7 @@
       max-width: 100%;
       height: auto;
     }
+    .tr-split__table { max-height: none; }
     .tr-split__chart { min-height: 22rem; }
   }
 }
@@ -166,8 +168,11 @@
   color: #1e293b;
   background: #fff;
   appearance: auto;
+  color-scheme: light;
   cursor: pointer;
   &:focus { outline: none; border-color: #0284c7; }
+  // Keep the native popup legible (see .rfb-select)
+  option { color: #1e293b; background: #fff; }
 }
 
 .tr-chart-canvas-wrap {
