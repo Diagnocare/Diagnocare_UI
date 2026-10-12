@@ -189,18 +189,24 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
 
     this.rows = filtered;
 
-    // 3. Recompute totals from visible rows (skip rate/percentage columns)
-    if (!term && !this.colFilters?.length) {
-      this.totals = { ...this.apiTotals };
-    } else {
-      this.totals = {};
-      for (const col of this.cols) {
-        if (col.kind !== 'currency' && col.kind !== 'number') continue;
-        const lk = col.key.toLowerCase();
-        if (/commissionpct|commissionpercentage/.test(lk)) continue;
-        this.totals[col.key] = this.rows.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
-      }
+    // 3. Recompute totals from the visible rows (skip rate/percentage columns,
+    //    and identifiers — the sum of a column of IDs means nothing).
+    const computed: { [key: string]: number } = {};
+    for (const col of this.cols) {
+      if (col.kind !== 'currency' && col.kind !== 'number') continue;
+      const lk = col.key.toLowerCase();
+      if (/commissionpct|commissionpercentage/.test(lk)) continue;
+      if (/id$/i.test(col.key) && !/paid$/i.test(col.key)) continue;
+      computed[col.key] = this.rows.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
     }
+
+    // The envelope's own aggregates describe the whole result set, so they are
+    // only correct while nothing is filtered out. Column sums were previously
+    // computed in the filtered branch alone, which left the footer blank on
+    // first load for every report whose envelope totals are not column names.
+    this.totals = (!term && !this.colFilters?.length)
+      ? { ...computed, ...this.apiTotals }
+      : computed;
     this.hasTotals = Object.keys(this.totals).length > 0;
   }
 
@@ -301,13 +307,15 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
         : [];
       this.applyRowFilter();
 
+      // Must precede applyRowFilter(): that is what folds these into this.totals.
       const skip = new Set(['data', 'fromDate', 'toDate', 'totalRecords', 'totalTests']);
       this.apiTotals = {};
       for (const [k, v] of Object.entries(resp)) {
         if (skip.has(k) || this.isHiddenKey(k)) continue;
         if (typeof v === 'number') this.apiTotals[k] = v as number;
       }
-      this.hasTotals = Object.keys(this.apiTotals).length > 0;
+
+      this.applyRowFilter();
 
       const count = resp.totalRecords ?? resp.totalTests ?? this.rows.length;
       this.totalLabel = `${count} record${count !== 1 ? 's' : ''}`;
@@ -606,7 +614,8 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
   }
 
   private makeColDef(key: string): ColDef {
-    return { key, label: this.toLabel(key), kind: this.detectKind(key), align: this.detectAlign(key) };
+    const kind = this.detectKind(key);
+    return { key, label: this.toLabel(key), kind, align: this.detectAlign(key, kind) };
   }
 
   private toLabel(key: string): string {
@@ -624,11 +633,16 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     return 'text';
   }
 
-  private detectAlign(key: string): ColDef['align'] {
-    const lk = key.toLowerCase();
-    if (/amount|collection|discount|price|net|paid|pending|count|patients|records|tests/.test(lk)) return 'right';
-    if (/id$/.test(lk)) return 'center';
-    return 'left';
+  /**
+   * Alignment follows the column kind, not a second name regex. The two used to
+   * be derived independently, so a numeric column the align regex did not list
+   * — 'active', 'inactive' — rendered left while 'count' next to it rendered
+   * right, leaving the numbers in one numeric block visually unaligned.
+   */
+  private detectAlign(key: string, kind: ColDef['kind']): ColDef['align'] {
+    if (kind !== 'currency' && kind !== 'number') return 'left';
+    // Identifiers stay centred — except 'paid', which merely looks like one.
+    return /id$/i.test(key) && !/paid$/i.test(key) ? 'center' : 'right';
   }
 
   // ── Template helpers ──────────────────────────────────────────────────────────

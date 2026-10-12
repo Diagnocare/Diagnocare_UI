@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -59,4 +59,28 @@ export class ReportFilterBarComponent {
   @Output() chartTypeChange = new EventEmitter<string>();
   @Output() csvExport       = new EventEmitter<void>();
   @Output() chartToggle     = new EventEmitter<void>();
+
+  // ── Year dropdown ─────────────────────────────────────────────────────────────
+  yearMenuOpen = false;
+
+  /** '' represents "All" */
+  get yearOptions(): string[] {
+    return ['', ...this.availableYears];
+  }
+
+  toggleYearMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.yearMenuOpen = !this.yearMenuOpen;
+  }
+
+  selectYear(year: string): void {
+    this.yearMenuOpen = false;
+    if (year !== this.selectedYear) this.yearChange.emit(year);
+  }
+
+  @HostListener('document:click')
+  @HostListener('document:keydown.escape')
+  closeYearMenu(): void {
+    this.yearMenuOpen = false;
+  }
 }
