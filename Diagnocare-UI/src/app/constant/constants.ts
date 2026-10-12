@@ -29,6 +29,11 @@ export const controllerEndpoints = {
   template:   'api/template/',
   attendance: 'api/attendance/',
   salary:     'api/salary/',
+  /**
+   * Paid leave: accumulated balances and the year-end carry-forward. Its own controller
+   * because a leave balance spans the whole year, while Attendance is per day.
+   */
+  leave:      'api/Leave/',
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
   feedback:      'api/feedback/',
@@ -244,12 +249,33 @@ export const apiEndpoints = {
   getMyPayments:            'GetMyPayments',
   /** Self-service — returns a PDF receipt for a single salary payment (ownership-validated) */
   generateMyPaymentReceipt: 'GenerateMyPaymentReceipt',
+  /** Full salary payment history for one employee, grouped by salary period */
+  getPaymentHistory:        'GetPaymentHistory',
+  /** Attaches a payment screenshot / receipt to an existing payment (multipart) */
+  uploadPaymentProof:       'UploadPaymentProof',
+  /** Downloads the proof attached to a payment */
+  getPaymentProof:          'GetPaymentProof',
+  /** Removes the proof attached to a payment, leaving the payment itself */
+  deletePaymentProof:       'DeletePaymentProof',
+  /** Self-service — downloads the proof for one of the caller's own payments */
+  getMyPaymentProof:        'GetMyPaymentProof',
   /** Maps to DB column token_expiry_in_minutes — stores the PIN grace buffer duration */
   updateGraceBuffer:        'UpdateGraceBuffer',
   /** Admin-only — updates the max discount percentage (0–99) any user may apply */
   updateMaxDiscount:        'UpdateMaxDiscount',
   /** Admin-only — updates how many minutes hidden before screen-lock fires (0 = disabled) */
   updateSessionLockout:     'UpdateSessionLockout',
+  /** Super Admin only - share of the annual paid-leave entitlement that may carry over (0-100) */
+  updatePaidLeaveCarryForward: 'UpdatePaidLeaveCarryForward',
+  // Paid leave (LeaveController)
+  /** The caller's own accumulated paid-leave balance for a leave year */
+  myLeaveBalance:        'MyBalance',
+  /** Super Admin - one employee's paid-leave balance */
+  leaveBalance:          'Balance',
+  /** Super Admin - what the year-end carry-forward would do, without writing */
+  leaveYearEndPreview:   'YearEndPreview',
+  /** Super Admin - commits the year-end carry-forward (idempotent per employee and year) */
+  runLeaveYearEnd:       'RunYearEnd',
   getMFAStatus:             'status',          // GET  api/Mfa/status
   setupMFA:                 'setup',           // POST api/Mfa/setup
   confirmMfaSetup:          'confirm-setup',   // POST api/Mfa/confirm-setup

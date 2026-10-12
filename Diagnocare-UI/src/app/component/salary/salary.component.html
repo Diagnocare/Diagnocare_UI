@@ -622,6 +622,15 @@
 
       <div class="psh-title-row">
         <h4 class="panel-section-title"><i class="fa fa-history"></i> Payment History</h4>
+        <!-- The list below is scoped to the month on screen; this opens every month. -->
+        <button
+          class="psh-history-btn"
+          (click)="openHistoryModal(panelRecord)"
+          [disabled]="panelRecord.salaryId === 0"
+          title="View all payments across every month"
+        >
+          <i class="fa fa-list-ul"></i> Full History
+        </button>
       </div>
 
       <div class="panel-section-actions" *ngIf="!isAddingPayment">
@@ -697,11 +706,49 @@
             <span class="pay-for-badge" [ngClass]="paymentRowClass(pay)">
               {{ paymentRowLabel(pay) }}
             </span>
+            <!-- How it was paid -->
+            <span class="pay-mode-badge" [ngClass]="paymentModeClass(pay.paymentMode)">
+              <i class="fa" [ngClass]="paymentModeIcon(pay.paymentMode)"></i>
+              {{ pay.paymentModeName || paymentModeLabel(pay.paymentMode) }}
+            </span>
+            <!-- Clearing state — only worth saying when it is not the plain case -->
+            <span
+              *ngIf="(pay.paymentStatus ?? 1) !== 1"
+              class="pay-status-badge"
+              [ngClass]="paymentStatusClass(pay.paymentStatus)"
+            >
+              {{ pay.paymentStatusName || paymentStatusLabel(pay.paymentStatus) }}
+            </span>
           </div>
         </div>
         <div class="pay-meta">
           <span><i class="fa fa-calendar"></i> {{ formatPaymentDate(pay.paymentDate) }}</span>
-          <span *ngIf="pay.reference" class="pay-remarks">· {{ pay.reference }}</span>
+          <span *ngIf="pay.transactionReference" class="pay-txn">
+            <i class="fa fa-hashtag"></i> {{ pay.transactionReference }}
+          </span>
+          <span *ngIf="pay.remarks" class="pay-remarks">· {{ pay.remarks }}</span>
+        </div>
+
+        <!-- Payment proof -->
+        <div class="pay-proof" *ngIf="pay.hasPaymentProof">
+          <button type="button" class="pay-proof-btn"
+                  (click)="viewPaymentProof(pay)"
+                  [disabled]="proofLoadingId === pay.paymentId"
+                  [title]="pay.proofFileName || 'View payment proof'">
+            <i class="fa"
+               [class.fa-spinner]="proofLoadingId === pay.paymentId"
+               [class.fa-spin]="proofLoadingId === pay.paymentId"
+               [class.fa-image]="proofLoadingId !== pay.paymentId"></i>
+            View Proof
+            <span class="pay-proof-size" *ngIf="pay.proofFileSize">
+              {{ formatFileSize(pay.proofFileSize) }}
+            </span>
+          </button>
+          <button type="button" class="pay-proof-remove"
+                  (click)="removePaymentProof(pay)"
+                  title="Remove this proof">
+            <i class="fa fa-trash"></i>
+          </button>
         </div>
       </li>
     </ul>
@@ -846,15 +893,126 @@
         <app-date-picker [(ngModel)]="paymentForm.paymentDate" inputClass="pm-input"></app-date-picker>
       </div>
 
+      <!-- Payment Mode — how the money actually moved -->
       <div class="pm-field pm-field-full">
-        <label class="pm-label">Reference <span class="pm-optional">(optional)</span></label>
+        <label class="pm-label">Payment Mode <span class="req">*</span></label>
+        <div class="pm-radio-group pm-mode-group">
+          <label
+            *ngFor="let opt of paymentModeOptions"
+            class="pm-radio-card"
+            [class.pm-radio-active]="paymentForm.paymentMode === opt.value"
+            [title]="opt.label"
+          >
+            <input
+              type="radio"
+              [(ngModel)]="paymentForm.paymentMode"
+              [value]="opt.value"
+              (change)="onPaymentModeChange()"
+              hidden
+            />
+            <i class="fa pm-radio-icon" [ngClass]="opt.icon"></i>
+            <span class="pm-radio-label">{{ opt.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Transaction reference — required for every traceable mode -->
+      <div class="pm-field">
+        <label class="pm-label">
+          Reference / Transaction No.
+          <span class="req" *ngIf="isReferenceRequired">*</span>
+          <span class="pm-optional" *ngIf="!isReferenceRequired">(optional)</span>
+        </label>
         <input
           type="text"
           class="pm-input"
-          [(ngModel)]="paymentForm.reference"
-          placeholder="e.g. cheque no., UPI ref…"
-          maxlength="200"
+          [class.pm-input-error]="transactionRefError"
+          [(ngModel)]="paymentForm.transactionReference"
+          (input)="validateTransactionRef()"
+          (blur)="validateTransactionRef()"
+          placeholder="e.g. UPI ref, UTR no., cheque no."
+          maxlength="100"
         />
+        <div class="pm-hint" *ngIf="!transactionRefError && isReferenceRequired">
+          <i class="fa fa-info-circle"></i>
+          Needed to trace this {{ paymentModeLabel(paymentForm.paymentMode) }} payment in the bank statement.
+        </div>
+        <div class="pm-error" *ngIf="transactionRefError">{{ transactionRefError }}</div>
+      </div>
+
+      <!-- Payment status — bookkeeping only, never changes the amounts -->
+      <div class="pm-field">
+        <label class="pm-label">Payment Status</label>
+        <select class="pm-input" [(ngModel)]="paymentForm.paymentStatus">
+          <option *ngFor="let opt of paymentStatusOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+        </select>
+        <div class="pm-hint">
+          <i class="fa fa-info-circle"></i>
+          The amount counts as paid either way — this only records whether it has cleared.
+        </div>
+      </div>
+
+      <!-- Payment proof — screenshot / receipt -->
+      <div class="pm-field pm-field-full">
+        <label class="pm-label">
+          Payment Proof <span class="pm-optional">(optional)</span>
+        </label>
+
+        <input
+          #proofInputRef
+          type="file"
+          [accept]="proofAccept"
+          (change)="onProofFileChange($event)"
+          hidden
+        />
+
+        <div
+          class="pm-upload-zone"
+          [class.has-file]="selectedProofFile"
+          [class.is-invalid]="proofError"
+          role="button"
+          tabindex="0"
+          (click)="proofInputRef.click()"
+          (keyup.enter)="proofInputRef.click()"
+        >
+          <ng-container *ngIf="!selectedProofFile">
+            <div class="pm-upload-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+            <span class="pm-upload-label">Click to upload a screenshot or receipt</span>
+            <span class="pm-upload-hint">JPG, PNG, WEBP or PDF &bull; Max 5 MB</span>
+          </ng-container>
+
+          <ng-container *ngIf="selectedProofFile">
+            <img *ngIf="isProofImage" [src]="proofPreviewUrl" alt="Payment proof preview"
+                 class="pm-upload-preview" />
+            <div *ngIf="!isProofImage" class="pm-upload-icon"><i class="fa fa-file-pdf"></i></div>
+            <span class="pm-upload-filename">
+              <i class="fa fa-paperclip"></i> {{ selectedProofFile.name }}
+              <span class="pm-upload-size">({{ formatFileSize(selectedProofFile.size) }})</span>
+            </span>
+            <span class="pm-upload-hint">Click to choose a different file</span>
+          </ng-container>
+        </div>
+
+        <div class="pm-upload-actions" *ngIf="selectedProofFile">
+          <button type="button" class="dc-btn dc-btn--sm dc-btn--remove"
+                  (click)="clearProofSelection(); proofInputRef.value = ''">
+            <i class="fa fa-times"></i> Remove file
+          </button>
+        </div>
+
+        <div class="pm-error" *ngIf="proofError">{{ proofError }}</div>
+      </div>
+
+      <!-- Remarks -->
+      <div class="pm-field pm-field-full">
+        <label class="pm-label">Remarks <span class="pm-optional">(optional)</span></label>
+        <textarea
+          class="pm-input pm-textarea"
+          [(ngModel)]="paymentForm.remarks"
+          rows="2"
+          placeholder="Any note about this payment…"
+          maxlength="500"
+        ></textarea>
       </div>
 
     </div>
@@ -870,10 +1028,14 @@
       [class.pm-submit-full]="paymentForm.paymentType === PaymentType.Full"
       [class.pm-submit-partial]="paymentForm.paymentType === PaymentType.Partial"
       (click)="submitPayment()"
-      [disabled]="!paymentFormValid"
+      [disabled]="!paymentFormValid || isUploadingProof"
     >
-      <i class="fa fa-save"></i>
-      {{ paymentForm.paymentType === PaymentType.Full ? 'Record Full Payment' : 'Record Partial Payment' }}
+      <i class="fa" [class.fa-spinner]="isUploadingProof" [class.fa-spin]="isUploadingProof"
+                    [class.fa-save]="!isUploadingProof"></i>
+      <ng-container *ngIf="isUploadingProof">Uploading proof…</ng-container>
+      <ng-container *ngIf="!isUploadingProof">
+        {{ paymentForm.paymentType === PaymentType.Full ? 'Record Full Payment' : 'Record Partial Payment' }}
+      </ng-container>
     </button>
   </div>
 
@@ -1054,6 +1216,162 @@
 
   <div class="calc-footer">
     <button class="btn btn-outline-secondary" (click)="closeCalcModal()">
+      <i class="fa fa-times"></i> Close
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     PAYMENT HISTORY MODAL (all months)
+     Answers "when, how and how much was this person paid" —
+     every transaction with its date, mode, reference and proof.
+══════════════════════════════════════════════════════ -->
+<div class="ph-overlay" [class.ph-overlay-open]="isHistoryModalOpen" (click)="closeHistoryModal()"></div>
+
+<div class="ph-modal" [class.ph-modal-open]="isHistoryModalOpen" *ngIf="isHistoryModalOpen"
+     role="dialog" aria-modal="true" aria-label="Salary payment history">
+
+  <!-- ── Header ── -->
+  <div class="ph-header">
+    <div class="ph-header-left">
+      <div class="ph-header-icon"><i class="fa fa-history"></i></div>
+      <div>
+        <div class="ph-header-title">Payment History</div>
+        <div class="ph-header-sub">
+          {{ historyData?.fullName || historyRecord?.fullName }}
+          <span *ngIf="historyData"> · {{ historyData.paymentCount }} payment(s)</span>
+        </div>
+      </div>
+    </div>
+    <button class="ph-close" (click)="closeHistoryModal()" aria-label="Close">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+
+  <!-- ── Totals strip ── -->
+  <div class="ph-stats" *ngIf="historyData">
+    <div class="ph-stat">
+      <div class="ph-stat-val ph-stat-paid">{{ formatINR(historyData.totalPaidAllTime) }}</div>
+      <div class="ph-stat-lbl">Total Paid (All Time)</div>
+    </div>
+    <div class="ph-stat-sep"></div>
+    <div class="ph-stat">
+      <div class="ph-stat-val">{{ historyData.months.length }}</div>
+      <div class="ph-stat-lbl">Salary Periods</div>
+    </div>
+    <div class="ph-stat-sep"></div>
+    <div class="ph-stat">
+      <div class="ph-stat-val">{{ historyData.paymentCount }}</div>
+      <div class="ph-stat-lbl">Transactions</div>
+    </div>
+  </div>
+
+  <!-- ── Body ── -->
+  <div class="ph-body">
+
+    <div class="ph-loading" *ngIf="isLoadingHistory">
+      <i class="fa fa-spinner fa-spin"></i> Loading payment history…
+    </div>
+
+    <div class="no-data" *ngIf="!isLoadingHistory && (!historyData || historyData.months.length === 0)">
+      <i class="fa fa-inbox"></i>
+      <p>No salary payments recorded for this employee yet.</p>
+    </div>
+
+    <!-- One block per salary period, newest first -->
+    <div class="ph-month" *ngFor="let m of historyData?.months">
+
+      <button class="ph-month-header" (click)="toggleMonth(m.month)"
+              [attr.aria-expanded]="!isMonthCollapsed(m.month)">
+        <span class="ph-month-left">
+          <i class="fa ph-month-caret"
+             [class.fa-chevron-down]="!isMonthCollapsed(m.month)"
+             [class.fa-chevron-right]="isMonthCollapsed(m.month)"></i>
+          <span class="ph-month-label">{{ m.monthLabel }}</span>
+          <span class="badge" [class.badge-success]="m.isFullyPaid" [class.badge-warning]="!m.isFullyPaid">
+            {{ m.isFullyPaid ? 'Paid' : 'Pending' }}
+          </span>
+        </span>
+        <span class="ph-month-right">
+          <span class="ph-month-figure">
+            <span class="ph-month-figure-lbl">Payable</span>
+            <span class="ph-month-figure-val">{{ formatINR(m.netPayableSalary) }}</span>
+          </span>
+          <span class="ph-month-figure">
+            <span class="ph-month-figure-lbl">Paid</span>
+            <span class="ph-month-figure-val ph-paid">{{ formatINR(m.totalPaid) }}</span>
+          </span>
+          <span class="ph-month-figure" *ngIf="m.pendingAmount > 0">
+            <span class="ph-month-figure-lbl">Pending</span>
+            <span class="ph-month-figure-val ph-pending">{{ formatINR(m.pendingAmount) }}</span>
+          </span>
+        </span>
+      </button>
+
+      <div class="table-container ph-table-wrap" *ngIf="!isMonthCollapsed(m.month)">
+        <div class="table-responsive">
+          <table class="data-table ph-table">
+            <thead>
+              <tr>
+                <th>Payment Date</th>
+                <th>Component</th>
+                <th class="ph-num">Amount</th>
+                <th>Mode</th>
+                <th>Reference No.</th>
+                <th>Status</th>
+                <th>Proof</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let pay of m.payments">
+                <td>{{ formatPaymentDate(pay.paymentDate) }}</td>
+                <td>
+                  <span class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
+                    {{ paymentForLabel(pay.paymentSource) }}
+                  </span>
+                </td>
+                <td class="ph-num ph-amount">{{ formatINR(pay.paymentAmount) }}</td>
+                <td>
+                  <span class="pay-mode-badge" [ngClass]="paymentModeClass(pay.paymentMode)">
+                    <i class="fa" [ngClass]="paymentModeIcon(pay.paymentMode)"></i>
+                    {{ pay.paymentModeName || paymentModeLabel(pay.paymentMode) }}
+                  </span>
+                </td>
+                <td class="ph-ref">{{ pay.transactionReference || '—' }}</td>
+                <td>
+                  <span class="pay-status-badge" [ngClass]="paymentStatusClass(pay.paymentStatus)">
+                    {{ pay.paymentStatusName || paymentStatusLabel(pay.paymentStatus) }}
+                  </span>
+                </td>
+                <td>
+                  <button *ngIf="pay.hasPaymentProof"
+                          type="button"
+                          class="btn-action btn-view"
+                          (click)="viewPaymentProof(pay)"
+                          [disabled]="proofLoadingId === pay.paymentId"
+                          [title]="pay.proofFileName || 'View payment proof'">
+                    <i class="fa"
+                       [class.fa-spinner]="proofLoadingId === pay.paymentId"
+                       [class.fa-spin]="proofLoadingId === pay.paymentId"
+                       [class.fa-image]="proofLoadingId !== pay.paymentId"></i>
+                  </button>
+                  <span class="ph-no-proof" *ngIf="!pay.hasPaymentProof">—</span>
+                </td>
+                <td class="ph-remarks">{{ pay.remarks || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="ph-footer">
+    <button class="btn btn-outline-secondary" (click)="closeHistoryModal()">
       <i class="fa fa-times"></i> Close
     </button>
   </div>
