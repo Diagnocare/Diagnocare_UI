@@ -14,6 +14,11 @@ import {
   SalaryPaymentDTO,
   UserSalarySummaryDTO,
   MonthlySalarySummaryDTO,
+  PaymentMode,
+  PaymentModeLabels,
+  PaymentModeIcons,
+  PaymentStatus,
+  PaymentStatusLabels,
 } from 'src/app/models/salary/salary.dto';
 
 /**
@@ -304,10 +309,86 @@ export class MySalaryComponent implements OnInit, OnDestroy {
     return '₹ ' + (val ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
   }
 
-  /** "BaseSalary" → "Base Salary" (shown in the Payment Mode column). */
-  paymentModeLabel(sourceName: string | undefined): string {
+  /** "BaseSalary" → "Base Salary" (the salary component the payment came from). */
+  componentLabel(sourceName: string | undefined): string {
     if (!sourceName) return '—';
     return sourceName.replace(/([a-z])([A-Z])/g, '$1 $2');
+  }
+
+  // ── How the payment was made ───────────────────────────────────────────────
+
+  /** "Cash" / "UPI" / "Bank Transfer" … — falls back to Cash for pre-tracking rows. */
+  paymentModeLabel(p: SalaryPaymentDTO): string {
+    return p.paymentModeName || PaymentModeLabels[(p.paymentMode ?? PaymentMode.Cash) as PaymentMode] || '—';
+  }
+
+  paymentModeIcon(p: SalaryPaymentDTO): string {
+    return PaymentModeIcons[(p.paymentMode ?? PaymentMode.Cash) as PaymentMode] ?? 'fa-money-bill-wave';
+  }
+
+  paymentModeClass(p: SalaryPaymentDTO): string {
+    switch (Number(p.paymentMode ?? PaymentMode.Cash)) {
+      case PaymentMode.Cash:         return 'pay-mode-cash';
+      case PaymentMode.UPI:          return 'pay-mode-upi';
+      case PaymentMode.BankTransfer: return 'pay-mode-bank';
+      case PaymentMode.Cheque:       return 'pay-mode-cheque';
+      case PaymentMode.Card:         return 'pay-mode-card';
+      default:                       return 'pay-mode-other';
+    }
+  }
+
+  paymentStatusLabel(p: SalaryPaymentDTO): string {
+    return p.paymentStatusName
+        || PaymentStatusLabels[(p.paymentStatus ?? PaymentStatus.Completed) as PaymentStatus]
+        || '—';
+  }
+
+  paymentStatusClass(p: SalaryPaymentDTO): string {
+    switch (Number(p.paymentStatus ?? PaymentStatus.Completed)) {
+      case PaymentStatus.Pending: return 'pay-status-pending';
+      case PaymentStatus.Failed:  return 'pay-status-failed';
+      default:                    return 'pay-status-completed';
+    }
+  }
+
+  // ── Payment proof ──────────────────────────────────────────────────────────
+
+  /** PaymentId whose proof is being fetched, for the row spinner. */
+  proofLoadingId: number | null = null;
+
+  /**
+   * Opens the proof screenshot for one of the caller's own payments. Fetched as a
+   * blob because the endpoint needs the auth header; ownership is enforced server-side.
+   */
+  openProof(p: SalaryPaymentDTO, event: Event): void {
+    // The row itself opens the PDF receipt — this button must not do both.
+    event.stopPropagation();
+    if (this.proofLoadingId || !p.hasPaymentProof) return;
+    this.proofLoadingId = p.paymentId;
+
+    this.salarySvc.getMyPaymentProof(p.paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob: Blob) => {
+          this.proofLoadingId = null;
+          if (!blob || blob.size === 0) {
+            this.toastr.error('Payment proof could not be opened.', 'Error');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          if (!window.open(url, '_blank')) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = p.proofFileName || `payment-proof-${p.paymentId}`;
+            a.click();
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.proofLoadingId = null;
+        },
+      });
   }
 
   trackByPayment(_i: number, p: SalaryPaymentDTO): number { return p.paymentId; }
