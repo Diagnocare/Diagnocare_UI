@@ -35,9 +35,9 @@
 
       <div class="leave-balance-grid">
         <div class="lb-item">
-          <span class="lb-label">Annual entitlement</span>
-          <span class="lb-value">{{ leaveBalance!.annualEntitlement | number:'1.0-1' }} days</span>
-          <small class="lb-note">{{ leaveBalance!.monthlyEntitlement }}/month</small>
+          <span class="lb-label">Leave accrued till now</span>
+          <span class="lb-value">{{ leaveBalance!.accruedToDate | number:'1.0-1' }} days</span>
+          <small class="lb-note">{{ leaveBalance!.monthlyEntitlement }}/month × {{ leaveBalance!.asOfMonth }} month(s)</small>
         </div>
         <div class="lb-item">
           <span class="lb-label">Leave used</span>
