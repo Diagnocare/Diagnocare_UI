@@ -59,6 +59,85 @@ jobs:
         shell: powershell
 
     steps:
+      # ── Disk space, before anything writes to it ─────────────────────────────
+      # Runs ahead of checkout because a full drive breaks checkout and npm ci too,
+      # and does so unreadably: an out-of-space `npm ci` buries the real cause under
+      # a thousand "TAR_ENTRY_ERROR ENOSPC" warnings and then fails somewhere else
+      # entirely (esbuild's install script spawning its binary), which reads like a
+      # dependency problem rather than a full disk.
+      #
+      # The job's own leftovers are already removed by the cleanup step at the end,
+      # so a shortfall here comes from what accumulates OUTSIDE the workspace —
+      # chiefly the npm cache, this runner's _diag logs, and _work\_temp. Those are
+      # what this step reclaims, and only when space is actually short: the build
+      # relies on `npm ci --prefer-offline`, so a populated cache is worth keeping.
+      #
+      # Both runner listeners share the C: drive on this box, so this deliberately
+      # stays inside this runner's own _work tree (derived from RUNNER_WORKSPACE,
+      # never hardcoded) and leaves the API runner's workspaces alone.
+      - name: Check and reclaim runner disk space
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $minFreeGb = [double]'${{ vars.UI_RUNNER_MIN_FREE_GB || '6' }}'
+
+          $qualifier = Split-Path -Qualifier $env:GITHUB_WORKSPACE
+          function Get-FreeGb {
+            $d = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$qualifier'"
+            [math]::Round($d.FreeSpace / 1GB, 2)
+          }
+
+          $before = Get-FreeGb
+          Write-Host "[disk] $qualifier has $before GB free (need $minFreeGb GB)"
+          if ($before -ge $minFreeGb) { exit 0 }
+
+          Write-Host "::warning::Only $before GB free on $qualifier - reclaiming before the build."
+
+          # 1. Stale node_modules from this runner's other workspaces. npm ci recreates
+          #    them, and a workspace other than this job's is not in use: this runner
+          #    takes one job at a time.
+          # RUNNER_WORKSPACE is _work\<repo>, so one step up is _work and two is the
+          # runner root (C:\actions-runner-ui). Derived rather than hardcoded so this
+          # cannot reach into the API runner's tree.
+          $work = Split-Path $env:RUNNER_WORKSPACE -Parent
+          if (Test-Path $work) {
+            Get-ChildItem $work -Directory -Recurse -Depth 4 -Filter node_modules -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notlike "$env:GITHUB_WORKSPACE*" } |
+              ForEach-Object {
+                Write-Host "[disk] removing $($_.FullName)"
+                Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
+              }
+          }
+
+          # 2. Runner diagnostic logs older than a week, and anything left in _temp by
+          #    an earlier job. The runner never trims either, so both grow forever.
+          $runnerRoot = Split-Path $work -Parent
+          Get-ChildItem (Join-Path $runnerRoot '_diag') -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+          Get-ChildItem (Join-Path $work '_temp') -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+          # 3. Garbage-collect the npm cache. `verify` drops unreferenced entries and
+          #    keeps the rest, so --prefer-offline still has something to work with;
+          #    `clean --force` would empty it and make every later build re-download.
+          npm cache verify 2>&1 | Write-Host
+
+          $after = Get-FreeGb
+          Write-Host "[disk] $after GB free after reclaiming (was $before GB)"
+
+          if ($after -lt $minFreeGb) {
+            throw ("Not enough disk on the UI runner: $after GB free on $qualifier, " +
+                   "$minFreeGb GB needed. Reclaiming inside the workspace was not enough, " +
+                   "so something outside it is holding the space - run the 'Clean Runner Disks' " +
+                   "workflow in the API repo (dry_run first) to see the largest consumers.")
+          }
+
+          # Explicit, because Actions ends a powershell step with $LASTEXITCODE and
+          # `npm cache verify` above is a native command.
+          exit 0
+
       - name: Checkout UI and its unit tests
         uses: actions/checkout@v4
         with:
@@ -140,6 +219,13 @@ jobs:
           $testModules = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-Test\node_modules'
           if (Test-Path $testModules) { Remove-Item -Recurse -Force $testModules }
           Write-Host '[OK] node_modules/dist/.angular removed (DEV)'
+
+          # Logged every run so the trend is on the run page: if this number walks
+          # downwards run after run, something outside the workspace is growing and
+          # the pre-flight guard above is going to start failing builds.
+          $qualifier = Split-Path -Qualifier $env:GITHUB_WORKSPACE
+          $free = (Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$qualifier'").FreeSpace
+          Write-Host ("[disk] {0} has {1} GB free after cleanup" -f $qualifier, [math]::Round($free / 1GB, 2))
 
   # # ============================================================
   # # JOB 2: Approval gate (custom, runs on the self-hosted runner)
