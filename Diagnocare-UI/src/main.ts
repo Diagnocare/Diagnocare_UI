@@ -22,6 +22,12 @@ import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './app/core/interceptors/error.interceptor';
 import { installAutofillGuard } from './app/shared/autofill-guard';
+import { preconnectToApiOrigin } from './app/shared/api-preconnect';
+
+// Start the DNS + TCP + TLS handshake to the API origin now, so it runs while
+// Angular bootstraps instead of in front of the first XHR. Costs ~1.8 s when it
+// is paid serially (PERF-009); no-op once the API is same-origin.
+preconnectToApiOrigin();
 
 // Stop Chrome pushing the saved login user id into every text box.
 // Must run before the first render so fields are stamped as they appear.
