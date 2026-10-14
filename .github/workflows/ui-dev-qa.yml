@@ -80,7 +80,7 @@ jobs:
         working-directory: .
         run: |
           $ErrorActionPreference = 'Continue'
-          $minFreeGb = [double]'${{ vars.UI_RUNNER_MIN_FREE_GB || '6' }}'
+          $minFreeGb = [double]'${{ vars.UI_RUNNER_MIN_FREE_GB || '0.2' }}'
 
           $qualifier = Split-Path -Qualifier $env:GITHUB_WORKSPACE
           function Get-FreeGb {
