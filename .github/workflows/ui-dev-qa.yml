@@ -59,11 +59,6 @@ jobs:
         shell: powershell
 
     steps:
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> e5af561931f18669b9f83686adbe9977b430da25
       # ── Disk space, before anything writes to it ─────────────────────────────
       # Runs ahead of checkout because a full drive breaks checkout and npm ci too,
       # and does so unreadably: an out-of-space `npm ci` buries the real cause under
@@ -71,15 +66,16 @@ jobs:
       # entirely (esbuild's install script spawning its binary), which reads like a
       # dependency problem rather than a full disk.
       #
-      # The job's own leftovers are already removed by the cleanup step at the end,
-      # so a shortfall here comes from what accumulates OUTSIDE the workspace —
-      # chiefly the npm cache, this runner's _diag logs, and _work\_temp. Those are
-      # what this step reclaims, and only when space is actually short: the build
-      # relies on `npm ci --prefer-offline`, so a populated cache is worth keeping.
+      # Measured footprint of this build: node_modules 294 MB for the app plus 125 MB
+      # for the tests, dist 31 MB, and the Angular cache 3.4 GB — hence a 6 GB floor
+      # rather than a round guess. Override with the repo variable
+      # UI_RUNNER_MIN_FREE_GB (set it to 1 to let builds attempt regardless).
       #
       # Both runner listeners share the C: drive on this box, so this deliberately
       # stays inside this runner's own _work tree (derived from RUNNER_WORKSPACE,
-      # never hardcoded) and leaves the API runner's workspaces alone.
+      # never hardcoded) and leaves the API runner's workspaces alone. Space held
+      # outside that tree is reported by the 'Clean Runner Disks' workflow in the API
+      # repo, which this step points at when it cannot free enough itself.
       - name: Check and reclaim runner disk space
         working-directory: .
         run: |
@@ -98,29 +94,20 @@ jobs:
 
           Write-Host "::warning::Only $before GB free on $qualifier - reclaiming before the build."
 
-<<<<<<< HEAD
           # 1. Everything under this runner's _work that the build regenerates anyway:
           #    node_modules (npm ci wipes and reinstalls it regardless), dist, and the
-          #    Angular build cache. Measured on this project: node_modules 294 MB for
-          #    the app plus 125 MB for the tests, dist 31 MB — and .angular 3.4 GB. The
-          #    cache is the one worth hunting for, and it is the one a cancelled run
-          #    leaves behind, because the end-of-job cleanup never got to run.
+          #    Angular build cache — the cache being the one actually worth hunting
+          #    for, and the one a cancelled run leaves behind because the end-of-job
+          #    cleanup never got to run.
           #
           #    The current workspace is included on purpose. This step runs before
           #    checkout, so nothing here belongs to this job yet; losing the cache only
           #    costs a slower first build, which beats failing for want of 3 GB.
           #
-=======
-          # 1. Stale node_modules from this runner's other workspaces. npm ci recreates
-          #    them, and a workspace other than this job's is not in use: this runner
-          #    takes one job at a time.
->>>>>>> e5af561931f18669b9f83686adbe9977b430da25
           # RUNNER_WORKSPACE is _work\<repo>, so one step up is _work and two is the
-          # runner root (C:\actions-runner-ui). Derived rather than hardcoded so this
-          # cannot reach into the API runner's tree.
+          # runner root (C:\actions-runner-ui).
           $work = Split-Path $env:RUNNER_WORKSPACE -Parent
           if (Test-Path $work) {
-<<<<<<< HEAD
             foreach ($name in @('node_modules', '.angular', 'dist')) {
               Get-ChildItem $work -Directory -Recurse -Depth 4 -Filter $name -ErrorAction SilentlyContinue |
                 ForEach-Object {
@@ -128,14 +115,6 @@ jobs:
                   Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
                 }
             }
-=======
-            Get-ChildItem $work -Directory -Recurse -Depth 4 -Filter node_modules -ErrorAction SilentlyContinue |
-              Where-Object { $_.FullName -notlike "$env:GITHUB_WORKSPACE*" } |
-              ForEach-Object {
-                Write-Host "[disk] removing $($_.FullName)"
-                Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
-              }
->>>>>>> e5af561931f18669b9f83686adbe9977b430da25
           }
 
           # 2. Runner diagnostic logs older than a week, and anything left in _temp by
@@ -167,10 +146,6 @@ jobs:
           # `npm cache verify` above is a native command.
           exit 0
 
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> e5af561931f18669b9f83686adbe9977b430da25
       - name: Checkout UI and its unit tests
         uses: actions/checkout@v4
         with:
@@ -255,7 +230,7 @@ jobs:
 
           # Logged every run so the trend is on the run page: if this number walks
           # downwards run after run, something outside the workspace is growing and
-          # the pre-flight guard above is going to start failing builds.
+          # the pre-flight check above is going to start failing builds.
           $qualifier = Split-Path -Qualifier $env:GITHUB_WORKSPACE
           $free = (Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$qualifier'").FreeSpace
           Write-Host ("[disk] {0} has {1} GB free after cleanup" -f $qualifier, [math]::Round($free / 1GB, 2))
