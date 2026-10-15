@@ -1,3 +1,22 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Add New Test — screen-specific styles only.
+
+   The form shell this screen is built from (the registration card, its step
+   header and body, the field widths, the input combo, the toggles, the radio
+   pills, the amount cards, the payment and TPA banners and the footer action
+   bar) is the SAME shell Add New Patient uses, and now lives once in
+   styles.css under "REGISTRATION / WIZARD FORM SHELL". The sample-collection
+   protocol panel lives there too, under "SAMPLE COLLECTION PROTOCOL PANEL".
+   Both used to be duplicated here, which is how this screen ended up with a
+   purple step badge where registration had a blue one, and a footer bar that
+   stayed light while the rest of the app followed the theme.
+
+   What is left below is only what this screen has and registration does not:
+   the full-screen overlay it opens in, and the four-column test browser it
+   still carries behind USE_NEW_UI. Anything that another screen would also
+   want belongs in styles.css, not here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 /* ── Full-screen overlay ─────────────────────────────────────────────────── */
 .atm-overlay {
   position: fixed;
@@ -15,357 +34,54 @@
 
 @keyframes atmFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ── Scrollable page inside overlay ─────────────────────────────────────── */
+/* ── Scrollable page inside the overlay ──────────────────────────────────────
+   No `background` here on purpose. The element also carries .page-container,
+   which paints var(--primary-gradient) — the blue-to-purple band behind every
+   other page in the app, and the matching dark / midnight / warm gradients in
+   the other themes. This rule used to set a flat #f4f7fb over the top of it,
+   and because a component stylesheet outranks a global one, the flat colour
+   won. That is what made this screen feel like somewhere else: it was the only
+   full-page surface in the app that was not the brand gradient. Four flat
+   per-theme `.atm-page` overrides in styles.css were removed with it.
+
+   The element fills the overlay (100% wide, min-height 100%), so it really is
+   a page rather than a floating dialog, and it should be painted like one. */
 .atm-page {
   width: 100%;
   min-height: 100%;
-  background: #f4f7fb;
   animation: atmSlideUp 0.25s cubic-bezier(0.34, 1.1, 0.64, 1);
+
+  /* ── Shape tokens for the embedded Simple UI components ──────────────────
+     <dc-test-picker> and <dc-payment-panel> read their geometry from the
+     --dc-* layer (see shared/simple/simple-ui.css) and fall back to their own
+     literals. Setting a token here retunes them for this screen only, which
+     is the kit's intended extension point — no edit to either component, and
+     no effect on any other screen that embeds them.
+
+     The kit's default radius is 0.625rem (10px); everything else in this modal
+     is on the app's 8px. Ten against eight is small enough that nobody names
+     it and large enough that the picker reads as a panel from somewhere else.
+
+     Deliberately NOT retuned: --dc-touch / --dc-touch-lg and the type scale.
+     Those are the kit's 48px targets and minimum readable sizes, chosen for
+     front-desk and lab staff, and shrinking them to match this form would
+     trade a real usability gain for visual tidiness. */
+  --dc-radius: 0.5rem;
+  --dc-radius-lg: 0.75rem;
 }
 
-@keyframes atmSlideUp { from { transform: translateY(32px); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
-
-/* ── Page Header override — adds close button on right ──────────────────── */
-.atm-page-header {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
+@keyframes atmSlideUp {
+  from { transform: translateY(32px); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-.atm-close-page-btn {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
+/* The page header used to be re-declared here as flex / space-between /
+   center with !important on all three — which is what the shared .page-header
+   already is, except that the !important also cancelled the rule that stacks a
+   header on a phone. The template now uses the standard .header-left +
+   .header-actions pair and needs no override at all. */
 
-/* ─── Registration Card (shared with add-patient) ─────────────────────────── */
-.registration-card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 24px rgba(30, 91, 168, 0.10);
-  margin-bottom: 1.5em;
-}
-
-/* ─── Step Header ─────────────────────────────────────────────────────────── */
-.step-header {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  padding: 1.25em 1.75em;
-  border-bottom: 2px solid #f0f4fb;
-}
-.step-header h3 { margin: 0; font-size: 1.15em; font-weight: 700; color: #1a2e4a; }
-.step-header p  { margin: 0.2em 0 0; font-size: 0.8em; color: #7a8fa8; }
-
-.step-header--1 { border-left: 5px solid #667eea; }
-.step-header--2 { border-left: 5px solid #1E5BA8; }
-.step-header--3 { border-left: 5px solid #764ba2; }
-.step-header--4 { border-left: 5px solid #4CAF50; }
-
-.step-badge {
-  width: 2.4em;
-  height: 2.4em;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1em;
-  color: #fff;
-  flex-shrink: 0;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-.step-header--4 .step-badge,
-.atm-badge--payment {
-  background: linear-gradient(135deg, #4CAF50, #2e7d32) !important;
-}
-
-/* ─── Step Body ───────────────────────────────────────────────────────────── */
-.step-body {
-  padding: 1.5em 1.75em 0.5em;
-}
-
-/* ─── Section Sub-labels ──────────────────────────────────────────────────── */
-.form-section-label {
-  font-size: 0.72em;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #9aa8be;
-  margin: 1.4em 0 0.6em;
-  padding-bottom: 0.4em;
-  border-bottom: 1px solid #eef1f8;
-}
-.form-section-label:first-child { margin-top: 0; }
-
-/* ─── Inline Field Error ──────────────────────────────────────────────────── */
-.field-error {
-  display: block;
-  color: #dc2626;
-  font-size: 0.75em;
-  margin-top: 0.3em;
-  padding-left: 0.1em;
-}
-.field-error::before { content: '⚠ '; }
-
-/* ─── Form Group Widths ───────────────────────────────────────────────────── */
-.form-group--wide   { grid-column: 1 / -1; }
-.form-group--narrow { max-width: 220px; }
-
-/* ─── Input Combo ─────────────────────────────────────────────────────────── */
-.input-combo {
-  display: flex;
-  border: 2px solid #e1e8ed;
-  border-radius: 8px;
-  transition: border-color 0.2s;
-}
-.input-combo:focus-within {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
-}
-.input-combo.is-invalid { border-color: #ef4444; }
-
-.combo-prefix {
-  border: none;
-  border-right: 2px solid #e1e8ed;
-  background: #f7f9fc;
-  padding: 0.65em 0.5em;
-  font-size: 0.85em;
-  min-width: 72px;
-  flex-shrink: 0;
-  cursor: pointer;
-  color: #374151;
-  outline: none;
-}
-.combo-prefix--md { min-width: 110px; }
-.combo-prefix:focus { background: #eef2ff; }
-
-.combo-input {
-  border: none;
-  padding: 0.65em 0.85em;
-  font-size: 0.875em;
-  flex: 1;
-  outline: none;
-  background: #fff;
-  color: #1a2e4a;
-  min-width: 0;
-}
-.combo-input::placeholder { color: #aab5c6; }
-
-.combo-input-wrap {
-  flex: 1;
-  position: relative;
-}
-
-/* ─── Referred By Suggestions ─────────────────────────────────────────────── */
-.referred-by-input-wrap {
-  position: relative;
-  flex: 1;
-}
-.referred-by-suggestions {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(16,24,40,0.06);
-  z-index: 1200;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 4px 0;
-  margin: 0;
-  list-style: none;
-}
-.referred-by-suggestions li {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 0.92rem;
-  color: #0f172a;
-  white-space: nowrap;
-}
-.referred-by-suggestions li:hover { background: #eef2ff; color: #1E5BA8; }
-
-/* ─── Toggle Wrap ─────────────────────────────────────────────────────────── */
-.toggle-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  padding-top: 0.4em;
-}
-.toggle-wrap input[type="checkbox"] {
-  width: 1.1em;
-  height: 1.1em;
-  margin: 0;
-  accent-color: #667eea;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.toggle-label {
-  font-size: 0.85em;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  margin: 0;
-}
-
-/* ─── Test Input with browse icon ────────────────────────────────────────── */
-.test-input-wrap { position: relative; }
-.test-input-wrap .form-control {
-  cursor: pointer;
-  padding-right: 2.5em;
-}
-.test-input-wrap .form-control:hover { border-color: #667eea; background: #f5f7ff; }
-.test-browse-icon {
-  position: absolute;
-  right: 0.85em;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9aa8be;
-  pointer-events: none;
-  font-size: 0.9em;
-}
-
-/* ─── Radio Pills ─────────────────────────────────────────────────────────── */
-.radio-pill-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5em;
-  padding: 0.15em 0;
-}
-.radio-pill {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-.radio-pill input[type="radio"] { width: auto; margin: 0 0.5em; }
-.radio-pill span {
-  display: inline-block;
-  padding: 0.35em 0.9em;
-  border: 2px solid #d1d9e6;
-  border-radius: 20px;
-  font-size: 0.82em;
-  font-weight: 600;
-  color: #5a6a7e;
-  background: #f7f9fc;
-  transition: all 0.18s;
-  user-select: none;
-}
-.radio-pill input[type="radio"]:checked + span {
-  background: linear-gradient(135deg, #1E5BA8, #667eea);
-  border-color: #1E5BA8;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(30, 91, 168, 0.25);
-}
-.radio-pill:hover span { border-color: #667eea; color: #1E5BA8; background: #eef2ff; }
-
-/* ─── Amount Summary Cards ────────────────────────────────────────────────── */
-.amount-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1em;
-  margin-bottom: 1.5em;
-}
-.amount-card {
-  border-radius: 10px;
-  padding: 1em 1.25em;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3em;
-}
-.amount-card .amount-label { font-size: 0.75em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
-.amount-card .amount-value { font-size: 1.4em; font-weight: 800; }
-.amount-card--test     { background: #eef2ff; color: #3730a3; }
-.amount-card--discount { background: #fff7ed; color: #92400e; }
-.amount-card--net      { background: #ecfdf5; color: #065f46; }
-
-/* ─── Payment Locked ──────────────────────────────────────────────────────── */
-.payment-lock-icon  { font-size: 0.8em; margin-left: 0.3em; vertical-align: middle; opacity: 0.7; }
-.payment-locked-input { background: #f0fdf4 !important; border-color: #86efac !important; color: #166534 !important; font-weight: 700; cursor: default; }
-
-/* ─── Payment Confirmed Banner ───────────────────────────────────────────── */
-.payment-confirmed-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1em;
-  margin-top: 1em;
-  padding: 0.85em 1.1em;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border: 1.5px solid #86efac;
-  border-radius: 10px;
-}
-.payment-confirmed-content { display: flex; align-items: center; gap: 0.7em; }
-.payment-confirmed-icon    { font-size: 1.4em; flex-shrink: 0; }
-.payment-confirmed-text    { display: flex; flex-direction: column; gap: 0.15em; }
-.payment-confirmed-text strong { font-size: 0.9em; color: #166534; }
-.payment-confirmed-text span   { font-size: 0.8em; color: #15803d; }
-
-.btn-edit-payment {
-  background: none;
-  border: 1.5px solid #15803d;
-  color: #15803d;
-  border-radius: 6px;
-  padding: 0.35em 0.85em;
-  font-size: 0.8em;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.18s, color 0.18s;
-}
-.btn-edit-payment:hover { background: #15803d; color: #fff; }
-.btn-edit-payment i { margin-right: 0.3em; }
-
-/* ─── TPA Confirmed Banner ───────────────────────────────────────────────── */
-.atm-tpa-confirmed-banner .payment-confirmed-text strong { color: #1d4ed8; }
-.atm-tpa-confirmed-banner .payment-confirmed-text span   { color: #1e40af; }
-.atm-tpa-confirmed-banner .btn-edit-payment {
-  border-color: #1d4ed8;
-  color: #1d4ed8;
-}
-.atm-tpa-confirmed-banner .btn-edit-payment:hover {
-  background: #1d4ed8;
-  color: #fff;
-}
-
-/* TPA required note (before details are filled) */
-.atm-tpa-required-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  background: #eff6ff;
-  border: 1.5px solid #bfdbfe;
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 13.5px;
-  color: #1d4ed8;
-}
-
-.atm-tpa-required-note .fa {
-  font-size: 15px;
-  flex-shrink: 0;
-}
-
-.atm-tpa-open-btn {
-  margin-left: auto;
-  background: #1d4ed8;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s;
-}
-
-.atm-tpa-open-btn:hover { background: #1e40af; }
-
-/* ─── Save Error ──────────────────────────────────────────────────────────── */
+/* ── Save failure, shown under the payment step ──────────────────────────── */
 .atm-save-error {
   display: flex;
   align-items: center;
@@ -379,39 +95,11 @@
   margin-top: 1em;
 }
 
-/* ─── Form Actions Bar ────────────────────────────────────────────────────── */
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.1em 1.75em;
-  border-top: 2px solid #f0f4fb;
-  background: #fafbff;
-  border-radius: 0 0 14px 14px;
-  gap: 1em;
-}
-.actions-left, .actions-right { display: flex; align-items: center; gap: 0.75em; }
-
-.step-progress-hint { display: flex; gap: 6px; align-items: center; }
-.hint-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #d1d9e6;
-  transition: all 0.2s;
-}
-.hint-dot--active { width: 22px; border-radius: 4px; background: linear-gradient(90deg, #1E5BA8, #667eea); }
-.hint-dot--done   { background: #4CAF50; }
-
-/* ─── Removed with this screen's own Partial Payment modal ───────────────────
-   .amount-pending-hint, .pm-locked-field, .pm-disabled-input, .pm-lock-badge,
-   .modal-footer-actions, .modal-header, .modal-title and .modal-body all
-   existed to dress the hand-rolled Bootstrap payment dialog that used to live
-   at the bottom of this template. The screen opens the shared
-   <app-payment-modal> now, which brings its own shell, so none of these match
-   anything any more — and between them they hard-coded eight greys and three
-   font sizes that never themed. Deleted rather than left behind, so nobody
-   styles a future dialog to match them. */
-
-/* ═══════════════════════════ TEST CATALOG ════════════════════════════════ */
+/* ═══════════════════════════ TEST CATALOG ═══════════════════════════════════
+   The four-column browser, reached only when USE_NEW_UI is off. Registration
+   has already moved to <dc-test-picker> and deleted its copy, so nothing below
+   is shared with another screen and it all goes when this path does.
+   ═══════════════════════════════════════════════════════════════════════════ */
 .atm-catalog-card { overflow: hidden; }
 
 .atm-catalog-search {
@@ -419,10 +107,11 @@
   align-items: center;
   gap: 0.75em;
   padding: 0.9em 1.75em;
-  border-bottom: 1px solid #eef1f8;
+  border-bottom: 1px solid var(--border-color, #eef1f8);
   color: #9aa8be;
   font-size: 0.95em;
 }
+/* The search field is the row — no second border inside a bordered strip. */
 .atm-catalog-search .form-control {
   border: none;
   box-shadow: none;
@@ -434,21 +123,19 @@
 
 .atm-catalog-body {
   display: flex;
-  gap: 0;
   height: 420px;
   overflow: hidden;
   padding: 1em 1.75em;
   gap: 1em;
 }
 
-/* Re-use the same .card styles as add-patient test catalog */
 .atm-cat-col {
   flex: 1;
   height: 100%;
   min-width: 0;
-  background: #fff;
+  background: var(--bg-white);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(22,45,60,0.07);
+  box-shadow: 0 2px 8px rgba(22, 45, 60, 0.07);
   border: 1px solid rgba(30, 55, 72, 0.06);
   display: flex;
   flex-direction: column;
@@ -465,7 +152,7 @@
   font-weight: 700;
   color: #234a57;
   font-size: 0.85em;
-  border-bottom: 1px solid #eef1f8;
+  border-bottom: 1px solid var(--border-color, #eef1f8);
   background: #f8fafc;
   flex-shrink: 0;
 }
@@ -476,7 +163,7 @@
   flex: 1;
 }
 
-/* List items (same as add-patient) */
+/* ── Browser rows ─────────────────────────────────────────────────────────── */
 .list-item {
   display: flex;
   justify-content: space-between;
@@ -495,8 +182,8 @@
   box-shadow: 0 6px 12px rgba(19, 63, 87, 0.05);
   background: hsl(185, 84%, 90%);
 }
-.list-item .left      { width: 56%; }
-.list-item .right     { width: 24%; font-weight: 700; color: #234a57; min-width: 50px; text-align: right; }
+.list-item .left       { width: 56%; }
+.list-item .right      { width: 24%; font-weight: 700; color: #234a57; min-width: 50px; text-align: right; }
 .list-item .left .code { font-weight: 700; color: #146c98; margin-bottom: 4px; font-size: 0.85em; }
 .list-item .left .name { color: #234a57; font-size: 0.78em; opacity: 0.85; }
 
@@ -514,8 +201,8 @@
   border: 1.5px solid #4ade80;
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
 }
-.list-item.test-selected .left .code { color: #15803d; }
-.list-item.test-selected .left .name { color: #166534; opacity: 1; }
+.list-item.test-selected .left .code  { color: #15803d; }
+.list-item.test-selected .left .name  { color: #166534; opacity: 1; }
 .list-item.test-selected .right.price { color: #15803d; }
 .list-item.test-selected:hover { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
 .list-item.test-selected.active {
@@ -539,6 +226,7 @@
 .list-item.test-unavailable .left .name { color: #8a8a8a; }
 .list-item.test-unavailable .right      { color: #a3a3a3; text-decoration: line-through; }
 .list-item.test-unavailable:hover       { background: #f5f5f5; }
+
 .test-unavailable-note {
   margin-top: 2px;
   font-size: 11px;
@@ -546,11 +234,11 @@
   color: #c2410c;
 }
 
-.test-item  { display: flex; align-items: center; }
-.icon-wrap  { margin-right: 10px; display: flex; align-items: center; }
-.icon       { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.test-item { display: flex; align-items: center; }
+.icon-wrap { margin-right: 10px; display: flex; align-items: center; }
+.icon      { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 
-/* Selected items column */
+/* ── Selected column ──────────────────────────────────────────────────────── */
 .selected-item {
   display: flex;
   justify-content: space-between;
@@ -558,7 +246,7 @@
   padding: 0.6em 0.75em;
   border-radius: 8px;
   background: linear-gradient(180deg, #fbfefe, #f6fbfb);
-  border: 1px solid rgba(30,55,72,0.06);
+  border: 1px solid rgba(30, 55, 72, 0.06);
   margin-bottom: 8px;
 }
 .selected-item .left  { display: flex; flex-direction: column; gap: 3px; }
@@ -567,10 +255,12 @@
 .selected-item .right { display: flex; align-items: center; gap: 8px; }
 .selected-item .price { font-weight: 700; color: #0c83b7; min-width: 56px; text-align: right; font-size: 0.85em; }
 
+/* The shared .btn-action.btn-delete, taken in a size that fits a list row
+   rather than a table's Actions column. */
 .atm-remove-btn {
-  padding: 2px 6px !important;
-  font-size: 11px !important;
-  line-height: 1.4 !important;
+  width: 26px;
+  height: 26px;
+  font-size: 0.75em;
 }
 
 .total-summary {
@@ -590,226 +280,16 @@
 .total-amount { font-size: 1.3em; font-weight: 800; color: #0c83b7; }
 .total-label  { font-size: 0.75em; color: #7e98a2; }
 
-.no-data { text-align: center; padding: 2em 1em; color: #9aa8be; font-size: 0.85em; }
-
-/* ─── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .step-body    { padding: 1em; }
-  .form-actions { flex-wrap: wrap; padding: 1em; }
-  .step-progress-hint { order: -1; width: 100%; justify-content: center; }
-  .amount-summary { grid-template-columns: 1fr; }
-  .atm-catalog-body { flex-direction: column; height: auto; }
-  .atm-cat-col { height: 180px; }
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Sample collection protocol
-   ══════════════════════════════════════════════════════════════════════════ */
-
-/* Panel under the catalogue's four columns. Capped and scrollable so a long
-   procedure cannot push the Confirm Selection button off the screen. */
-.atm-catalog-protocol {
-  margin-top: 0.9rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #ffffff;
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-/* Show/hide control sitting inside the step-1 section label. */
-.atm-protocol-toggle {
-  margin-left: 0.6rem;
-  padding: 0.12rem 0.5rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: normal;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.atm-protocol-toggle:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.atm-protocol-toggle i {
-  margin-right: 0.25rem;
-  font-size: 0.65rem;
-}
-
-.atm-protocol-block {
-  margin-bottom: 1rem;
-}
-
-.atm-protocol-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px dashed #cbd5e1;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 0.82rem;
-}
-
-/* Basket-level alerts. Both are things the operator has to act on while the patient
-   is still in front of them, so they sit above the per-test cards. */
-.atm-protocol-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 10px;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  margin-bottom: 0.65rem;
-}
-
-.atm-protocol-alert i {
-  font-size: 1rem;
-  margin-top: 0.1rem;
-}
-
-.atm-protocol-alert strong {
-  display: block;
-  margin-bottom: 0.15rem;
-}
-
-.atm-protocol-alert--fasting {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-left: 4px solid #dc2626;
-  color: #7f1d1d;
-}
-
-.atm-protocol-alert--fasting i {
-  color: #dc2626;
-}
-
-.atm-protocol-alert--missing {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-left: 4px solid #ea580c;
-  color: #7c2d12;
-}
-
-.atm-protocol-alert--missing i {
-  color: #ea580c;
-}
-
-/* One compact card per selected test. */
-.atm-protocol-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 0.65rem;
-}
-
-.atm-protocol-card {
-  padding: 0.75rem 0.85rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #ffffff;
-}
-
-@media (max-width: 768px) {
-  .atm-protocol-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .atm-catalog-protocol {
-    max-height: 260px;
-  }
-}
-
-/* ── Collapsible protocol panels (hidden by default, opened via toggle) ── */
-.atm-catalog-protocol--collapsed {
-  padding: 0.55rem 1rem;
-  overflow: hidden;
-}
-
-.atm-catalog-protocol-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.atm-catalog-protocol:not(.atm-catalog-protocol--collapsed) .atm-catalog-protocol-bar {
-  margin-bottom: 0.6rem;
-}
-
-.atm-catalog-protocol-title i {
-  margin-right: 0.3rem;
-  color: #64748b;
-}
-
-.atm-catalog-protocol-test {
-  font-weight: 500;
-  color: #64748b;
-}
-
-.atm-protocol-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-/* ── Report on WhatsApp ─────────────────────────────────────────────── */
-.atm-whatsapp-icon { color: #25a244; }
-
-.atm-whatsapp-note {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0.55em 0.8em;
-  border: 1px solid #b7e4c7;
-  border-radius: 8px;
-  background: #f0faf3;
-  color: #1c5f30;
+/* The shared .no-data is white, for the empty states that sit on the app's
+   gradient page background. These sit inside a white card. */
+.atm-cat-col .no-data {
+  text-align: center;
+  padding: 2em 1em;
+  color: #9aa8be;
   font-size: 0.85em;
 }
-.atm-whatsapp-note .fa { color: #25a244; font-size: 1.15em; }
 
-.atm-whatsapp-hint {
-  display: block;
-  margin-top: 0.3em;
-  font-size: 0.78em;
-  color: #1c7c3a;
-}
-
-.atm-whatsapp-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  font: inherit;
-  color: #1e5ba8;
-  text-decoration: underline;
-}
-
-/* "Choose who will go to collect the sample." under the Collection boy picker. */
-.form-hint--warn {
-  color: var(--dc-wait-ink, #b45309);
-  font-weight: 600;
+@media (max-width: 768px) {
+  .atm-catalog-body { flex-direction: column; height: auto; }
+  .atm-cat-col      { height: 180px; }
 }

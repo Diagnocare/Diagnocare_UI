@@ -17,6 +17,12 @@ import {
   PaymentFor,
   PaymentForLabels,
   PaymentType,
+  PaymentMode,
+  PaymentModeLabels,
+  PaymentModeIcons,
+  MODES_REQUIRING_REFERENCE,
+  PaymentStatus,
+  PaymentStatusLabels,
   SalaryRecordDTO,
   MonthlySalaryResponseDTO,
   UserSalaryConfigDTO,
@@ -24,6 +30,7 @@ import {
   SaveSalaryConfigDTO,
   CalculatePayableSalaryDTO,
   PartialPaymentDTO,
+  PaymentHistoryDTO,
 } from 'src/app/models/salary/salary.dto';
 
 @Component({
@@ -119,6 +126,28 @@ export class SalaryComponent implements OnInit, OnDestroy {
     this.roleFilter = f;
   }
 
+  /**
+   * PERF-020 — keys for the salary grid and the payment-history panel. Every
+   * re-fetch (month change, a payment recorded, a recalculation) replaces these
+   * arrays with fresh instances, so without a key each refresh rebuilt every row
+   * of a table whose template is 1,379 lines.
+   */
+  trackBySalaryId(_index: number, rec: { salaryId: number }): number {
+    return rec.salaryId;
+  }
+
+  trackByMemberId(_index: number, member: { id: number }): number {
+    return member.id;
+  }
+
+  trackByPaymentId(_index: number, pay: { paymentId: number }): number {
+    return pay.paymentId;
+  }
+
+  trackByMonth(_index: number, month: { month: string }): string {
+    return month.month;
+  }
+
   get filteredRecords(): SalaryRecordDTO[] {
     let employees = this.monthlyData?.employees ?? [];
 
@@ -191,19 +220,106 @@ export class SalaryComponent implements OnInit, OnDestroy {
   }
 
   readonly PaymentType = PaymentType;
+  readonly PaymentMode = PaymentMode;
+  readonly PaymentStatus = PaymentStatus;
 
   private blankPaymentForm(): AddPaymentDTO {
     const d = new Date();
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return {
-      salaryId:      0,
-      paymentAmount: 0,
-      paymentMonth:  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      paymentDate:   iso,
-      reference:     '',
-      paymentFor:    PaymentFor.BaseSalary,
-      paymentType:   PaymentType.Partial,
+      salaryId:             0,
+      paymentAmount:        0,
+      paymentMonth:         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      paymentDate:          iso,
+      reference:            '',
+      paymentFor:           PaymentFor.BaseSalary,
+      paymentType:          PaymentType.Partial,
+      paymentMode:          PaymentMode.Cash,
+      transactionReference: '',
+      remarks:              '',
+      paymentStatus:        PaymentStatus.Completed,
     };
+  }
+
+  // ── Payment mode / status pickers ──────────────────────────────────────────
+
+  readonly paymentModeOptions: { value: PaymentMode; label: string; icon: string }[] = [
+    PaymentMode.Cash,
+    PaymentMode.UPI,
+    PaymentMode.BankTransfer,
+    PaymentMode.Cheque,
+    PaymentMode.Card,
+    PaymentMode.Other,
+  ].map(value => ({ value, label: PaymentModeLabels[value], icon: PaymentModeIcons[value] }));
+
+  readonly paymentStatusOptions: { value: PaymentStatus; label: string }[] = [
+    PaymentStatus.Completed,
+    PaymentStatus.Pending,
+    PaymentStatus.Failed,
+  ].map(value => ({ value, label: PaymentStatusLabels[value] }));
+
+  /** Error shown under the transaction reference field. */
+  transactionRefError = '';
+
+  /**
+   * True when the selected mode moves money through a traceable channel, so a
+   * transaction number must be supplied. Mirrors the API's own rule — the server
+   * rejects the request either way; this just says so before the round trip.
+   */
+  get isReferenceRequired(): boolean {
+    return MODES_REQUIRING_REFERENCE.includes(this.paymentForm.paymentMode);
+  }
+
+  /** Clear a stale "reference required" error when the mode no longer needs one. */
+  onPaymentModeChange(): void {
+    this.validateTransactionRef();
+  }
+
+  validateTransactionRef(): void {
+    const ref = (this.paymentForm.transactionReference ?? '').trim();
+    if (this.isReferenceRequired && !ref) {
+      this.transactionRefError =
+        `A transaction / reference number is required for ${this.paymentModeLabel(this.paymentForm.paymentMode)} payments.`;
+    } else if (ref.length > 100) {
+      this.transactionRefError = 'Reference cannot exceed 100 characters.';
+    } else {
+      this.transactionRefError = '';
+    }
+  }
+
+  paymentModeLabel(mode: PaymentMode | number | undefined): string {
+    if (mode === undefined || mode === null) return '—';
+    return PaymentModeLabels[mode as PaymentMode] ?? '—';
+  }
+
+  paymentModeIcon(mode: PaymentMode | number | undefined): string {
+    return PaymentModeIcons[mode as PaymentMode] ?? 'fa-money-bill-wave';
+  }
+
+  /** Stable CSS modifier per mode, so history badges colour consistently. */
+  paymentModeClass(mode: PaymentMode | number | undefined): string {
+    switch (Number(mode)) {
+      case PaymentMode.Cash:         return 'pay-mode-cash';
+      case PaymentMode.UPI:          return 'pay-mode-upi';
+      case PaymentMode.BankTransfer: return 'pay-mode-bank';
+      case PaymentMode.Cheque:       return 'pay-mode-cheque';
+      case PaymentMode.Card:         return 'pay-mode-card';
+      default:                       return 'pay-mode-other';
+    }
+  }
+
+  paymentStatusLabel(status: PaymentStatus | number | undefined): string {
+    // Rows written before payment status existed read back as Completed.
+    if (status === undefined || status === null) return PaymentStatusLabels[PaymentStatus.Completed];
+    return PaymentStatusLabels[status as PaymentStatus] ?? '—';
+  }
+
+  paymentStatusClass(status: PaymentStatus | number | undefined): string {
+    switch (Number(status ?? PaymentStatus.Completed)) {
+      case PaymentStatus.Pending: return 'pay-status-pending';
+      case PaymentStatus.Failed:  return 'pay-status-failed';
+      default:                    return 'pay-status-completed';
+    }
   }
 
   readonly paymentForOptions: { value: PaymentFor; label: string }[] = [
@@ -595,10 +711,12 @@ export class SalaryComponent implements OnInit, OnDestroy {
   // ── Payment panel ──────────────────────────────────────────────────────────
 
   openPanel(record: SalaryRecordDTO): void {
-    this.panelRecord        = record;
-    this.isPanelOpen        = true;
-    this.isAddingPayment    = false;
-    this.paymentAmountError = '';
+    this.panelRecord         = record;
+    this.isPanelOpen         = true;
+    this.isAddingPayment     = false;
+    this.paymentAmountError  = '';
+    this.transactionRefError = '';
+    this.clearProofSelection();
     this.paymentForm = {
       ...this.blankPaymentForm(),
       salaryId:     record.salaryId,
@@ -612,6 +730,8 @@ export class SalaryComponent implements OnInit, OnDestroy {
     this.isAddingPayment           = false;
     this.isFullPaymentAmountLocked = false;
     this.fullPaymentCalcResult     = null;
+    this.transactionRefError       = '';
+    this.clearProofSelection();
   }
 
   toggleAddPayment(): void {
@@ -630,6 +750,8 @@ export class SalaryComponent implements OnInit, OnDestroy {
     this.isFullPaymentAmountLocked = false;
     this.fullPaymentCalcResult     = null;
     this.paymentAmountError        = '';
+    this.transactionRefError       = '';
+    this.clearProofSelection();
   }
 
   /**
@@ -661,7 +783,9 @@ export class SalaryComponent implements OnInit, OnDestroy {
           this.isAddingPayment           = true;
           this.isFullPaymentAmountLocked = true;
           this.paymentAmountError        = '';
+          this.transactionRefError       = '';
           this.isCalculatingForPayment   = false;
+          this.clearProofSelection();
 
           this.paymentForm = {
             ...this.blankPaymentForm(),
@@ -737,12 +861,131 @@ export class SalaryComponent implements OnInit, OnDestroy {
 
   get paymentFormValid(): boolean {
     const isPartial = this.paymentForm.paymentType === PaymentType.Partial;
+    const refOk = !this.isReferenceRequired || !!(this.paymentForm.transactionReference ?? '').trim();
     return (
       !this.paymentAmountError &&
+      !this.transactionRefError &&
+      refOk &&
       (this.paymentForm.paymentAmount ?? 0) > 0 &&
       !!this.paymentForm.paymentDate &&
       (!isPartial || !!this.paymentForm.paymentFor)  // paymentFor only needed for Partial
     );
+  }
+
+  // ── Payment proof upload ───────────────────────────────────────────────────
+
+  /** Largest proof the API accepts — 5 MB. Checked here so the user hears about it at once. */
+  private readonly MAX_PROOF_BYTES = 5 * 1024 * 1024;
+
+  /** What the API accepts. Kept in step with SalaryController.AllowedProofContentTypes. */
+  private readonly ALLOWED_PROOF_TYPES = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf',
+  ];
+
+  readonly proofAccept = '.jpg,.jpeg,.png,.webp,.pdf';
+
+  /** File chosen in the payment modal, uploaded after the payment row is created. */
+  selectedProofFile: File | null = null;
+  /** Object URL for the image preview, revoked whenever the selection changes. */
+  proofPreviewUrl: string | null = null;
+  proofError = '';
+  isUploadingProof = false;
+
+  /** True for a selection we can show inline; a PDF gets a file-name chip instead. */
+  get isProofImage(): boolean {
+    return !!this.selectedProofFile && this.selectedProofFile.type.startsWith('image/');
+  }
+
+  onProofFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    this.clearProofSelection();
+    if (!file) return;
+
+    if (!this.ALLOWED_PROOF_TYPES.includes(file.type.toLowerCase())) {
+      this.proofError = 'Unsupported file type. Choose a JPG, PNG, WEBP image or a PDF.';
+      input.value = '';
+      return;
+    }
+    if (file.size > this.MAX_PROOF_BYTES) {
+      this.proofError = 'File is larger than 5 MB.';
+      input.value = '';
+      return;
+    }
+
+    this.selectedProofFile = file;
+    if (file.type.startsWith('image/')) this.proofPreviewUrl = URL.createObjectURL(file);
+  }
+
+  /** Drops the pending selection and releases its preview URL. */
+  clearProofSelection(): void {
+    if (this.proofPreviewUrl) URL.revokeObjectURL(this.proofPreviewUrl);
+    this.proofPreviewUrl   = null;
+    this.selectedProofFile = null;
+    this.proofError        = '';
+  }
+
+  /** Human-readable size for the selected file / a stored proof. */
+  formatFileSize(bytes: number | null | undefined): string {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  /** PaymentId whose stored proof is being fetched, for the row spinner. */
+  proofLoadingId: number | null = null;
+
+  /**
+   * Opens a payment's stored proof in a new tab. The file is fetched as a blob
+   * (the endpoint needs the auth header, so a plain link would get a 401) and
+   * falls back to a download when the pop-up is blocked.
+   */
+  viewPaymentProof(pay: PartialPaymentDTO): void {
+    if (this.proofLoadingId || !pay.hasPaymentProof) return;
+    this.proofLoadingId = pay.paymentId;
+
+    this.salarySvc.getPaymentProof(pay.paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob: Blob) => {
+          this.proofLoadingId = null;
+          if (!blob || blob.size === 0) {
+            this.toastr.error('Payment proof could not be opened.', 'Error');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          if (!window.open(url, '_blank')) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = pay.proofFileName || `payment-proof-${pay.paymentId}`;
+            a.click();
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.proofLoadingId = null;
+        },
+      });
+  }
+
+  /** Removes a stored proof, leaving the payment itself in place. */
+  removePaymentProof(pay: PartialPaymentDTO): void {
+    if (!pay.hasPaymentProof) return;
+
+    this.salarySvc.deletePaymentProof(pay.paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastr.success('Payment proof removed.', 'Removed');
+          this.loadMonthly();
+          if (this.isHistoryModalOpen && this.historyRecord) this.loadHistory(this.historyRecord);
+        },
+        // Message shown centrally by ErrorInterceptor.
+        error: () => {},
+      });
   }
 
   submitPayment(): void {
@@ -762,29 +1005,140 @@ export class SalaryComponent implements OnInit, OnDestroy {
     const request$ =
       this.paymentForm.paymentType === PaymentType.Full
         ? this.salarySvc.payAllComponents({
-            salaryId:     this.paymentForm.salaryId,
-            paymentMonth: this.paymentForm.paymentMonth,
-            paymentDate:  this.paymentForm.paymentDate,
-            reference:    this.paymentForm.reference || null,
+            salaryId:             this.paymentForm.salaryId,
+            paymentMonth:         this.paymentForm.paymentMonth,
+            paymentDate:          this.paymentForm.paymentDate,
+            reference:            this.paymentForm.reference || null,
+            paymentMode:          this.paymentForm.paymentMode,
+            transactionReference: this.paymentForm.transactionReference || null,
+            remarks:              this.paymentForm.remarks || null,
+            paymentStatus:        this.paymentForm.paymentStatus,
           })
         : this.salarySvc.addPayment(this.paymentForm);
+
+    const amount = this.paymentForm.paymentAmount ?? 0;
+    const payee  = this.panelRecord.fullName;
+    const proof  = this.selectedProofFile;
 
     request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
-          this.toastr.success(
-            `₹ ${(this.paymentForm.paymentAmount ?? 0).toLocaleString('en-IN')} recorded for ${this.panelRecord!.fullName}.`,
-            'Payment Added',
-          );
-          this.loadMonthly();
-          this.isAddingPayment = false;
+        next: (created: any) => {
+          // A Full settlement returns one row per component. The proof is a single
+          // screenshot of a single transfer, so it is attached to the first row —
+          // which is also the one the history list surfaces first.
+          const paymentId = Array.isArray(created)
+            ? created[0]?.paymentId
+            : created?.paymentId;
+
+          if (proof && paymentId) {
+            this.uploadProofFor(paymentId, proof, amount, payee);
+            return;
+          }
+
+          if (proof && !paymentId) {
+            // Payment is safely recorded; only the attachment could not be placed.
+            this.toastr.warning(
+              'Payment recorded, but the proof could not be attached. Add it from the payment history.',
+              'Proof not attached',
+            );
+          }
+
+          this.finishPayment(amount, payee);
         },
         error: () => {
           // Message shown centrally by ErrorInterceptor.
           this.isAddingPayment = true;
         },
       });
+  }
+
+  /**
+   * Uploads the screenshot for a payment that has just been recorded.
+   *
+   * A failure here is reported as a warning, not an error: the money is already
+   * recorded and the figures are correct — only the attachment is missing, and it
+   * can be added later from the payment history.
+   */
+  private uploadProofFor(paymentId: number, file: File, amount: number, payee: string): void {
+    this.isUploadingProof = true;
+
+    this.salarySvc.uploadPaymentProof(paymentId, file)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isUploadingProof = false;
+          this.finishPayment(amount, payee);
+        },
+        error: () => {
+          this.isUploadingProof = false;
+          this.toastr.warning(
+            'Payment recorded, but the proof upload failed. Attach it again from the payment history.',
+            'Proof not attached',
+          );
+          this.finishPayment(amount, payee);
+        },
+      });
+  }
+
+  /** Shared tail of a successful payment: confirm, clear the form, refresh. */
+  private finishPayment(amount: number, payee: string): void {
+    this.toastr.success(
+      `₹ ${amount.toLocaleString('en-IN')} recorded for ${payee}.`,
+      'Payment Added',
+    );
+    this.clearProofSelection();
+    this.transactionRefError = '';
+    this.isAddingPayment = false;
+    this.loadMonthly();
+  }
+
+  // ── Payment history modal (all months) ─────────────────────────────────────
+
+  isHistoryModalOpen = false;
+  isLoadingHistory   = false;
+  historyData: PaymentHistoryDTO | null = null;
+  historyRecord: SalaryRecordDTO | null = null;
+  /** Months collapsed in the history modal, keyed by "YYYY-MM". */
+  private collapsedMonths = new Set<string>();
+
+  openHistoryModal(rec: SalaryRecordDTO): void {
+    this.historyRecord      = rec;
+    this.isHistoryModalOpen = true;
+    this.collapsedMonths.clear();
+    this.loadHistory(rec);
+  }
+
+  private loadHistory(rec: SalaryRecordDTO): void {
+    this.isLoadingHistory = true;
+    this.salarySvc.getPaymentHistory(rec.userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: data => {
+          this.historyData      = data;
+          this.isLoadingHistory = false;
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.historyData      = null;
+          this.isLoadingHistory = false;
+        },
+      });
+  }
+
+  closeHistoryModal(): void {
+    this.isHistoryModalOpen = false;
+    this.historyData        = null;
+    this.historyRecord      = null;
+  }
+
+  isMonthCollapsed(month: string): boolean {
+    return this.collapsedMonths.has(month);
+  }
+
+  toggleMonth(month: string): void {
+    if (this.collapsedMonths.has(month)) this.collapsedMonths.delete(month);
+    else this.collapsedMonths.add(month);
   }
 
   // ── Config tab ─────────────────────────────────────────────────────────────
@@ -964,6 +1318,8 @@ export class SalaryComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Release any preview object URL before the component goes away.
+    this.clearProofSelection();
     this.destroy$.next();
     this.destroy$.complete();
   }

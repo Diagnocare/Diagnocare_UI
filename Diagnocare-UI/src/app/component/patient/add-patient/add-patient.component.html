@@ -120,8 +120,8 @@
               <div class="form-group">
                 <label class="form-label required">Age</label>
                 <!-- Type the age directly when the patient does not know their
-                     date of birth, or leave it to fill itself from the DOB
-                     above. Either way round works. -->
+                     date of birth (DOB stays empty), or leave it to fill
+                     itself from the DOB above. -->
                 <div class="age-parts">
                   <div class="age-part">
                     <input type="number" class="form-control" formControlName="patient_Age_Years"
@@ -756,6 +756,19 @@
          hand-written copy of the old four-column browser, which is why the two
          screens had drifted into different interfaces for the same job. -->
     <div class="registration-card ap-catalog-card" *ngIf="showTestCatalog">
+
+      <!-- The same step header the form card carries, and the same one Add New
+           Test's picker card carries. Without it this card opened with no
+           heading at all, so choosing tests read as a different screen rather
+           than a step of this one. -->
+      <div class="step-header step-header--3">
+        <div class="step-badge"><i class="fa fa-flask"></i></div>
+        <div>
+          <h3>Choose Tests</h3>
+          <p>Search, or browse by group &mdash; then confirm your selection</p>
+        </div>
+      </div>
+
       <dc-test-picker
         [groups]="testGroups"
         [selectedCodes]="selectedTestCodes"

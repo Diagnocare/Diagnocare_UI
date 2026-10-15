@@ -9,6 +9,8 @@ import { takeUntil } from 'rxjs/operators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
+import { LeaveService } from 'src/app/services/leaveServices/leave.service';
+import { LeaveBalanceDTO } from 'src/app/models/leave/leave-balance.dto';
 import { AttendanceStatus, mapBackendStatus } from 'src/app/models/attendance/attendance-record.dto';
 import {
   AttendanceRequestDTO,
@@ -75,11 +77,23 @@ export class RequestFormComponent implements OnInit, OnDestroy {
     return !this.isEdit && this.existingRequestId !== null;
   }
 
+  /**
+   * The caller's paid-leave position for the leave year of the date being requested,
+   * so they can see what they have before they commit to taking it. Null while loading,
+   * or when the lookup failed - the form still works without it.
+   */
+  leaveBalance: LeaveBalanceDTO | null = null;
+  leaveBalanceLoading = false;
+
+  /** Which year leaveBalance covers, so a date in another year triggers a refetch. */
+  private loadedBalanceYear: number | null = null;
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
     private service: AttendanceService,
+    private leaveService: LeaveService,
     private route: ActivatedRoute,
     private router: Router,
     private toastr: ToastrService,
@@ -91,6 +105,10 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       requestedStatus: ['', Validators.required],
       reason: ['', Validators.maxLength(500)],
     });
+
+    // The current leave year to begin with. Picking a date in another year refetches,
+    // because entitlement and carry-forward are per leave year.
+    this.loadLeaveBalance(new Date().getFullYear());
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -109,7 +127,10 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       // changes so switching dates doesn't leave a stale status on screen.
       this.form.get('attendanceDate')?.valueChanges
         .pipe(takeUntil(this.destroy$))
-        .subscribe((dateStr: string) => this.loadCurrentStatus(dateStr));
+        .subscribe((dateStr: string) => {
+          this.loadCurrentStatus(dateStr);
+          this.loadBalanceForDate(dateStr);
+        });
 
       if (this.form.get('attendanceDate')?.value) {
         this.loadCurrentStatus(this.form.get('attendanceDate')?.value);
@@ -156,6 +177,71 @@ export class RequestFormComponent implements OnInit, OnDestroy {
         // Non-fatal — the form still works without the "currently recorded" hint.
         error: () => { this.currentStatusLoading = false; },
       });
+  }
+
+  /**
+   * Refetches the balance when the picked date falls in a different leave year.
+   * Leave years run January to December, so only the year matters here.
+   */
+  private loadBalanceForDate(dateStr: string): void {
+    if (!dateStr) return;
+    const year = Number(dateStr.slice(0, 4));
+    if (!year || year === this.loadedBalanceYear) return;
+    this.loadLeaveBalance(year);
+  }
+
+  private loadLeaveBalance(year: number): void {
+    this.leaveBalanceLoading = true;
+    this.leaveService.getMyBalance(year)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (b) => {
+          this.leaveBalance = b;
+          this.loadedBalanceYear = year;
+          this.leaveBalanceLoading = false;
+        },
+        // Non-fatal: the panel is guidance, not a gate. Submitting still works, and
+        // payroll settles the paid/unpaid split regardless of what was shown here.
+        error: () => {
+          this.leaveBalance = null;
+          this.leaveBalanceLoading = false;
+        },
+      });
+  }
+
+  /** Paid leave a status consumes for one day: Absent a full day, Half Day half of one. */
+  private leaveDaysFor(statusCode: number | null): number {
+    switch (statusCode) {
+      case AttendanceStatusCode.Absent:  return 1;
+      case AttendanceStatusCode.HalfDay: return 0.5;
+      default:                           return 0;
+    }
+  }
+
+  /**
+   * Paid leave this request would consume ON TOP of what the day already costs.
+   * Turning a recorded Absent into a Half Day gives half a day back, hence the
+   * subtraction and the possible negative result.
+   */
+  get leaveDaysRequested(): number {
+    const requested = this.form?.get('requestedStatus')?.value;
+    if (requested === '' || requested == null) return 0;
+    return this.leaveDaysFor(Number(requested)) - this.leaveDaysFor(this.currentStatusCode);
+  }
+
+  /** True when this request would take more paid leave than the employee has left. */
+  get exceedsAvailableLeave(): boolean {
+    return this.unpaidDaysIfSubmitted > 0;
+  }
+
+  /**
+   * How much of this request would go unpaid, i.e. attract a salary deduction.
+   * 0 when the balance covers it, or when no balance could be loaded.
+   */
+  get unpaidDaysIfSubmitted(): number {
+    if (!this.leaveBalance?.isConfigured) return 0;
+    const shortfall = this.leaveDaysRequested - this.leaveBalance.availableLeave;
+    return shortfall > 0 ? Math.round(shortfall * 100) / 100 : 0;
   }
 
   private clearExistingRequest(): void {
@@ -238,6 +324,9 @@ export class RequestFormComponent implements OnInit, OnDestroy {
         });
         this.currentStatusLabel = r.currentStatusLabel;
         this.currentStatusCode  = r.currentStatus;
+        // The date is fixed on edit, so this is the one chance to line the balance up
+        // with the request's own leave year.
+        this.loadBalanceForDate(r.attendanceDate?.slice(0, 10) ?? '');
         // Date is immutable on edit.
         this.form.get('attendanceDate')?.disable();
         this.isLoading = false;

@@ -61,6 +61,12 @@ export interface PathologyProfileDto {
   graceBufferMinutes: number;
   maxDiscountPercent: number;
   sessionLockoutMinutes: number;
+  /**
+   * Share of an employee's ANNUAL paid-leave entitlement that may be carried into the
+   * next leave year (0-100). Default 50. A cap on the carry-forward, not a share of the
+   * unused balance.
+   */
+  paidLeaveCarryForwardPercent: number;
   templateId?: number | null;
 
   /** Base64-encoded logo image (no data-URI prefix), or null. */

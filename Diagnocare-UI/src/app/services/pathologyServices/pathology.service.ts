@@ -143,6 +143,25 @@ export class PathologyService {
       }
 
       /**
+       * PUT - updates the share of an employee's ANNUAL paid-leave entitlement (0-100)
+       * that may be carried into the next leave year. Default 50. Super Admin only.
+       *
+       * A cap on the carry-forward, not a share of the unused balance: at 50% an employee
+       * entitled to 24 days a year carries over at most 12, so 18 unused days become 12
+       * and 8 unused days stay 8. Set to 0 to make leave lapse at the end of every year.
+       *
+       * No TokenService cache to keep in step - the percentage is read server-side when a
+       * balance or a year-end run needs it, never from the client.
+       */
+      updatePaidLeaveCarryForward(paidLeaveCarryForwardPercent: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updatePaidLeaveCarryForward}` +
+            `?paidLeaveCarryForwardPercent=${paidLeaveCarryForwardPercent}`,
+          null
+        );
+      }
+
+      /**
        * POST — uploads the pathology logo to the database.
        * Accepts a data-URL (e.g. from FileReader.readAsDataURL); the API strips
        * the data-URI prefix automatically before storing the raw bytes.

@@ -238,6 +238,119 @@ select.form-control.has-icon { cursor: pointer; }
   i { color: #b45309; margin-top: 0.15rem; }
 }
 
+// Same shape as .approval-note, red rather than amber: this one is about a salary
+// deduction, not about who signs the request off.
+.approval-note--leave {
+  background: rgba(220, 38, 38, 0.07);
+  border-color: rgba(220, 38, 38, 0.28);
+  color: #991b1b;
+  i { color: #dc2626; }
+  strong { color: #7f1d1d; }
+}
+
+// ── Paid leave balance ────────────────────────────────────────────
+// Sits above the form card. Overrides .ar-card's negative top margin, which exists
+// to tuck the form under the hero - only the first card should do that.
+.leave-balance {
+  margin-top: -1.35rem;
+  margin-bottom: 1rem;
+  padding: 1.35rem 1.6rem 1.15rem;
+
+  & + .ar-card { margin-top: 0; }
+}
+
+.leave-balance-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.leave-balance-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+
+  > i {
+    font-size: 1.1rem;
+    color: #7c3aed;
+    margin-top: 0.2rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.4;
+  }
+}
+
+.leave-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.lb-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.85rem;
+
+  // The number the employee actually came for.
+  &--total {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.09) 0%, rgba(124, 58, 237, 0.12) 100%);
+    border-color: rgba(124, 58, 237, 0.32);
+
+    .lb-value { color: #5b21b6; font-size: 1.25rem; }
+    .lb-label { color: #5b21b6; }
+  }
+}
+
+.lb-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.lb-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.lb-note {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.leave-balance-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.85rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #64748b;
+
+  i { color: #7c3aed; margin-top: 0.2rem; }
+}
+
 // ── Actions ───────────────────────────────────────────────────────
 .form-actions {
   display: flex;
@@ -281,6 +394,8 @@ select.form-control.has-icon { cursor: pointer; }
 @media (max-width: 560px) {
   .ar-hero { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
   .ar-card { margin-left: 0; margin-right: 0; padding: 1.5rem 1.25rem; }
+  .leave-balance { padding: 1.15rem 1.25rem 1rem; }
+  .leave-balance-grid { grid-template-columns: 1fr; }
   .form-actions { flex-direction: column-reverse; }
   .btn-ghost, .btn-gradient { width: 100%; justify-content: center; }
 }

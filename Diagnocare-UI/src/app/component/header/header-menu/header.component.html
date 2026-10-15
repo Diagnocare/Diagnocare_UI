@@ -223,7 +223,7 @@
         </div>
 
         <ul class="dc-bell-list" *ngIf="!bellLoading && bellItems.length > 0">
-          <li *ngFor="let n of bellItems" class="dc-bell-item" [class.dc-bell-unread]="!n.isRead"
+          <li *ngFor="let n of bellItems; trackBy: trackByNotificationId" class="dc-bell-item" [class.dc-bell-unread]="!n.isRead"
               role="menuitem" tabindex="0"
               (click)="openNotification(n)" (keydown.enter)="openNotification(n)">
             <i class="fa {{ notificationIcon(n.module) }} dc-bell-icon"></i>

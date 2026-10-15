@@ -44,12 +44,99 @@ export const PaymentForLabels: Record<PaymentFor, string> = {
   [PaymentFor.AllComponents]:   'All Components',
 };
 
+// ── Payment mode ──────────────────────────────────────────────────────────────
+
+/**
+ * How the money physically reached the employee.
+ *
+ * Not to be confused with `PaymentFor`, which says which salary COMPONENT the
+ * money came out of. Numeric values match the backend SalaryPaymentMode enum.
+ */
+export enum PaymentMode {
+  Cash         = 1,
+  UPI          = 2,
+  BankTransfer = 3,
+  Cheque       = 4,
+  Card         = 5,
+  Other        = 6,
+}
+
+export const PaymentModeLabels: Record<PaymentMode, string> = {
+  [PaymentMode.Cash]:         'Cash',
+  [PaymentMode.UPI]:          'UPI',
+  [PaymentMode.BankTransfer]: 'Bank Transfer',
+  [PaymentMode.Cheque]:       'Cheque',
+  [PaymentMode.Card]:         'Card',
+  [PaymentMode.Other]:        'Other',
+};
+
+/** Font Awesome icon per payment mode, used on the mode picker and history badges. */
+export const PaymentModeIcons: Record<PaymentMode, string> = {
+  [PaymentMode.Cash]:         'fa-money-bill-wave',
+  [PaymentMode.UPI]:          'fa-mobile-alt',
+  [PaymentMode.BankTransfer]: 'fa-university',
+  [PaymentMode.Cheque]:       'fa-money-check',
+  [PaymentMode.Card]:         'fa-credit-card',
+  [PaymentMode.Other]:        'fa-ellipsis-h',
+};
+
+/**
+ * Modes that move money through a traceable channel, so the API insists on a
+ * transaction / reference number. Cash and Other have nothing to quote.
+ */
+export const MODES_REQUIRING_REFERENCE: ReadonlyArray<PaymentMode> = [
+  PaymentMode.UPI,
+  PaymentMode.BankTransfer,
+  PaymentMode.Cheque,
+  PaymentMode.Card,
+];
+
+// ── Payment status ────────────────────────────────────────────────────────────
+
+/**
+ * Clearing state of a recorded payment. Informational only — the backend counts
+ * every recorded payment towards paid/pending whatever its status, so this never
+ * moves the payroll figures. To reverse money, edit or delete the payment.
+ */
+export enum PaymentStatus {
+  Completed = 1,
+  Pending   = 2,
+  Failed    = 3,
+}
+
+export const PaymentStatusLabels: Record<PaymentStatus, string> = {
+  [PaymentStatus.Completed]: 'Completed',
+  [PaymentStatus.Pending]:   'Pending',
+  [PaymentStatus.Failed]:    'Failed',
+};
+
+// ── Shared payment detail fields ──────────────────────────────────────────────
+
+/**
+ * The "how it was paid" fields every payment request carries. Mirrors the
+ * backend SalaryPaymentDetailsDto.
+ *
+ * The proof screenshot is not here: it is uploaded separately once the payment
+ * row exists, via SalaryService.uploadPaymentProof.
+ */
+export interface PaymentDetailsFields {
+  paymentDate:           string;
+  /** 1 = Cash (default) … 6 = Other. */
+  paymentMode:           PaymentMode;
+  /** Bank / UPI transaction number, cheque number, etc. Required for non-cash modes. */
+  transactionReference?: string | null;
+  /** Free-text notes. */
+  remarks?:              string | null;
+  /** 1 = Completed (default), 2 = Pending, 3 = Failed. */
+  paymentStatus:         PaymentStatus;
+  /** Legacy free-text reference note — kept so older callers keep working. */
+  reference?:            string | null;
+}
+
 /** Request body for POST api/salary/PayAllComponents. */
-export interface PayAllComponentsDTO {
+export interface PayAllComponentsDTO extends PaymentDetailsFields {
   salaryId:     number;
   paymentMonth: string;
-  paymentDate:  string;
-  reference?:   string | null;
 }
 
 // ── Salary config (per user, persisted setting) ───────────────────────────────
@@ -103,20 +190,64 @@ export interface PartialPaymentDTO {
   /** 'Partial' | 'Full' — whether this settled the full outstanding balance. */
   paymentType?:       PaymentType | string;
   createdDate:        string;
+
+  // ── How the payment was made ────────────────────────────────────────────
+  /** 1 = Cash … 6 = Other. */
+  paymentMode?:          PaymentMode | number;
+  /** "Cash" | "UPI" | "Bank Transfer" | "Cheque" | "Card" | "Other" */
+  paymentModeName?:      string;
+  /** Bank / UPI transaction number, cheque number, etc. */
+  transactionReference?: string | null;
+  /** Free-text notes. Falls back to `reference` for rows recorded before remarks existed. */
+  remarks?:              string | null;
+  /** 1 = Completed, 2 = Pending, 3 = Failed. */
+  paymentStatus?:        PaymentStatus | number;
+  /** "Completed" | "Pending" | "Failed" */
+  paymentStatusName?:    string;
+
+  // ── Payment proof ───────────────────────────────────────────────────────
+  // Metadata only — fetch the file itself from GetPaymentProof when asked.
+  hasPaymentProof?:   boolean;
+  proofFileName?:     string | null;
+  proofContentType?:  string | null;
+  proofFileSize?:     number | null;
 }
 
-export interface AddPaymentDTO {
+export interface AddPaymentDTO extends PaymentDetailsFields {
   salaryId:      number;
   paymentAmount: number;
   /** Month being paid — YYYY-MM format (e.g. 2026-05) */
   paymentMonth:  string;
-  paymentDate:   string;
-  /** Optional reference / note */
-  reference?:    string;
   /** Numeric: 1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance. Not sent for Full payments. */
   paymentFor?:   PaymentFor;
   /** Whether this is a full settlement or a partial installment. */
   paymentType:   PaymentType;
+}
+
+// ── Payment history (all months, one employee) ────────────────────────────────
+
+/** One salary period's block inside an employee's payment history. */
+export interface PaymentHistoryMonthDTO {
+  /** "YYYY-MM" */
+  month:            string;
+  /** "September 2026" */
+  monthLabel:       string;
+  netPayableSalary: number;
+  totalPaid:        number;
+  pendingAmount:    number;
+  isFullyPaid:      boolean;
+  payments:         PartialPaymentDTO[];
+}
+
+/** Response from GET api/salary/GetPaymentHistory?userId= */
+export interface PaymentHistoryDTO {
+  salaryId:         number;
+  userId:           number;
+  userName?:        string;
+  fullName?:        string;
+  totalPaidAllTime: number;
+  paymentCount:     number;
+  months:           PaymentHistoryMonthDTO[];
 }
 
 // ── Monthly salary record ─────────────────────────────────────────────────────
@@ -235,10 +366,28 @@ export interface SalaryPaymentDTO {
   reference?:         string | null;
   /** 1 = BaseSalary, 2 = TravelAllowance, 3 = OtherAllowance */
   paymentSource:      number;
-  /** "BaseSalary" | "TravelAllowance" | "OtherAllowance" — shown as the payment mode. */
+  /** "BaseSalary" | "TravelAllowance" | "OtherAllowance" — the salary component paid. */
   paymentSourceName:  string;
   /** "Full" | "Partial" */
   paymentType?:       string;
+
+  // ── How the payment was made ────────────────────────────────────────────
+  /** 1 = Cash … 6 = Other. */
+  paymentMode?:          PaymentMode | number;
+  /** "Cash" | "UPI" | "Bank Transfer" | "Cheque" | "Card" | "Other" */
+  paymentModeName?:      string;
+  /** Bank / UPI transaction number, cheque number, etc. */
+  transactionReference?: string | null;
+  /** Free-text notes. */
+  remarks?:              string | null;
+  /** 1 = Completed, 2 = Pending, 3 = Failed. */
+  paymentStatus?:        PaymentStatus | number;
+  /** "Completed" | "Pending" | "Failed" */
+  paymentStatusName?:    string;
+  /** True when a screenshot / receipt is attached — fetch it from GetMyPaymentProof. */
+  hasPaymentProof?:      boolean;
+  proofFileName?:        string | null;
+  proofContentType?:     string | null;
 }
 
 /** Response from GET api/salary/GetMySalary — the logged-in user's own summary. */

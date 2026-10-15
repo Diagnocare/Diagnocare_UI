@@ -56,11 +56,11 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
   availableYears: string[] = [];
   selectedPeriod  = 'month';
   readonly periodOptions = [
-    { label: 'Week',    value: 'week'    },
     { label: 'Month',   value: 'month'   },
     { label: 'Quarter', value: 'quarter' },
     { label: 'Year',    value: 'year'    },
   ];
+  /** Chart Type sits beside Year and Period on every report and means drawing style. */
   readonly chartOptions: FilterChartOption[] = chartDisplayOptions;
 
   // ── Data ─────────────────────────────────────────────────────────────────────
@@ -85,6 +85,22 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
   isSummaryOnly = false;            // true when response has no data[] array
   private chartViewReady = false;
 
+  // ── Level of aggregation (reports with config.levelOptions) ──────────────────
+  //
+  // Reports that declare levelOptions can be summarised at more than one level of a
+  // hierarchy — group → sub-group → test. The level is picked on the chart panel's
+  // own "View by" selector and sent to the API as GroupBy, which regroups the table,
+  // the totals strip and the chart together. It is a question about the data, not a
+  // drawing style, so it is kept apart from the Chart Type buttons.
+
+  /** Sent to the API as GroupBy; the response comes back rolled up to this level. */
+  groupLevel = '';
+  /** How the API spells that level — 'Group', 'Sub Group', 'Test'. Shown in the title. */
+  levelLabel = '';
+
+  /** True when this report can be regrouped (and so shows the "View by" selector). */
+  get isLevelReport(): boolean { return !!this.config?.levelOptions?.length; }
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -100,6 +116,8 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
   ngOnInit(): void {
     this.config    = reportConfigs[this.reportId];
     this.showChart = !this.config.noChart;
+    this.groupLevel = this.config.levelOptions?.[0]?.value ?? '';
+    this.levelLabel = this.config.levelOptions?.[0]?.label ?? '';
     this.initAvailableYears();
     this.loadData();
   }
@@ -112,6 +130,8 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
       this.initAvailableYears();
       this.selectedYear   = '';
       this.selectedPeriod = 'month';
+      this.groupLevel     = this.config.levelOptions?.[0]?.value ?? '';
+      this.levelLabel     = this.config.levelOptions?.[0]?.label ?? '';
       this.clearState();
       this.loadData();
     }
@@ -169,18 +189,24 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
 
     this.rows = filtered;
 
-    // 3. Recompute totals from visible rows (skip rate/percentage columns)
-    if (!term && !this.colFilters?.length) {
-      this.totals = { ...this.apiTotals };
-    } else {
-      this.totals = {};
-      for (const col of this.cols) {
-        if (col.kind !== 'currency' && col.kind !== 'number') continue;
-        const lk = col.key.toLowerCase();
-        if (/commissionpct|commissionpercentage/.test(lk)) continue;
-        this.totals[col.key] = this.rows.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
-      }
+    // 3. Recompute totals from the visible rows (skip rate/percentage columns,
+    //    and identifiers — the sum of a column of IDs means nothing).
+    const computed: { [key: string]: number } = {};
+    for (const col of this.cols) {
+      if (col.kind !== 'currency' && col.kind !== 'number') continue;
+      const lk = col.key.toLowerCase();
+      if (/commissionpct|commissionpercentage/.test(lk)) continue;
+      if (/id$/i.test(col.key) && !/paid$/i.test(col.key)) continue;
+      computed[col.key] = this.rows.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
     }
+
+    // The envelope's own aggregates describe the whole result set, so they are
+    // only correct while nothing is filtered out. Column sums were previously
+    // computed in the filtered branch alone, which left the footer blank on
+    // first load for every report whose envelope totals are not column names.
+    this.totals = (!term && !this.colFilters?.length)
+      ? { ...computed, ...this.apiTotals }
+      : computed;
     this.hasTotals = Object.keys(this.totals).length > 0;
   }
 
@@ -209,6 +235,19 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     if (this.showChart) setTimeout(() => this.renderChart(), 0);
   }
 
+  /**
+   * "View by" changed — a different level of aggregation, so the report is
+   * re-fetched rather than redrawn: the roll-up happens in the API, and the table,
+   * the totals strip and the chart all change with it.
+   */
+  onLevelChange(level: string): void {
+    if (!level || level === this.groupLevel) return;
+    this.groupLevel = level;
+    // Optimistic label, replaced by the one the API echoes back.
+    this.levelLabel = this.config.levelOptions?.find(o => o.value === level)?.label ?? this.levelLabel;
+    this.loadData();
+  }
+
   onCsvExport(): void { this.downloadCsv(); }
 
   get hasData(): boolean { return this.rows.length > 0; }
@@ -224,6 +263,7 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
       period:    this.selectedPeriod || undefined,
       year:      this.selectedYear   || undefined,
       chartType: this.chartType      || undefined,
+      groupBy:   this.groupLevel     || undefined,
       extra:     Object.keys(this.extraParams).length ? this.extraParams : undefined,
     }).pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -236,6 +276,10 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
 
   private handleResponse(resp: any): void {
     if (!resp) { this.rows = []; this.cols = []; return; }
+
+    // The API names the level it actually grouped by, so the title says what is on
+    // screen even if the request was defaulted or spelt differently.
+    if (typeof resp.levelLabel === 'string' && resp.levelLabel) this.levelLabel = resp.levelLabel;
 
     const hasDataArray = Object.prototype.hasOwnProperty.call(resp, 'data') && Array.isArray(resp.data);
 
@@ -258,15 +302,20 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
         this.allRows = [...raw];
       }
 
-      this.cols = this.allRows.length > 0 ? Object.keys(this.allRows[0]).map(k => this.makeColDef(k)) : [];
+      this.cols = this.allRows.length > 0
+        ? Object.keys(this.allRows[0]).filter(k => !this.isHiddenKey(k)).map(k => this.makeColDef(k))
+        : [];
       this.applyRowFilter();
 
+      // Must precede applyRowFilter(): that is what folds these into this.totals.
       const skip = new Set(['data', 'fromDate', 'toDate', 'totalRecords', 'totalTests']);
       this.apiTotals = {};
       for (const [k, v] of Object.entries(resp)) {
-        if (!skip.has(k) && typeof v === 'number') this.apiTotals[k] = v as number;
+        if (skip.has(k) || this.isHiddenKey(k)) continue;
+        if (typeof v === 'number') this.apiTotals[k] = v as number;
       }
-      this.hasTotals = Object.keys(this.apiTotals).length > 0;
+
+      this.applyRowFilter();
 
       const count = resp.totalRecords ?? resp.totalTests ?? this.rows.length;
       this.totalLabel = `${count} record${count !== 1 ? 's' : ''}`;
@@ -287,7 +336,7 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
 
       const synRow: any = { period: periodLabel };
       for (const [k, v] of Object.entries(resp)) {
-        if (!dateSkip.has(k)) synRow[k] = v;
+        if (!dateSkip.has(k) && !this.isHiddenKey(k)) synRow[k] = v;
       }
 
       this.rows      = [synRow];
@@ -311,8 +360,14 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     this.chartableNumericCols = this.cols.filter(c => this.isChartable(c));
 
     if (!this.chartValueCol || !this.chartableNumericCols.find(c => c.key === this.chartValueCol)) {
+      // A report can name the column worth plotting. Without that the first currency
+      // column wins, which on a report carrying a catalogue rate alongside the money
+      // taken would chart the rate — the one number that is the same every month.
+      const preferred = this.config?.defaultChartCol
+        ? this.chartableNumericCols.find(c => c.key === this.config.defaultChartCol)
+        : undefined;
       const defaultCurrency = this.chartableNumericCols.find(c => c.kind === 'currency');
-      this.chartValueCol = defaultCurrency?.key ?? this.chartableNumericCols[0]?.key ?? '';
+      this.chartValueCol = preferred?.key ?? defaultCurrency?.key ?? this.chartableNumericCols[0]?.key ?? '';
     }
 
     if (this.showChart) setTimeout(() => this.renderChart(), 50);
@@ -344,14 +399,28 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
       count:  Number(r[this.chartValueCol] ?? 0),
     }));
 
-    const colLabel = this.cols.find(c => c.key === this.chartValueCol)?.label ?? this.chartValueCol;
+    const valueCol = this.cols.find(c => c.key === this.chartValueCol);
+    const colLabel = valueCol?.label ?? this.chartValueCol;
+
+    // On a level report the title has to say which level is on screen — the same
+    // chart drawn by group and by test is two different claims about the business.
+    const level = this.isLevelReport && this.levelLabel ? this.levelLabel : '';
+
     this.chartSvc.createChart(
       this.chartCanvas.nativeElement,
       this.chartType as any,
       periodCounts,
       [],
-      `${this.config?.label ?? ''} — ${colLabel}`,
-      '1.2-2'
+      level
+        ? `${this.config?.label ?? ''} — ${colLabel} by ${level}`
+        : `${this.config?.label ?? ''} — ${colLabel}`,
+      '1.2-2',
+      {
+        xTitle:      level || labelCol.label,
+        yTitle:      colLabel,
+        seriesLabel: level ? `${colLabel} per ${level}` : colLabel,
+        currency:    valueCol?.kind === 'currency',
+      }
     );
   }
 
@@ -475,8 +544,10 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    const yearPart = this.selectedYear || 'all';
-    a.download = `${this.reportId}_${yearPart}_${this.selectedPeriod}.csv`;
+    const yearPart  = this.selectedYear || 'all';
+    // Two exports of the same report at different levels must not share a filename.
+    const levelPart = this.isLevelReport && this.groupLevel ? `${this.groupLevel}_` : '';
+    a.download = `${this.reportId}_${levelPart}${yearPart}_${this.selectedPeriod}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -527,8 +598,24 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     });
   }
 
+  /**
+   * True when config.hiddenCols says this response field is not shown.
+   *
+   * The envelope spells its totals with a 'grand' prefix (grandTotalAmountPaid for
+   * the totalAmountPaid column), so the prefix is ignored when matching: hiding a
+   * figure means hiding it in the table and in the totals strip, not one of the two.
+   */
+  private isHiddenKey(key: string): boolean {
+    const hidden = this.config?.hiddenCols;
+    if (!hidden?.length) return false;
+    const normalise = (k: string) => k.toLowerCase().replace(/^grand/, '');
+    const target = normalise(key);
+    return hidden.some(h => normalise(h) === target);
+  }
+
   private makeColDef(key: string): ColDef {
-    return { key, label: this.toLabel(key), kind: this.detectKind(key), align: this.detectAlign(key) };
+    const kind = this.detectKind(key);
+    return { key, label: this.toLabel(key), kind, align: this.detectAlign(key, kind) };
   }
 
   private toLabel(key: string): string {
@@ -546,11 +633,16 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     return 'text';
   }
 
-  private detectAlign(key: string): ColDef['align'] {
-    const lk = key.toLowerCase();
-    if (/amount|collection|discount|price|net|paid|pending|count|patients|records|tests/.test(lk)) return 'right';
-    if (/id$/.test(lk)) return 'center';
-    return 'left';
+  /**
+   * Alignment follows the column kind, not a second name regex. The two used to
+   * be derived independently, so a numeric column the align regex did not list
+   * — 'active', 'inactive' — rendered left while 'count' next to it rendered
+   * right, leaving the numbers in one numeric block visually unaligned.
+   */
+  private detectAlign(key: string, kind: ColDef['kind']): ColDef['align'] {
+    if (kind !== 'currency' && kind !== 'number') return 'left';
+    // Identifiers stay centred — except 'paid', which merely looks like one.
+    return /id$/i.test(key) && !/paid$/i.test(key) ? 'center' : 'right';
   }
 
   // ── Template helpers ──────────────────────────────────────────────────────────
@@ -590,11 +682,23 @@ export class TableReportComponent implements OnInit, OnDestroy, OnChanges, After
     return '₹ ' + (this.decimal.transform(v, '1.2-2') ?? '0.00');
   }
 
+  /**
+   * Status colour for a badge cell.
+   *
+   * Matched against the WHOLE value, not as a substring. The alternatives are
+   * short words ('no', 'done', 'paid', 'yes'), and an unanchored search finds
+   * them inside unrelated nouns — 'DiagnosticCenter' contains 'no'
+   * (diag-NO-sticcenter), so an institution type came out styled as an error.
+   *
+   * Anything that is not a recognised status keeps the neutral blue, which is
+   * the right default for the type / gender / payment-mode columns that also
+   * render as badges.
+   */
   badgeClass(value: string): string {
-    const v = String(value ?? '').toLowerCase();
-    if (/completed|done|paid|active|yes/.test(v))  return 'b-g';
-    if (/pending|partial/.test(v))                  return 'b-y';
-    if (/cancelled|refund|no|inactive/.test(v))     return 'b-r';
+    const v = String(value ?? '').trim().toLowerCase();
+    if (/^(completed|complete|done|paid|active|yes|true)$/.test(v))                  return 'b-g';
+    if (/^(pending|partial|partially paid|in progress)$/.test(v))                    return 'b-y';
+    if (/^(cancelled|canceled|refund|refunded|rejected|inactive|no|false)$/.test(v)) return 'b-r';
     return 'b-b';
   }
 }
