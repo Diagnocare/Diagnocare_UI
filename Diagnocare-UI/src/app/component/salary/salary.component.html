@@ -131,7 +131,7 @@
         </thead>
         <tbody>
           <tr
-            *ngFor="let rec of filteredRecords; let odd = odd"
+            *ngFor="let rec of filteredRecords; let odd = odd; trackBy: trackBySalaryId"
             class="salary-row"
             [class.row-alt]="odd"
             [class.row-active]="panelRecord?.userId === rec.userId"
@@ -280,7 +280,7 @@
               <div class="dropdown-empty" *ngIf="filteredUserList.length === 0">
                 <i class="fa fa-inbox"></i> No {{ staffTypeLabel }} found
               </div>
-              <div class="dropdown-option" *ngFor="let u of filteredUserList" (click)="selectUser(u)">
+              <div class="dropdown-option" *ngFor="let u of filteredUserList; trackBy: trackByMemberId" (click)="selectUser(u)">
                 <div class="opt-avatar">{{ userInitial(fullName(u)) }}</div>
                 <div class="opt-details">
                   <div class="opt-name">{{ fullName(u) }}</div>
@@ -688,7 +688,7 @@
 
     <!-- Payment list -->
     <ul class="payment-list" *ngIf="panelRecord.payments.length > 0">
-      <li class="payment-item" *ngFor="let pay of panelRecord.payments">
+      <li class="payment-item" *ngFor="let pay of panelRecord.payments; trackBy: trackByPaymentId">
         <div class="pay-top">
           <span class="pay-amount">{{ formatINR(pay.paymentAmount) }}</span>
           <div class="pay-badges">
@@ -1281,7 +1281,7 @@
     </div>
 
     <!-- One block per salary period, newest first -->
-    <div class="ph-month" *ngFor="let m of historyData?.months">
+    <div class="ph-month" *ngFor="let m of historyData?.months; trackBy: trackByMonth">
 
       <button class="ph-month-header" (click)="toggleMonth(m.month)"
               [attr.aria-expanded]="!isMonthCollapsed(m.month)">
@@ -1326,7 +1326,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let pay of m.payments">
+              <tr *ngFor="let pay of m.payments; trackBy: trackByPaymentId">
                 <td>{{ formatPaymentDate(pay.paymentDate) }}</td>
                 <td>
                   <span class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">

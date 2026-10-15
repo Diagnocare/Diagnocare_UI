@@ -405,6 +405,30 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return this.paymentConfirmed;
   }
 
+  /**
+   * PERF-020 — keys for the test catalogue. The three filtered lists below are
+   * getters, so they hand ngFor a new array on every keystroke of the search box
+   * and on every change-detection pass; `selectedTests` and `selectedTestProtocols`
+   * are replaced outright as the user picks tests. Keying by the business id lets
+   * the differ match what is already on screen instead of re-diffing a catalogue
+   * that can run to hundreds of rows.
+   */
+  trackByGroupId(_index: number, group: { testGroupId: number | string }): number | string {
+    return group.testGroupId;
+  }
+
+  trackByTestCode(_index: number, test: { testCode: string }): string {
+    return test.testCode;
+  }
+
+  trackByMemberId(_index: number, member: { id: number }): number {
+    return member.id;
+  }
+
+  trackByValue(_index: number, value: string): string {
+    return value;
+  }
+
   get filteredGroups():    GroupSubGroupModel[] {
     const q = this.query.trim().toLowerCase();
     return q ? this.groupedTests.filter(g => `${g.testGroupId} ${g.name}`.toLowerCase().includes(q)) : this.groupedTests;

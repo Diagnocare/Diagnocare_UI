@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import Modal from 'bootstrap/js/dist/modal';
 import { ConfirmModalService, ConfirmOptions } from './confirm-modal.service';
 
 @Component({
@@ -46,7 +47,7 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
         this.reasonRequired = options.reasonRequired ?? false;
         this.reasonValue = '';
         this.isLoading = false;
-        this.modal = new (window as any).bootstrap.Modal(document.getElementById('confirmModal')!, { backdrop: 'static' });
+        this.modal = new Modal(document.getElementById('confirmModal')!, { backdrop: 'static' });
         this.modal.show();
       }),
 

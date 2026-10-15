@@ -134,7 +134,7 @@
               (ngModelChange)="recalcTotals()"
               title="Filter by staff member">
         <option [ngValue]="null">All ({{ roleFilteredRows().length }})</option>
-        <option *ngFor="let u of roleFilteredUserOptions" [ngValue]="u.userId">{{ u.fullName }}</option>
+        <option *ngFor="let u of roleFilteredUserOptions; trackBy: trackByUserId" [ngValue]="u.userId">{{ u.fullName }}</option>
       </select>
     </div>
 
@@ -183,7 +183,7 @@
 
               <th
                 class="col-day"
-                *ngFor="let date of columnDates; let i = index"
+                *ngFor="let date of columnDates; let i = index; trackBy: trackByIndex"
                 [class.col-today]="date.toDateString() === today.toDateString()"
                 [class.col-future]="date > today"
                 [class.col-locked]="date < editCutoff && date <= today"
@@ -219,7 +219,7 @@
           </thead>
 
           <tbody>
-            <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+            <tr class="user-row" *ngFor="let row of displayRows; let ri = index; trackBy: trackByUserId"
                 [class.row-alt]="ri % 2 !== 0"
                 [class.row-inactive]="isInactiveRow(row)">
               <td class="col-user sticky-col">
@@ -233,7 +233,7 @@
                 </div>
               </td>
 
-              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td">
+              <td *ngFor="let cell of row.cells; let ci = index; trackBy: trackByIndex" class="att-cell-td">
                 <button
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
@@ -264,7 +264,7 @@
               <td class="col-user sticky-col totals-label">
                 {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
               </td>
-              <td *ngFor="let t of dayTotals" class="totals-cell">
+              <td *ngFor="let t of dayTotals; trackBy: trackByIndex" class="totals-cell">
                 <ng-container *ngFor="let s of statusList">
                   <span *ngIf="t[s.value] > 0" class="tot"
                         [ngClass]="'tot-' + s.value.toLowerCase()"
@@ -308,7 +308,7 @@
 
                     <th
                       class="col-day"
-                      *ngFor="let date of fortnight1Dates; let i = index"
+                      *ngFor="let date of fortnight1Dates; let i = index; trackBy: trackByIndex"
                       [class.col-today]="date.toDateString() === today.toDateString()"
                       [class.col-future]="date > today"
                       [class.col-locked]="date < editCutoff && date <= today"
@@ -344,7 +344,7 @@
                 </thead>
 
                 <tbody>
-                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index; trackBy: trackByUserId"
                       [class.row-alt]="ri % 2 !== 0">
                     <td class="col-user sticky-col">
                       <div class="user-info">
@@ -357,7 +357,7 @@
                     </td>
 
                     <!-- cells 0–14 → column indices 0–14 -->
-                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td">
+                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index; trackBy: trackByIndex" class="att-cell-td">
                       <button
                         class="att-cell"
                         [ngClass]="cellClass(cell)"
@@ -388,7 +388,7 @@
                     <td class="col-user sticky-col totals-label">
                       {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
                     </td>
-                    <td *ngFor="let t of fortnight1Totals" class="totals-cell">
+                    <td *ngFor="let t of fortnight1Totals; trackBy: trackByIndex" class="totals-cell">
                       <ng-container *ngFor="let s of statusList">
                         <span *ngIf="t[s.value] > 0" class="tot"
                               [ngClass]="'tot-' + s.value.toLowerCase()"
@@ -422,7 +422,7 @@
 
                     <th
                       class="col-day"
-                      *ngFor="let date of fortnight2Dates; let i = index"
+                      *ngFor="let date of fortnight2Dates; let i = index; trackBy: trackByIndex"
                       [class.col-today]="date.toDateString() === today.toDateString()"
                       [class.col-future]="date > today"
                       [class.col-locked]="date < editCutoff && date <= today"
@@ -458,7 +458,7 @@
                 </thead>
 
                 <tbody>
-                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index; trackBy: trackByUserId"
                       [class.row-alt]="ri % 2 !== 0">
                     <td class="col-user sticky-col">
                       <div class="user-info">
@@ -471,7 +471,7 @@
                     </td>
 
                     <!-- cells 15..end → global column index = 15 + ci -->
-                    <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td">
+                    <td *ngFor="let cell of row.cells.slice(15); let ci = index; trackBy: trackByIndex" class="att-cell-td">
                       <button
                         class="att-cell"
                         [ngClass]="cellClass(cell)"
@@ -502,7 +502,7 @@
                     <td class="col-user sticky-col totals-label">
                       {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
                     </td>
-                    <td *ngFor="let t of fortnight2Totals" class="totals-cell">
+                    <td *ngFor="let t of fortnight2Totals; trackBy: trackByIndex" class="totals-cell">
                       <ng-container *ngFor="let s of statusList">
                         <span *ngIf="t[s.value] > 0" class="tot"
                               [ngClass]="'tot-' + s.value.toLowerCase()"

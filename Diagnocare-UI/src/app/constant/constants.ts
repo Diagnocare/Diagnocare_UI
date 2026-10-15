@@ -1,4 +1,3 @@
-import { get } from "@okta/okta-auth-js";
 import { ReportConfig, ReportLevelOption } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
