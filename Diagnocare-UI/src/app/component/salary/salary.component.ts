@@ -126,6 +126,28 @@ export class SalaryComponent implements OnInit, OnDestroy {
     this.roleFilter = f;
   }
 
+  /**
+   * PERF-020 — keys for the salary grid and the payment-history panel. Every
+   * re-fetch (month change, a payment recorded, a recalculation) replaces these
+   * arrays with fresh instances, so without a key each refresh rebuilt every row
+   * of a table whose template is 1,379 lines.
+   */
+  trackBySalaryId(_index: number, rec: { salaryId: number }): number {
+    return rec.salaryId;
+  }
+
+  trackByMemberId(_index: number, member: { id: number }): number {
+    return member.id;
+  }
+
+  trackByPaymentId(_index: number, pay: { paymentId: number }): number {
+    return pay.paymentId;
+  }
+
+  trackByMonth(_index: number, month: { month: string }): string {
+    return month.month;
+  }
+
   get filteredRecords(): SalaryRecordDTO[] {
     let employees = this.monthlyData?.employees ?? [];
 

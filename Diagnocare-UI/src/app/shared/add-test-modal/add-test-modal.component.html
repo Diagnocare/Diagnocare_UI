@@ -119,7 +119,7 @@
                            (focus)="onReferredByFocus()"
                            (blur)="onReferredByBlur()" />
                     <ul class="referred-by-suggestions" *ngIf="showReferredBySuggestions">
-                      <li *ngFor="let item of filteredReferredByOptions" (mousedown)="selectReferredBy(item)">
+                      <li *ngFor="let item of filteredReferredByOptions; trackBy: trackByValue" (mousedown)="selectReferredBy(item)">
                         {{ item }}
                       </li>
                     </ul>
@@ -184,7 +184,7 @@
                 </div>
 
                 <div class="protocol-grid">
-                  <div class="protocol-card" *ngFor="let t of selectedTestProtocols">
+                  <div class="protocol-card" *ngFor="let t of selectedTestProtocols; trackBy: trackByTestCode">
                     <app-test-protocol-panel
                       [protocols]="t.protocols"
                       [testName]="t.testName"
@@ -224,7 +224,7 @@
                 <label class="form-label required" for="atm-collectionAssignedTo">Collection boy</label>
                 <select id="atm-collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
                   <option value="">-- Select collection boy --</option>
-                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                  <option *ngFor="let cb of collectionBoys; trackBy: trackByMemberId" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
                 </select>
                 <!-- Nobody to send: said here rather than left as an empty dropdown. -->
                 <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
@@ -541,7 +541,7 @@
           <div class="card-header">Groups</div>
           <div class="card-body">
             <div *ngIf="filteredGroups.length === 0" class="no-data">No groups found</div>
-            <div *ngFor="let g of filteredGroups"
+            <div *ngFor="let g of filteredGroups; trackBy: trackByGroupId"
                  class="list-item"
                  [class.active]="g.testGroupId === selectedGroupId"
                  (click)="getSubGroupList(g)">
@@ -558,7 +558,7 @@
           <div class="card-header">Sub-Groups</div>
           <div class="card-body">
             <div *ngIf="filteredSubGroups.length === 0" class="no-data">Select a group</div>
-            <div *ngFor="let s of filteredSubGroups"
+            <div *ngFor="let s of filteredSubGroups; trackBy: trackByGroupId"
                  class="list-item"
                  [class.active]="s.testGroupId === selectedSubGroupId"
                  (click)="getMedicalTestList(s)">
@@ -575,7 +575,7 @@
           <div class="card-header">Tests</div>
           <div class="card-body">
             <div *ngIf="filteredTests.length === 0" class="no-data">Select a sub-group</div>
-            <div *ngFor="let t of filteredTests"
+            <div *ngFor="let t of filteredTests; trackBy: trackByTestCode"
                  class="list-item test-item"
                  [class.active]="focusedTestId === t.testCode"
                  [class.test-selected]="isTestSelected(t)"
@@ -607,7 +607,7 @@
           </div>
           <div class="card-body">
             <div *ngIf="selectedTests.length === 0" class="no-data">No tests selected yet</div>
-            <div *ngFor="let t of selectedTests" class="selected-item">
+            <div *ngFor="let t of selectedTests; trackBy: trackByTestCode" class="selected-item">
               <div class="left">
                 <span class="code">{{ t.testCode }}</span>
                 <span class="name">{{ t.testName }}</span>

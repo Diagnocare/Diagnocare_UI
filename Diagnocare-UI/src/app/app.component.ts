@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
-import { HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { filter, Subscription } from 'rxjs';
 
@@ -58,7 +57,7 @@ import { NavigationHistoryService } from './core/services/navigation-history.ser
   templateUrl: './app.component.html',
   standalone: true,
   styleUrls: ['./app.component.css'],
-  imports: [RouterModule, HttpClientModule, ConfirmModalComponent, PinModalComponent, CommonModule],
+  imports: [RouterModule, ConfirmModalComponent, PinModalComponent, CommonModule],
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'diagnocare';

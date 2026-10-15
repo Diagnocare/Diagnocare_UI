@@ -1,6 +1,6 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
-import { provideRouter, withRouterConfig } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { TitleStrategy } from '@angular/router';
 import { Injectable } from '@angular/core';
 import { RouterStateSnapshot } from '@angular/router';
@@ -39,10 +39,15 @@ bootstrapApplication(AppComponent, {
     // AuthInterceptor (inner) handles 401 refresh/retry first, and only unresolved
     // errors bubble out to ErrorInterceptor for a centralised toast.
     provideHttpClient(withInterceptors([ErrorInterceptor, AuthInterceptor])),
-    provideRouter(
-      routes,
-      withRouterConfig({ onSameUrlNavigation: 'reload' })
-    ),
+    // PERF-022: no `withRouterConfig({ onSameUrlNavigation: 'reload' })`.
+    // It made the router re-run authGuard, licenceGuard and pinExpiryGuard when
+    // navigating to the URL already shown — work that changes nothing, since the
+    // default RouteReuseStrategy keeps the component instance and does not re-run
+    // ngOnInit either way. It is also the likeliest cause of the licence expiry
+    // endpoint being called twice per post-login load (PERF-025). A screen that
+    // must re-read data on a repeat click should subscribe to `route.params` or
+    // `router.events` itself.
+    provideRouter(routes),
     { provide: TitleStrategy, useClass: DiagnocarePageTitleStrategy },
     importProvidersFrom(
       BrowserAnimationsModule,
