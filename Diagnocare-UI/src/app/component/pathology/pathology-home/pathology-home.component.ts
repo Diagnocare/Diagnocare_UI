@@ -50,6 +50,8 @@ interface ActionCard {
   icon: string;
   route: string;
   color: string;
+  /** Roles that may open the route (mirrors its roleGuard). Omitted = every role. */
+  roles?: RoleId[];
 }
 
 interface CardGroup {
@@ -228,6 +230,13 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
    * which is the honest answer: nothing was read.
    */
   private loadDashboard(): void {
+    // The summary endpoint is LabOperations-only (Collection Boy / Doctor get 403),
+    // so don't call it for them — the tiles simply show a dash.
+    if (!this.access.labOps) {
+      this.isDashboardLoading = false;
+      return;
+    }
+
     this.dashboardService
       .getHomeSummary(this.toApiDate(new Date()))
       .pipe(takeUntil(this.destroy$))
@@ -341,14 +350,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Register, search and manage patient records',
         icon: 'fa-users',
         route: '/patients',
-        color: 'indigo'
+        color: 'indigo',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
       },
       {
         title: 'Patient Tests',
         description: 'View and manage test requests and results',
         icon: 'fa-flask',
         route: '/patient-tests',
-        color: 'blue'
+        color: 'blue',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
       },
     ];
 
@@ -358,14 +369,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Configure lab tests, parameters and pricing',
         icon: 'fa-list-alt',
         route: '/manage-tests',
-        color: 'teal'
+        color: 'teal',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id]
       },
       {
         title: 'Reports',
         description: 'Generate and export diagnostic reports',
         icon: 'fa-bar-chart',
         route: '/reports',
-        color: 'green'
+        color: 'green',
+        roles: [Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id]
       },
     ];
 
@@ -428,7 +441,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       description: 'Design and manage report templates',
       icon: 'fa-file-text',
       route: '/template',
-      color: 'violet'
+      color: 'violet',
+      roles: [Role.Admin.id, Role.Super_Admin.id]
     });
 
     const accountCards: ActionCard[] = [
@@ -437,7 +451,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Track and manage staff attendance',
         icon: 'fa-calendar-check-o',
         route: '/attendance',
-        color: 'teal'
+        color: 'teal',
+        roles: [Role.Admin.id, Role.Super_Admin.id]
       },
       {
         title: 'Settings',
@@ -454,7 +469,12 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       { label: 'Administration',     icon: 'fa-users',     cards: adminCards   },
       { label: 'System',             icon: 'fa-cog',       cards: systemCards  },
       { label: 'Account',            icon: 'fa-id-badge',  cards: accountCards },
-    ].filter(g => g.cards.length > 0);
+    ]
+      .map(g => ({
+        ...g,
+        cards: g.cards.filter(c => !c.roles || this.tokenService.hasRole(...c.roles)),
+      }))
+      .filter(g => g.cards.length > 0);
   }
 
   private checkPathologyExpiry(): void {
