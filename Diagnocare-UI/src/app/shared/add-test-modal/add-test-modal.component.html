@@ -235,6 +235,13 @@
                   Choose who will go to collect the sample.
                 </small>
               </div>
+              <div class="form-group" *ngIf="addressMissing">
+                <small class="form-hint form-hint--warn">
+                  This patient has no address on file. An outside collection needs one so the
+                  collection boy knows where to go — add it under Edit Patient first (this is
+                  separate from the Area below).
+                </small>
+              </div>
               <div class="form-group">
                 <label class="form-label">Area</label>
                 <input type="text" class="form-control" formControlName="area" placeholder="Collection area" />

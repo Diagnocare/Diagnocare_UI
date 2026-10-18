@@ -235,7 +235,7 @@
 
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label">Address</label>
+                <label class="form-label">Address<span class="text-danger" *ngIf="patientForm.get('collected_Outside')?.value"> *</span></label>
                   <input type="text" class="form-control" formControlName="patient_Address"
                     placeholder="Full address"
                     [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />

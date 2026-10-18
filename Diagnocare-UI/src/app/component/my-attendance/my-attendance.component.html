@@ -30,6 +30,10 @@
          title="See your correction requests or raise a new one">
         <i class="fa fa-pen-to-square"></i> Request Correction
       </a>
+      <a class="request-btn" routerLink="/attendance-requests/new" [queryParams]="{ type: 'leave' }"
+         title="Apply for leave this week or next week">
+        <i class="fa fa-calendar-plus"></i> Apply Leave
+      </a>
     </div>
   </div>
 
@@ -140,12 +144,12 @@
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
                   [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                  [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                  [class.requestable]="isActionable(cell)"
                   [title]="cellActionTitle(cell)"
                   (click)="requestCorrection(cell)">
                   {{ cellLabel(cell) }}
                   <i class="fa fa-pen req-pen"
-                     *ngIf="!cell.isFuture && !cell.isHoliday && !hasOpenRequest(cell)"></i>
+                     *ngIf="isActionable(cell) && !hasOpenRequest(cell)"></i>
                 </span>
               </td>
 
@@ -215,7 +219,7 @@
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                      [class.requestable]="isActionable(cell)"
                       [title]="cellActionTitle(cell)"
                       (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
@@ -283,7 +287,7 @@
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
+                      [class.requestable]="isActionable(cell)"
                       [title]="cellActionTitle(cell)"
                       (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}

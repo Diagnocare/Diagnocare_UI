@@ -149,6 +149,11 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   /** Null for a role that may not see report data — the tile shows a dash. */
   revenueToday:     number | null = null;
 
+  /** Today's collection is shown to Admin / Super Admin only (mirrors the API). */
+  get showRevenue(): boolean {
+    return this.tokenService.isAdmin() || this.tokenService.isSuperAdmin();
+  }
+
   /** Today's most recent bookings, newest first. Max 3. */
   activityRows: ActivityRow[] = [];
 
