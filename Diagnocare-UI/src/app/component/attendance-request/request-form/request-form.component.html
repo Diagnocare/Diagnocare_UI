@@ -94,7 +94,7 @@
             Apply Leave
           </button>
         </div>
-        <small class="field-hint" *ngIf="mode === 'leave'">Leave can be applied for this week or next week only.</small>
+        <small class="field-hint" *ngIf="mode === 'leave'">Leave can be applied for the past 7 days, this week or next week.</small>
       </div>
 
       <div class="field">
@@ -109,7 +109,7 @@
         </div>
         <small *ngIf="isEdit" class="field-hint">Date can't be changed — cancel and create a new request for a different day.</small>
         <small *ngIf="f['attendanceDate'].touched && f['attendanceDate'].invalid" class="field-error">
-          {{ mode === 'leave' ? 'Please choose a date in this week or next week.' : 'Please choose a date (today or earlier).' }}
+          {{ mode === 'leave' ? 'Please choose a date from the past 7 days up to next week.' : 'Please choose a date (today or earlier).' }}
         </small>
       </div>
 
