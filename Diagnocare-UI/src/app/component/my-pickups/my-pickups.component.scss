@@ -127,3 +127,8 @@
 @media (max-width: 30em) {
   .mp-actions .mp-btn { flex: 1 1 auto; }
 }
+
+.mp-copy {
+  margin-left: 8px; padding: 0 8px; font-size: 12px; cursor: pointer;
+  border: 1px solid currentColor; border-radius: 4px; background: transparent; color: inherit; opacity: .75;
+}

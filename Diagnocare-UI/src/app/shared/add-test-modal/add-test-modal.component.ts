@@ -247,7 +247,31 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['visible'] && this.visible) {
       this.resetModal();
+      this.loadPatientAddress();
     }
+  }
+
+  /**
+   * The address on file for this patient: '' when there is none, null until the lookup
+   * answers (or if it fails — the API still enforces the rule, so a failed lookup must
+   * not block the booking here).
+   */
+  patientAddress: string | null = null;
+
+  private loadPatientAddress(): void {
+    this.patientAddress = null;
+    if (!this.patientId) return;
+    this._patientService.getPatientById(this.patientId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: p => this.patientAddress = (p?.patientAddress ?? '').trim(),
+        error: () => this.patientAddress = null,
+      });
+  }
+
+  /** Outside collection is ticked but the patient has no address for the collector to go to. */
+  get addressMissing(): boolean {
+    return !!this.form.get('collected_Outside')?.value && this.patientAddress === '';
   }
 
   ngOnDestroy(): void {
@@ -382,6 +406,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     return (
       !this.whatsAppNeedsNumber &&
       !this.collectorMissing &&
+      !this.addressMissing &&
       !!this.form.get('test_Name')?.valid &&
       !!this.form.get('test_Amount')?.valid &&
       !!this.form.get('referred_By_Type')?.valid &&

@@ -1178,6 +1178,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * `describeInvalidFields()` names the field in the toast like any other.
    */
   private syncCollectorRule(outside: boolean): void {
+    // The collection boy goes to the patient's address (not the Area, which is only the
+    // neighbourhood), so the address is required exactly while Outside Collection is on.
+    const address = this.patientForm.get('patient_Address');
+    if (address) {
+      if (outside) address.addValidators(AddPatientComponent.addressValidator);
+      else address.removeValidators(AddPatientComponent.addressValidator);
+      address.updateValueAndValidity({ emitEvent: false });
+    }
+
     const boy = this.patientForm.get('collection_Assigned_To');
     if (!boy) return;
 
@@ -1188,6 +1197,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     }
     boy.updateValueAndValidity({ emitEvent: false });
   }
+
+  /** Rejects a blank or whitespace-only address (`Validators.required` accepts "   "). */
+  private static readonly addressValidator = (c: AbstractControl): ValidationErrors | null =>
+    String(c.value ?? '').trim() ? null : { required: true };
 
   /**
    * Requires a positive numeric id. Not `Validators.required`: that passes on "0" and on a
