@@ -44,11 +44,11 @@ export class RequestFormComponent implements OnInit, OnDestroy {
         : s.value !== AttendanceStatusCode.Absent);
   }
 
-  /** Earliest date selectable: Monday of this week for leave, no limit for corrections. */
+  /** Earliest date selectable: 7 days back for leave, no limit for corrections. */
   get minDate(): string {
     if (this.mode !== 'leave') return '';
     const d = new Date();
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    d.setDate(d.getDate() - 7);
     return this.localIso(d);
   }
 
