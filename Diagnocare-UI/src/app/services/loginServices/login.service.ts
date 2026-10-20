@@ -52,7 +52,9 @@ export class LoginService {
     return this.httpClient.post<LoginUserResponse>(endpoint, {
       userId:   login.userId,
       password: login.password,
-    });
+    }).pipe(
+      tap((res: any) => { if (res?.loginTicket) this.tokenService.setLoginTicket(res.loginTicket); }),
+    );
   }
 
   // ── TOTP — stateless, no DB storage ────────────────────────────────────────
