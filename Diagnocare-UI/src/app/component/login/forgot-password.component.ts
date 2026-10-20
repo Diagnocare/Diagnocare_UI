@@ -59,6 +59,8 @@ export class ForgotPasswordComponent implements OnDestroy {
   isVerified = false;
   isOtpSent = false;
   isOtpVerified = false;
+  /** Single-use token issued by the server after the OTP is verified; required to reset the password. */
+  private resetToken = '';
   isSubmitting = false;
   otpResendSeconds = 60;
   otpResendRemaining = 60;
@@ -115,7 +117,7 @@ export class ForgotPasswordComponent implements OnDestroy {
     });
     this.resetForm = this.fb.group(
       {
-        newPassword: ['', [Validators.required, Validators.minLength(6)]],
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required]
       },
       { validators: [passwordMatchValidator] }
@@ -145,13 +147,15 @@ export class ForgotPasswordComponent implements OnDestroy {
     const request: VerifyAuthRequest = {
       authType: event.authType,
       userId:   this.verifiedUserId,
-      id:       event.authType === 3 ? 0 : this.id,
       code:     event.code,
+      purpose:  'reset',
     };
     this.loginService.verifyAuth(request).subscribe({
       next: (resp) => {
         this.isSubmitting = false;
         if (resp?.success) {
+          // For purpose 'reset' the token field carries the single-use reset token.
+          this.resetToken = resp.token ?? '';
           this.closeOtpDialog();
           if (this.recoverIsLookedUp) {
             this.recoveredUserId = this.verifiedUserId;
@@ -304,11 +308,12 @@ export class ForgotPasswordComponent implements OnDestroy {
           this.methodForm.reset();
           this.resetForm.reset();
           // Set masked details and open dialog
-          this.maskedContactNumber = resp?.contactPhone ? this.maskContactNumber(String(resp.contactPhone)) : '';
+          // Already masked by the server (SEC-014); never mask-then-trust a raw value client-side.
+          this.maskedContactNumber = resp?.contactPhone ? String(resp.contactPhone) : '';
           if (this.maskedContactNumber && !this.maskedContactNumber.startsWith('(')) {
             this.maskedContactNumber = `(${this.maskedContactNumber})`;
           }
-          this.maskedEmail = resp?.email ? this.maskEmail(String(resp.email)) : '';
+          this.maskedEmail = resp?.email ? String(resp.email) : '';
           if (this.maskedEmail && !this.maskedEmail.startsWith('(')) {
             this.maskedEmail = `(${this.maskedEmail})`;
           }
@@ -342,7 +347,7 @@ export class ForgotPasswordComponent implements OnDestroy {
     const newPassword = this.resetForm.get('newPassword')?.value as string;
 
     this.isSubmitting = true;
-    this.loginService.forgotPassword(this.verifiedUserId, newPassword).subscribe({
+    this.loginService.forgotPassword(this.verifiedUserId, newPassword, this.resetToken).subscribe({
       next: (resp: response) => {
         this.isSubmitting = false;
         if (resp?.success) {
@@ -431,14 +436,10 @@ export class ForgotPasswordComponent implements OnDestroy {
           }
           this.recoverIsLookedUp = true;
           // Auto-send OTP to the contact/email they provided
-          const emailVal = method === 'email' ? value : undefined;
-          const phoneVal = method === 'contact' ? value : undefined;
           this._otpManager.generateOtp({
-            id: this.id,
             userId: this.verifiedUserId,
             channel: channel as any,
-            email: emailVal,
-            contactPhone: phoneVal
+            purpose: 'reset',
           }).subscribe({
             next: (resp) => {
               this.isSubmitting = false;
