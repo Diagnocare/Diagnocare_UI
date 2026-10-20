@@ -46,6 +46,8 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() otpMessage          = '';
   @Input() resendDisabled      = false;
   @Input() id: number          = 0;
+  /** What the code will be redeemed for — 'reset' on the forgot-password screen. */
+  @Input() purpose: 'login' | 'reset' = 'login';
   /**
    * When set to a future Date, the dialog switches to a lockout view:
    * method picker, OTP input, and Resend button are all hidden/disabled.
@@ -350,7 +352,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.isSendingOtp = true;
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
-      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+      : this.loginService.generateOtp(this.userId, this.selectedMethod, this.purpose);
     sender$.subscribe({
       next: (resp: any) => {
         this.isSendingOtp = false;
@@ -436,7 +438,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.focusInput(0);
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
-      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+      : this.loginService.generateOtp(this.userId, this.selectedMethod, this.purpose);
     sender$.subscribe({
       next: (resp: any) => {
         this.isSendingOtp = false;

@@ -66,9 +66,10 @@ export class PathologyService {
       }
 
       /** Public endpoint — no auth token required */
-      registerPathology(dto: PathologyRegisterDto): Observable<PathologyRegisterResponseDto> {
+      registerPathology(dto: PathologyRegisterDto, provisioningToken: string): Observable<PathologyRegisterResponseDto> {
         return this.httpClient.post<PathologyRegisterResponseDto>(
-          this.url + apiEndpoints.add, dto
+          this.url + apiEndpoints.add, dto,
+          { headers: { 'X-Provisioning-Token': provisioningToken } }
         );
       }
 
