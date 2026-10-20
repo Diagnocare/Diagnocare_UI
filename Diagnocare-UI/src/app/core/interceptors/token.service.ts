@@ -105,6 +105,12 @@ export class TokenService {
 
   // ── Browser identity ───────────────────────────────────────────────────────
 
+  // R-03: proof that the password step passed. Held in memory only (never storage), so it dies with
+  // the tab; the server keeps the authoritative copy and expires it.
+  private loginTicket: string | null = null;
+  setLoginTicket(ticket: string | null | undefined): void { this.loginTicket = ticket ?? null; }
+  getLoginTicket(): string | null { return this.loginTicket; }
+
   /**
    * Returns this browser's stable UUID (creates it on first call).
    * All tabs in the same browser profile share this value.

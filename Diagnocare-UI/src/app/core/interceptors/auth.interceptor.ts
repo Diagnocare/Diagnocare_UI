@@ -55,6 +55,8 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   const isFpAssertPath = req.url.includes(controllerEndpoints.fingerprint + 'assert');
   const isPreLogin = (isLoginPath || isOtpPath || isFpAssertPath) && !isLogoutPath;
   if (isPreLogin) {
+    const ticket = (isOtpPath || isFpAssertPath) ? tokenSvc.getLoginTicket() : null;
+    if (ticket) req = req.clone({ setHeaders: { "X-Login-Ticket": ticket } });
     return next(req);
   }
 
