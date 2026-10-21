@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
+import { LicenceService } from 'src/app/services/licenceServices/licence.service';
 import { DashboardService } from 'src/app/services/dashboardServices/dashboard.service';
 import { HomeSummary, HomeActivity, HomeWeekDay } from 'src/app/models/dashboard/home-summary';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -165,7 +165,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   constructor(
-    private pathologyService: PathologyService,
+    private licenceService: LicenceService,
     private dashboardService: DashboardService,
     private router: Router,
     private tokenService: TokenService,
@@ -483,32 +483,28 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   }
 
   private checkPathologyExpiry(): void {
-    this.pathologyService.getPathologyExpiryDate()
+    // LicenceService owns the one expiry request per session (licenceGuard already
+    // triggers it). Calling the API here as well meant a second hit on every home visit.
+    // load() is a no-op once resolved, and shares the in-flight call while it is pending.
+    this.licenceService.load()
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          if (response?.pathologyExpiryDate) {
-            const expiryDate = new Date(response.pathologyExpiryDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            expiryDate.setHours(0, 0, 0, 0);
-            this.daysUntilExpiry = Math.ceil(
-              (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            );
-            const ed = expiryDate;
-            this.expiryDate =
-              `${ed.getDate().toString().padStart(2, '0')}-` +
-              `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
-              `${ed.getFullYear()}`;
+      .subscribe(() => {
+        const ed = this.licenceService.expiryDate;
+        const daysLeft = this.licenceService.daysLeft;
+        if (!ed || daysLeft === null) return;   // check failed or no licence: fail open, as before
 
-            if (this.daysUntilExpiry <= 0) {
-              this.isLicenseExpired = true;
-            } else if (this.daysUntilExpiry <= 15) {
-              this.showExpiryBanner = true;
-            }
-          }
-        },
-        error: () => {}
+        this.daysUntilExpiry = daysLeft;
+        this.expiryDate =
+          `${ed.getDate().toString().padStart(2, '0')}-` +
+          `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
+          `${ed.getFullYear()}`;
+
+        if (this.daysUntilExpiry <= 0) {
+          this.isLicenseExpired = true;
+        } else if (this.daysUntilExpiry <= 15) {
+          this.showExpiryBanner = true;
+        }
+        this.cdr.markForCheck();
       });
   }
 
