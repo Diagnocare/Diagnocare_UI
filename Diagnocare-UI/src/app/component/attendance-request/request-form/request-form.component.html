@@ -82,18 +82,34 @@
     <!-- Form card -->
     <form [formGroup]="form" (ngSubmit)="save()" class="ar-card">
 
+      <div class="field" *ngIf="!isEdit">
+        <label class="field-label">Request Type</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="open-existing-btn" [class.active]="mode === 'correction'"
+                  [style.opacity]="mode === 'correction' ? 1 : .6" (click)="setMode('correction')">
+            Present / Half Day
+          </button>
+          <button type="button" class="open-existing-btn" [class.active]="mode === 'leave'"
+                  [style.opacity]="mode === 'leave' ? 1 : .6" (click)="setMode('leave')">
+            Apply Leave
+          </button>
+        </div>
+        <small class="field-hint" *ngIf="mode === 'leave'">Leave can be applied for the past 7 days, this week or next week.</small>
+      </div>
+
       <div class="field">
         <label class="field-label">Attendance Date <span class="req">*</span></label>
         <div class="input-icon ar-datefield" [class.invalid]="f['attendanceDate'].touched && f['attendanceDate'].invalid">
           <i class="fa fa-calendar-days lead-icon"></i>
           <app-date-picker formControlName="attendanceDate"
                            inputClass="form-control"
-                           [max]="today"
+                           [min]="minDate"
+                           [max]="pickerMax"
                            placeholder="Select date"></app-date-picker>
         </div>
         <small *ngIf="isEdit" class="field-hint">Date can't be changed — cancel and create a new request for a different day.</small>
         <small *ngIf="f['attendanceDate'].touched && f['attendanceDate'].invalid" class="field-error">
-          Please choose a date (today or earlier).
+          {{ mode === 'leave' ? 'Please choose a date from the past 7 days up to next week.' : 'Please choose a date (today or earlier).' }}
         </small>
       </div>
 

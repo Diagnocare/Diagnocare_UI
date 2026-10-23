@@ -1115,7 +1115,7 @@
         </div>
 
         <div class="calc-row">
-          <span class="calc-key"><span class="calc-key-label">Absent Days</span></span>
+          <span class="calc-key"><span class="calc-key-label">Leave Days</span></span>
           <span class="calc-val calc-val-warn">
             {{ calcResult.absentDays }} day{{ calcResult.absentDays !== 1 ? 's' : '' }}
           </span>
@@ -1130,22 +1130,22 @@
 
         <div class="calc-row calc-row-sub">
           <span class="calc-key">
-            <span class="calc-key-label">Effective Absent Days</span>
-            <span class="calc-formula">Absent + Half Days × 0.5</span>
+            <span class="calc-key-label">Effective Leave Days</span>
+            <span class="calc-formula">Leave + Half Days × 0.5</span>
           </span>
           <span class="calc-val calc-val-warn">{{ calcResult.effectiveAbsentDays | number:'1.1-1' }} days</span>
         </div>
 
         <div class="calc-row calc-row-highlight-warn" *ngIf="calcResult.extraAbsentDays > 0">
           <span class="calc-key">
-            <span class="calc-key-label">Extra Absent Days</span>
+            <span class="calc-key-label">Extra Leave Days</span>
             <span class="calc-formula">Effective absent − allowed leaves</span>
           </span>
           <span class="calc-val calc-val-bad">{{ calcResult.extraAbsentDays | number:'1.1-1' }} days</span>
         </div>
 
         <div class="calc-row" *ngIf="calcResult.extraAbsentDays === 0">
-          <span class="calc-key"><span class="calc-key-label">Extra Absent Days</span></span>
+          <span class="calc-key"><span class="calc-key-label">Extra Leave Days</span></span>
           <span class="calc-val calc-val-ok"><i class="fa fa-check-circle"></i> None — within allowed leaves</span>
         </div>
 

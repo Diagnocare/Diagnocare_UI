@@ -31,11 +31,59 @@ import {
 })
 export class RequestFormComponent implements OnInit, OnDestroy {
 
-  readonly statuses = REQUESTABLE_STATUSES;
+  /**
+   * 'leave' applies for a day of leave (this week or next only); 'correction' marks a
+   * day Present or Half Day (today or earlier only). Staff can't pick anything else.
+   */
+  mode: 'correction' | 'leave' = 'correction';
+
+  get statuses() {
+    return REQUESTABLE_STATUSES.filter(s =>
+      this.mode === 'leave'
+        ? s.value === AttendanceStatusCode.Absent
+        : s.value !== AttendanceStatusCode.Absent);
+  }
+
+  /** Earliest date selectable: 7 days back for leave, no limit for corrections. */
+  get minDate(): string {
+    if (this.mode !== 'leave') return '';
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return this.localIso(d);
+  }
+
+  /** Latest date selectable for the current mode. */
+  get pickerMax(): string {
+    return this.mode === 'leave' ? this.maxDate : this.today;
+  }
+
+  private localIso(d: Date): string {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  setMode(mode: 'correction' | 'leave'): void {
+    if (this.isEdit || mode === this.mode) return;
+    this.mode = mode;
+    this.form.patchValue({
+      attendanceDate: '',
+      requestedStatus: mode === 'leave' ? AttendanceStatusCode.Absent : '',
+    });
+  }
   // LOCAL today in yyyy-MM-dd (NOT toISOString, which is UTC and can resolve to
   // yesterday late at night — that would disable the real today in the picker).
   readonly today = (() => {
     const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  })();
+
+  /** Latest date that can be requested: Sunday of next week (this week + next week only). */
+  readonly maxDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + (7 - ((d.getDay() + 6) % 7)) + 6);
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${d.getFullYear()}-${m}-${day}`;
@@ -117,8 +165,12 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       this.loadForEdit(this.requestId);
     } else {
       // Prefill the date when opened from a My Attendance cell (?date=yyyy-MM-dd).
+      if (this.route.snapshot.queryParamMap.get('type') === 'leave') {
+        this.mode = 'leave';
+        this.form.patchValue({ requestedStatus: AttendanceStatusCode.Absent });
+      }
       const dateParam = this.route.snapshot.queryParamMap.get('date');
-      if (dateParam && dateParam <= this.today) {
+      if (dateParam && dateParam <= this.pickerMax && dateParam >= this.minDate) {
         this.form.patchValue({ attendanceDate: dateParam });
       }
 
@@ -286,7 +338,7 @@ export class RequestFormComponent implements OnInit, OnDestroy {
   private gridStatusLabel(status: AttendanceStatus): string {
     switch (status) {
       case AttendanceStatus.Present: return 'Present';
-      case AttendanceStatus.Absent:  return 'Absent';
+      case AttendanceStatus.Absent:  return 'Leave';
       case AttendanceStatus.HalfDay: return 'Half Day';
       case AttendanceStatus.WeekOff: return 'Week Off';
       case AttendanceStatus.Holiday: return 'Holiday';
@@ -317,6 +369,7 @@ export class RequestFormComponent implements OnInit, OnDestroy {
           this.router.navigate(['/attendance-requests', id]);
           return;
         }
+        this.mode = r.requestedStatus === AttendanceStatusCode.Absent ? 'leave' : 'correction';
         this.form.patchValue({
           attendanceDate: r.attendanceDate?.slice(0, 10),
           requestedStatus: r.requestedStatus,

@@ -35,6 +35,8 @@ import { UnsavedChangesModalComponent } from 'src/app/shared/unsaved-changes-mod
 import { UnsavedChangesModalService } from 'src/app/shared/unsaved-changes-modal/unsaved-changes-modal.service';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
 import { SamplingLocationService } from 'src/app/services/samplingServices/sampling-location.service';
+import { TokenService } from 'src/app/core/interceptors/token.service';
+import { Role } from 'src/app/constant/enums';
 import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
 import {
   resolvePaymentStatus,
@@ -249,6 +251,7 @@ export class PatientTestListComponent implements OnInit {
     private sampleLabelService: SampleLabelService,
     private samplingLocationService: SamplingLocationService,
     private unsavedModalSvc: UnsavedChangesModalService,
+    private tokenService: TokenService,
   ) {}
 
   // ── Sampling location & barcode ──────────────────────────────────────────
@@ -427,6 +430,10 @@ export class PatientTestListComponent implements OnInit {
   private loadPatientContact(): void {
     this.patientContact = '';
     if (!this.patientId) return;
+    // Patient records are not open to Doctors (API policy PatientAccess), and the
+    // error interceptor turns that 403 into a redirect to /access-denied — which
+    // would throw the doctor off the report list they came to read.
+    if (this.tokenService.hasRole(Role.Doctor.id)) return;
     this.patientService.getPatientById(this.patientId).subscribe({
       next: (p) => {
         this.patientContact = p?.patientContact || '';

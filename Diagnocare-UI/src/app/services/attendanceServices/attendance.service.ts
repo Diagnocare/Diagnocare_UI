@@ -209,10 +209,20 @@ export class AttendanceService {
     ).subscribe(n => this.pendingRequestCountSubject.next(n));
   }
 
-  /** Totals behind the admin queue's tab badges. Not affected by date range or search. */
-  getRequestCounts(): Observable<AttendanceRequestCounts> {
+  /** Totals behind the admin queue's tab badges, narrowed to the applied employee / date range. */
+  getRequestCounts(scope?: { userId?: number; fromDate?: string; toDate?: string }): Observable<AttendanceRequestCounts> {
+    let params = new HttpParams();
+    if (scope?.userId)   params = params.set('userId', scope.userId);
+    if (scope?.fromDate) params = params.set('fromDate', scope.fromDate);
+    if (scope?.toDate)   params = params.set('toDate', scope.toDate);
     return this.http
-      .get<AttendanceRequestCounts>(`${this.baseUrl}${apiEndpoints.requestCounts}`);
+      .get<AttendanceRequestCounts>(`${this.baseUrl}${apiEndpoints.requestCounts}`, { params });
+  }
+
+  /** Active staff only, filtered by the API — for the employee filter's dropdown. */
+  getActiveUsers(): Observable<MemberDto[]> {
+    return this.http
+      .get<MemberDto[]>(this.userUrl + apiEndpoints.getAllList, { params: new HttpParams().set('activeOnly', true) });
   }
 
   approveRequest(id: number, dto: ApproveAttendanceRequestDTO): Observable<AttendanceRequestDTO> {

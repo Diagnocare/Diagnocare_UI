@@ -175,8 +175,9 @@ export class StaffUnifiedFormComponent implements OnInit {
   onNameBlur(): void { if (!this.isEdit) this.autoUsername(); }
 
   private autoUsername(): void {
-    const first = (this.form.get('first_Name')?.value ?? '').trim();
-    const last  = (this.form.get('last_Name')?.value  ?? '').trim();
+    // Strip all whitespace (not just the ends) so "Dr John" -> "DrJohn", never "Dr John".
+    const first = (this.form.get('first_Name')?.value ?? '').replace(/\s+/g, '');
+    const last  = (this.form.get('last_Name')?.value  ?? '').replace(/\s+/g, '');
     if (!first || !last) return;
 
     const base = `${first}.${last}`.toLowerCase();

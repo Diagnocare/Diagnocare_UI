@@ -10,11 +10,5 @@ export const environment: AppEnvironment = {
   // ?product=&env= on the help URL, so reports can be routed/filtered).
   appName: 'diagnocare-web',
   envName: 'uat',
-  // Never enabled outside local development.
-  devSkipSecondFactor: false,
 
-  basicAuth: {
-    username: 'Admin_Uat',
-    password: 'JYWZFCEHZeQmz+3HNQaOeLMJApJdCC4aPLB6iFNySBbGQmp+/HCe8NRpj9SL5CCO',
-  },
 };

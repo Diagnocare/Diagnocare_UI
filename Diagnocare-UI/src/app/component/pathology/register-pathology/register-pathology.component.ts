@@ -54,6 +54,7 @@ export class RegisterPathologyComponent implements OnInit {
       path_ContactNo: ['', [Validators.required, AppValidators.contactNumber()]],
       path_Email:     ['', [Validators.required, Validators.email]],
       license_Type:   ['Trial', Validators.required],
+      provisioning_Token: ['', Validators.required],
     });
 
     // Recalculate expiry whenever license type changes
@@ -92,12 +93,14 @@ export class RegisterPathologyComponent implements OnInit {
     this.isSubmitting  = true;
     this.serverError   = '';
 
+    // The provisioning code travels as a header, never as part of the stored record.
+    const { provisioning_Token, ...formValue } = this.form.value;
     const dto: PathologyRegisterDto = {
-      ...this.form.value,
+      ...formValue,
       date_of_Expiry: this.expiryDate,
     };
 
-    this._pathologyService.registerPathology(dto).subscribe({
+    this._pathologyService.registerPathology(dto, provisioning_Token).subscribe({
       next: (res) => {
         this.isSubmitting = false;
         if (res?.success === false) {

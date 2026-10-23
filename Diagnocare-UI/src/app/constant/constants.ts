@@ -82,7 +82,7 @@ export const apiEndpoints = {
   fpAssertComplete:  "assert/complete",  // POST api/Fingerprint/assert/complete?userName=
   fpDisable:         "disable",          // POST api/Fingerprint/disable?userName=
   resetPassword: 'ForgotPassword',
-  validateOldPassword:"ValidateOldPassword",
+  changePassword:"ChangePassword",
   getPathologyExpiryDate:"GetPathologyExpiryDate",
   getSerialNPatientId:"GetSerialNPatientId",
   searchPatients:"SearchPatients",
@@ -104,8 +104,6 @@ export const apiEndpoints = {
   sendProfileOtp:"SendProfileOtp",
   verifyProfileOtp:"VerifyProfileOtp",
   refreshToken:"RefreshToken",
-  generateJWTToken: "GenerateJWTToken",
-  authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
 
   // ── Worklist ──
