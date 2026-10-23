@@ -146,7 +146,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     landingRoute: '/pathology',
   },
   [Role.Collection_Boy.id]: {
-    home: false,
+    home: true,
     labOps: false,
     summaryReports: false,
     labSetup: false,
@@ -164,7 +164,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     landingRoute: '/pathology',
   },
   [Role.Doctor.id]: {
-    home: false,
+    home: true,
     labOps: false,
     summaryReports: true,
     labSetup: false,

@@ -73,7 +73,7 @@
             <div class="ph-kpi-num">{{ reportsDone !== null ? reportsDone : '—' }}</div>
             <div class="ph-kpi-lbl">Reports Done</div>
           </div>
-          <div class="ph-kpi ph-kpi-d4">
+          <div class="ph-kpi ph-kpi-d4" *ngIf="showRevenue">
             <div class="ph-kpi-icon ph-kpi-purple"><i class="fas fa-rupee-sign"></i></div>
             <div class="ph-kpi-num">{{ revenueToday !== null ? (revenueToday | number:'1.0-0') : '—' }}</div>
             <div class="ph-kpi-lbl">Revenue Today</div>
@@ -222,7 +222,7 @@
             <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
             Generate and print a branded PDF report with one click
           </li>
-          <li class="ph-vb-item">
+          <li class="ph-vb-item" *ngIf="showRevenue">
             <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
             Track daily revenue and analytics on the dashboard
           </li>
@@ -337,7 +337,7 @@
         </div>
         </ng-container>
 
-        <ng-container *ngIf="modules.analytics as m">
+        <ng-container *ngIf="showRevenue ? modules.analytics : null as m">
         <div class="ph-sc-item"
              [class.ph-sc-locked]="!canOpen(m)"
              (click)="openModule(m)"

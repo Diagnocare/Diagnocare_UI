@@ -168,26 +168,6 @@ throw new Error('Method not implemented.');
   }
 
   /**
-   * Today minus the given age, as dd/mm/yyyy for the DOB text field.
-   *
-   * This is what lets an operator record a patient who does not know their date
-   * of birth — extremely common — by typing the age they do know. The result is
-   * an approximation by construction, which is exactly what an age-only record
-   * is anyway.
-   */
-  dobFromAgeParts(years: number, months: number, days: number): string {
-    if (!years && !months && !days) return '';
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setFullYear(d.getFullYear() - (years || 0));
-    d.setMonth(d.getMonth() - (months || 0));
-    d.setDate(d.getDate() - (days || 0));
-
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-  }
-
-  /**
    * Normalises a date entered as DD/MM/YYYY to YYYY-MM-DD (ISO).
    * Passes through any value already in acceptable format.
    */

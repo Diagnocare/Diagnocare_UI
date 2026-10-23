@@ -33,18 +33,17 @@ export class SummaryReportService {
   // ── Used by TableReportComponent (all other reports) ─────────────────────────
 
   /**
-   * Loads any tabular report.
-   * For date-range reports: sends { period?, fromDate?, toDate? }.
-   * For static catalogues (masterTestList, rateList, addressManagerReport): sends {}.
+   * Loads any tabular report, sending { Period?, Year?, ChartType?, GroupBy? }.
+   * Every report the table view serves takes a date range now: one with no date
+   * dimension of its own simply resolves to a null range on the server and reports
+   * over everything.
    * Always returns Observable<any> so the component can type-assert as needed.
    */
   getTableReport(reportId: string, params: DateRangeParams = {}): Observable<any> {
     const endpoint = summaryReportApiEndpoints[reportId];
     if (!endpoint) throw new Error(`Unknown report endpoint for: ${reportId}`);
 
-    // Static catalogue endpoints — no date filter needed
-    const staticReports = new Set(['masterTestList', 'rateList', 'addressManagerReport']);
-    const base = staticReports.has(reportId) ? {} : this.buildDateBody(params);
+    const base = this.buildDateBody(params);
     const body = params.extra ? { ...base, ...params.extra } : base;
 
     return this.http.post<any>(`${this.baseUrl}${endpoint}`, body);
@@ -57,6 +56,7 @@ export class SummaryReportService {
     if (params.period)   body.Period   = params.period;
     if (params.year)     body.Year     = Number(params.year);
     if (params.chartType) body.ChartType = params.chartType;
+    if (params.groupBy)   body.GroupBy   = params.groupBy;
     // Legacy explicit date range (lower priority than Year)
     if (!params.year) {
       if (params.fromDate) body.FromDate = params.fromDate;

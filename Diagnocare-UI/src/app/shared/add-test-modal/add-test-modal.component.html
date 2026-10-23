@@ -4,23 +4,30 @@
   <!-- Page-style container inside overlay -->
   <div class="atm-page page-container pathology-theme">
 
-    <!-- ── Page Header (matches add-patient's page-header) ──────────────── -->
-    <div class="page-header atm-page-header">
+    <!-- ── Page Header — the app's standard header-left / header-actions pair,
+         so the title block and the Cancel button sit where they do on every
+         other screen (and stack the same way on a phone). ───────────────── -->
+    <div class="page-header">
       <div class="header-left">
         <h1>Add New Test</h1>
         <p class="subtitle">Patient&nbsp;<strong>{{ patientId }}</strong> &mdash; Select tests and complete payment</p>
       </div>
-      <button class="dc-btn dc-btn--cancel atm-close-page-btn" type="button" (click)="cancel()" title="Cancel">
-        <i class="fa fa-times"></i> Cancel
-      </button>
     </div>
+
+    <!-- The gutter every other screen puts its content on. Without it the cards
+         below ran edge to edge while the same cards on Add New Patient sat
+         inside a margin. -->
+    <div class="content-container">
 
     <!-- ── Shared Stepper ────────────────────────────────────────────────── -->
     <app-stepper [steps]="stepperSteps" [currentStep]="currentStep"></app-stepper>
 
     <!-- ── Registration Card ─────────────────────────────────────────────── -->
+    <!-- form-stacked: labels sit above their fields rather than right-aligned in
+         a 130px column, which is what made "Send report to (WhatsApp number)"
+         wrap to three lines beside a one-line input. -->
     <div class="registration-card" *ngIf="!showTestCatalog">
-      <form [formGroup]="form" (ngSubmit)="submit()">
+      <form class="form-stacked" [formGroup]="form" (ngSubmit)="submit()">
 
         <!-- ═════════════════════════════════════ STEP 1: TEST & LAB ═══════ -->
         <div *ngIf="currentStep === 1">
@@ -59,7 +66,7 @@
                 <label class="form-label">Report on WhatsApp</label>
                 <div class="toggle-wrap">
                   <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="atm-reportOnWhatsApp" (change)="onReportOnWhatsAppChange()" />
-                  <label for="atm-reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp atm-whatsapp-icon" aria-hidden="true"></i> Send on WhatsApp</label>
+                  <label for="atm-reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send on WhatsApp</label>
                 </div>
               </div>
             </div>
@@ -76,15 +83,15 @@
                   Enter a 10-digit mobile number.
                 </span>
                 <ng-container *ngIf="!form.get('whatsApp_Number')?.invalid || !form.get('whatsApp_Number')?.touched">
-                  <span class="atm-whatsapp-hint" *ngIf="!hasWhatsAppNumber">
+                  <span class="whatsapp-hint" *ngIf="!hasWhatsAppNumber">
                     This patient has no mobile number, so this will also be saved as their mobile.
                   </span>
-                  <span class="atm-whatsapp-hint" *ngIf="hasWhatsAppNumber && whatsAppIsPatientNumber">
+                  <span class="whatsapp-hint" *ngIf="hasWhatsAppNumber && whatsAppIsPatientNumber">
                     The patient's own number. Change it to send this report to another number.
                   </span>
-                  <span class="atm-whatsapp-hint" *ngIf="hasWhatsAppNumber && !whatsAppIsPatientNumber">
+                  <span class="whatsapp-hint" *ngIf="hasWhatsAppNumber && !whatsAppIsPatientNumber">
                     Different from the patient's number ({{ patientNumberDisplay }}). Used for this booking only.
-                    <button type="button" class="atm-whatsapp-link" (click)="usePatientNumberForWhatsApp()">Use the patient's number</button>
+                    <button type="button" class="whatsapp-link" (click)="usePatientNumberForWhatsApp()">Use the patient's number</button>
                   </span>
                 </ng-container>
               </div>
@@ -112,7 +119,7 @@
                            (focus)="onReferredByFocus()"
                            (blur)="onReferredByBlur()" />
                     <ul class="referred-by-suggestions" *ngIf="showReferredBySuggestions">
-                      <li *ngFor="let item of filteredReferredByOptions" (mousedown)="selectReferredBy(item)">
+                      <li *ngFor="let item of filteredReferredByOptions; trackBy: trackByValue" (mousedown)="selectReferredBy(item)">
                         {{ item }}
                       </li>
                     </ul>
@@ -130,21 +137,21 @@
                  they can tell the patient to come back fasting. -->
             <div class="form-section-label" *ngIf="selectedTests.length > 0">
               Sample Collection Protocol
-              <button type="button" class="atm-protocol-toggle"
+              <button type="button" class="protocol-toggle"
                       (click)="showSelectedProtocols = !showSelectedProtocols">
                 <i class="fa" [class.fa-chevron-up]="showSelectedProtocols"
                               [class.fa-chevron-down]="!showSelectedProtocols"></i>
                 {{ showSelectedProtocols ? 'Hide' : 'Show' }}
               </button>
-              <span class="atm-protocol-chip" *ngIf="!showSelectedProtocols && fastingTests.length > 0"
+              <span class="protocol-chip" *ngIf="!showSelectedProtocols && fastingTests.length > 0"
                     title="Open the protocol to see which tests need fasting">
                 <i class="fa fa-hourglass-half"></i> Fasting required
               </span>
             </div>
 
-            <div class="atm-protocol-block" *ngIf="selectedTests.length > 0 && showSelectedProtocols">
+            <div class="protocol-block" *ngIf="selectedTests.length > 0 && showSelectedProtocols">
 
-              <div class="atm-protocol-loading" *ngIf="selectedProtocolsLoading">
+              <div class="protocol-loading" *ngIf="selectedProtocolsLoading">
                 <i class="fa fa-spinner fa-spin"></i> Loading sample collection requirements…
               </div>
 
@@ -153,7 +160,7 @@
                 <!-- Fasting is the only requirement that has to reach the patient before
                      they leave, so it is called out above the per-test detail. Each test
                      shows the longest fast its protocols demand, not the first. -->
-                <div class="atm-protocol-alert atm-protocol-alert--fasting" *ngIf="fastingTests.length > 0">
+                <div class="protocol-alert protocol-alert--fasting" *ngIf="fastingTests.length > 0">
                   <i class="fa fa-hourglass-half"></i>
                   <div>
                     <strong>Tell the patient to fast.</strong>
@@ -163,7 +170,7 @@
                   </div>
                 </div>
 
-                <div class="atm-protocol-alert atm-protocol-alert--missing" *ngIf="testsMissingProtocol.length > 0">
+                <div class="protocol-alert protocol-alert--missing" *ngIf="testsMissingProtocol.length > 0">
                   <i class="fa fa-exclamation-triangle"></i>
                   <div>
                     <strong>No protocol linked for
@@ -176,8 +183,8 @@
                   </div>
                 </div>
 
-                <div class="atm-protocol-grid">
-                  <div class="atm-protocol-card" *ngFor="let t of selectedTestProtocols">
+                <div class="protocol-grid">
+                  <div class="protocol-card" *ngFor="let t of selectedTestProtocols; trackBy: trackByTestCode">
                     <app-test-protocol-panel
                       [protocols]="t.protocols"
                       [testName]="t.testName"
@@ -217,7 +224,7 @@
                 <label class="form-label required" for="atm-collectionAssignedTo">Collection boy</label>
                 <select id="atm-collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
                   <option value="">-- Select collection boy --</option>
-                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                  <option *ngFor="let cb of collectionBoys; trackBy: trackByMemberId" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
                 </select>
                 <!-- Nobody to send: said here rather than left as an empty dropdown. -->
                 <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
@@ -226,6 +233,13 @@
                 </small>
                 <small class="form-hint form-hint--warn" *ngIf="!noCollectionBoys && collectorMissing">
                   Choose who will go to collect the sample.
+                </small>
+              </div>
+              <div class="form-group" *ngIf="addressMissing">
+                <small class="form-hint form-hint--warn">
+                  This patient has no address on file. An outside collection needs one so the
+                  collection boy knows where to go — add it under Edit Patient first (this is
+                  separate from the Area below).
                 </small>
               </div>
               <div class="form-group">
@@ -247,7 +261,7 @@
         <!-- ═════════════════════════════════════ STEP 2: PAYMENT ══════════ -->
         <div *ngIf="currentStep === 2">
           <div class="step-header step-header--4">
-            <div class="step-badge atm-badge--payment">2</div>
+            <div class="step-badge">2</div>
             <div>
               <h3>Payment</h3>
               <p>Review amounts and complete billing</p>
@@ -299,10 +313,10 @@
                 <label class="form-label">Discount (%)</label>
                 <input type="number" class="form-control" formControlName="discount"
                        (change)="calculateNetAmount()" placeholder="0" min="0" [max]="maxDiscountPercent" />
-                <small class="text-danger"
-                       *ngIf="form.get('discount')?.errors?.['maxExceeded']">
+                <span class="field-error"
+                      *ngIf="form.get('discount')?.errors?.['maxExceeded']">
                   Discount cannot exceed {{ maxDiscountPercent }}%. (100% discount is not allowed.)
-                </small>
+                </span>
               </div>
             </div>
 
@@ -355,7 +369,7 @@
             </div>
 
             <!-- TPA Details Confirmed Banner -->
-            <div *ngIf="isTpaMode && tpaDetails" class="payment-confirmed-banner atm-tpa-confirmed-banner">
+            <div *ngIf="isTpaMode && tpaDetails" class="payment-confirmed-banner tpa-confirmed-banner">
               <div class="payment-confirmed-content">
                 <span class="payment-confirmed-icon">🏥</span>
                 <div class="payment-confirmed-text">
@@ -369,16 +383,16 @@
             </div>
 
             <!-- TPA required reminder (before details are confirmed) -->
-            <div *ngIf="isTpaMode && !tpaDetails" class="atm-tpa-required-note">
+            <div *ngIf="isTpaMode && !tpaDetails" class="tpa-required-note">
               <i class="fa fa-info-circle"></i>
               TPA payment selected &mdash; please fill in TPA details to proceed.
-              <button type="button" class="atm-tpa-open-btn" (click)="editTpaDetails()">
+              <button type="button" class="dc-btn dc-btn--search dc-btn--sm" (click)="editTpaDetails()">
                 <i class="fa fa-plus-circle"></i> Enter TPA Details
               </button>
             </div>
 
             <!-- No Payment Info Banner -->
-            <div *ngIf="form.get('payment_Type')?.value === 'No Payment'" class="atm-tpa-required-note">
+            <div *ngIf="form.get('payment_Type')?.value === 'No Payment'" class="tpa-required-note">
               <i class="fa fa-info-circle"></i>
               <strong>No payment collected now.</strong> Full amount of
               ₹{{ form.get('net_Amount')?.value }} will be collected at report pickup.
@@ -411,7 +425,7 @@
         <!-- ── Form Actions Bar (matches add-patient exactly) ────────────── -->
         <div class="form-actions">
           <div class="actions-left">
-            <button type="button" class="btn btn-back" (click)="goToStep1()"
+            <button type="button" class="dc-btn dc-btn--back" (click)="goToStep1()"
                     [disabled]="currentStep === 1">
               <i class="fa fa-arrow-left"></i> Previous
             </button>
@@ -423,15 +437,24 @@
           </div>
 
           <div class="actions-right">
+            <!-- Cancel is also in the page header, but this screen fills the
+                 whole viewport and scrolls, so that one is off-screen by the
+                 time anyone has filled the form in. Same cancel() either way.
+                 Left of the primary action, per the pairing rule on
+                 .btn-cancel in styles.css. -->
+            <button type="button" class="dc-btn dc-btn--cancel" (click)="cancel()">
+              <i class="fa fa-times"></i> Cancel
+            </button>
+
             <!-- Step 1: Next -->
-            <button type="button" class="btn btn-primary" (click)="goToStep2()"
+            <button type="button" class="dc-btn dc-btn--save" (click)="goToStep2()"
                     *ngIf="currentStep === 1"
                     [disabled]="!isStep1Valid"
                     title="Continue to payment">
               Next <i class="fa fa-arrow-right"></i>
             </button>
             <!-- Step 2: Submit -->
-            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 2 && !useNewUi"
+            <button type="submit" class="dc-btn dc-btn--submit" *ngIf="currentStep === 2 && !useNewUi"
                     [disabled]="!isStep2Valid || isSaving">
               <i class="fa fa-spinner fa-spin" *ngIf="isSaving"></i>
               <i class="fa fa-check" *ngIf="!isSaving"></i>
@@ -445,6 +468,18 @@
 
     <!-- ═══════════════ TEST PICKER — Simple UI (USE_NEW_UI) ═════════════ -->
     <div class="registration-card atm-catalog-card" *ngIf="showTestCatalog && useNewUi">
+
+      <!-- The same step header the form card carries. Browsing the catalogue is
+           still step 1, but the card had no header at all, so choosing tests
+           looked like a different screen rather than a step of this one. -->
+      <div class="step-header step-header--3">
+        <div class="step-badge"><i class="fa fa-flask"></i></div>
+        <div>
+          <h3>Choose Tests</h3>
+          <p>Search, or browse by group &mdash; then confirm your selection</p>
+        </div>
+      </div>
+
       <dc-test-picker
         [groups]="testGroups"
         [selectedCodes]="selectedTestCodes"
@@ -458,13 +493,13 @@
              procedure and rejection criteria are paragraphs, and a column that
              narrow makes them unreadable at the moment they matter. -->
         <ng-template #dcpProtocol>
-          <div class="atm-catalog-protocol" [class.atm-catalog-protocol--collapsed]="!showFocusedProtocol">
-            <div class="atm-catalog-protocol-bar">
-              <span class="atm-catalog-protocol-title">
+          <div class="protocol-box" [class.protocol-box--collapsed]="!showFocusedProtocol">
+            <div class="protocol-bar">
+              <span class="protocol-title">
                 <i class="fa fa-flask"></i> Sample Collection Protocol
-                <span class="atm-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
+                <span class="protocol-subject" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
               </span>
-              <button type="button" class="atm-protocol-toggle"
+              <button type="button" class="protocol-toggle"
                       [attr.aria-expanded]="showFocusedProtocol"
                       (click)="showFocusedProtocol = !showFocusedProtocol">
                 <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
@@ -489,11 +524,12 @@
          evaluated; delete this block once the picker has been signed off. -->
     <div class="registration-card atm-catalog-card" *ngIf="showTestCatalog && !useNewUi">
 
-      <!-- Catalog Header -->
+      <!-- Catalog Header — same badge and wording as the picker's, so the two
+           paths behind USE_NEW_UI do not read as two different screens. -->
       <div class="step-header step-header--3">
-        <div class="step-badge">🔬</div>
+        <div class="step-badge"><i class="fa fa-flask"></i></div>
         <div>
-          <h3>Browse &amp; Select Tests</h3>
+          <h3>Choose Tests</h3>
           <p>Click tests to add them to your selection</p>
         </div>
       </div>
@@ -512,7 +548,7 @@
           <div class="card-header">Groups</div>
           <div class="card-body">
             <div *ngIf="filteredGroups.length === 0" class="no-data">No groups found</div>
-            <div *ngFor="let g of filteredGroups"
+            <div *ngFor="let g of filteredGroups; trackBy: trackByGroupId"
                  class="list-item"
                  [class.active]="g.testGroupId === selectedGroupId"
                  (click)="getSubGroupList(g)">
@@ -529,7 +565,7 @@
           <div class="card-header">Sub-Groups</div>
           <div class="card-body">
             <div *ngIf="filteredSubGroups.length === 0" class="no-data">Select a group</div>
-            <div *ngFor="let s of filteredSubGroups"
+            <div *ngFor="let s of filteredSubGroups; trackBy: trackByGroupId"
                  class="list-item"
                  [class.active]="s.testGroupId === selectedSubGroupId"
                  (click)="getMedicalTestList(s)">
@@ -546,7 +582,7 @@
           <div class="card-header">Tests</div>
           <div class="card-body">
             <div *ngIf="filteredTests.length === 0" class="no-data">Select a sub-group</div>
-            <div *ngFor="let t of filteredTests"
+            <div *ngFor="let t of filteredTests; trackBy: trackByTestCode"
                  class="list-item test-item"
                  [class.active]="focusedTestId === t.testCode"
                  [class.test-selected]="isTestSelected(t)"
@@ -578,14 +614,15 @@
           </div>
           <div class="card-body">
             <div *ngIf="selectedTests.length === 0" class="no-data">No tests selected yet</div>
-            <div *ngFor="let t of selectedTests" class="selected-item">
+            <div *ngFor="let t of selectedTests; trackBy: trackByTestCode" class="selected-item">
               <div class="left">
                 <span class="code">{{ t.testCode }}</span>
                 <span class="name">{{ t.testName }}</span>
               </div>
               <div class="right">
                 <span class="price">₹{{ t.price }}</span>
-                <button type="button" class="btn btn-sm btn-outline-danger atm-remove-btn"
+                <button type="button" class="btn-action btn-delete atm-remove-btn"
+                        title="Remove this test"
                         (click)="removeSelectedTest(t.testCode)">
                   <i class="fa fa-times"></i>
                 </button>
@@ -605,13 +642,13 @@
            Full width under the four columns rather than squeezed in as a fifth: the
            procedure and rejection criteria are paragraphs, and a column that narrow would
            make them unreadable at exactly the moment they matter. -->
-      <div class="atm-catalog-protocol" [class.atm-catalog-protocol--collapsed]="!showFocusedProtocol">
-        <div class="atm-catalog-protocol-bar">
-          <span class="atm-catalog-protocol-title">
+      <div class="protocol-box" [class.protocol-box--collapsed]="!showFocusedProtocol">
+        <div class="protocol-bar">
+          <span class="protocol-title">
             <i class="fa fa-flask"></i> Sample Collection Protocol
-            <span class="atm-catalog-protocol-test" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
+            <span class="protocol-subject" *ngIf="focusedProtocolTestName">— {{ focusedProtocolTestName }}</span>
           </span>
-          <button type="button" class="atm-protocol-toggle"
+          <button type="button" class="protocol-toggle"
                   [attr.aria-expanded]="showFocusedProtocol"
                   (click)="showFocusedProtocol = !showFocusedProtocol">
             <i class="fa" [class.fa-chevron-up]="showFocusedProtocol"
@@ -631,12 +668,12 @@
       <!-- Catalog Actions -->
       <div class="form-actions">
         <div class="actions-left">
-          <button type="button" class="btn btn-back" (click)="cancelTestCatalog()">
+          <button type="button" class="dc-btn dc-btn--back" (click)="cancelTestCatalog()">
             <i class="fa fa-arrow-left"></i> Back to Form
           </button>
         </div>
         <div class="actions-right">
-          <button type="button" class="btn btn-primary" (click)="confirmTestSelection()"
+          <button type="button" class="dc-btn dc-btn--confirm" (click)="confirmTestSelection()"
                   [disabled]="selectedTests.length === 0">
             <i class="fa fa-check"></i> Confirm Selection
           </button>
@@ -644,6 +681,7 @@
       </div>
     </div><!-- /catalog card -->
 
+    </div><!-- /content-container -->
   </div><!-- /atm-page -->
 </div><!-- /atm-overlay -->
 

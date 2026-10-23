@@ -104,6 +104,13 @@ export class LicenceService {
 
   // ── Synchronous accessors (valid after load() has completed) ──────────────
 
+  /**
+   * True once load() has settled — with a real answer, or with the fail-open
+   * default after an error or the timeout above. licenceGuard reads this to
+   * decide whether it can answer synchronously (PERF-014).
+   */
+  get isResolved(): boolean      { return this.loaded; }
+
   get isExpired(): boolean       { return this._expired$.getValue(); }
   get daysLeft():  number | null { return this._daysLeft$.getValue(); }
   get expiryDate(): Date | null  { return this._expiryDate$.getValue(); }

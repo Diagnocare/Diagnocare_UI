@@ -48,10 +48,13 @@ export const routes: Routes = [
       { path: 'access-denied', title: 'Access Denied',
         loadComponent: () => import('./component/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
 
-      // Pathology dashboard — Admin / User / Assistant only
+      // Pathology home — every staff role. It is the landing route for all of them
+      // (MODULE_ACCESS), so excluding Collection Boy / Doctor sent them straight to
+      // Access Denied after login. The page itself only shows each role the cards
+      // and dashboard figures it may open.
       { path: 'pathology', title: 'Pathology',
         loadComponent: () => import('./component/pathology/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id, Role.Collection_Boy.id, Role.Doctor.id)] },
 
       // Address Manager — Admin+
       { path: 'contacts', title: 'Address Manager',
@@ -183,8 +186,9 @@ export const routes: Routes = [
             loadComponent: () => import('./component/summary-report/reports/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
           { path: 'master-test-list', title: 'Master Test List',
             loadComponent: () => import('./component/summary-report/reports/master-test-list.component').then(m => m.MasterTestListComponent) },
-          { path: 'rate-list', title: 'Rate List',
-            loadComponent: () => import('./component/summary-report/reports/rate-list.component').then(m => m.RateListComponent) },
+          // Rate List was folded into Master Test List, which lists every catalogue
+          // test with its rate at the Test level. Redirect kept for existing links.
+          { path: 'rate-list', redirectTo: 'master-test-list', pathMatch: 'full' },
           { path: 'address-manager', title: 'Address Manager Report',
             loadComponent: () => import('./component/summary-report/reports/address-manager-report.component').then(m => m.AddressManagerReportComponent) },
           { path: 'tpa-report', title: 'TPA Report',

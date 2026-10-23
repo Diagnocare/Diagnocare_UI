@@ -66,9 +66,10 @@ export class PathologyService {
       }
 
       /** Public endpoint — no auth token required */
-      registerPathology(dto: PathologyRegisterDto): Observable<PathologyRegisterResponseDto> {
+      registerPathology(dto: PathologyRegisterDto, provisioningToken: string): Observable<PathologyRegisterResponseDto> {
         return this.httpClient.post<PathologyRegisterResponseDto>(
-          this.url + apiEndpoints.add, dto
+          this.url + apiEndpoints.add, dto,
+          { headers: { 'X-Provisioning-Token': provisioningToken } }
         );
       }
 
@@ -140,6 +141,25 @@ export class PathologyService {
           null
         ).pipe(
           tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)));
+      }
+
+      /**
+       * PUT - updates the share of an employee's ANNUAL paid-leave entitlement (0-100)
+       * that may be carried into the next leave year. Default 50. Super Admin only.
+       *
+       * A cap on the carry-forward, not a share of the unused balance: at 50% an employee
+       * entitled to 24 days a year carries over at most 12, so 18 unused days become 12
+       * and 8 unused days stay 8. Set to 0 to make leave lapse at the end of every year.
+       *
+       * No TokenService cache to keep in step - the percentage is read server-side when a
+       * balance or a year-end run needs it, never from the client.
+       */
+      updatePaidLeaveCarryForward(paidLeaveCarryForwardPercent: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updatePaidLeaveCarryForward}` +
+            `?paidLeaveCarryForwardPercent=${paidLeaveCarryForwardPercent}`,
+          null
+        );
       }
 
       /**

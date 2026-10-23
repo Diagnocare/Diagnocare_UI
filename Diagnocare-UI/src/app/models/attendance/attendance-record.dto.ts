@@ -89,7 +89,7 @@ export interface StatusConfig {
  */
 export const ATTENDANCE_STATUS_MAP: { [key in AttendanceStatus]: StatusConfig } = {
   [AttendanceStatus.Present]: { value: AttendanceStatus.Present, label: 'Present',    shortLabel: 'P',  cssClass: 'cell-present',   chipClass: 'chip-p'  },
-  [AttendanceStatus.Absent]:  { value: AttendanceStatus.Absent,  label: 'Absent',     shortLabel: 'A',  cssClass: 'cell-absent',    chipClass: 'chip-a'  },
+  [AttendanceStatus.Absent]:  { value: AttendanceStatus.Absent,  label: 'Leave',      shortLabel: 'L',  cssClass: 'cell-absent',    chipClass: 'chip-a'  },
   [AttendanceStatus.HalfDay]: { value: AttendanceStatus.HalfDay, label: 'Half Day',   shortLabel: 'HD', cssClass: 'cell-halfday',   chipClass: 'chip-hd' },
   [AttendanceStatus.Holiday]: { value: AttendanceStatus.Holiday, label: 'Holiday',    shortLabel: 'H',  cssClass: 'cell-holiday',   chipClass: 'chip-h'  },
   [AttendanceStatus.WeekOff]: { value: AttendanceStatus.WeekOff, label: 'Week Off',   shortLabel: 'WO', cssClass: 'cell-weekoff',   chipClass: 'chip-wo' },

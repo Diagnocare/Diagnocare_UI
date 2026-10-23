@@ -169,10 +169,29 @@ export class MyPickupsComponent implements OnInit, OnDestroy {
     return digits.length >= 6 ? `tel:${digits}` : null;
   }
 
-  /** Opens the address in the phone's maps app. */
+  /**
+   * The address exactly as registered, with the area appended only when the address
+   * doesn't already mention it — so the same words aren't searched (or shown) twice.
+   */
+  fullAddress(p: Pickup): string {
+    const addr = (p.patientAddress || '').trim();
+    const area = (p.area || '').trim();
+    if (!area) return addr;
+    if (!addr) return area;
+    return addr.toLowerCase().includes(area.toLowerCase()) ? addr : `${addr}, ${area}`;
+  }
+
+  /** Opens the full address in the phone's maps app. */
   mapHref(p: Pickup): string | null {
-    const where = [p.patientAddress, p.area].filter(x => (x || '').trim()).join(', ');
+    const where = this.fullAddress(p);
     return where ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}` : null;
+  }
+
+  copy(text: string, label: string): void {
+    navigator.clipboard?.writeText(text).then(
+      () => this.toastr.success(`${label} copied.`),
+      () => this.toastr.error(`Could not copy the ${label.toLowerCase()}.`),
+    );
   }
 
   trackById = (_: number, p: Pickup) => p.testRegId;

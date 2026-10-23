@@ -19,7 +19,8 @@ import { NotificationService } from 'src/app/services/notificationServices/notif
 import {
   EMPTY_NOTIFICATION_COUNTS, NotificationModuleKey, UserNotification, UserNotificationCounts,
 } from 'src/app/models/notification/user-notification.model';
-import { Subscription, interval } from 'rxjs';
+import { Subscription, interval, fromEvent } from 'rxjs';
+import { debounceTime, filter, throttleTime } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
@@ -79,15 +80,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private badgeSubs = new Subscription();
   /**
-   * How often every badge re-checks — ONE timer for all of them. A minute is plenty
-   * for a front-desk queue, and live push was removed on purpose (see
-   * services/sessionSignalR/session-signalr.service.ts).
+   * How often every badge re-checks — ONE timer for all of them. Live push was
+   * removed on purpose (see services/sessionSignalR/session-signalr.service.ts).
+   *
+   * PERF-021 — this was 60 s, and a tick costs up to three API calls for a Super
+   * Admin. Against an HTTP/1.1 origin capped at six connections (PERF-009) those
+   * calls occupy slots a user-initiated click then queues behind; the logs caught
+   * 19 authenticated requests inside one 10-second window. Five minutes is still
+   * well inside what a front-desk queue needs, because the tab-focus refresh
+   * below covers the case that actually matters: someone coming back to look.
    */
-  private static readonly BADGE_POLL_MS = 60_000;
-  /** Refresh straight away when the tab comes back into view, rather than up to a minute later. */
-  private readonly visibilityHandler = (): void => {
-    if (document.visibilityState === 'visible') this.refreshBadges();
-  };
+  private static readonly BADGE_POLL_MS = 300_000;
+  /**
+   * Shortest gap between two focus-driven refreshes. Alt-tabbing through windows
+   * fires `visibilitychange` once per pass, and each pass used to cost a full
+   * badge sweep.
+   */
+  private static readonly VISIBILITY_REFRESH_MIN_GAP_MS = 30_000;
 
   // ── Licence state ──────────────────────────────────────────────────────────
   isLicenceExpired   = false;
@@ -147,7 +156,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.refreshBadges();
     this.badgeSubs.add(
       interval(HeaderComponent.BADGE_POLL_MS).subscribe(() => this.refreshBadges()));
-    document.addEventListener('visibilitychange', this.visibilityHandler);
+
+    // Refresh when the tab comes back into view, rather than up to five minutes
+    // later — but once per visit, not once per keystroke of alt-tabbing:
+    // debounceTime settles a burst of toggles, throttleTime caps the rate.
+    this.badgeSubs.add(
+      fromEvent(document, 'visibilitychange').pipe(
+        filter(() => document.visibilityState === 'visible'),
+        debounceTime(500),
+        throttleTime(HeaderComponent.VISIBILITY_REFRESH_MIN_GAP_MS),
+      ).subscribe(() => this.refreshBadges()));
 
     // ── PIN expiry banner ────────────────────────────────────────────────────
     if (this.userName) {
@@ -158,7 +176,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
-    document.removeEventListener('visibilitychange', this.visibilityHandler);
     this.badgeSubs.unsubscribe();
   }
 
@@ -174,6 +191,16 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.attendanceSvc.refreshPendingRequestCount();
     }
     if (this.userName) this.notifications.refreshUnread();
+  }
+
+  /**
+   * PERF-020 — the bell list is re-fetched by the badge poll and on tab focus, and
+   * every response is a fresh set of object instances. Without a key, Angular's
+   * differ matches items by identity, so an unchanged list of notifications still
+   * tore down and rebuilt every row in the dropdown.
+   */
+  trackByNotificationId(_index: number, item: UserNotification): number {
+    return item.id;
   }
 
   navigateToHome() {
