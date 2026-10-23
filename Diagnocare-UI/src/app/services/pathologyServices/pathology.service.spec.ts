@@ -75,4 +75,19 @@ describe('PathologyService — cache sync on update', () => {
 
     expect(tokenService.getSessionLockoutMinutes()).toBe(45);
   });
+
+  // The odd one out, deliberately: nothing client-side reads the carry-forward
+  // percentage. It is applied server-side when a leave balance or a year-end run
+  // needs it, so caching it here would only create a second copy to go stale.
+  it('updatePaidLeaveCarryForward sends the percentage and caches nothing', () => {
+    service.updatePaidLeaveCarryForward(25).subscribe();
+
+    const req = httpMock.expectOne(
+      r => r.method === 'PUT' && r.url.includes(apiEndpoints.updatePaidLeaveCarryForward)
+    );
+    expect(req.request.urlWithParams).toContain('paidLeaveCarryForwardPercent=25');
+    req.flush({});
+
+    expect(tokenService.hasCachedPolicies()).toBeFalse();
+  });
 });

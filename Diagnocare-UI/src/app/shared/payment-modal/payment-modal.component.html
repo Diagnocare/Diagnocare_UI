@@ -9,11 +9,12 @@
           <i class="fa fa-credit-card"></i>
         </div>
         <div>
-          <h3 class="pm-title">{{ topupMode ? 'Record Payment' : 'Add Payment' }}</h3>
-          <p class="pm-subtitle" *ngIf="topupMode">
+          <h3 class="pm-title">{{ modalTitle }}</h3>
+          <p class="pm-subtitle" *ngIf="modalSubtitle">{{ modalSubtitle }}</p>
+          <p class="pm-subtitle" *ngIf="!modalSubtitle && topupMode">
             Remaining balance: <strong>₹{{ prefillAmount | number:'1.2-2' }}</strong>
           </p>
-          <p class="pm-subtitle" *ngIf="!topupMode">
+          <p class="pm-subtitle" *ngIf="!modalSubtitle && !topupMode">
             Net payable: <strong>₹{{ netAmount | number:'1.2-2' }}</strong>
           </p>
         </div>
@@ -45,8 +46,28 @@
         </div>
       </ng-container>
 
+      <!-- Amount-only mode: the bill, what is going in now, what is left.
+           Same three-cell strip as top-up mode, because it answers the same
+           three questions — it is the figures that differ, not the design. -->
+      <ng-container *ngIf="!topupMode && amountOnly">
+        <div class="pm-amount-item">
+          <span class="pm-amount-label">Net Amount</span>
+          <span class="pm-amount-value">₹{{ netAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="pm-amount-divider"></div>
+        <div class="pm-amount-item">
+          <span class="pm-amount-label">Paying Now</span>
+          <span class="pm-amount-value pm-amount-value--paid">₹{{ payingNow | number:'1.2-2' }}</span>
+        </div>
+        <div class="pm-amount-divider"></div>
+        <div class="pm-amount-item pm-amount-item--net">
+          <span class="pm-amount-label">Still Pending</span>
+          <span class="pm-amount-value pm-amount-value--net">₹{{ stillPending | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
+
       <!-- Standard mode: test amount + net payable -->
-      <ng-container *ngIf="!topupMode">
+      <ng-container *ngIf="!topupMode && !amountOnly">
         <div class="pm-amount-item">
           <span class="pm-amount-label">Test Amount</span>
           <span class="pm-amount-value">₹{{ testAmount | number:'1.2-2' }}</span>
@@ -64,16 +85,22 @@
       <dc-payment-panel
         [netAmount]="panelAmount"
         [modes]="paymentModeOptions"
-        [allowNoPayment]="!topupMode"
+        [allowNoPayment]="!topupMode && !amountOnly"
+        [showChoices]="!amountOnly"
+        [presetChoice]="amountOnly ? 'part' : null"
+        [showModes]="!presetMode"
+        [presetMode]="presetMode"
+        [initialPaid]="initialPaid"
+        [dense]="true"
         [busy]="isSaving"
-        confirmLabel="Confirm payment"
+        [confirmLabel]="panelConfirmLabel"
         (decisionChange)="onPaymentDecision($event)"
         (confirmed)="save()">
       </dc-payment-panel>
 
-      <div class="pm-save-error" *ngIf="saveError">
+      <div class="pm-save-error" *ngIf="saveError || errorText">
         <i class="fa fa-exclamation-circle"></i>
-        {{ saveError }}
+        {{ saveError || errorText }}
       </div>
 
       <div class="pm-actions">
@@ -88,8 +115,9 @@
          delete this block once the panel is signed off. -->
     <form [formGroup]="form" class="pm-form" (ngSubmit)="save()" *ngIf="!useNewUi">
 
-      <!-- Payment Type Toggle (standard mode only) -->
-      <div class="pm-field" *ngIf="!topupMode">
+      <!-- Payment Type Toggle (standard mode only; the caller owns it in
+           amount-only mode, so it is not asked again here) -->
+      <div class="pm-field" *ngIf="!topupMode && !amountOnly">
         <label class="pm-label">Payment Type</label>
         <div class="pm-type-toggle">
           <button type="button"
@@ -109,8 +137,8 @@
         </div>
       </div>
 
-      <!-- Payment Mode -->
-      <div class="pm-field">
+      <!-- Payment Mode — hidden when the caller supplied it -->
+      <div class="pm-field" *ngIf="!presetMode">
         <label class="pm-label" for="pm-mode">Payment Mode</label>
         <div class="pm-select-wrap">
           <i class="fa fa-university pm-select-icon"></i>
@@ -169,7 +197,7 @@
       </div>
 
       <!-- Amount Paid — always editable in topup mode; editable in standard Partial mode -->
-      <div class="pm-field" *ngIf="topupMode || isPartial">
+      <div class="pm-field" *ngIf="topupMode || isPartial || amountOnly">
         <label class="pm-label" for="pm-amt-paid">
           {{ topupMode ? 'Amount to Pay (₹)' : 'Amount Paid (₹)' }}
         </label>
@@ -233,10 +261,10 @@
         [resetTrigger]="visible">
       </app-payment-calculator>
 
-      <!-- Error message -->
-      <div class="pm-save-error" *ngIf="saveError">
+      <!-- Error message — a failed save, or a rule the caller enforces -->
+      <div class="pm-save-error" *ngIf="saveError || errorText">
         <i class="fa fa-exclamation-circle"></i>
-        {{ saveError }}
+        {{ saveError || errorText }}
       </div>
 
       <!-- ── Footer Actions ── -->
@@ -248,7 +276,7 @@
                 class="dc-btn dc-btn--save"
                 [disabled]="!isFormValid || isSaving">
           <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-          {{ isSaving ? 'Saving…' : 'Confirm Payment' }}
+          {{ isSaving ? 'Saving…' : panelConfirmLabel }}
         </button>
       </div>
 

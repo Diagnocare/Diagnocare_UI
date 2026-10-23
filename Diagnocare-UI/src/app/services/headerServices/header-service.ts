@@ -26,9 +26,12 @@ export class HeaderService {
       return this.httpClient.get(endpoint);
   }
   
-  validateOldPassword(userName: string, oldPassword: string) {
-    const endpoint = `${this.url}${apiEndpoints.validateOldPassword}?userName=${userName}&oldPassword=${oldPassword}`;
-    return this.httpClient.get(endpoint);
+  /**
+   * Changes the signed-in user's own password. The server takes the account from the JWT and
+   * checks the current password in the same call; nothing here names a user.
+   */
+  changePassword(oldPassword: string, newPassword: string) {
+    return this.httpClient.post(`${this.url}${apiEndpoints.changePassword}`, { oldPassword, newPassword });
   }
 
   /**
@@ -49,14 +52,6 @@ export class HeaderService {
     return this.httpClient.post(endpoint, formData);
   }
 
-  resetPassword(userId: string,newPassword: string) {
-      const endpoint = `${this.loginUrl}${apiEndpoints.resetPassword}`;
-      const body = {
-        userId,
-        newPassword
-      };
-      return this.httpClient.post(endpoint, body);
-    }
     updateAuthType(User_Name: string, loginType: number) {
       const endpoint = `${this.url}${apiEndpoints.updateAuthType}`;
       const request = { User_Name, loginType };

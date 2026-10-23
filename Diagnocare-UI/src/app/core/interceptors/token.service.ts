@@ -105,6 +105,12 @@ export class TokenService {
 
   // ── Browser identity ───────────────────────────────────────────────────────
 
+  // R-03: proof that the password step passed. Held in memory only (never storage), so it dies with
+  // the tab; the server keeps the authoritative copy and expires it.
+  private loginTicket: string | null = null;
+  setLoginTicket(ticket: string | null | undefined): void { this.loginTicket = ticket ?? null; }
+  getLoginTicket(): string | null { return this.loginTicket; }
+
   /**
    * Returns this browser's stable UUID (creates it on first call).
    * All tabs in the same browser profile share this value.
@@ -482,9 +488,16 @@ export class TokenService {
    * True when pathology policy settings (grace buffer, max discount, session
    * lockout) are already cached in localStorage from a previous load.
    * AppComponent uses this to skip the DB round-trip on repeat page loads.
+   *
+   * All three are required. Checking only the grace buffer meant a profile
+   * response that carried that field but omitted another left the gate closed
+   * on a half-warm cache, stranding the missing setting on its default for the
+   * rest of the browser's life.
    */
   hasCachedPolicies(): boolean {
-    return localStorage.getItem(this.GRACE_BUFFER_KEY) !== null;
+    return localStorage.getItem(this.GRACE_BUFFER_KEY)    !== null
+        && localStorage.getItem(this.MAX_DISCOUNT_KEY)    !== null
+        && localStorage.getItem(this.SESSION_LOCKOUT_KEY) !== null;
   }
 
   /** Clear cached pathology policy settings (called on logout). */

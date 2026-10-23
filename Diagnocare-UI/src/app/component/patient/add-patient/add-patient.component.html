@@ -120,8 +120,8 @@
               <div class="form-group">
                 <label class="form-label required">Age</label>
                 <!-- Type the age directly when the patient does not know their
-                     date of birth, or leave it to fill itself from the DOB
-                     above. Either way round works. -->
+                     date of birth (DOB stays empty), or leave it to fill
+                     itself from the DOB above. -->
                 <div class="age-parts">
                   <div class="age-part">
                     <input type="number" class="form-control" formControlName="patient_Age_Years"
@@ -213,7 +213,7 @@
               <div class="form-group">
                 <label class="form-label">Mobile Number</label>
                 <div style="display: flex; gap: 6px; align-items: center;">
-                  <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
+                  <select class="form-select" formControlName="country_Code" style="max-width: 30%;" [attr.tabindex]="getTabIndex('country_Code')">
                     <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                   </select>
                   <input type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
@@ -235,7 +235,7 @@
 
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label">Address</label>
+                <label class="form-label">Address<span class="text-danger" *ngIf="patientForm.get('collected_Outside')?.value"> *</span></label>
                   <input type="text" class="form-control" formControlName="patient_Address"
                     placeholder="Full address"
                     [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
@@ -268,9 +268,10 @@
                 </div>
                 <app-field-error [control]="patientForm.get('test_Name')" label="Test Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
-
+              </div>
+              <div class="form-row">
               <div class="form-group form-group--narrow">
-                <label class="form-label">Urgent Report</label>
+                <label class="form-label form-group--narrow">Urgent Report</label>
                 <div class="toggle-wrap">
                   <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="urgentReport" [attr.tabindex]="getTabIndex('urgent_Report')" />
                   <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
@@ -278,7 +279,7 @@
               </div>
 
               <div class="form-group form-group--narrow">
-                <label class="form-label">Report on WhatsApp</label>
+                <label class="form-label form-group--narrow">Report on WhatsApp</label>
                 <div class="toggle-wrap">
                   <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
                   <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>
@@ -425,9 +426,42 @@
                 <div class="toggle-wrap">
                       <input type="checkbox" class="form-check-input" id="collectedOutside"
                         formControlName="collected_Outside"
-                        (change)="onCollectedOutsideClick($event)" [attr.tabindex]="getTabIndex('collected_Outside')" />
+                        [attr.tabindex]="getTabIndex('collected_Outside')" />
                   <label for="collectedOutside" class="toggle-label">Outside Collection</label>
                 </div>
+              </div>
+            </div>
+
+            <!-- Outside collection (home visit etc.): a collection boy must be named.
+                 The pickup goes on his "My Pickups" list, and results cannot be
+                 entered until he has collected it AND the lab has marked it received. -->
+            <div class="form-row" *ngIf="patientForm.get('collected_Outside')?.value">
+              <div class="form-group">
+                <label class="form-label required" for="collectionAssignedTo">Collection boy</label>
+                <select id="collectionAssignedTo" formControlName="collection_Assigned_To" class="form-select">
+                  <option value="">-- Select collection boy --</option>
+                  <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
+                </select>
+                <!-- Nobody to send. Said here rather than left as an empty dropdown the
+                     user keeps opening: the booking cannot be saved as an outside
+                     collection until a collection boy exists, and the API refuses it. -->
+                <small class="form-hint form-hint--warn" *ngIf="noCollectionBoys">
+                  No active collection boys are set up. Add one under Staff, or untick
+                  Outside Collection to record this as collected at the centre.
+                </small>
+                <small class="form-hint form-hint--warn" *ngIf="!noCollectionBoys && collectorMissing">
+                  Choose who will go to collect the sample.
+                </small>
+                <small class="form-hint" *ngIf="!collectorMissing">
+                  Goes on his pickup list; the lab marks it received on hand-over.
+                </small>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="collectionArea">Area</label>
+                <select id="collectionArea" formControlName="area" class="form-select">
+                  <option value="">-- Select Area --</option>
+                  <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
+                </select>
               </div>
             </div>
 
@@ -691,7 +725,7 @@
         <!-- ═══════════════════════════════════════════════════════ NAV ACTIONS -->
         <div class="form-actions">
           <div class="actions-left">
-            <button type="button" class="btn btn-nav" (click)="handlePrevious()"
+            <button type="button" class="dc-btn dc-btn--back" (click)="handlePrevious()"
                     [disabled]="currentStep === 1">
               <i class="fa fa-arrow-left"></i> Previous
             </button>
@@ -704,11 +738,11 @@
           </div>
 
           <div class="actions-right">
-            <button type="button" class="btn btn-nav" (click)="handleNext()"
+            <button type="button" class="dc-btn dc-btn--save" (click)="handleNext()"
                     *ngIf="currentStep < 4">
               Next <i class="fa fa-arrow-right"></i>
             </button>
-            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 4">
+            <button type="submit" class="dc-btn dc-btn--submit" *ngIf="currentStep === 4">
               <i class="fa fa-check"></i> Register Patient
             </button>
           </div>
@@ -722,6 +756,19 @@
          hand-written copy of the old four-column browser, which is why the two
          screens had drifted into different interfaces for the same job. -->
     <div class="registration-card ap-catalog-card" *ngIf="showTestCatalog">
+
+      <!-- The same step header the form card carries, and the same one Add New
+           Test's picker card carries. Without it this card opened with no
+           heading at all, so choosing tests read as a different screen rather
+           than a step of this one. -->
+      <div class="step-header step-header--3">
+        <div class="step-badge"><i class="fa fa-flask"></i></div>
+        <div>
+          <h3>Choose Tests</h3>
+          <p>Search, or browse by group &mdash; then confirm your selection</p>
+        </div>
+      </div>
+
       <dc-test-picker
         [groups]="testGroups"
         [selectedCodes]="selectedTestCodes"
@@ -763,104 +810,39 @@
   </div><!-- /content-container -->
 </div><!-- /page-container -->
 
-<!-- ════════════════════════════════════════ MODAL: Outside Collection -->
-<div class="modal fade" id="collectionModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="fa fa-map-marker-alt"></i> Sample Collected Outside
-        </h5>
-        <button type="button" class="btn-close" (click)="modalCollectionClose()"></button>
-      </div>
-      <div class="modal-body">
-        <form [formGroup]="patientForm">
-          <div class="form-group mb-3">
-            <label class="form-label">Area</label>
-            <select formControlName="area" class="form-select">
-              <option value="">-- Select Area --</option>
-              <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
-            </select>
-          </div>
-          <div class="form-group mb-3">
-            <label class="form-label">Collected By</label>
-            <select formControlName="collected_By" class="form-select">
-              <option value="">-- Select Collection Boy --</option>
-              <option *ngFor="let cb of collectionBoys" [value]="cb.id">{{ cb.first_Name }} {{ cb.last_Name }}</option>
-            </select>
-          </div>
-          <div class="modal-footer-actions">
-            <button class="btn btn-cancel" type="button" (click)="clearOutsideCollectionModal()">Cancel</button>
-            <button class="btn btn-primary" type="button" (click)="modalCollectionClose()">Confirm</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- ════════════════════════════════════════ MODAL: Partial Payment ═══════════
+     THE payment dialog, shared with Patient Tests and Bill / Receipt. This
+     screen used to hand-roll a Bootstrap modal here with its own header,
+     labels, .btn buttons and a duplicate copy of the Amount Paid field — which
+     is why taking a payment while adding a patient looked and behaved unlike
+     taking one anywhere else in the application.
 
-<!-- ════════════════════════════════════════ MODAL: Partial Payment -->
-<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="fa fa-wallet"></i> Partial Payment Details
-        </h5>
-        <button type="button" class="btn-close" (click)="clearPaymentModal()"></button>
-      </div>
-      <div class="modal-body">
-        <form [formGroup]="patientForm">
-
-          <!-- Net Amount — disabled: user cannot change it here -->
-          <div class="form-group mb-3">
-            <label class="form-label">Net Amount (₹)</label>
-            <div class="pm-locked-field">
-              <input type="text" class="form-control pm-disabled-input" formControlName="net_Amount"
-                     readonly tabindex="-1" />
-              <span class="pm-lock-badge">🔒 Fixed</span>
-            </div>
-          </div>
-
-          <!-- Amount Paid — live calculation on every keystroke -->
-          <!-- [attr.min], NOT a plain min="1": on a type=number input with formControlName,
-               a static min attribute makes Angular attach a Min validator to the
-               amount_Paid CONTROL itself. That control is shared with the main form,
-               so "No Payment" (amount_Paid = 0) could never pass validation.
-               confirmPayment() already rejects amounts <= 0 for Partial. -->
-          <div class="form-group mb-3">
-            <label class="form-label required">Amount Paid (₹)</label>
-            <input
-              type="number"
-              class="form-control"
-              [class.is-invalid]="!!amountPaidError"
-              formControlName="amount_Paid"
-              placeholder="Enter amount to pay now"
-              [attr.min]="1"
-              (input)="onAmountPaidInput($event)"
-            />
-            <div class="invalid-feedback" *ngIf="amountPaidError">{{ amountPaidError }}</div>
-          </div>
-
-          <!-- Amount Pending — auto-calculated, read-only -->
-          <div class="form-group mb-3">
-            <label class="form-label">Amount Pending (₹)</label>
-            <input type="text" class="form-control bg-light" formControlName="amount_Pending"
-                   readonly placeholder="Auto-calculated" />
-            <small>Calculated automatically as Net − Paid</small>
-          </div>
-
-          <div class="modal-footer-actions">
-            <button class="btn btn-cancel" type="button" (click)="clearPaymentModal()">Cancel</button>
-            <button class="btn btn-primary" type="button" (click)="confirmPayment()">
-              <i class="fa fa-check"></i> Confirm
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+     It is configured, not redesigned:
+       [autoSave]="false"    the booking is saved by registerPatient(), so the
+                             dialog collects and emits rather than posting a
+                             receipt of its own.
+       [amountOnly]="true"   Payment Type lives on the step above; the dialog
+       [presetMode]          and the Payment Mode select does too. Asking either
+                             again would let two answers disagree.
+       [initialPaid]         so Edit opens on the figure being amended.
+       [errorText]           this screen's own rule (a partial amount must be
+                             under the net amount) is shown in the dialog's
+                             error slot, next to the number that broke it. -->
+<app-payment-modal
+  [visible]="showPaymentModal"
+  [netAmount]="+(patientForm.get('net_Amount')?.value || 0)"
+  [testAmount]="+(patientForm.get('test_Amount')?.value || 0)"
+  [autoSave]="false"
+  [amountOnly]="true"
+  [presetMode]="patientForm.get('payment_Mode')?.value || ''"
+  [initialPaid]="paymentModalSeed"
+  [errorText]="amountPaidError"
+  heading="Partial Payment"
+  subheading="How much is being paid now"
+  confirmLabel="Confirm"
+  (confirmed)="onPaymentCollected($event)"
+  (cancelled)="clearPaymentModal()">
+</app-payment-modal>
 
 <!-- ════════════════════════════════════════ TPA DETAILS MODAL -->
 <app-tpa-details-modal

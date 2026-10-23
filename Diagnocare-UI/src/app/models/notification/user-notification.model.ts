@@ -2,7 +2,7 @@
  * In-app notifications — mirrors Diagnocare_API Model/Dtos/Notifications/UserNotificationDtos.cs
  * (camelCase). `module` keys are the API's UserNotificationModule names, camelCased.
  */
-export type NotificationModuleKey = 'attendance' | 'salary' | 'visit' | 'attendanceRequest';
+export type NotificationModuleKey = 'attendance' | 'salary' | 'visit' | 'attendanceRequest' | 'sampleCollection';
 
 export interface UserNotification {
   id: number;
@@ -25,5 +25,5 @@ export interface UserNotificationCounts {
 
 export const EMPTY_NOTIFICATION_COUNTS: UserNotificationCounts = {
   unread: 0,
-  byModule: { attendance: 0, salary: 0, visit: 0, attendanceRequest: 0 },
+  byModule: { attendance: 0, salary: 0, visit: 0, attendanceRequest: 0, sampleCollection: 0 },
 };

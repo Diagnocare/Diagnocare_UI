@@ -485,8 +485,8 @@
 
 // Wider panel for the bulk table
 .modal-panel-wide {
-  max-width: 860px;
-  width: 96%;
+  height:60%;
+  max-width: 80em;
 }
 
 .bulk-modal-body {
@@ -499,6 +499,19 @@
 }
 
 // ── Column layout ──────────────────────────────────────────────────
+//
+// These tracks are em-based, so the header and the data rows only line up
+// while both grids compute them in the same font-size. They did not: the
+// header carried `font-size: 0.77em`, which shrank every fixed track and the
+// gap along with it — measured in Chromium, the header's six tracks came out
+// 27/123/47/281/281/31px against the rows' 35/160/61/233/233/40px, walking
+// each heading out of line with the column it names. "Holiday Name" sat 73px
+// to the left of the field below it, and "Remove" 18px to the right.
+//
+// So the header's smaller type now sits on its cells rather than on the grid
+// container, which stays at 1em like the rows. Anything added here that
+// changes the header's own font-size will reintroduce the drift; put it on
+// `.bulk-header-row > *` instead.
 
 $col-num:    2.2em;
 $col-date:   10em;
@@ -518,14 +531,23 @@ $col-action: 2.5em;
 // ── Header row ─────────────────────────────────────────────────────
 
 .bulk-header-row {
-  font-size: 0.77em;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary, #888);
+  // Matches .bulk-row's 0.5em side padding plus its 1px border, so a heading
+  // starts exactly where its field does rather than 9px to the left.
+  padding: 0 calc(0.5em + 1px) 0.5em;
   border-bottom: 2px solid var(--border-color, #e1e8ed);
-  padding-bottom: 0.5em;
   margin-bottom: 0.4em;
+
+  // On the cells, never on the grid container — see the note above.
+  > * {
+    font-size: 0.75em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, #888);
+  }
+
+  // The day is centred in its narrow column, so its heading is too.
+  .bulk-col-day { text-align: center; }
 }
 
 .required-star {
@@ -563,21 +585,22 @@ $col-action: 2.5em;
 }
 
 .bulk-row-num {
-  font-size: 0.78em;
+  font-size: 0.75em;
   font-weight: 700;
   color: var(--text-secondary, #aaa);
-  text-align: center;
-  padding-top: 0.55em;
 }
 
 // ── Day label (compact, read-only) ────────────────────────────────
 
+// `padding-top` used to sit on this and on .bulk-row-num, to drop them level
+// with the date input back when the shared rule's `align-items: start` was in
+// force. `.bulk-row` now overrides that to `center`, so the padding was
+// pushing both 3px below the inputs instead — measured, then removed.
 .bulk-day-label {
-  font-size: 0.78em;
+  font-size: 0.75em;
   font-weight: 600;
   color: var(--text-secondary, #888);
   text-align: center;
-  padding-top: 0.55em;
 
   &.is-weekend-label { color: #c2410c; }
 }

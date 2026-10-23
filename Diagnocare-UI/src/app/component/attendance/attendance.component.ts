@@ -176,6 +176,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   /** Rows currently visible in the grid — role filter, active/inactive filter, optional user filter. */
+  /**
+   * PERF-020 — keys for the grid, which is users × days and so the largest list in
+   * the app (30 users over a month is ~930 cells). Every re-fetch rebuilds `rows`
+   * from scratch (see buildRows), so without a key Angular's differ matched nothing
+   * and tore down and recreated the whole table on each refresh or month change.
+   *
+   * Rows are keyed by user; cells, date headers and totals are keyed by position,
+   * which is what they are — column 3 is the third day whatever object holds it.
+   */
+  trackByUserId(_index: number, row: { userId: number }): number {
+    return row.userId;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
   get displayRows(): AttendanceRow[] {
     let rows = this.roleFilteredRows();
     if (!this.showInactive) rows = rows.filter(r => isActiveByDate(r.deactivatedAt));

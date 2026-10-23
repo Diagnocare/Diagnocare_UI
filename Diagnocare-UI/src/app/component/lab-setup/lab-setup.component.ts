@@ -10,7 +10,6 @@ import { PathologyService }        from 'src/app/services/pathologyServices/path
 import { ConfirmModalService }     from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent }   from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { TokenService }            from 'src/app/core/interceptors/token.service';
-import { Role }                    from 'src/app/constant/enums';
 
 export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'policies';
 
@@ -69,10 +68,19 @@ export class LabSetupComponent implements OnInit {
   sessionLockoutError  = '';
   sessionLockoutSuccess = '';
 
-  /** True when the current user is an Admin or Super Admin — only they may edit policies. */
+  // ── Paid Leave Carry Forward (%) ───────────────────────────────────
+  // The share of an employee's ANNUAL paid-leave entitlement that may be carried into
+  // the next leave year. A cap on the carry-forward, NOT a percentage applied to the
+  // unused balance - see the hint text in the template.
+  leaveCarryForwardValue:   number | null = null;
+  leaveCarryForwardInput:   number | null = null;
+  leaveCarryForwardSaving   = false;
+  leaveCarryForwardError    = '';
+  leaveCarryForwardSuccess  = '';
+
+  /** True only for Super Admin — the only role allowed to change lab setup. */
   get isAdmin(): boolean {
-    const role = this.tokenService.getUserRole();
-    return role === Role.Admin.id || role === Role.Super_Admin.id;
+    return this.tokenService.isSuperAdmin();
   }
 
   constructor(
@@ -347,6 +355,8 @@ export class LabSetupComponent implements OnInit {
         this.maxDiscountInput   = this.maxDiscountValue;
         this.sessionLockoutValue= data.sessionLockoutMinutes ?? 30;
         this.sessionLockoutInput= this.sessionLockoutValue;
+        this.leaveCarryForwardValue = data.paidLeaveCarryForwardPercent ?? 50;
+        this.leaveCarryForwardInput = this.leaveCarryForwardValue;
         this.policiesLoaded     = true;
         this.policiesLoading    = false;
         // Keep TokenService cache in sync
@@ -412,6 +422,70 @@ export class LabSetupComponent implements OnInit {
       error: () => {
         this.sessionLockoutError  = 'Failed to save session lockout. Please try again.';
         this.sessionLockoutSaving = false;
+      },
+    });
+  }
+
+  // ── Carry-forward worked example ────────────────────────────────────
+  // Spelled out in the hint text because the rule is the one people get wrong: the
+  // percentage caps the carry-forward, it is not applied to the unused balance. The
+  // numbers move with the configured percentage so the example is never stale.
+
+  /** A typical entitlement: 2 paid leaves a month over 12 months. */
+  readonly exampleAnnualEntitlement = 24;
+
+  private get carryForwardPercent(): number {
+    return this.leaveCarryForwardValue ?? 50;
+  }
+
+  /** The ceiling for the worked example: annual entitlement x the configured percentage. */
+  get exampleMaxCarryForward(): number {
+    return this.round1(this.exampleAnnualEntitlement * this.carryForwardPercent / 100);
+  }
+
+  /** 18 unused days, capped. Above the ceiling at any percentage below 75%. */
+  get exampleCarryForwardFor18(): number {
+    return Math.min(18, this.exampleMaxCarryForward);
+  }
+
+  /** 3 unused days, capped. Below the ceiling unless carry forward is nearly off. */
+  get exampleCarryForwardFor3(): number {
+    return Math.min(3, this.exampleMaxCarryForward);
+  }
+
+  /** One decimal place, so a half-day ceiling reads as 11.5 rather than 11.499999. */
+  private round1(value: number): number {
+    return Math.round(value * 10) / 10;
+  }
+
+  /**
+   * Saves the carry-forward cap. 0-100: 0 makes leave lapse at the end of every year,
+   * 100 lets the whole unused balance move. Validated here as well as server-side so a
+   * typo is caught before the round-trip.
+   */
+  saveLeaveCarryForward(): void {
+    const val = this.leaveCarryForwardInput;
+    if (val === null || val === undefined || isNaN(Number(val))) {
+      this.leaveCarryForwardError = 'Please enter a valid number.';
+      return;
+    }
+    if (Number(val) < 0 || Number(val) > 100) {
+      this.leaveCarryForwardError = 'Carry forward must be between 0 and 100%.';
+      return;
+    }
+    this.leaveCarryForwardError   = '';
+    this.leaveCarryForwardSuccess = '';
+    this.leaveCarryForwardSaving  = true;
+    this.pathologyService.updatePaidLeaveCarryForward(Number(val)).subscribe({
+      next: () => {
+        this.leaveCarryForwardValue   = Number(val);
+        this.leaveCarryForwardSuccess = 'Paid leave carry forward updated successfully.';
+        this.leaveCarryForwardSaving  = false;
+        setTimeout(() => this.leaveCarryForwardSuccess = '', 4000);
+      },
+      error: () => {
+        this.leaveCarryForwardError  = 'Failed to save paid leave carry forward. Please try again.';
+        this.leaveCarryForwardSaving = false;
       },
     });
   }

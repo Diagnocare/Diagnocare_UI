@@ -120,6 +120,8 @@
   align-items: center;
   gap: 1.5em;
   flex-wrap: wrap;
+  width: 90%;
+  margin-left: 5%;
   background: #fff;
   border: 1px solid var(--border-color);
   border-radius: 14px;
@@ -229,73 +231,33 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   Card Stack  (reuses .test-cards-stack, .test-card, .card-tab,
-   .card-content, .card-header, .card-body from the global SCSS already
-   defined for patient-test-list — duplicated here for encapsulation)
+   Booking card — only the booking selected in the navigator is rendered
+   (.card-content, .card-header, .card-body mirror patient-test-list —
+   duplicated here for encapsulation)
    ════════════════════════════════════════════════════════════════════ */
 .test-cards-stack {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  min-height: 480px;
-  padding: 2em;
-  padding-right: 15em;
+  width: 90%;
+  margin: 0 0 2em 5%;
 }
 
 .test-card {
-  position: absolute;
-  left: 2em;
-  top: 2em;
-  width: calc(100% - 18em);
+  width: 100%;
   min-height: 430px;
   display: flex;
   flex-direction: row;
-  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
-  cursor: pointer;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.09);
+  animation: br-card-in 0.2s ease-out;
 }
 
-.test-card:hover  { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13); }
 .test-card.active { box-shadow: 0 8px 32px rgba(30, 91, 168, 0.22); }
 
-/* Side tab */
-.card-tab {
-  position: absolute;
-  right: -4em;
-  top: 0;
-  width: 4em;
-  height: 100%;
-  background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 1em 0.5em;
-  color: #fff;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transition: all 0.3s ease;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.12);
+@keyframes br-card-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
 }
 
-.card-tab:hover { width: 5em; right: -5em; }
-.card-tab.hidden { opacity: 0; pointer-events: none; }
-
-.tab-id {
-  font-size: 0.72em;
-  font-weight: 700;
-  opacity: 0.9;
-  margin-bottom: 0.5em;
-}
-
-.tab-count {
-  font-size: 0.72em;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 3px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
+@media (prefers-reduced-motion: reduce) {
+  .test-card { animation: none; }
 }
 
 /* Card content wrapper */
@@ -671,6 +633,228 @@
 
 .btn-pay-now-card:active { transform: scale(0.97); }
 
+/* ════════════════════════════════════════════════════════════════════
+   Booking navigator — jump to any booking when there are many
+   ════════════════════════════════════════════════════════════════════ */
+.br-booking-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin-bottom: 0.75em;
+  min-width: 0;
+  width: 90%;
+  margin-left: 5%;
+}
+
+.br-booking-nav-label {
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.br-booking-nav-list {
+  display: flex;
+  gap: 0.5em;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: thin;
+}
+
+.br-booking-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
+}
+.br-booking-chip:hover { border-color: var(--primary-color); background: rgba(30, 91, 168, 0.05); }
+.br-booking-chip:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+.br-booking-chip.active {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30, 91, 168, 0.25);
+}
+.br-booking-chip-id   { font-weight: 700; }
+.br-booking-chip-meta { font-size: 0.9em; opacity: 0.75; white-space: nowrap; }
+.br-booking-chip-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #94a3b8; flex-shrink: 0;
+}
+.br-dot--paid      { background: #16a34a; }
+.br-dot--due       { background: #f59e0b; }
+.br-dot--cancelled { background: #dc2626; }
+.br-booking-chip.active .br-booking-chip-dot { box-shadow: 0 0 0 2px #fff; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Receipt list — toolbar, scroll area and click affordance
+   ════════════════════════════════════════════════════════════════════ */
+.br-receipt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  flex-wrap: wrap;
+  margin-bottom: 0.6em;
+}
+
+.br-receipt-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78em;
+  color: var(--text-secondary);
+}
+.br-receipt-hint .fa { color: var(--primary-color); }
+
+.br-receipt-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-left: auto;
+}
+
+.br-receipt-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.br-receipt-filter > .fa-search {
+  position: absolute;
+  left: 9px;
+  font-size: 0.75em;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+.br-receipt-filter input {
+  width: 210px;
+  padding: 5px 26px 5px 26px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.8em;
+  background: transparent;
+  color: var(--text-primary);
+}
+.br-receipt-filter input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(30, 91, 168, 0.12);
+}
+.br-receipt-filter input::-webkit-search-cancel-button { display: none; }
+.br-filter-clear {
+  position: absolute;
+  right: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75em;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+
+.br-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.78em;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s;
+}
+.br-sort-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.br-sort-btn:focus-visible,
+.br-filter-clear:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+
+.br-filter-count {
+  margin: 0 0 0.4em;
+  font-size: 0.75em;
+  color: var(--text-secondary);
+}
+
+/* Long lists scroll inside the card with the header pinned */
+.br-receipt-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+.br-receipt-scroll .br-receipt-thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card-bg, #fff);
+}
+
+.br-empty-tr td {
+  padding: 1.25em 10px;
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+/* Clickable row affordance: accent bar, hover/focus highlight, download cue */
+.br-receipt-tr td:first-child,
+.br-refund-tr td:first-child { box-shadow: inset 3px 0 0 transparent; transition: box-shadow 0.14s; }
+.br-receipt-tr:hover td:first-child,
+.br-receipt-tr:focus-visible td:first-child { box-shadow: inset 3px 0 0 var(--primary-color); }
+.br-refund-tr:hover td:first-child,
+.br-refund-tr:focus-visible td:first-child { box-shadow: inset 3px 0 0 #2563eb; }
+
+.br-receipt-tr:focus-visible,
+.br-refund-tr:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+  background: rgba(30, 91, 168, 0.07);
+}
+
+.br-th-action { width: 1%; }
+
+.br-dl-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--primary-color);
+  opacity: 0.55;
+  transition: opacity 0.14s, background 0.14s;
+}
+.br-receipt-tr:hover .br-dl-cue,
+.br-receipt-tr:focus-visible .br-dl-cue,
+.br-refund-tr:hover .br-dl-cue,
+.br-refund-tr:focus-visible .br-dl-cue {
+  opacity: 1;
+  background: rgba(30, 91, 168, 0.1);
+}
+.br-refund-tr .br-dl-cue { color: #1d4ed8; }
+
+/* Refund action cell holds reason + cue — keep it a real table cell */
+.br-rr-action { display: table-cell; opacity: 1; }
+.br-rr-action .br-rr-reason { margin-right: 6px; vertical-align: middle; }
+
+@media (max-width: 900px) {
+  .br-dl-label { display: none; }
+  .br-receipt-filter input { width: 160px; }
+}
+
 /* ── TPA Payment Status Badge (receipt row) ──────────────────────────── */
 .tpa-status-badge {
   display: inline-block;
@@ -770,6 +954,9 @@
   .br-rcpt-kind--refund   { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
   .br-refund-detail-row   { background: #082f49 !important; border-left-color: #1d4ed8 !important; }
   .br-refunded-chip       { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
+  .br-booking-chip:not(.active) { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+  .br-receipt-scroll .br-receipt-thead th { background: #1e293b !important; }
+  .br-receipt-scroll      { border-color: #334155 !important; }
 }
 
 :host-context(html[data-theme="midnight"]) {
@@ -788,6 +975,8 @@
   .tpa-status--pending    { background: #2d0f04 !important; color: #fbbf24 !important; border-color: #78350f !important; }
   .tpa-status--approved   { background: #11162a !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
   .tpa-status--settled    { background: #031a0e !important; color: #6ee7b7 !important; border-color: #0f5132 !important; }
+  .br-booking-chip:not(.active) { background: #0d1117 !important; border-color: #30363d !important; color: #e6edf3 !important; }
+  .br-receipt-scroll .br-receipt-thead th { background: #0d1117 !important; }
 }
 
 :host-context(html[data-theme="warm"]) {
@@ -796,6 +985,8 @@
   .br-summary-banner      { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
   .card-content           { background: #fffdf7 !important; }
   .test-card .card-footer { background: #fef9f0 !important; border-top-color: #ddc9a8 !important; }
+  .br-booking-chip:not(.active) { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
+  .br-receipt-scroll .br-receipt-thead th { background: #fffdf7 !important; }
   .br-fully-paid-chip,
   .br-settled-chip        { background: #f0fdf4 !important; border-color: #86efac !important; color: #166534 !important; }
   .br-balance-chip        { background: #fef2f2 !important; border-color: #fca5a5 !important; color: #991b1b !important; }
@@ -807,6 +998,8 @@
     .not-found-card    { background: #1e293b !important; }
     .br-summary-banner { background: #1e293b !important; }
     .card-content      { background: #1e293b !important; }
+    .br-booking-chip:not(.active) { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+    .br-receipt-scroll .br-receipt-thead th { background: #1e293b !important; }
     .br-fully-paid-chip,
     .br-settled-chip   { background: #052e16 !important; border-color: #166534 !important; color: #86efac !important; }
     .br-balance-chip   { background: #450a0a !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }

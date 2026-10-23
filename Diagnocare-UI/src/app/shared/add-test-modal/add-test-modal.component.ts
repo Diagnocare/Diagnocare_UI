@@ -14,6 +14,7 @@ import {
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -46,6 +47,8 @@ import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-d
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
+import { MemberService }             from 'src/app/services/memberService/member.service';
+import { MemberDto }                 from 'src/app/models/member/member.dto';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
 import {
   TestBookingProtocolsDto,
@@ -58,13 +61,16 @@ import {
 // behind *ngIf="!useNewUi" so the two can be compared with the same patient.
 import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
 import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
+// THE payment dialog, shared with Add New Patient, Patient Tests and
+// Bill / Receipt. This screen used to carry its own Bootstrap copy.
+import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
 import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
 import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent, DcTestPickerComponent, DcPaymentPanelComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent, DcTestPickerComponent, DcPaymentPanelComponent, PaymentModalComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -158,7 +164,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   // ── Payment state ─────────────────────────────────────────────────────────
   paymentConfirmed = false;
   amountPaidError  = '';
+  /** Drives [visible] on the shared payment dialog. */
   showPartialPaymentPanel = false;
+  /** Amount the dialog opens at, so Edit shows the figure being amended. */
+  partialPaymentSeed = 0;
 
   // ── TPA state ─────────────────────────────────────────────────────────────
   showTpaModal = false;
@@ -173,6 +182,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  /** Active collection boys for the "Sample collected by" picker. */
+  collectionBoys: MemberDto[] = [];
+
   constructor(
     private fb:              FormBuilder,
     private _testService:    PathTestService,
@@ -184,6 +196,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private _contactService: ContactAddressService,
     private _token:          TokenService,
     private _sampleLabelService: SampleLabelService,
+    private _memberService:  MemberService,
   ) {
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
@@ -198,6 +211,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       referred_By:       ['', Validators.required],
       sampling_Done:     [this._sampling.getDefault()],
       collected_Outside: [false],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
       area:              [''],
       collected_By:      [''],
       remark:            [''],
@@ -208,6 +223,23 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       amount_Paid:       ['', Validators.required],
       amount_Pending:    ['0', Validators.required],
     });
+
+    // Collection boys for "Sample collected by". The LabOperations-scoped lookup,
+    // so a receptionist / lab assistant is not 403'd.
+    this._memberService.getCollectionBoysLookup()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next:  (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
+        error: ()                  => { this.collectionBoys = []; },
+      });
+
+    // Unticking Outside Collection means the sample is drawn at the lab.
+    this.form.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.form.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+        this.syncCollectorRule(!!outside);
+      });
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -215,7 +247,31 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['visible'] && this.visible) {
       this.resetModal();
+      this.loadPatientAddress();
     }
+  }
+
+  /**
+   * The address on file for this patient: '' when there is none, null until the lookup
+   * answers (or if it fails — the API still enforces the rule, so a failed lookup must
+   * not block the booking here).
+   */
+  patientAddress: string | null = null;
+
+  private loadPatientAddress(): void {
+    this.patientAddress = null;
+    if (!this.patientId) return;
+    this._patientService.getPatientById(this.patientId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: p => this.patientAddress = (p?.patientAddress ?? '').trim(),
+        error: () => this.patientAddress = null,
+      });
+  }
+
+  /** Outside collection is ticked but the patient has no address for the collector to go to. */
+  get addressMissing(): boolean {
+    return !!this.form.get('collected_Outside')?.value && this.patientAddress === '';
   }
 
   ngOnDestroy(): void {
@@ -301,9 +357,56 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form.get('whatsApp_Number')?.setValue(this.toTypedNumber(this.patientContact));
   }
 
+  /**
+   * The collection boy's User_Id as a number, or 0 when nobody usable is chosen.
+   *
+   * A select's value is a string and "0" is truthy, so a plain truthiness test lets an id
+   * of 0 (or a non-numeric value) through and the booking is then refused by the API with
+   * "Choose the collection boy who will collect this outside sample." The API requires
+   * `> 0`; so does this. Mirrors AddPatientComponent — the two screens are the same job.
+   */
+  private get collectorId(): number {
+    const id = Number(this.form.get('collection_Assigned_To')?.value);
+    return Number.isFinite(id) && id > 0 ? id : 0;
+  }
+
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.form.get('collected_Outside')?.value && this.collectorId <= 0;
+  }
+
+  /** True once the lookup has answered and there is nobody to send. */
+  get noCollectionBoys(): boolean {
+    return this.collectionBoys.length === 0;
+  }
+
+  /**
+   * Makes the collection boy required exactly while Outside Collection is on, so the rule
+   * holds on the control itself rather than only in the step-validity getter.
+   */
+  private syncCollectorRule(outside: boolean): void {
+    const boy = this.form.get('collection_Assigned_To');
+    if (!boy) return;
+
+    if (outside) {
+      boy.addValidators(AddTestModalComponent.positiveIdValidator);
+    } else {
+      boy.removeValidators(AddTestModalComponent.positiveIdValidator);
+    }
+    boy.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Requires a positive numeric id — `Validators.required` passes on "0". */
+  private static readonly positiveIdValidator = (c: AbstractControl): ValidationErrors | null => {
+    const id = Number(c.value);
+    return Number.isFinite(id) && id > 0 ? null : { collectorRequired: true };
+  };
+
   get isStep1Valid(): boolean {
     return (
       !this.whatsAppNeedsNumber &&
+      !this.collectorMissing &&
+      !this.addressMissing &&
       !!this.form.get('test_Name')?.valid &&
       !!this.form.get('test_Amount')?.valid &&
       !!this.form.get('referred_By_Type')?.valid &&
@@ -325,6 +428,30 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     if (type === paymentType.Full) return !!this.form.get('net_Amount')?.valid;
     if (type === paymentType.NoPayment) return !!this.form.get('net_Amount')?.valid;
     return this.paymentConfirmed;
+  }
+
+  /**
+   * PERF-020 — keys for the test catalogue. The three filtered lists below are
+   * getters, so they hand ngFor a new array on every keystroke of the search box
+   * and on every change-detection pass; `selectedTests` and `selectedTestProtocols`
+   * are replaced outright as the user picks tests. Keying by the business id lets
+   * the differ match what is already on screen instead of re-diffing a catalogue
+   * that can run to hundreds of rows.
+   */
+  trackByGroupId(_index: number, group: { testGroupId: number | string }): number | string {
+    return group.testGroupId;
+  }
+
+  trackByTestCode(_index: number, test: { testCode: string }): string {
+    return test.testCode;
+  }
+
+  trackByMemberId(_index: number, member: { id: number }): number {
+    return member.id;
+  }
+
+  trackByValue(_index: number, value: string): string {
+    return value;
   }
 
   get filteredGroups():    GroupSubGroupModel[] {
@@ -851,9 +978,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         amount_Pending: this.form.get('net_Amount')?.value ?? 0,
       });
     } else {
-      // Partial — open inline panel
+      // Partial — open the shared payment dialog
       this.form.patchValue({ amount_Paid: '', amount_Pending: '' });
-      this.showPartialPaymentPanel = true;
+      this.openPartialPaymentModal();
     }
   }
 
@@ -887,38 +1014,38 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.showTpaModal = true;
   }
 
-  // ── Partial Payment Panel ─────────────────────────────────────────────────
+  // ── Partial payment — the shared dialog ───────────────────────────────────
+  // The live amount-pending calculation that used to live here belonged to this
+  // screen's own copy of the Amount Paid field. The shared dialog works the
+  // running total out itself and shows it beside the figure being typed, so
+  // there is no second field to keep in step.
 
-  onPartialAmountPaidInput(event: Event): void {
-    this.amountPaidError = '';
-    const raw       = (event.target as HTMLInputElement).value;
-    const amtPaid   = parseFloat(raw) || 0;
-    const netAmount = parseFloat(this.form.get('net_Amount')?.value) || 0;
-
-    if (amtPaid <= 0) {
-      this.form.patchValue({ amount_Pending: '' });
-      return;
-    }
-    if (amtPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Use "Full" payment type.`;
-      this.form.patchValue({ amount_Pending: '' });
-      return;
-    }
-    const pending = +(netAmount - amtPaid).toFixed(2);
-    this.form.patchValue({ amount_Pending: pending });
+  private openPartialPaymentModal(): void {
+    this.amountPaidError         = '';
+    this.partialPaymentSeed      = parseFloat(String(this.form.get('amount_Paid')?.value)) || 0;
+    this.showPartialPaymentPanel = true;
   }
 
-  confirmPartialPayment(): void {
-    const amtPaid   = parseFloat(this.form.get('amount_Paid')?.value)  || 0;
-    const netAmount = parseFloat(this.form.get('net_Amount')?.value)    || 0;
+  /**
+   * The dialog hands back the figures; the rule about them stays here, because
+   * it belongs to this test and not to the dialog. A partial amount has to be
+   * strictly under the net amount — equal means the test is paid in full, which
+   * is a different payment type. The message goes back into the dialog's own
+   * error slot, beside the number that broke it.
+   */
+  onPaymentCollected(result: PaymentModalResult): void {
+    const amtPaid   = result.amountPaid || 0;
+    const netAmount = parseFloat(this.form.get('net_Amount')?.value) || 0;
+
     if (amtPaid <= 0) {
       this.amountPaidError = 'Please enter the correct amount paid.';
       return;
     }
     if (amtPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}).`;
+      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Choose "Full" instead.`;
       return;
     }
+
     const pending = +(netAmount - amtPaid).toFixed(2);
     this.form.patchValue({ amount_Paid: amtPaid, amount_Pending: pending });
     this.amountPaidError  = '';
@@ -939,8 +1066,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   editPartialPayment(): void {
     this.paymentConfirmed = false;
-    this.amountPaidError  = '';
-    this.showPartialPaymentPanel = true;
+    this.openPartialPaymentModal();
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -1021,7 +1147,12 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         remark:            f.remark            ?? '',
         collected_Outside: f.collected_Outside ?? false,
         area:              f.area              ?? '',
-        collected_By:      f.collected_By      ?? '',
+        // The API fills Collected_By with the collection boy's name.
+        collected_By:      '',
+        // Only an outside collection sends a collection boy, and only a usable id:
+        // `+value` on an empty or non-numeric select value is 0 or NaN, and the API
+        // refuses both. null is the honest way to say "nobody".
+        collection_Assigned_To: f.collected_Outside && this.collectorId > 0 ? this.collectorId : null,
         // API property is Sampling_Done_At; 'sampling_Done' was silently dropped.
         sampling_Done_At:  f.sampling_Done     ?? '',
       },
@@ -1149,6 +1280,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       collected_Outside: false,
       area:              '',
       collected_By:      '',
+      collection_Assigned_To: '',
       remark:            '',
       discount:          0,
       net_Amount:        0,

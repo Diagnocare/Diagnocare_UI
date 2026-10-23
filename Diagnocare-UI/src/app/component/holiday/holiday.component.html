@@ -271,7 +271,7 @@
                            [class.is-invalid]="bulkSubmitted && !row.holidayDate"
                            [min]="minDate" [max]="maxDate"
                            placeholder="Select date"></app-date-picker>
-          <div class="bulk-day-preview" *ngIf="bulkDayOfWeek(row.holidayDate)">
+          <!--<div class="bulk-day-preview" *ngIf="bulkDayOfWeek(row.holidayDate)">
             <span [class.bulk-weekend]="bulkDayOfWeek(row.holidayDate) === 'Saturday'
                                      || bulkDayOfWeek(row.holidayDate) === 'Sunday'">
               {{ bulkDayOfWeek(row.holidayDate) }}
@@ -280,14 +280,14 @@
                   *ngIf="bulkSubmitted && isBulkDateDuplicate(row, i)">
               <i class="fa fa-exclamation-triangle"></i> Duplicate
             </span>
-          </div>
+          </div>-->
         </div>
 
         <!-- Day label -->
         <span class="bulk-col-day bulk-day-label"
               [class.is-weekend-label]="bulkDayOfWeek(row.holidayDate) === 'Saturday'
                                       || bulkDayOfWeek(row.holidayDate) === 'Sunday'">
-          {{ bulkDayOfWeek(row.holidayDate) | slice:0:3 }}
+          {{ bulkDayOfWeek(row.holidayDate) }}
         </span>
 
         <!-- Holiday Name -->

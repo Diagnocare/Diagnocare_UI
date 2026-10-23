@@ -108,3 +108,19 @@
   textarea { resize: vertical; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 }
+
+// ── Embedded in the list's review drawer ──────────────────────────
+// The drawer supplies the chrome and the width, so drop the page padding and the
+// two-column grid; the decision panel stacks beneath the request story.
+.ar-page.embedded {
+  padding: 0; max-width: none; margin: 0;
+  .detail-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .detail-card, .action-card { padding: 1.1rem; }
+  .detail-list { grid-template-columns: 1fr; gap: 0.9rem; }
+}
+
+.load-failed {
+  text-align: center; padding: 2rem 1rem; color: var(--text-secondary, #64748b);
+  i { font-size: 1.6rem; color: #dc2626; }
+  p { margin: 0.5rem 0 1rem; }
+}

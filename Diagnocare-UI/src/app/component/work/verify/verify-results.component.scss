@@ -109,6 +109,9 @@
   }
 
   // ── Note / return panels ──────────────────────────────────────────────
+  // __comment is a global .card, so its surface, padding, radius, shadow and
+  // 1.25em bottom margin all come from styles.css; only the gap above is set
+  // here. __return keeps its own danger-tinted panel.
   &__comment,
   &__return {
     margin-top: 1.25rem;
