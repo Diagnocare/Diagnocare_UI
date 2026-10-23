@@ -1,0 +1,78 @@
+@import 'leaflet/dist/leaflet.css';
+
+.loc-page { padding: 1rem 1.25rem 2rem; max-width: var(--dc-page-max, 160rem); margin-inline: auto; }
+
+.loc-hero {
+  background: var(--primary-gradient, linear-gradient(135deg, #0d1f3e 0%, #1a2a6e 50%, #2d1654 100%));
+  color: #fff; border-radius: 0.9rem; padding: 1.15rem 1.4rem; margin-bottom: 1.1rem;
+  box-shadow: var(--shadow-light, 0 2px 10px rgba(0,0,0,0.15));
+  h1 { margin: 0; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 0.55rem; }
+  .subtitle { margin: 0.25rem 0 0; font-size: 0.85rem; opacity: 0.85; max-width: 70ch; }
+}
+
+.loc-tabs {
+  display: flex; gap: 0.25rem; margin-bottom: 1rem; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.loc-tab {
+  background: none; border: none; padding: 0.6rem 1rem; margin-bottom: -1px;
+  border-bottom: 2px solid transparent; font-size: 0.875rem; font-weight: 500; cursor: pointer;
+  color: var(--text-secondary, #64748b);
+  &.active { color: var(--primary-color, #2563eb); border-bottom-color: var(--primary-color, #2563eb); font-weight: 600; }
+}
+
+.loc-toolbar {
+  display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; margin-bottom: 0.9rem;
+  .loc-field { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.75rem; color: #475569; }
+  input, select { font-size: 0.875rem; padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 0.45rem; min-width: 10rem; }
+}
+
+.loc-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 0.5rem; padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #1e293b;
+  &.primary { background: var(--primary-color, #2563eb); border-color: var(--primary-color, #2563eb); color: #fff; }
+  &.danger { color: #b91c1c; border-color: #fecaca; }
+  &:disabled { opacity: 0.55; cursor: default; }
+  &.sm { padding: 0.25rem 0.6rem; font-size: 0.78rem; }
+}
+
+.loc-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1rem; align-items: start;
+  @media (max-width: 1100px) { grid-template-columns: 1fr; } }
+
+.loc-map { height: 32rem; border-radius: 0.7rem; border: 1px solid #e2e8f0; z-index: 0; }
+
+.loc-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.7rem; padding: 0.8rem 1rem; margin-bottom: 1rem; }
+.loc-card h2 { font-size: 1rem; margin: 0 0 0.6rem; }
+
+.loc-table { width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b; padding: 0.4rem 0.5rem; border-bottom: 1px solid #e2e8f0; }
+  td { padding: 0.5rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td, tr.selected td { background: #f1f5f9; }
+}
+.loc-scroll { max-height: 32rem; overflow: auto; }
+
+.loc-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #f1f5f9; color: #334155;
+  &::before { content: ''; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: currentColor; }
+  &.live { color: #15803d; background: #dcfce7; }
+  &.recent { color: #1d4ed8; background: #dbeafe; }
+  &.stale { color: #c2410c; background: #ffedd5; }
+  &.offline { color: #475569; background: #e2e8f0; }
+  &.nodata { color: #64748b; background: #f1f5f9; }
+  &.inside { color: #15803d; background: #dcfce7; }
+  &.outside { color: #b91c1c; background: #fee2e2; }
+  &.unknown { color: #475569; background: #e2e8f0; }
+}
+
+.loc-legend { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.78rem; color: #475569; margin: 0.4rem 0 0.8rem; }
+.loc-note { font-size: 0.8rem; color: #64748b; margin: 0.3rem 0 0.8rem; }
+.loc-empty { padding: 1.4rem; text-align: center; color: #64748b; font-size: 0.9rem; }
+
+.loc-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.8rem 1.2rem;
+  label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: #334155; font-weight: 600; }
+  input, select { font-size: 0.9rem; padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 0.45rem; font-weight: 400; }
+  .hint { font-weight: 400; color: #64748b; font-size: 0.74rem; }
+  .check { flex-direction: row; align-items: center; gap: 0.5rem; }
+}
+.loc-days { display: flex; gap: 0.4rem; flex-wrap: wrap;
+  label { flex-direction: row; align-items: center; gap: 0.3rem; font-weight: 500; } }

@@ -25,6 +25,8 @@ export const controllerEndpoints = {
   pathologyTest:'api/pathologyTest/',
   template:   'api/template/',
   attendance: 'api/attendance/',
+  /** Staff location tracking: live map, history, settings, geofences. Super Admin only. */
+  location:   'api/Location/',
   salary:     'api/salary/',
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
@@ -394,6 +396,8 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
+  // Staff location is the most sensitive data in the app — owner only, like payroll.
+  location:      { id: 'location',      label: 'Staff Location',     route: 'location',        icon: 'fa-map-marker-alt', superAdminOnly: true },
   template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
 };
 

@@ -1,0 +1,56 @@
+<div class="loc-toolbar">
+  <div class="loc-field">
+    <label for="loc-search">Find a person</label>
+    <input id="loc-search" type="search" placeholder="Name" [(ngModel)]="search" (keyup.enter)="load(false)" />
+  </div>
+  <div class="loc-field">
+    <label for="loc-status">Status</label>
+    <select id="loc-status" [(ngModel)]="statusFilter" (change)="load(false)">
+      <option value="">All</option>
+      <option *ngFor="let s of statuses" [value]="s">{{ label[s] }}</option>
+    </select>
+  </div>
+  <button class="loc-btn" type="button" (click)="load(false)" [disabled]="loading">
+    <i class="fa fa-sync" [class.fa-spin]="loading"></i> Refresh
+  </button>
+  <span class="loc-note" *ngIf="lastLoaded">
+    {{ withLocation }} of {{ rows.length }} on the map · updated {{ lastLoaded | date:'shortTime' }} · refreshes every minute
+  </span>
+</div>
+
+<div class="loc-legend" aria-label="Status meaning">
+  <span><span class="loc-badge live">Live</span> reported within the Live window</span>
+  <span><span class="loc-badge recent">Recent</span></span>
+  <span><span class="loc-badge stale">Stale</span> may be out of date</span>
+  <span><span class="loc-badge offline">Offline</span> no report for a long time</span>
+  <span><span class="loc-badge nodata">No data</span> never reported</span>
+</div>
+
+<div class="loc-split">
+  <div class="loc-scroll">
+    <table class="loc-table">
+      <thead>
+        <tr><th>User</th><th>Last location</th><th>Updated</th><th>Accuracy</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of rows; trackBy: trackById" class="clickable" [class.selected]="r.userId === selectedId"
+            (click)="select(r)">
+          <td><strong>{{ r.userName }}</strong><br><small class="text-muted">{{ r.role }}</small></td>
+          <td>{{ placeText(r) }}</td>
+          <td>{{ r.minutesAgo === null ? 'never' : ago(r.minutesAgo) }}</td>
+          <td>{{ r.accuracy === null ? '—' : '±' + (r.accuracy | number:'1.0-0') + ' m' }}</td>
+          <td><span class="loc-badge" [ngClass]="r.status.toLowerCase()">{{ label[r.status] }}</span></td>
+          <td><button class="loc-btn sm" type="button" (click)="$event.stopPropagation(); viewHistory.emit(r.userId)">History</button></td>
+        </tr>
+        <tr *ngIf="!loading && rows.length === 0">
+          <td colspan="6" class="loc-empty">
+            Nobody to show. If this is unexpected, check that tracking is switched on under Settings &amp; geofences
+            and that staff have allowed location sharing in the app.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div #mapEl class="loc-map" role="application" aria-label="Map of staff locations"></div>
+</div>

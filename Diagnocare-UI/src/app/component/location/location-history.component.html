@@ -1,0 +1,55 @@
+<div class="loc-toolbar">
+  <div class="loc-field">
+    <label for="lh-user">Person</label>
+    <select id="lh-user" [(ngModel)]="userId">
+      <option [ngValue]="null" disabled>Choose…</option>
+      <option *ngFor="let u of users" [ngValue]="u.userId">{{ u.userName }}</option>
+    </select>
+  </div>
+  <div class="loc-field">
+    <label for="lh-from">From</label>
+    <input id="lh-from" type="datetime-local" [(ngModel)]="from" />
+  </div>
+  <div class="loc-field">
+    <label for="lh-to">To</label>
+    <input id="lh-to" type="datetime-local" [(ngModel)]="to" />
+  </div>
+  <button class="loc-btn" type="button" (click)="setToday()">Today</button>
+  <button class="loc-btn" type="button" (click)="setYesterday()">Yesterday</button>
+  <button class="loc-btn primary" type="button" (click)="load()" [disabled]="loading">
+    <i class="fa fa-route"></i> Show route
+  </button>
+</div>
+<p class="loc-note" *ngIf="rangeError" style="color:#b91c1c">{{ rangeError }}</p>
+
+<p class="loc-note" *ngIf="history">
+  {{ history.userName }} · {{ history.totalPoints }} point(s) in range
+  <span *ngIf="history.thinned"> — showing {{ history.points.length }} evenly spaced; narrow the range to see all.</span>
+  Green = first, red = latest, dashed line joins points in time order.
+</p>
+
+<div class="loc-split">
+  <div>
+    <div class="loc-scroll">
+      <table class="loc-table">
+        <thead><tr><th>Time</th><th>Place</th><th>Accuracy</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let p of history?.points; trackBy: trackById" class="clickable"
+              [class.selected]="p.id === selectedId" (click)="select(p)">
+            <td>{{ formatTime(p.capturedAt) }}<br><small class="text-muted">{{ p.capturedAt | date:'dd MMM' }}</small></td>
+            <td>{{ p.placeName || (p.latitude | number:'1.4-4') + ', ' + (p.longitude | number:'1.4-4') }}</td>
+            <td>±{{ p.accuracy | number:'1.0-0' }} m</td>
+          </tr>
+          <tr *ngIf="history && history.points.length === 0">
+            <td colspan="3" class="loc-empty">No location points in this range. The person may not have been tracked then
+              (outside working hours, sharing off, or phone offline).</td>
+          </tr>
+          <tr *ngIf="!history && !loading"><td colspan="3" class="loc-empty">Choose a person and a time range, then Show route.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div #mapEl class="loc-map" role="application" aria-label="Map of the selected route"></div>
+</div>

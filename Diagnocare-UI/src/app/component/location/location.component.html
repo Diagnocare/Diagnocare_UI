@@ -1,0 +1,26 @@
+<div class="loc-page">
+  <div class="loc-hero">
+    <div>
+      <h1><i class="fa fa-map-marker-alt"></i> Staff Location</h1>
+      <p class="subtitle">
+        Where staff were last seen and where they went. Shown only for people who have allowed
+        location sharing, and only during the working hours you set. Opening someone's history is logged.
+      </p>
+    </div>
+  </div>
+
+  <div class="loc-tabs" role="tablist">
+    <button class="loc-tab" role="tab" type="button" [class.active]="tab === 'live'"
+            [attr.aria-selected]="tab === 'live'" (click)="setTab('live')">Live</button>
+    <button class="loc-tab" role="tab" type="button" [class.active]="tab === 'history'"
+            [attr.aria-selected]="tab === 'history'" (click)="setTab('history')">History</button>
+    <button class="loc-tab" role="tab" type="button" [class.active]="tab === 'settings'"
+            [attr.aria-selected]="tab === 'settings'" (click)="setTab('settings')">Settings &amp; geofences</button>
+  </div>
+
+  <!-- Live and History keep their Leaflet maps, so they are created only while visible
+       and destroyed on leaving (a hidden map has zero size and renders blank when re-shown). -->
+  <app-location-live *ngIf="tab === 'live'" (viewHistory)="openHistory($event)"></app-location-live>
+  <app-location-history *ngIf="tab === 'history'" [initialUserId]="historyUserId"></app-location-history>
+  <app-location-settings *ngIf="tab === 'settings'"></app-location-settings>
+</div>

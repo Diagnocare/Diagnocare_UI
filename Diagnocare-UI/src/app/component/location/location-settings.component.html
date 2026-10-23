@@ -1,0 +1,81 @@
+<div class="loc-card" *ngIf="settings">
+  <h2>Location tracking</h2>
+
+  <div class="loc-form-grid">
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="settings.enabled" name="enabled" />
+      Tracking enabled
+      <span class="hint">Off by default. Nothing is collected or stored while this is off.</span>
+    </label>
+
+    <label>
+      When to track
+      <select [(ngModel)]="settings.trackingMode" name="mode">
+        <option value="ShiftWindow">Only during shift hours (recommended)</option>
+        <option value="AllDay">Whenever the app is running</option>
+      </select>
+      <span class="hint">All-day tracking needs a clear legal and organisational justification.</span>
+    </label>
+
+    <ng-container *ngIf="settings.trackingMode === 'ShiftWindow'">
+      <label>Shift starts <input type="time" [(ngModel)]="settings.shiftStart" name="start" /></label>
+      <label>Shift ends <input type="time" [(ngModel)]="settings.shiftEnd" name="end" /></label>
+      <div>
+        <strong style="font-size:.8rem">Tracked days</strong>
+        <div class="loc-days">
+          <label *ngFor="let d of days">
+            <input type="checkbox" [checked]="hasDay(d.n)" (change)="toggleDay(d.n)" /> {{ d.label }}
+          </label>
+        </div>
+      </div>
+    </ng-container>
+
+    <label>
+      Tracking interval (minutes)
+      <input type="number" min="1" max="240" [(ngModel)]="settings.intervalMinutes" name="interval" />
+      <span class="hint">At most one point per interval. Longer = better battery.</span>
+    </label>
+    <label>
+      Minimum movement (metres)
+      <input type="number" min="5" max="1000" [(ngModel)]="settings.minDistanceMeters" name="dist" />
+      <span class="hint">The phone is woken only after this much movement.</span>
+    </label>
+    <label>
+      Ignore fixes worse than (metres)
+      <input type="number" min="20" max="1000" [(ngModel)]="settings.maxAccuracyMeters" name="acc" />
+    </label>
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="settings.offlineQueueEnabled" name="offline" />
+      Offline queue
+      <span class="hint">Keep points on the phone while offline and send them later.</span>
+    </label>
+    <label>
+      Keep location history (days)
+      <input type="number" min="1" max="365" [(ngModel)]="settings.retentionDays" name="retention" />
+      <span class="hint">Older points are deleted automatically each day.</span>
+    </label>
+  </div>
+
+  <h2 style="margin-top:1.2rem">Status thresholds (minutes since last update)</h2>
+  <div class="loc-form-grid">
+    <label>Live below <input type="number" min="1" [(ngModel)]="settings.liveMinutes" name="live" /></label>
+    <label>Recent below (then Stale) <input type="number" min="2" [(ngModel)]="settings.staleMinutes" name="stale" /></label>
+    <label>Offline after <input type="number" min="3" [(ngModel)]="settings.offlineMinutes" name="offl" />
+      <span class="hint">Must increase: Live &lt; Recent &lt; Offline.</span></label>
+  </div>
+
+  <p style="margin-top:1rem">
+    <button class="loc-btn primary" type="button" (click)="save()" [disabled]="saving">
+      <i class="fa fa-save"></i> Save settings
+    </button>
+  </p>
+</div>
+
+<div class="loc-card">
+  <h2>Places &amp; geofences</h2>
+  <p class="loc-note">
+    Office and branch locations (and their radius) are managed once, in Attendance setup. This page
+    uses those same locations to show "Inside Head Office" or "3.2 km from Head Office", so the
+    map and attendance check-ins always agree.
+  </p>
+</div>

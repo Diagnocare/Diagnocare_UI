@@ -263,6 +263,11 @@ export const routes: Routes = [
           { path: 'requests', title: 'Attendance Requests',
             loadComponent: () => import('./component/attendance-request/requests-list/requests-list.component').then(m => m.RequestsListComponent) },
         ] },
+      // Staff location — Super Admin ONLY, mirroring LocationController (every admin
+      // action is SuperAdminOnly). Where people are is more sensitive than their pay.
+      { path: 'location', title: 'Staff Location',
+        loadComponent: () => import('./component/location/location.component').then(m => m.LocationComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
       // Payroll is owner-only: an Admin with salary access could edit their own pay.
       // Mirrors SalaryController, where every administrative action is SuperAdminOnly.
       { path: 'salary', title: 'Salary',
