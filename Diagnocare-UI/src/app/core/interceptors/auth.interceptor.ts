@@ -2,16 +2,17 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, tap, throwError } from 'rxjs';
-import { AuthConfigService }  from '../../services/auth-config.service';
-import { LoginService }       from '../../services/loginServices/login.service';
-import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
-import { TokenService }       from './token.service';
-import { PinService }         from '../../services/pinServices/pin.service';
-import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
+import { LoginService }       from '../../features/auth/services/login.service';
+import { apiEndpoints, controllerEndpoints } from 'src/app/shared/constants/constants';
+import { TokenService }       from '../services/token.service';
+import { PinService }         from '../../features/account/services/pin.service';
+import { PinModalService }    from '../../shared/components/pin-modal/pin-modal.service';
 
 /**
  * Auth interceptor:
- *  - Login-related endpoints  →  Basic Auth (Admin / static password)
+ *  - Pre-login endpoints      →  sent as-is, no credential header. They are authorised by the
+ *                                request itself (password, OTP, TOTP, WebAuthn assertion, reset token),
+ *                                never by a secret shipped in this bundle.
  *  - All other endpoints      →  Bearer token from sessionStorage
  *
  * Token-refresh behaviour (both paths require PIN):
@@ -31,7 +32,6 @@ import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
  *  If the refresh call itself fails the user is redirected to /login.
  */
 export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
-  const authConfig     = inject(AuthConfigService);
   const tokenSvc       = inject(TokenService);
   const loginSvc       = inject(LoginService);
   const router         = inject(Router);
@@ -43,21 +43,21 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   // (no conflict) from "different browser / incognito" (conflict dialog).
   req = req.clone({ setHeaders: { 'X-Browser-Id': tokenSvc.getBrowserId() } });
 
-  // ── Basic Auth — login / OTP / token-generation endpoints ────────────────
-  // Logout and ClearSession are [AllowAnonymous]; Logout is called via rawHttp
-  // (bypasses interceptors) and ClearSession handles its own validation, so
-  // exclude both from the Basic-auth whitelist to avoid header conflicts.
+  // ── Pre-login endpoints — no Authorization header ─────────────────────────
+  // Logout and ClearSession are excluded: Logout is called via rawHttp (bypasses
+  // interceptors) and ClearSession validates the password itself. Fingerprint
+  // ASSERTION runs mid-login (no JWT yet); registration / status / disable are
+  // made by an authenticated user and fall through to Bearer.
   const isLoginPath = req.url.includes(controllerEndpoints.login);
   const isLogoutPath = req.url.includes(apiEndpoints.logout) ||
                        req.url.includes(apiEndpoints.clearSession);
   const isOtpPath = req.url.includes(controllerEndpoints.otp);
-  // Fingerprint ASSERTION runs mid-login (no JWT yet) and is protected by the
-  // BasicAuth policy — attach Basic auth. Registration / status / disable are
-  // called by an already-authenticated user, so they fall through to Bearer.
   const isFpAssertPath = req.url.includes(controllerEndpoints.fingerprint + 'assert');
-  const isBasicAuth = (isLoginPath || isOtpPath || isFpAssertPath) && !isLogoutPath;
-  if (isBasicAuth) {
-    return next(req.clone({ setHeaders: { Authorization: authConfig.getBasicAuthHeader() } }));
+  const isPreLogin = (isLoginPath || isOtpPath || isFpAssertPath) && !isLogoutPath;
+  if (isPreLogin) {
+    const ticket = (isOtpPath || isFpAssertPath) ? tokenSvc.getLoginTicket() : null;
+    if (ticket) req = req.clone({ setHeaders: { "X-Login-Ticket": ticket } });
+    return next(req);
   }
 
   // ── Helper: add Bearer header ─────────────────────────────────────────────

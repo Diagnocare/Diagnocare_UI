@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { race, timer } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { TokenService } from '../interceptors/token.service';
+import { TokenService } from '../services/token.service';
 
 export const authGuard: CanActivateFn = (_route, state) => {
   const tokenSvc = inject(TokenService);

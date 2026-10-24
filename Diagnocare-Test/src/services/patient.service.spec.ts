@@ -1,7 +1,7 @@
 import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
-import { PatientService } from 'src/app/services/patientServices/patient.service';
+import { PatientService } from 'src/app/features/patients/services/patient.service';
 import {
   MOCK_PATIENT_ID, MOCK_PATIENT_EDIT,
   MOCK_KEY_VALUE_PAIR, MOCK_SEARCH_RESULT,

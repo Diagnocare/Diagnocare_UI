@@ -1,0 +1,295 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Add New Test — screen-specific styles only.
+
+   The form shell this screen is built from (the registration card, its step
+   header and body, the field widths, the input combo, the toggles, the radio
+   pills, the amount cards, the payment and TPA banners and the footer action
+   bar) is the SAME shell Add New Patient uses, and now lives once in
+   styles.css under "REGISTRATION / WIZARD FORM SHELL". The sample-collection
+   protocol panel lives there too, under "SAMPLE COLLECTION PROTOCOL PANEL".
+   Both used to be duplicated here, which is how this screen ended up with a
+   purple step badge where registration had a blue one, and a footer bar that
+   stayed light while the rest of the app followed the theme.
+
+   What is left below is only what this screen has and registration does not:
+   the full-screen overlay it opens in, and the four-column test browser it
+   still carries behind USE_NEW_UI. Anything that another screen would also
+   want belongs in styles.css, not here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Full-screen overlay ─────────────────────────────────────────────────── */
+.atm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1040;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  animation: atmFadeIn 0.2s ease;
+  padding: 0;
+}
+
+@keyframes atmFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Scrollable page inside the overlay ──────────────────────────────────────
+   No `background` here on purpose. The element also carries .page-container,
+   which paints var(--primary-gradient) — the blue-to-purple band behind every
+   other page in the app, and the matching dark / midnight / warm gradients in
+   the other themes. This rule used to set a flat #f4f7fb over the top of it,
+   and because a component stylesheet outranks a global one, the flat colour
+   won. That is what made this screen feel like somewhere else: it was the only
+   full-page surface in the app that was not the brand gradient. Four flat
+   per-theme `.atm-page` overrides in styles.css were removed with it.
+
+   The element fills the overlay (100% wide, min-height 100%), so it really is
+   a page rather than a floating dialog, and it should be painted like one. */
+.atm-page {
+  width: 100%;
+  min-height: 100%;
+  animation: atmSlideUp 0.25s cubic-bezier(0.34, 1.1, 0.64, 1);
+
+  /* ── Shape tokens for the embedded Simple UI components ──────────────────
+     <dc-test-picker> and <dc-payment-panel> read their geometry from the
+     --dc-* layer (see shared/ui-kit/simple-ui.css) and fall back to their own
+     literals. Setting a token here retunes them for this screen only, which
+     is the kit's intended extension point — no edit to either component, and
+     no effect on any other screen that embeds them.
+
+     The kit's default radius is 0.625rem (10px); everything else in this modal
+     is on the app's 8px. Ten against eight is small enough that nobody names
+     it and large enough that the picker reads as a panel from somewhere else.
+
+     Deliberately NOT retuned: --dc-touch / --dc-touch-lg and the type scale.
+     Those are the kit's 48px targets and minimum readable sizes, chosen for
+     front-desk and lab staff, and shrinking them to match this form would
+     trade a real usability gain for visual tidiness. */
+  --dc-radius: 0.5rem;
+  --dc-radius-lg: 0.75rem;
+}
+
+@keyframes atmSlideUp {
+  from { transform: translateY(32px); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* The page header used to be re-declared here as flex / space-between /
+   center with !important on all three — which is what the shared .page-header
+   already is, except that the !important also cancelled the rule that stacks a
+   header on a phone. The template now uses the standard .header-left +
+   .header-actions pair and needs no override at all. */
+
+/* ── Save failure, shown under the payment step ──────────────────────────── */
+.atm-save-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  color: #b91c1c;
+  font-size: 0.83em;
+  margin-top: 1em;
+}
+
+/* ═══════════════════════════ TEST CATALOG ═══════════════════════════════════
+   The four-column browser, reached only when USE_NEW_UI is off. Registration
+   has already moved to <dc-test-picker> and deleted its copy, so nothing below
+   is shared with another screen and it all goes when this path does.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.atm-catalog-card { overflow: hidden; }
+
+.atm-catalog-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 0.9em 1.75em;
+  border-bottom: 1px solid var(--border-color, #eef1f8);
+  color: #9aa8be;
+  font-size: 0.95em;
+}
+/* The search field is the row — no second border inside a bordered strip. */
+.atm-catalog-search .form-control {
+  border: none;
+  box-shadow: none;
+  outline: none;
+  padding: 0;
+  font-size: 0.95em;
+}
+.atm-catalog-search .form-control:focus { box-shadow: none; }
+
+.atm-catalog-body {
+  display: flex;
+  height: 420px;
+  overflow: hidden;
+  padding: 1em 1.75em;
+  gap: 1em;
+}
+
+.atm-cat-col {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  background: var(--bg-white);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(22, 45, 60, 0.07);
+  border: 1px solid rgba(30, 55, 72, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.atm-cat-col--selected { flex: 1.2; }
+
+.atm-cat-col .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6em 0.85em;
+  font-weight: 700;
+  color: #234a57;
+  font-size: 0.85em;
+  border-bottom: 1px solid var(--border-color, #eef1f8);
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.atm-cat-col .card-body {
+  overflow-y: auto;
+  padding: 0.5em;
+  flex: 1;
+}
+
+/* ── Browser rows ─────────────────────────────────────────────────────────── */
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, #f0fbfb, #e9f8f8);
+  border-radius: 6px;
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
+  border: 1px solid rgba(10, 100, 120, 0.06);
+}
+.list-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(19, 63, 87, 0.05);
+  background: hsl(185, 84%, 90%);
+}
+.list-item .left       { width: 56%; }
+.list-item .right      { width: 24%; font-weight: 700; color: #234a57; min-width: 50px; text-align: right; }
+.list-item .left .code { font-weight: 700; color: #146c98; margin-bottom: 4px; font-size: 0.85em; }
+.list-item .left .name { color: #234a57; font-size: 0.78em; opacity: 0.85; }
+
+.list-item.active {
+  background: hsl(201, 97%, 36%);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(7, 144, 203, 0.22);
+}
+.list-item.active .left .code,
+.list-item.active .left .name,
+.list-item.active .right { color: #fff; opacity: 1; }
+
+.list-item.test-selected {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1.5px solid #4ade80;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
+}
+.list-item.test-selected .left .code  { color: #15803d; }
+.list-item.test-selected .left .name  { color: #166534; opacity: 1; }
+.list-item.test-selected .right.price { color: #15803d; }
+.list-item.test-selected:hover { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+.list-item.test-selected.active {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-color: #15803d;
+}
+.list-item.test-selected.active .left .code,
+.list-item.test-selected.active .left .name,
+.list-item.test-selected.active .right { color: #fff; opacity: 1; }
+
+/* ── Unbookable test (no parameters configured) ───────────────────────────
+   Still rendered, and still clickable so a stale selection can be removed —
+   just visibly inert so nobody tries to book it. */
+.list-item.test-unavailable {
+  background: #fafafa;
+  border: 1.5px dashed #e2e2e2;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+.list-item.test-unavailable .left .code,
+.list-item.test-unavailable .left .name { color: #8a8a8a; }
+.list-item.test-unavailable .right      { color: #a3a3a3; text-decoration: line-through; }
+.list-item.test-unavailable:hover       { background: #f5f5f5; }
+
+.test-unavailable-note {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+.test-item { display: flex; align-items: center; }
+.icon-wrap { margin-right: 10px; display: flex; align-items: center; }
+.icon      { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+
+/* ── Selected column ──────────────────────────────────────────────────────── */
+.selected-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6em 0.75em;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fbfefe, #f6fbfb);
+  border: 1px solid rgba(30, 55, 72, 0.06);
+  margin-bottom: 8px;
+}
+.selected-item .left  { display: flex; flex-direction: column; gap: 3px; }
+.selected-item .code  { font-weight: 700; color: #146c98; font-size: 0.85em; }
+.selected-item .name  { font-size: 0.78em; color: #234a57; opacity: 0.9; }
+.selected-item .right { display: flex; align-items: center; gap: 8px; }
+.selected-item .price { font-weight: 700; color: #0c83b7; min-width: 56px; text-align: right; font-size: 0.85em; }
+
+/* The shared .btn-action.btn-delete, taken in a size that fits a list row
+   rather than a table's Actions column. */
+.atm-remove-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 0.75em;
+}
+
+.total-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0.7em 1em;
+  background: linear-gradient(135deg, #eef4ff, #f5f0ff);
+  font-weight: 700;
+  color: #1a2e4a;
+  font-size: 0.88em;
+  border: 1px solid #d5e2fb;
+  flex-shrink: 0;
+  margin: 0 0.5em 0.5em;
+}
+.total-amount { font-size: 1.3em; font-weight: 800; color: #0c83b7; }
+.total-label  { font-size: 0.75em; color: #7e98a2; }
+
+/* The shared .no-data is white, for the empty states that sit on the app's
+   gradient page background. These sit inside a white card. */
+.atm-cat-col .no-data {
+  text-align: center;
+  padding: 2em 1em;
+  color: #9aa8be;
+  font-size: 0.85em;
+}
+
+@media (max-width: 768px) {
+  .atm-catalog-body { flex-direction: column; height: auto; }
+  .atm-cat-col      { height: 180px; }
+}

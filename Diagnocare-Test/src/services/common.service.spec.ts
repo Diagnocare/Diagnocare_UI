@@ -2,7 +2,7 @@ import { TestBed }    from '@angular/core/testing';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { of }          from 'rxjs';
 
-import { CommonService } from 'src/app/shared/common.service';
+import { CommonService } from 'src/app/shared/services/common.service';
 import { UserService }   from 'src/app/services/userServices/user.service';
 
 function mockUserService() {

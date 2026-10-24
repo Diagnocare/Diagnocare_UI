@@ -1,0 +1,159 @@
+# GitHub Actions – Diagnocare UI (Dev / QA)
+# Converted from azure-dev-qa-UI-pipelines.yml
+# (Azure template build-deploy-stage.yml expanded inline)
+#
+# Trigger: push to master_UI (excluding .md and docs/**)
+# Flow:    Build-DEV → Deploy-DEV → Build-QA (manual approval) → Deploy-QA
+#
+# ── Required GitHub Secrets ─────────────────────────────────────────────────
+#   SSH_HOST        – Windows IIS server hostname or IP
+#   SSH_USERNAME    – SSH username on that server
+#   SSH_PRIVATE_KEY – SSH private key (PEM, matches authorized_keys on server)
+#
+# ── Manual approval gate ────────────────────────────────────────────────────
+#   Go to GitHub → Settings → Environments → create "qa-ui-approval"
+#   Add "Required reviewers" to enable the approval gate before QA build+deploy.
+
+name: UI – Dev / QA
+
+on:
+  push:
+    branches:
+      - master_UI
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+
+env:
+  NODE_VERSION: '22.x'
+  WORKING_DIR: '.'
+  BASE_HREF: '/diagnocareUi/'
+
+jobs:
+
+  # ── 1. Build DEV ───────────────────────────────────────────────────────────
+  build-dev:
+    name: Build [DEV]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Build Angular app (DEV)
+        run: npx ng build --configuration development
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Upload DEV artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drop-dev
+          path: ./dist/diagnocareUI-app
+
+  # ── 2. Deploy DEV ──────────────────────────────────────────────────────────
+  deploy-dev:
+    name: Deploy [DEV]
+    runs-on: ubuntu-latest
+    needs: build-dev
+
+    steps:
+      - name: Download DEV artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: drop-dev
+          path: ./drop-dev
+
+      - name: Ensure target folder exists (DEV)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            if not exist "C:\inetpub\wwwroot\DiagnocareDevUI" mkdir "C:\inetpub\wwwroot\DiagnocareDevUI"
+            icacls "C:\inetpub\wwwroot\DiagnocareDevUI" /grant IIS_IUSRS:(OI)(CI)M /T
+
+      - name: Copy files to DEV server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "drop-dev/*"
+          target: "C:/inetpub/wwwroot/DiagnocareDevUI"
+          strip_components: 1
+
+  # ── 3. Build QA (manual approval gate) ────────────────────────────────────
+  # Waits for approval before building QA.
+  # Create environment "qa-ui-approval" in GitHub → Settings → Environments
+  # and add Required Reviewers.
+  build-qa:
+    name: Build [QA]
+    runs-on: ubuntu-latest
+    needs: deploy-dev
+    environment: qa-ui-approval
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Build Angular app (QA)
+        run: npx ng build --configuration qa
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Upload QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drop-qa
+          path: ./dist/diagnocareUI-app
+
+  # ── 4. Deploy QA ───────────────────────────────────────────────────────────
+  deploy-qa:
+    name: Deploy [QA]
+    runs-on: ubuntu-latest
+    needs: build-qa
+
+    steps:
+      - name: Download QA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: drop-qa
+          path: ./drop-qa
+
+      - name: Ensure target folder exists (QA)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            if not exist "C:\inetpub\wwwroot\DiagnocareQAUI" mkdir "C:\inetpub\wwwroot\DiagnocareQAUI"
+            icacls "C:\inetpub\wwwroot\DiagnocareQAUI" /grant IIS_IUSRS:(OI)(CI)M /T
+
+      - name: Copy files to QA server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "drop-qa/*"
+          target: "C:/inetpub/wwwroot/DiagnocareQAUI"
+          strip_components: 1

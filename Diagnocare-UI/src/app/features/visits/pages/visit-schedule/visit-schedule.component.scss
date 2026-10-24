@@ -1,0 +1,546 @@
+// ══════════════════════════════════════════════════════════════════════════════
+//  Visit Schedule (admin) — page layout, day panel, assign form
+//  Calendar and visit card come from shared components; all colours come from
+//  the shared visit tokens so every theme works without per-rule overrides.
+// ══════════════════════════════════════════════════════════════════════════════
+@use '../../styles/visit-tokens' as t;
+@include t.visit-tokens;
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+.vs-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  padding: 1.5rem 1.5rem 2.5rem;
+}
+
+.vs-panel {
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  box-shadow: var(--vs-shadow);
+  color: var(--vs-text);
+}
+
+.vs-calendar-panel {
+  padding: 1.35rem 1.25rem 1.1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.vs-detail-panel {
+  padding: 1.5rem 1.75rem 1.75rem;
+  min-height: 420px;
+
+  &--empty { display: flex; align-items: center; justify-content: center; }
+}
+
+// ── Day header ────────────────────────────────────────────────────────────────
+.dp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--vs-border);
+}
+
+.dp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .2rem;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--vs-text-3);
+}
+
+.dp-today {
+  padding: .1rem .45rem;
+  border-radius: 5px;
+  font-size: .62rem;
+  letter-spacing: .06em;
+  background: var(--vs-primary-soft);
+  color: var(--vs-primary-text);
+}
+
+.dp-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  color: var(--vs-text);
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.dp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  height: 38px;
+  padding: 0 1rem;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  font-size: .82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+  i { font-size: .75rem; }
+
+  &:focus-visible { outline: 2px solid var(--vs-primary); outline-offset: 2px; }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+
+  &--primary {
+    background: var(--vs-primary);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .12);
+    &:hover:not(:disabled) { background: var(--vs-primary-hover); }
+  }
+
+  &--ghost {
+    background: var(--vs-surface);
+    border-color: var(--vs-border);
+    color: var(--vs-text-2);
+    &:hover:not(:disabled) { background: var(--vs-surface-hover); color: var(--vs-text); }
+  }
+}
+
+// ── Holiday notice ────────────────────────────────────────────────────────────
+.dp-notice {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .7rem .9rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--vs-radius-sm);
+  background: var(--vs-violet-soft);
+  color: var(--vs-violet);
+
+  &--conflict {
+    background: var(--vs-red-soft);
+    color: var(--vs-red);
+    box-shadow: inset 0 0 0 1px var(--vs-red-border);
+  }
+}
+
+.dp-notice-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: .8rem;
+}
+
+.dp-notice-text {
+  margin: 0;
+  font-size: .82rem;
+  line-height: 1.45;
+  strong { font-weight: 700; }
+}
+
+// ── Toolbar: segmented status filter ─────────────────────────────────────────
+.dp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dp-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--vs-surface-2);
+  border: 1px solid var(--vs-border);
+}
+
+.dp-seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  height: 30px;
+  padding: 0 .8rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--vs-text-2);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, color .15s, box-shadow .15s;
+
+  &:hover { color: var(--vs-text); }
+  &:focus-visible { outline: 2px solid var(--vs-primary); outline-offset: 1px; }
+
+  &.active {
+    background: var(--vs-surface);
+    color: var(--vs-text);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 0 0 1px var(--vs-border);
+  }
+}
+
+.dp-seg-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: .68rem;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  background: var(--vs-border);
+  color: var(--vs-text-2);
+
+  .active & { background: var(--vs-primary-soft); color: var(--vs-primary-text); }
+}
+
+.dp-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  &--pending { background: var(--vs-amber-dot); }
+  &--done    { background: var(--vs-green-dot); }
+}
+
+.dp-progress {
+  font-size: .76rem;
+  color: var(--vs-text-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// ── Visit list ────────────────────────────────────────────────────────────────
+.visit-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+// ── Empty states ──────────────────────────────────────────────────────────────
+.dp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1rem;
+
+  h4 { margin: 1rem 0 .3rem; font-size: 1rem; font-weight: 650; color: var(--vs-text); }
+  p  { margin: 0 0 1.25rem; max-width: 320px; font-size: .84rem; line-height: 1.5; color: var(--vs-text-2); }
+
+  &--compact {
+    padding: 1.5rem 1rem;
+    p { margin: 0; }
+  }
+}
+
+.dp-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  font-size: 1.35rem;
+  background: var(--vs-primary-soft);
+  color: var(--vs-primary-text);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Assign form
+// ══════════════════════════════════════════════════════════════════════════════
+.af {
+  padding: 1.25rem 1.35rem 1.35rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius-sm);
+  background: var(--vs-surface-2);
+}
+
+.af-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+.af-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--vs-text); }
+.af-sub   { margin: .15rem 0 0; font-size: .8rem; color: var(--vs-text-2); }
+
+.af-close {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vs-text-3);
+  cursor: pointer;
+  &:hover { background: var(--vs-surface-hover); color: var(--vs-text); }
+}
+
+.af-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+
+.af-field { margin-bottom: 1rem; min-width: 0; }
+
+.af-label {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  margin-bottom: .4rem;
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--vs-text);
+}
+.af-req      { color: var(--vs-red); }
+.af-optional { margin-left: auto; font-weight: 500; color: var(--vs-text-3); }
+
+.af-error { display: block; margin-top: .3rem; font-size: .74rem; color: var(--vs-red); }
+
+.af-hint {
+  display: block;
+  margin-top: .35rem;
+  font-size: .75rem;
+  color: var(--vs-primary-text);
+  i { margin-right: .25rem; }
+}
+
+// Role filter (segmented, wraps on narrow widths)
+.af-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-bottom: .5rem;
+}
+.af-seg-item {
+  height: 28px;
+  padding: 0 .75rem;
+  border-radius: 999px;
+  border: 1px solid var(--vs-border);
+  background: var(--vs-surface);
+  font-size: .74rem;
+  font-weight: 600;
+  color: var(--vs-text-2);
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover { border-color: var(--vs-border-strong); color: var(--vs-text); }
+  &.active {
+    background: var(--vs-primary-soft);
+    border-color: color-mix(in srgb, var(--vs-primary) 35%, transparent);
+    color: var(--vs-primary-text);
+  }
+}
+
+.af-seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.af-seg-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: .66rem;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  background: var(--vs-surface-2);
+  color: var(--vs-text-3);
+
+  .af-seg-item.active & { background: var(--vs-surface); color: var(--vs-primary-text); }
+}
+
+// Role with nobody in it — still clickable, but visibly secondary
+.af-seg-item.is-empty:not(.active) {
+  border-style: dashed;
+  color: var(--vs-text-3);
+  background: transparent;
+}
+
+// Loading placeholder for the member list
+.af-skeleton {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  height: 38px;
+  padding: 0 .85rem;
+  border-radius: 8px;
+  border: 1px solid var(--vs-border);
+  background: var(--vs-surface);
+  font-size: .8rem;
+  color: var(--vs-text-3);
+}
+
+// Empty state that replaces an empty dropdown
+.af-empty {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .8rem .9rem;
+  border: 1px dashed var(--vs-border-strong);
+  border-radius: var(--vs-radius-sm);
+  background: var(--vs-surface);
+
+  &--invalid { border-color: var(--vs-red); background: var(--vs-red-soft); }
+}
+
+.af-empty-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: .85rem;
+  background: var(--vs-surface-2);
+  color: var(--vs-text-3);
+}
+
+.af-empty-body { flex: 1; min-width: 0; }
+.af-empty-title { margin: 0; font-size: .84rem; font-weight: 650; color: var(--vs-text); }
+.af-empty-text  { margin: .1rem 0 0; font-size: .76rem; line-height: 1.4; color: var(--vs-text-2); }
+
+.af-empty-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+
+.dp-btn--sm {
+  height: 32px;
+  padding: 0 .75rem;
+  font-size: .76rem;
+  text-decoration: none;
+}
+
+.af-hint--muted { color: var(--vs-text-2); }
+
+// Holiday warning + override
+.af-holiday {
+  display: flex;
+  gap: .7rem;
+  padding: .75rem .9rem;
+  margin-bottom: 1rem;
+  border-radius: var(--vs-radius-sm);
+  background: var(--vs-amber-soft);
+  color: var(--vs-amber);
+
+  > i { margin-top: .2rem; }
+  p   { margin: 0; font-size: .8rem; line-height: 1.45; }
+}
+.af-check {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin: .45rem 0 0;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  input { cursor: pointer; accent-color: var(--vs-amber-dot); }
+}
+
+.af-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  padding-top: 1rem;
+  margin-top: .25rem;
+  border-top: 1px solid var(--vs-border);
+}
+
+// ── Contact autocomplete ──────────────────────────────────────────────────────
+.contact-autocomplete-wrap { position: relative; }
+
+.contact-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius-sm);
+  box-shadow: var(--vs-shadow-hover);
+}
+
+.contact-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .55rem .7rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background .12s;
+
+  &:hover { background: var(--vs-surface-hover); }
+
+  .suggestion-name { flex: 1; font-size: .85rem; font-weight: 600; color: var(--vs-text); }
+  .suggestion-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .74rem;
+    color: var(--vs-text-2);
+    i { font-size: .68rem; color: var(--vs-text-3); }
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (min-width: 1440px) {
+  .vs-layout {
+    grid-template-columns: 380px minmax(0, 1fr);
+    max-width: var(--dc-page-max, 160rem);
+    margin: 0 auto;
+    padding: 1.75rem 2rem 2.5rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .vs-layout { grid-template-columns: 320px minmax(0, 1fr); gap: 1.1rem; padding: 1.1rem; }
+  .vs-detail-panel { padding: 1.25rem 1.25rem 1.5rem; }
+}
+
+@media (max-width: 860px) {
+  .vs-layout { grid-template-columns: 1fr; }
+  .vs-calendar-panel { position: static; max-width: 460px; width: 100%; margin: 0 auto; }
+  .vs-detail-panel { min-height: 320px; }
+}
+
+@media (max-width: 600px) {
+  .vs-layout { padding: .75rem .75rem 2rem; }
+  .vs-detail-panel { padding: 1.1rem 1rem 1.25rem; }
+
+  .dp-header { flex-direction: column; align-items: stretch; }
+  .dp-header .dp-btn { width: 100%; }
+  .dp-title { font-size: 1.25rem; }
+
+  .dp-toolbar { flex-direction: column; align-items: stretch; }
+  .dp-seg { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dp-progress { align-self: flex-end; }
+
+  .af { padding: 1rem; }
+  .af-grid { grid-template-columns: 1fr; }
+  .af-empty { flex-wrap: wrap; }
+  .af-empty-actions { width: 100%; .dp-btn { flex: 1; } }
+  .af-actions .dp-btn { flex: 1; }
+}

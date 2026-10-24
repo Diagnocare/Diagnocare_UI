@@ -1,7 +1,7 @@
 import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
-import { HeaderService } from 'src/app/services/headerServices/header-service';
+import { HeaderService } from 'src/app/layout/services/header-service';
 
 const BASE = 'http://localhost:5000/api/header/';
 

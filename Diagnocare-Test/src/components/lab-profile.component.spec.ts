@@ -3,8 +3,8 @@ import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { of, throwError }            from 'rxjs';
 import { ToastrService }             from 'ngx-toastr';
 
-import { LabProfileComponent } from 'src/app/component/lab-profile/lab-profile.component';
-import { PathologyService }    from 'src/app/services/pathologyServices/pathology.service';
+import { LabProfileComponent } from 'src/app/features/lab/pages/lab-profile/lab-profile.component';
+import { PathologyService }    from 'src/app/features/pathology/services/pathology.service';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

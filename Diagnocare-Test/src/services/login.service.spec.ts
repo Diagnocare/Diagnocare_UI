@@ -2,8 +2,8 @@ import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { HttpBackend }                          from '@angular/common/http';
 
-import { LoginService }   from 'src/app/services/loginServices/login.service';
-import { TokenService }   from 'src/app/core/interceptors/token.service';
+import { LoginService }   from 'src/app/features/auth/services/login.service';
+import { TokenService }   from 'src/app/core/services/token.service';
 import { MOCK_USER, MOCK_OTP_RESPONSE } from '../mocks/mock-data';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -1,0 +1,625 @@
+import { ReportConfig, ReportLevelOption } from "../../features/reports/models/summaryReportModel";
+
+/** Default country dialling code used across patient forms. Update here to change globally. */
+export const DEFAULT_DIALING_CODE = '+91';
+
+export const controllerEndpoints = {
+  header: 'api/header/',
+  login: 'api/login/',
+  otp: 'api/Otp/',
+  mfa: 'api/Mfa/',
+  fingerprint: 'api/Fingerprint/',
+  address: 'api/addressManager/',
+  collectionBoy: 'api/collectionBoys/',
+  doctor: 'api/doctors/',
+  patient: 'api/patient/',
+  patientReport: 'api/PatientReport/',
+  patientTestReportGeneration: 'api/TestReportGeneration/',
+  smartReport: 'api/SmartReport/',
+  sampleLabel: 'api/SampleLabel/',
+  pathology: 'api/pathology/',
+  test: 'api/test/',
+  user: 'api/user/',
+  receipt: 'api/receipt/',
+  summaryReport:'api/summaryReport/',
+  pathologyTest:'api/pathologyTest/',
+  /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
+  testImport:    'api/TestImport/',
+  template:   'api/template/',
+  attendance: 'api/attendance/',
+  /** Staff location tracking: live map, history, settings, geofences. Super Admin only. */
+  location:   'api/Location/',
+  salary:     'api/salary/',
+  /**
+   * Paid leave: accumulated balances and the year-end carry-forward. Its own controller
+   * because a leave balance spans the whole year, while Attendance is per day.
+   */
+  leave:      'api/Leave/',
+  holiday:       'api/holiday/',
+  visitSchedule: 'api/visitSchedule/',
+  feedback:      'api/feedback/',
+  /**
+   * Repeat testing — how many times a test was run on the collected sample, and why.
+   * Its own controller: this is about the conduct of the test, not its values.
+   */
+  testRun:       'api/TestRun/',
+  /**
+   * Sample rejection — a collected sample that could not be used, and why. Its own
+   * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
+   */
+  sampleRejection: 'api/SampleRejection/',
+  /**
+   * The sample breakdown — how a booking's tests distribute across the tubes that have to
+   * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
+   * this one answers how many tubes there are.
+   */
+  sample: 'api/Sample/',
+  /** Super Admin queue for discounts above the lab's max discount. */
+  discountApproval: 'api/DiscountApproval/',
+  /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
+  testReminder: 'api/TestReminder/',
+  worklist: 'api/Worklist/',
+  /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
+  dashboard: 'api/Dashboard/',
+  /**
+   * The caller's own in-app notifications (header bell, User Panel badges).
+   * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
+   */
+  notification: 'api/Notification/',
+  /**
+   * Device-verified attendance — the employee's phone and the laboratory kiosk.
+   *
+   * Separate from `attendance` above, which is the administrator's marking grid and the
+   * correction-request workflow. They authenticate differently: this one accepts an
+   * enrolled device token as well as a Bearer session, because the handset checking in
+   * has deliberately never signed in.
+   */
+  attendanceCheckIn: 'api/AttendanceCheckIn/',
+  /** Attendance administration — locations, shifts, assignments, device enrolment. */
+  attendanceSetup: 'api/AttendanceSetup/',
+  /** Manual corrections and the append-only attendance audit trail. */
+  attendanceAudit: 'api/AttendanceAudit/',
+};
+
+export const apiEndpoints = {
+  getPublicInfo: 'GetPublicInfo',
+  uploadImage: 'addImage',
+  generateOTP:"generate-otp",
+  resendOtp:"resend-otp",
+  cancelOtp:"cancel-otp",
+  verifyOtp: "verify-otp",
+  verify:    "Verify",         // unified endpoint — VerifyAuthRequest
+  // ── Fingerprint (WebAuthn / FIDO2) ──
+  fpStatus:          "status",           // GET  api/Fingerprint/status?userName=
+  fpRegisterBegin:   "register/begin",   // POST api/Fingerprint/register/begin?userName=
+  fpRegisterComplete:"register/complete",// POST api/Fingerprint/register/complete?userName=&label=
+  fpAssertBegin:     "assert/begin",     // POST api/Fingerprint/assert/begin?userName=
+  fpAssertComplete:  "assert/complete",  // POST api/Fingerprint/assert/complete?userName=
+  fpDisable:         "disable",          // POST api/Fingerprint/disable?userName=
+  resetPassword: 'ForgotPassword',
+  changePassword:"ChangePassword",
+  getPathologyExpiryDate:"GetPathologyExpiryDate",
+  getSerialNPatientId:"GetSerialNPatientId",
+  searchPatients:"SearchPatients",
+  /** GET api/Dashboard/GetHomeSummary?date= — the whole home hero in one call */
+  getHomeSummary:"GetHomeSummary",
+  getDistinctReferredBy:"GetDistinctReferredBy",
+  getAllStateCityList:"GetAllStateCityList",
+  profileImage:"ProfileImage",
+  uploadProfileImage:"UploadProfileImage",
+  updateGroupDetails:"UpdateGroupDetails",
+  getReceiptCount:"GetReceiptCount",
+  updatePathologyTest:"UpdatePathologyTest",
+  generateTestReportPDF:"GenerateTestReportPDF",
+  generateSmartReport:"Generate",
+  reportShareLink:"ShareLink",
+  updateAuthType:"UpdateAuthType",
+  updateUserEmail:"UpdateUserEmail",
+  updateUserPhone:"UpdateUserPhone",
+  sendProfileOtp:"SendProfileOtp",
+  verifyProfileOtp:"VerifyProfileOtp",
+  refreshToken:"RefreshToken",
+  getAllList: 'GetAllList',
+
+  // ── Worklist ──
+  /** One queue's items plus the counts for every queue. */
+  getWorklist: 'GetWorklist',
+  /** Signs a test's results off — this is what issues the report. */
+  verifyReport: 'Verify',
+  /** Withdraws a sign-off and sends the results back to the bench. */
+  returnForReentry: 'ReturnForReentry',
+  /** Whether a test is signed off — decides between "Verify & issue" and "Print". */
+  isVerified: 'IsVerified',
+  /** Records where a booking's sample was collected. */
+  markSampleCollected: 'MarkSampleCollected',
+  /** Pulls an already-issued report back for re-entry. */
+  recallReport: 'RecallReport',
+
+  /** Staff head-count vs the ceiling configured in the API (Staff:MaxStaffCount). */
+  staffCapacity: 'Capacity',
+  getById: 'GetById',
+  getProfile: 'GetProfile',
+  getProfileVersion: 'GetProfileVersion',
+  add: 'Add',
+  update: 'Update',
+  delete: 'Delete',
+  patientReport: 'PatientReport',
+  getUserDetails:'GetUserDetails',
+  getUserIdByContact:'GetUserIdByContact',
+  isDuplicateEmail:'IsDuplicateEmail',
+  isDuplicateContact:'IsDuplicateContact',
+  checkUserName:'CheckUserName',
+  registerUser:'RegisterUser',
+  getuserlist:'GetUserList',
+  getAllGroupList:"GetAllGroupList",
+  getAllSubGroupList:"GetAllSubGroupList",
+  getTestList:"GetTestList",
+  getPathTest:"GetPathologyTest",
+  getTestParameter:"GetTestParameter",
+  /** The seeded catalogue of laboratory techniques, for the picker on the test form. */
+  getTechniques:"GetTechniques",
+  /** The whole sample-collection protocol library, with usage counts. */
+  getProtocolLibrary:"GetProtocolLibrary",
+  /** One protocol's full content. */
+  getProtocol:"GetProtocol",
+  /** The protocols one test is collected under, in order. */
+  getTestProtocols:"GetTestProtocols",
+  /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
+  getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /**
+   * The tube count for an existing booking. Attribute-routed on the API
+   * (api/Sample/booking/{testRegId}), so the id is appended to this path by the caller
+   * rather than passed as a query string.
+   */
+  getSampleBreakdownForBooking:"booking/",
+  /** The tube count for a basket of test codes, before a booking exists. POST. */
+  getSampleBreakdownByCodes:"by-codes",
+  /** Which library protocol a test's name suggests. Admin / Super Admin only. */
+  suggestTestProtocol:"SuggestTestProtocol",
+  /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */
+  saveProtocol:"SaveProtocol",
+  /** Replaces the whole set of protocols linked to a test. Admin / Super Admin only. */
+  saveTestProtocolAssignments:"SaveTestProtocolAssignments",
+  /** Deletes a lab-authored protocol from the library. Admin / Super Admin only. */
+  deleteProtocol:"DeleteProtocol",
+  /** Every recorded run of one test on one booking, with the reason for each repeat. */
+  getTestRunHistory:"GetHistory",
+  /** Run counts for every test on a booking — one call, so a list can be badged cheaply. */
+  getTestRunBookingCounts:"GetBookingCounts",
+  /** Records that a test was run again on the sample already collected. A reason is required. */
+  repeatTestRun:"Repeat",
+  /** Marks which run the lab stands behind. */
+  acceptTestRun:"Accept",
+  /** The standard sample-rejection reasons, grouped by cause. Served so the UI cannot drift. */
+  getSampleRejectionReasons:"GetReasons",
+  /** Every rejection recorded against one test on one booking. */
+  getSampleRejectionHistory:"GetHistory",
+  /** Rejection flags for every test on a booking — one call for the whole list. */
+  getSampleRejectionBookingSummary:"GetBookingSummary",
+  /** Records that a collected sample could not be used. */
+  rejectSample:"Reject",
+  /** Closes a rejection — a fresh sample arrived, or it was withdrawn. */
+  resolveSampleRejection:"Resolve",
+  /** Delivery status of one report (testRegId + testCode). Defaults to "nothing yet", never 404s. */
+  getPrintStatus:"GetPrintStatus",
+  /** Delivery status for every test code on a booking — one call for the whole list. */
+  getPrintStatuses:"GetPrintStatuses",
+  /** Manually marks one report printed or not-printed. */
+  setPrinted:"SetPrinted",
+  /** Records a CONFIRMED WhatsApp send of one report — never called on handoff alone. */
+  markSentOnWhatsApp:"MarkSentOnWhatsApp",
+  addGroupWithSubgroupsAndTests:"AddGroupWithSubgroupsAndTests",
+  // Test catalogue import (TestImport controller)
+  testImportTemplate:    'Template',
+  testImportPreview:     'Preview',
+  testImportCommit:      'Commit',
+  testImportErrorReport: 'ErrorReport',
+  testParameterManipulation:"TestParameterManipulation",
+  getSavedTestReport:"GetSavedTestReport",
+  dropTest:"Delete",
+  getWeeklyAttendance:  'GetWeekly',
+  getMonthly: 'GetMonthly',
+  getMyWeeklyAttendance: 'GetMyWeekly',
+  getMyMonthly:          'GetMyMonthly',
+  // Attendance correction requests — all under the single Attendance controller
+  requests:              'requests',
+  myRequests:            'requests/mine',
+  pendingRequestCount:   'requests/pending-count',
+  /** Per-bucket totals for the admin queue tabs (needs action / decided / all). */
+  requestCounts:         'requests/counts',
+  // In-app notifications (NotificationController) — all scoped to the caller
+  notificationUnreadCount: 'UnreadCount',
+  notificationRead:        'Read',
+  notificationReadAll:     'ReadAll',
+  notificationReadModule:  'ReadModule',
+  cancelRequest:         'cancel',
+  approveRequest:        'approve',
+  rejectRequest:         'reject',
+  /** Owner asks for an approved request to be undone — does NOT revert attendance. */
+  withdrawRequest:       'withdraw',
+  /** Admin grants the withdrawal — reverts attendance atomically. */
+  approveWithdrawal:     'withdraw/approve',
+  /** Admin refuses the withdrawal — request returns to Approved. */
+  rejectWithdrawal:      'withdraw/reject',
+  generateSalary:      'Generate',
+  generateReceiptPdf: 'GenerateReceiptPdf',
+  getHolidaysByYear: 'GetHolidayCalendar',
+  getPathologyDefault:   'GetPathologyDefault',
+  setDefaultTemplate:   'SetDefaultTemplate',
+  addPayment:    'AddPayment',
+  /** Settles every salary component for a month, one payment row per component. */
+  payAllComponents: 'PayAllComponents',
+  addTestWithReceipt: 'AddTestWithReceipt',
+  getSalaryConfig:          'GetConfig',
+  saveSalaryConfig:         'SaveConfig',
+  calculatePayableSalary:   'CalculatePayableSalary',
+  /** Self-service — returns the logged-in staff member's own salary summary */
+  getMySalary:              'GetMySalary',
+  /** Self-service — returns the logged-in staff member's salary payment receipt PDF for a month */
+  generateMySalaryReceipt:  'GenerateMySalaryReceipt',
+  /** Self-service — returns the logged-in staff member's actual salary payments (all months) */
+  getMyPayments:            'GetMyPayments',
+  /** Self-service — returns a PDF receipt for a single salary payment (ownership-validated) */
+  generateMyPaymentReceipt: 'GenerateMyPaymentReceipt',
+  /** Full salary payment history for one employee, grouped by salary period */
+  getPaymentHistory:        'GetPaymentHistory',
+  /** Attaches a payment screenshot / receipt to an existing payment (multipart) */
+  uploadPaymentProof:       'UploadPaymentProof',
+  /** Downloads the proof attached to a payment */
+  getPaymentProof:          'GetPaymentProof',
+  /** Removes the proof attached to a payment, leaving the payment itself */
+  deletePaymentProof:       'DeletePaymentProof',
+  /** Self-service — downloads the proof for one of the caller's own payments */
+  getMyPaymentProof:        'GetMyPaymentProof',
+  /** Maps to DB column token_expiry_in_minutes — stores the PIN grace buffer duration */
+  updateGraceBuffer:        'UpdateGraceBuffer',
+  /** Admin-only — updates the max discount percentage (0–99) any user may apply */
+  updateMaxDiscount:        'UpdateMaxDiscount',
+  /** Admin-only — updates how many minutes hidden before screen-lock fires (0 = disabled) */
+  updateSessionLockout:     'UpdateSessionLockout',
+  /** Super Admin only - share of the annual paid-leave entitlement that may carry over (0-100) */
+  updatePaidLeaveCarryForward: 'UpdatePaidLeaveCarryForward',
+  // Paid leave (LeaveController)
+  /** The caller's own accumulated paid-leave balance for a leave year */
+  myLeaveBalance:        'MyBalance',
+  /** Super Admin - one employee's paid-leave balance */
+  leaveBalance:          'Balance',
+  /** Super Admin - what the year-end carry-forward would do, without writing */
+  leaveYearEndPreview:   'YearEndPreview',
+  /** Super Admin - commits the year-end carry-forward (idempotent per employee and year) */
+  runLeaveYearEnd:       'RunYearEnd',
+  getMFAStatus:             'status',          // GET  api/Mfa/status
+  setupMFA:                 'setup',           // POST api/Mfa/setup
+  confirmMfaSetup:          'confirm-setup',   // POST api/Mfa/confirm-setup
+  verifyTotpLogin:          'Verify',          // POST api/Otp/Verify  (authType=Mfa)
+  disableMFA:               'disable',         // POST api/Mfa/disable
+  cancelTest:               'CancelTest',        // PUT    api/patient/CancelTest
+  removeTests:              'RemoveTests',       // PATCH  api/patient/RemoveTests
+  updateSamplingLocation:   'UpdateSamplingLocation', // PUT api/patient/UpdateSamplingLocation
+  reportOnWhatsApp:         'ReportOnWhatsApp',  // PATCH  api/patient/ReportOnWhatsApp
+  reactivate:               'Reactivate',        // PUT    api/patient/Reactivate
+  /** Patients only — staff have no permanent delete, see MemberService.delete. */
+  hardDelete:               'HardDelete',        // DELETE api/patient/HardDelete
+  refundReceipt:            'Refund',            // PUT   api/receipt/Refund
+  updateTpaDetails:         'UpdateTpaDetails',  // PUT   api/receipt/UpdateTpaDetails
+  clearSession:             'ClearSession',      // POST  api/login/ClearSession
+  logout:                   'Logout',            // POST  api/login/Logout
+  ping:                     'ping',              // GET   api/header/ping  (session health-check)
+
+  // ── Device-verified attendance (api/AttendanceCheckIn/) ───────────────────
+  /** The whole employee screen in one call — name, shift, today's times, what is allowed. */
+  attendanceToday:          'today',             // GET   api/AttendanceCheckIn/today
+  attendanceCheckIn:        'check-in',          // POST  api/AttendanceCheckIn/check-in
+  attendanceCheckOut:       'check-out',         // POST  api/AttendanceCheckIn/check-out
+  /** The caller's own history. No employee-id parameter by design — identity is the token. */
+  attendanceHistory:        'history',           // GET   api/AttendanceCheckIn/history
+  /**
+   * The kiosk's current QR rotation. Takes no location: the backend reads it from the
+   * kiosk token's claim, which is what stops one site's display asking for another's code.
+   */
+  attendanceKioskQr:        'qr',                // GET   api/AttendanceCheckIn/qr
+
+  // ── Attendance setup (api/AttendanceSetup/) ───────────────────────────────
+  attendanceLocations:              'locations',                // GET/POST api/AttendanceSetup/locations
+  attendanceAssignEmployeeLocation: 'locations/assign-employee', // POST     api/AttendanceSetup/locations/assign-employee
+  /** Appended to `locations/{id}/` — the live rotation, so previewing never invalidates it. */
+  attendanceQrPreview:              'qr-preview',               // GET      api/AttendanceSetup/locations/{id}/qr-preview
+  attendanceShifts:                 'shifts',                   // GET/POST api/AttendanceSetup/shifts
+  attendanceShiftAssignments:       'shifts/assignments',       // GET      api/AttendanceSetup/shifts/assignments
+  attendanceAssignShift:            'shifts/assign',            // POST     api/AttendanceSetup/shifts/assign
+  attendanceDevices:                'devices',                  // GET/POST api/AttendanceSetup/devices
+  /** Appended to `devices/{id}/`. Revocation is immediate — the token is checked per call. */
+  attendanceRevokeDevice:           'revoke',                   // POST     api/AttendanceSetup/devices/{id}/revoke
+
+  // ── Attendance audit and correction (api/AttendanceAudit/) ────────────────
+  attendanceDaily:          'daily',             // GET   api/AttendanceAudit/daily
+  /** Appended to `{attendanceId}/`. Requires a reason — the service refuses without one. */
+  attendanceCorrection:     'correction',        // POST  api/AttendanceAudit/{attendanceId}/correction
+  attendanceEvents:         'events',            // GET   api/AttendanceAudit/events
+};
+
+export const loginFormProperty={
+   userId:"User Id",
+   pathId:"Pathology Id",
+   password:"Password",
+   code:"OTP Code"
+}
+export type PathologyFormKeys = keyof typeof loginFormProperty;
+
+export const validationMessages = {
+  required: (key: PathologyFormKeys) =>
+    `${loginFormProperty[key]} is required`,
+  email: (key: PathologyFormKeys) =>
+    `${loginFormProperty[key]} must be valid email Id`,
+  minLength: (key: PathologyFormKeys, length: number) =>
+    `${loginFormProperty[key]} must be at least ${length} characters`,
+  maxLength: (key: PathologyFormKeys, length: number) =>
+    `${loginFormProperty[key]} must not exceed ${length} characters`,
+  pattern: (key: PathologyFormKeys, rule: string) =>
+    `${loginFormProperty[key]} must be ${rule}`,
+  stringOnly: (key: PathologyFormKeys) =>
+    `${loginFormProperty[key]} must contain only string, No number allowed`,
+  noFutureDate:(key:PathologyFormKeys)=>`${loginFormProperty[key]} must not be future date`
+};
+
+// Tab order for Add Patient form
+   export const tabOrderAdd = [
+     'patient_Salutation',
+     'patient_Name',
+     'patient_DOB',
+     'patient_Age',
+     'patient_Age_Group',
+     'patient_Gender',
+     '',
+     '',
+     'patient_Marital_Status',
+     '',
+     'relation',
+     'relative_Name',
+     'patient_Contact',
+     'patient_Email',
+     'patient_Address',
+     'test_Name',
+     'urgent_Report',
+     'report_On_WhatsApp',
+     'test_Amount',
+     'referred_By_Type',
+     'referred_By',
+     'sampling_Done',
+     'collected_Outside',
+     'area',
+     'collected_By',
+     'remark',
+     'discount',
+     'net_Amount',
+     'payment_Type',
+     'payment_Mode',
+     'amount_Paid',
+     'amount_Pending'
+   ]
+
+   // Tab order for Edit Patient form (customize as needed)
+   export const tabOrderEdit = [
+     'patient_Salutation',
+     'patient_Name',
+     'patient_DOB',
+     'patient_Age',
+     'patient_Age_Group',
+     'patient_Gender',
+     '',
+     '',
+     'patient_Marital_Status',
+     '',
+     'relation',
+     'relative_Name',
+     'patient_Contact',
+     'patient_Email',
+     'patient_Address',
+     'test_Name',
+     'urgent_Report',
+     'test_Amount',
+     'referred_By_Type',
+     'referred_By',
+     'sampling_Done',
+     'collected_Outside',
+     'area',
+     'collected_By',
+     'remark',
+     'discount',
+     'net_Amount',
+     'payment_Type',
+     'payment_Mode',
+     'amount_Paid',
+     'amount_Pending'
+   ]
+
+// ── Profile / account dropdown ──────────────────────────────────────────────
+// To add a new profile menu item, just add an entry here.
+// The route must already exist in app-routing.module.ts.
+export const profileMenu = {
+  profile:        { id: 'profile',        label: 'My Profile',      route: 'profile',         icon: 'user' },
+  settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
+  changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
+  // Authenticator App is now a section inside Settings (see settings page).
+  help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
+};
+
+export const labOperationMenu = {
+    // The lab's outstanding work as queues (collect sample, enter results, verify…). Route guard: 'work'.
+    workflow:       { id: 'workflow',       label: 'Workflow',                route: `work`,          icon: 'fa-tasks' },
+    patientDetails: { id: 'patientDetails', label: 'Patient Details',        route: `patients`,      icon: 'fa-users' },
+    receiptBills:   { id: 'receiptBills',   label: 'Receipt Bills',           route: `receipt`,       icon: 'fa-receipt' },
+    patientReport:  { id: 'patientReport',  label: 'Patient Report',          route: `patient-tests`, icon: 'fa-flask' },
+    pathTest:       { id: 'pathTest',       label: 'Master Test details',     route: `manage-tests`,  icon: 'fa-vials' },
+    contact:        { id: 'contact',        label: 'Contact Address Manager', route: `contacts`,      icon: 'fa-map-marker-alt' },
+    // Patients due to repeat a regular test (HbA1c, lipid profile, sugar…), sent on WhatsApp.
+    testReminders:  { id: 'testReminders',  label: 'Test Reminders',          route: `test-reminders`, icon: 'fa-bell' },
+};
+
+export const labSetupMenu = {
+    labProfile: { id: 'labProfile', label: 'Lab Profile',        route: 'lab-profile', icon: 'fa-hospital-alt', description: 'Logo, motto, legal details, report branding & more' },
+    labConfig:  { id: 'labConfig',  label: 'Lab Configuration',  route: 'lab-setup',   icon: 'fa-sliders-h',    description: 'Sampling locations, areas & more' },
+}
+/**
+ * Admin Panel navigation items.
+ *
+ * The dropdown itself is gated by ModuleAccess.adminPanel (Admin + Super Admin).
+ * Items marked `superAdminOnly: true` are hidden from Admin within that dropdown.
+ *
+ * The previous flag was named `adminOnly`, which was a no-op: the template tested
+ * `!item.adminOnly || isAdmin`, and isAdmin is true for BOTH Admin and Super Admin,
+ * so every item marked "admin only" was shown to everyone who could see the panel.
+ * The flag is now `superAdminOnly` and is tested against isSuperAdmin.
+ */
+export const adminOptions: Record<string, { id: string; label: string; route: string; icon?: string; superAdminOnly?: boolean }> = {
+  userDetails:   { id: 'userDetails',   label: 'User details',      route: 'users',           icon: 'fa-user-cog' },
+  // One entry for all four administrative attendance screens. '/attendance' is the
+  // tab shell and redirects to its first tab, so this route is unchanged from what
+  // it always was and any existing link to /attendance still lands on the marking
+  // grid — Angular carries query parameters through a redirect.
+  //
+  // Verified Attendance, Attendance Setup and Attendance Requests are tabs inside
+  // it, not entries here. Four entries named around the word "attendance" told
+  // nobody which one answered their question.
+  attendance:    { id: 'attendance',    label: 'Attendance',         route: 'attendance',      icon: 'fa-calendar-check' },
+  // Payroll is owner-only — an Admin must not be able to edit their own pay.
+  salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
+  // Discounts above the lab limit wait here for the owner's decision.
+  discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
+  holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
+  // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
+  // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
+  visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
+  // Staff location is the most sensitive data in the app — owner only, like payroll.
+  location:      { id: 'location',      label: 'Staff Location',     route: 'location',        icon: 'fa-map-marker-alt', superAdminOnly: true },
+  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
+};
+
+/**
+ * User Panel navigation items — self-service views scoped to the logged-in user.
+ *
+ * `access` names the ModuleAccess flag that decides whether the item appears.
+ * The header filters on it, so the panel is no longer all-or-nothing: a role can
+ * be given the User Panel for a single item without also being shown links its
+ * route guard would deny. Admin is exactly that case — salary administration is
+ * Super Admin only, so an Admin gets My Salary here and nothing else, while
+ * still seeing everyone's holidays via the Admin Panel.
+ */
+export const userOptions: Record<string, {
+  id: string; label: string; route: string; icon?: string;
+  access: 'myAttendance' | 'myVisits' | 'mySalary' | 'myHolidays';
+}> = {
+  myAttendance: { id: 'myAttendance', label: 'My Attendance',    route: 'my-attendance', icon: 'fa-calendar-check', access: 'myAttendance' },
+  myVisits:     { id: 'myVisits',     label: 'My Visits',        route: 'my-visits',     icon: 'fa-route',          access: 'myVisits'     },
+  mySalary:     { id: 'mySalary',     label: 'My Salary',        route: 'my-salary',     icon: 'fa-money-bill-wave', access: 'mySalary'    },
+  myHolidays:   { id: 'myHolidays',   label: 'Holiday Calendar', route: 'my-holidays',   icon: 'fa-calendar-alt',   access: 'myHolidays'   },
+};
+
+export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {
+  patientRegister:        { id: 'patient-register',        label: 'Patient Register',               icon: 'fa-users'        },
+  referrerCollection:     { id: 'referrer-collection',     label: 'Referrer Collection',            icon: 'fa-users-cog'    },
+  discountAuthorityWise:  { id: 'discount-authority-wise', label: 'Discount Authority Wise',        icon: 'fa-percent'      },
+  patientHistoryWise:     { id: 'patient-history-wise',    label: 'Patient History Wise',           icon: 'fa-history'      },
+  worksheetReport:        { id: 'worksheet',               label: 'Worksheet Report',               icon: 'fa-tasks'        },
+  registerReports:        { id: 'register-reports',        label: 'Register Reports',               icon: 'fa-book'         },
+  patientDiagnosisReport: { id: 'patient-diagnosis',       label: 'Patient Diagnosis Report',       icon: 'fa-heartbeat'    },
+  pndtTestReport:         { id: 'pndt-test',               label: 'PNDT Test Report',               icon: 'fa-flask'        },
+  masterTestList:         { id: 'master-test-list',        label: 'Master Test List',               icon: 'fa-database'     },
+  addressManagerReport:   { id: 'address-manager',         label: 'Address Manager Report',         icon: 'fa-map-marker'   },
+  tpaReport:              { id: 'tpa-report',              label: 'TPA Report',                     icon: 'fa-link'         },
+};
+
+export const summaryReportApiEndpoints: { [key: string]: string } = {
+  patientRegister:      'patient-registrations',
+  // Legacy individual endpoints (kept for backward compatibility / output-to-file)
+  doctorWiseCollection: 'doctor-wise-collection',
+  panelCompanyWise:     'panel-company-wise',
+  collectionBoysWise:   'collection-boys-wise',
+  // Merged referrer report
+  referrerCollection:   'referrer-collection',
+  discountAuthorityWise: 'discount-authority-wise',
+  patientHistoryWise:   'patient-history-wise',
+  worksheetReport:      'worksheet-report',
+  receiptRegister:      'receipt-register',
+  refundRegister:       'refund-register',
+  // Dashboard revenue figures only — not a Reports page entry, so it is
+  // deliberately absent from reportConfigs below.
+  dailyCollection:      'daily-collection',
+  billRegister:         'bill-register',
+  patientDiagnosisReport: 'patient-diagnosis-report',
+  pndtTestReport:       'pndt-test-report',
+  // The Master Test List report shows collection summarised by catalogue level
+  // (group / sub-group / test), so it calls the hierarchy endpoint. The flat
+  // 'master-test-list' catalogue endpoint is still served and still backs the
+  // output-to-file CSV export.
+  masterTestList:       'master-test-collection',
+  addressManagerReport: 'address-manager-report',
+  tpaReport:            'tpa-report',
+};
+
+/**
+ * Levels the test catalogue can be summarised at, widest first.
+ *
+ * Drives the "View by" selector on the Master Test List report: the value is sent
+ * to the API as GroupBy and the whole report — table, totals and chart — comes
+ * back rolled up to that level.
+ */
+export const testHierarchyLevels: ReportLevelOption[] = [
+  { value: 'group',    label: 'Group',     icon: 'fa-layer-group' },
+  { value: 'subgroup', label: 'Sub Group', icon: 'fa-sitemap'     },
+  { value: 'test',     label: 'Test',      icon: 'fa-vial'        },
+];
+
+// All reports return { currentYear: [{period, count}], previousYear: [{period, count}] }
+// so configs are simplified — no per-report columns needed.
+export const reportConfigs: { [key: string]: ReportConfig } = {
+  patientRegister:        { id: 'patientRegister',        label: 'Patient Register',               icon: 'fa-users',        endpoint: summaryReportApiEndpoints['patientRegister'],        defaultChartType: 'bar', digitInfo: '1.0-0' },
+  referrerCollection:     { id: 'referrerCollection',     label: 'Referrer Collection',            icon: 'fa-users-cog',    endpoint: summaryReportApiEndpoints['referrerCollection'],     defaultChartType: 'bar', digitInfo: '1.2-2' },
+  discountAuthorityWise:  { id: 'discountAuthorityWise',  label: 'Discount Authority Wise report', icon: 'fa-percent',      endpoint: summaryReportApiEndpoints['discountAuthorityWise'],  defaultChartType: 'doughnut', digitInfo: '1.2-2' },
+  patientHistoryWise:     { id: 'patientHistoryWise',     label: 'Patient history wise',           icon: 'fa-history',      endpoint: summaryReportApiEndpoints['patientHistoryWise'],     defaultChartType: 'line', digitInfo: '1.2-2' },
+  worksheetReport:        { id: 'worksheetReport',        label: 'Worksheet report',               icon: 'fa-tasks',        endpoint: summaryReportApiEndpoints['worksheetReport'],        defaultChartType: 'bar', digitInfo: '1.2-2' },
+  registerReports:        { id: 'registerReports',        label: 'Register Reports',               icon: 'fa-book',         endpoint: summaryReportApiEndpoints['billRegister'],           defaultChartType: 'bar', digitInfo: '1.2-2' },
+  // ── Individual register configs — used by table-report inside register-reports tabs ──
+  billRegister:           { id: 'billRegister',           label: 'Bill Register',                  icon: 'fa-list',         endpoint: summaryReportApiEndpoints['billRegister'],           defaultChartType: 'bar',      digitInfo: '1.2-2' },
+  receiptRegister:        { id: 'receiptRegister',        label: 'Receipt Register',               icon: 'fa-receipt',      endpoint: summaryReportApiEndpoints['receiptRegister'],        defaultChartType: 'doughnut', digitInfo: '1.2-2' },
+  refundRegister:         { id: 'refundRegister',         label: 'Refund Register',                icon: 'fa-undo',         endpoint: summaryReportApiEndpoints['refundRegister'],         defaultChartType: 'bar',      digitInfo: '1.0-0' },
+  patientDiagnosisReport: { id: 'patientDiagnosisReport', label: 'Patient Diagnosis Report',       icon: 'fa-heartbeat',    endpoint: summaryReportApiEndpoints['patientDiagnosisReport'], defaultChartType: 'pie', digitInfo: '1.2-2' },
+  pndtTestReport:         { id: 'pndtTestReport',         label: 'PNDT Test Report',               icon: 'fa-flask-empty',  endpoint: summaryReportApiEndpoints['pndtTestReport'],         defaultChartType: 'bar', digitInfo: '1.2-2' },
+  // Collection by catalogue level, not a flat catalogue: "View by" picks the level
+  // (group → sub-group → test) and the date filters scope the collection period.
+  // hiddenCols keeps the report to what a campaign decision needs — what each level
+  // collected and how often it sold. Billing detail (gross, discount, paid) lives on
+  // the collection and register reports; the API still returns it.
+  // At the Test level the rows also carry the catalogue code and rate, which is what
+  // the retired Rate List report showed, so they are left visible here.
+  masterTestList:         { id: 'masterTestList',         label: 'Master Test List',               icon: 'fa-database',     endpoint: summaryReportApiEndpoints['masterTestList'],         defaultChartType: 'bar', digitInfo: '1.2-2', levelOptions: testHierarchyLevels, defaultChartCol: 'totalNetCollection', hiddenCols: ['totalTestAmount', 'totalDiscount', 'totalAmountPaid'] },
+  addressManagerReport:   { id: 'addressManagerReport',   label: 'Address Manager Report',         icon: 'fa-map-marker',   endpoint: summaryReportApiEndpoints['addressManagerReport'],   defaultChartType: 'bar', digitInfo: '1.2-2' },
+  tpaReport:              { id: 'tpaReport',              label: 'TPA report',                     icon: 'fa-link',         endpoint: summaryReportApiEndpoints['tpaReport'],              defaultChartType: 'bar', digitInfo: '1.2-2' },
+};
+
+export const chartDisplayOptions: { value: string; label: string; icon: string }[] = [
+  { value: 'bar',      label: 'Bar',      icon: 'fa-chart-bar'   },
+  { value: 'line',     label: 'Line',     icon: 'fa-chart-line'  },
+  { value: 'area',     label: 'Area',     icon: 'fa-chart-area'  },
+  { value: 'pie',      label: 'Pie',      icon: 'fa-chart-pie'   },
+  { value: 'doughnut', label: 'Doughnut', icon: 'fa-circle-notch'},
+];
+
+// Distinct color palette for charts (Tableau / D3 inspired) to improve bar comparison
+export const CHART_COLORS = [
+  '#1f77b4', // muted blue
+  '#ff7f0e', // safety orange
+  '#2ca02c', // cooked asparagus green
+  '#d62728', // brick red
+  '#9467bd', // muted purple
+  '#8c564b', // chestnut brown
+  '#e377c2', // raspberry
+  '#7f7f7f', // middle grey
+  '#bcbd22', // curry yellow-green
+  '#17becf', // blue-teal
+  '#393b79', // dark indigo
+  '#637939', // olive
+  '#8c6d31', // brown-yellow
+  '#843c39', // maroon
+  '#7b4173'  // deep magenta
+];

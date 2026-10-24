@@ -1,0 +1,177 @@
+// ══════════════════════════════════════════════════════════════════════════════
+//  Shared visit calendar — month grid, count pills, legend, month nav
+// ══════════════════════════════════════════════════════════════════════════════
+@use '../../styles/visit-tokens' as t;
+@include t.visit-tokens;
+
+:host { display: block; color: var(--vs-text); }
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.cal-month-label {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--vs-text);
+}
+.cal-year { font-weight: 500; color: var(--vs-text-3); }
+
+.cal-nav { display: flex; gap: .35rem; }
+
+.cal-nav-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vs-border);
+  border-radius: 8px;
+  background: var(--vs-surface);
+  color: var(--vs-text-2);
+  font-size: .72rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+
+  &:hover { background: var(--vs-surface-hover); color: var(--vs-text); border-color: var(--vs-border-strong); }
+  &:focus-visible { outline: 2px solid var(--vs-primary); outline-offset: 2px; }
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+.cal-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 2px;
+  table-layout: fixed;
+}
+
+.cal-dow {
+  padding: 0 0 .55rem;
+  text-align: center;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--vs-text-3);
+}
+
+.cal-cell {
+  padding: 0;
+  text-align: center;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+.cal-cell-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 52px;
+  padding-top: 3px;
+}
+
+.cal-day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: .84rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--vs-text);
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+
+.cal-markers {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 14px;
+  margin-top: 2px;
+}
+
+// Visit count — soft tint, not a loud solid badge
+.cal-count {
+  min-width: 16px;
+  height: 14px;
+  padding: 0 4px;
+  border-radius: 7px;
+  font-size: .6rem;
+  font-weight: 700;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  background: var(--vs-amber-soft);
+  color: var(--vs-amber);
+
+  &--done     { background: var(--vs-green-soft); color: var(--vs-green); }
+  &--conflict { background: var(--vs-red-soft);   color: var(--vs-red); box-shadow: inset 0 0 0 1px var(--vs-red-border); }
+}
+
+.cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  &--holiday { background: var(--vs-violet-dot); }
+}
+
+// ── States ────────────────────────────────────────────────────────────────────
+.cal-cell:hover:not(.other-month) .cal-day-num { background: var(--vs-surface-hover); }
+
+.cal-cell.is-holiday .cal-day-num { color: var(--vs-violet); font-weight: 600; }
+
+.cal-cell.today .cal-day-num {
+  color: var(--vs-primary-text);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px var(--vs-primary);
+}
+
+.cal-cell.selected .cal-day-num,
+.cal-cell.selected:hover .cal-day-num {
+  background: var(--vs-primary);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 10px -2px color-mix(in srgb, var(--vs-primary) 45%, transparent);
+}
+
+.cal-cell.other-month {
+  cursor: default;
+  .cal-day-num { color: var(--vs-text-3); opacity: .45; }
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .5rem 1.1rem;
+  margin-top: .9rem;
+  padding-top: .9rem;
+  border-top: 1px solid var(--vs-border);
+  font-size: .72rem;
+  color: var(--vs-text-2);
+}
+.leg-item { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.leg-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  &--pending  { background: var(--vs-amber-dot); }
+  &--done     { background: var(--vs-green-dot); }
+  &--holiday  { background: var(--vs-violet-dot); }
+  &--conflict { background: var(--vs-red-dot); }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 400px) {
+  .cal-cell-inner { height: 46px; }
+  .cal-day-num    { width: 28px; height: 28px; font-size: .78rem; }
+  .cal-dow-rest   { display: none; }
+}

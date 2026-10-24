@@ -1,7 +1,7 @@
 import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
-import { AddressService } from 'src/app/services/addressServices/address-service';
+import { AddressService } from 'src/app/features/address-manager/services/address-service';
 
 const BASE = 'http://localhost:5000/api/addressManager/';
 

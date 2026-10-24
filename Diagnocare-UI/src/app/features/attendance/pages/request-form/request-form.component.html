@@ -1,0 +1,196 @@
+<app-loading-spinner [isLoading]="isLoading" message="Loading…"></app-loading-spinner>
+
+<div class="ar-stage">
+  <div class="ar-shell" *ngIf="!isLoading">
+
+    <!-- Hero header -->
+    <div class="ar-hero">
+      <button class="hero-back" (click)="cancel()"><i class="fa fa-arrow-left"></i> Back</button>
+      <div class="hero-text">
+        <span class="brand-pill"><i class="fa fa-heart-pulse"></i> DIAGNOCARE</span>
+        <h1>{{ isEdit ? 'Edit Attendance Request' : 'New Attendance Request' }}</h1>
+        <p class="subtitle">Propose a correction to your attendance — an admin will review it.</p>
+      </div>
+    </div>
+
+    <!-- Paid leave balance -->
+    <!-- Shown before the form so the employee knows what they have before choosing a
+         date or a status. Unused paid leave accumulates through the year and up to a
+         configured share of the annual entitlement carries into the next one, so
+         "available" is more than this month's allocation. -->
+    <div class="ar-card leave-balance" *ngIf="leaveBalanceLoading">
+      <div class="leave-balance-loading">
+        <i class="fa fa-spinner fa-spin"></i> Loading your paid leave balance…
+      </div>
+    </div>
+
+    <div class="ar-card leave-balance" *ngIf="!leaveBalanceLoading && leaveBalance?.isConfigured">
+      <div class="leave-balance-head">
+        <i class="fa fa-calendar-check"></i>
+        <div>
+          <h3>Your Paid Leave — {{ leaveBalance!.leaveYear }}</h3>
+          <p>As of {{ leaveBalance!.asOfLabel }}. Unused leave carries into the following months.</p>
+        </div>
+      </div>
+
+      <div class="leave-balance-grid">
+        <div class="lb-item">
+          <span class="lb-label">Leave accrued till now</span>
+          <span class="lb-value">{{ leaveBalance!.accruedToDate | number:'1.0-1' }} days</span>
+          <small class="lb-note">{{ leaveBalance!.monthlyEntitlement }}/month × {{ leaveBalance!.asOfMonth }} month(s)</small>
+        </div>
+        <div class="lb-item">
+          <span class="lb-label">Leave used</span>
+          <span class="lb-value">{{ leaveBalance!.leaveUsed | number:'1.0-1' }} days</span>
+        </div>
+        <div class="lb-item">
+          <span class="lb-label">Current unused balance</span>
+          <span class="lb-value">{{ leaveBalance!.currentUnusedBalance | number:'1.0-1' }} days</span>
+          <small class="lb-note">accrued so far this year</small>
+        </div>
+        <div class="lb-item">
+          <span class="lb-label">Carried forward</span>
+          <span class="lb-value">{{ leaveBalance!.carryForwardIn | number:'1.0-1' }} days</span>
+          <small class="lb-note">from {{ leaveBalance!.leaveYear - 1 }}</small>
+        </div>
+        <div class="lb-item lb-item--total">
+          <span class="lb-label">Available leave</span>
+          <span class="lb-value">{{ leaveBalance!.availableLeave | number:'1.0-1' }} days</span>
+          <small class="lb-note">you can take now</small>
+        </div>
+      </div>
+
+      <p class="leave-balance-foot" *ngIf="leaveBalance!.unpaidLeaveDays > 0">
+        <i class="fa fa-circle-info"></i>
+        {{ leaveBalance!.unpaidLeaveDays | number:'1.0-1' }} day(s) taken this year went beyond
+        your balance and were unpaid.
+      </p>
+      <p class="leave-balance-foot" *ngIf="leaveBalance!.carryForwardPercent > 0">
+        <i class="fa fa-arrow-right-long"></i>
+        Up to {{ leaveBalance!.maxCarryForward | number:'1.0-1' }} day(s)
+        ({{ leaveBalance!.carryForwardPercent }}% of your annual entitlement) can carry into
+        {{ leaveBalance!.leaveYear + 1 }} — on today's balance that would be
+        {{ leaveBalance!.projectedCarryForward | number:'1.0-1' }}.
+      </p>
+      <p class="leave-balance-foot" *ngIf="leaveBalance!.carryForwardPercent === 0">
+        <i class="fa fa-triangle-exclamation"></i>
+        Carry forward is switched off for this lab — unused leave lapses at the end of
+        {{ leaveBalance!.leaveYear }}.
+      </p>
+    </div>
+
+    <!-- Form card -->
+    <form [formGroup]="form" (ngSubmit)="save()" class="ar-card">
+
+      <div class="field" *ngIf="!isEdit">
+        <label class="field-label">Request Type</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="open-existing-btn" [class.active]="mode === 'correction'"
+                  [style.opacity]="mode === 'correction' ? 1 : .6" (click)="setMode('correction')">
+            Present / Half Day
+          </button>
+          <button type="button" class="open-existing-btn" [class.active]="mode === 'leave'"
+                  [style.opacity]="mode === 'leave' ? 1 : .6" (click)="setMode('leave')">
+            Apply Leave
+          </button>
+        </div>
+        <small class="field-hint" *ngIf="mode === 'leave'">Leave can be applied for the past 7 days, this week or next week.</small>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Attendance Date <span class="req">*</span></label>
+        <div class="input-icon ar-datefield" [class.invalid]="f['attendanceDate'].touched && f['attendanceDate'].invalid">
+          <i class="fa fa-calendar-days lead-icon"></i>
+          <app-date-picker formControlName="attendanceDate"
+                           inputClass="form-control"
+                           [min]="minDate"
+                           [max]="pickerMax"
+                           placeholder="Select date"></app-date-picker>
+        </div>
+        <small *ngIf="isEdit" class="field-hint">Date can't be changed — cancel and create a new request for a different day.</small>
+        <small *ngIf="f['attendanceDate'].touched && f['attendanceDate'].invalid" class="field-error">
+          {{ mode === 'leave' ? 'Please choose a date from the past 7 days up to next week.' : 'Please choose a date (today or earlier).' }}
+        </small>
+      </div>
+
+      <div *ngIf="currentStatusLoading" class="current-note current-note--loading">
+        <i class="fa fa-spinner fa-spin"></i> Checking what's currently recorded…
+      </div>
+      <div *ngIf="!currentStatusLoading && currentStatusLabel" class="current-note">
+        <i class="fa fa-circle-info"></i>
+        Currently recorded as <strong>{{ currentStatusLabel }}</strong> for this date.
+      </div>
+      <div *ngIf="!currentStatusLoading && !currentStatusLabel && f['attendanceDate'].value" class="current-note current-note--muted">
+        <i class="fa fa-circle-info"></i>
+        Nothing recorded for this date yet.
+      </div>
+
+      <!-- A request for this date is already awaiting a decision. A second one is
+           rejected by the server, so point at the existing one instead. -->
+      <div *ngIf="!currentStatusLoading && hasExistingRequest" class="current-note current-note--blocked">
+        <i class="fa fa-clock"></i>
+        <span>
+          You already have a request for this date awaiting a decision<ng-container
+            *ngIf="existingRequestedLabel"> — {{ existingRequestLabel || 'Pending' }},
+            {{ existingRequestedLabel }} requested</ng-container>.
+          Edit or cancel that one instead of raising another.
+        </span>
+        <button type="button" class="open-existing-btn" (click)="openExistingRequest()">
+          View request <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Requested Status <span class="req">*</span></label>
+        <div class="input-icon" [class.invalid]="f['requestedStatus'].touched && f['requestedStatus'].invalid">
+          <i class="fa fa-clipboard-check lead-icon"></i>
+          <select formControlName="requestedStatus" class="form-control has-icon">
+            <option value="" disabled>Select status…</option>
+            <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+          </select>
+          <i class="fa fa-chevron-down trail-icon"></i>
+        </div>
+        <small *ngIf="f['requestedStatus'].touched && f['requestedStatus'].invalid" class="field-error">
+          Please select the status you're requesting.
+        </small>
+
+        <!-- Only appears once there's a real change from what's on record — a
+             brand-new, never-marked day has nothing to be "subject to approval" yet. -->
+        <div *ngIf="isChangingRecordedStatus" class="approval-note">
+          <i class="fa fa-triangle-exclamation"></i>
+          This changes attendance already recorded as <strong>{{ currentStatusLabel }}</strong>.
+          Subject to approval from admin/super admin.
+        </div>
+
+        <!-- Guidance, not a gate: the request can still be submitted, and payroll
+             settles the paid/unpaid split from the balance at the time. -->
+        <div *ngIf="exceedsAvailableLeave" class="approval-note approval-note--leave">
+          <i class="fa fa-circle-exclamation"></i>
+          This would take {{ leaveDaysRequested | number:'1.0-1' }} day(s) of paid leave but
+          you have {{ leaveBalance!.availableLeave | number:'1.0-1' }} available.
+          <strong>{{ unpaidDaysIfSubmitted | number:'1.0-1' }} day(s) would be unpaid</strong>
+          and deducted from your salary.
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Reason <span class="optional">(optional)</span></label>
+        <div class="input-icon textarea-wrap">
+          <i class="fa fa-file-lines lead-icon top"></i>
+          <textarea formControlName="reason" rows="4" maxlength="500" class="form-control has-icon"
+                    placeholder="e.g. I was present but forgot to check in."></textarea>
+          <span class="char-count">{{ f['reason'].value?.length || 0 }}/500</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn-gradient" [disabled]="isSaving || hasExistingRequest"
+                [title]="hasExistingRequest ? 'A request for this date is already awaiting a decision' : ''">
+          <i class="fa fa-paper-plane" *ngIf="!isSaving"></i>
+          {{ isSaving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Submit Request') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

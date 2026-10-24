@@ -1,0 +1,133 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { getDiagnocareApiUrl } from 'src/app/core/utils/api-base-url.util';
+import { Observable } from 'rxjs/internal/Observable';
+import { apiEndpoints, controllerEndpoints } from 'src/app/shared/constants/constants';
+
+
+@Injectable({
+  providedIn: 'root',
+})
+
+export class HeaderService {
+      
+  private readonly url: string;
+  private readonly loginUrl: string;
+  private readonly mfaUrl: string;
+
+  constructor(private httpClient: HttpClient) {
+    this.url      = getDiagnocareApiUrl() + controllerEndpoints.header;
+    this.loginUrl = getDiagnocareApiUrl() + controllerEndpoints.login;
+    this.mfaUrl   = getDiagnocareApiUrl() + controllerEndpoints.mfa;
+  }
+
+  getUserDetails(userName: string) {
+      const endpoint = `${this.url}${apiEndpoints.getUserDetails}?userName=${userName}`;
+      return this.httpClient.get(endpoint);
+  }
+  
+  /**
+   * Changes the signed-in user's own password. The server takes the account from the JWT and
+   * checks the current password in the same call; nothing here names a user.
+   */
+  changePassword(oldPassword: string, newPassword: string) {
+    return this.httpClient.post(`${this.url}${apiEndpoints.changePassword}`, { oldPassword, newPassword });
+  }
+
+  /**
+   * Fetch profile image for a user
+   * Can return either a blob (image) or a JSON response with error details
+   * @param userName - The username to fetch profile image for
+   * @returns Observable that emits either a Blob (image) or a Blob containing JSON error response
+   */
+  getProfileImage(userName: string): Observable<Blob> {
+    const endpoint = `${this.url}${apiEndpoints.profileImage}?userName=${userName}`;
+    return this.httpClient.get(endpoint, { responseType: 'blob' });
+  }
+  uploadProfilePhoto(userName: string, file: File) {
+    const endpoint = `${this.url}${apiEndpoints.uploadProfileImage}`;
+    const formData = new FormData();
+    formData.append('userName', userName);
+    formData.append('file', file);
+    return this.httpClient.post(endpoint, formData);
+  }
+
+    updateAuthType(User_Name: string, loginType: number) {
+      const endpoint = `${this.url}${apiEndpoints.updateAuthType}`;
+      const request = { User_Name, loginType };
+      return this.httpClient.put(endpoint, request);
+    }
+
+    /**
+     * Sends an OTP for a profile update (email / phone change).
+     * Uses Bearer auth via HeaderController — separate from the login-flow OTP.
+     */
+    sendProfileOtp(id: number, userId: string, channel: 'email' | 'phone', email?: string, contactPhone?: string): Observable<{ success: boolean; message: string }> {
+      const endpoint = `${this.url}${apiEndpoints.sendProfileOtp}`;
+      return this.httpClient.post<{ success: boolean; message: string }>(
+        endpoint,
+        { id, userId, channel, email, contactPhone }
+      );
+    }
+
+    /**
+     * Verifies a profile-update OTP (email/phone) or TOTP code (authenticator app).
+     * authType: 1=Mobile, 2=Email, 3=AuthenticationApp
+     * Returns { success, message } only — no JWT issued.
+     */
+    verifyProfileOtp(userId: string, code: string, authType: number = 1): Observable<{ success: boolean; message: string }> {
+      const endpoint = `${this.url}${apiEndpoints.verifyProfileOtp}`;
+      return this.httpClient.post<{ success: boolean; message: string }>(
+        endpoint,
+        { userId, code, authType }
+      );
+    }
+
+    updateUserEmail(userName: string, email: string) {
+      const endpoint = `${this.url}${apiEndpoints.updateUserEmail}`;
+      return this.httpClient.put(endpoint, { userName, email });
+    }
+
+    updateUserPhone(userName: string, contactPhone: string) {
+      const endpoint = `${this.url}${apiEndpoints.updateUserPhone}`;
+      return this.httpClient.put(endpoint, { userName, contactPhone });
+    }
+
+    getMFAStatus(userName: string): Observable<{
+      isMfaEnabled: boolean;
+      hasSecret:    boolean;
+      issuer?:      string;
+      accountName?: string;
+      deviceName?:  string;
+      configuredAt?: string;
+    }> {
+      const endpoint = `${this.mfaUrl}${apiEndpoints.getMFAStatus}?userName=${encodeURIComponent(userName)}`;
+      return this.httpClient.get<{
+        isMfaEnabled: boolean;
+        hasSecret:    boolean;
+        issuer?:      string;
+        accountName?: string;
+        deviceName?:  string;
+        configuredAt?: string;
+      }>(endpoint);
+    }
+
+    setupMFA(userName: string): Observable<{ qrCodeImageBase64: string; qrCodeUri: string; manualEntryKey: string; issuer: string }> {
+      const endpoint = `${this.mfaUrl}${apiEndpoints.setupMFA}?userName=${encodeURIComponent(userName)}`;
+      return this.httpClient.post<{ qrCodeImageBase64: string; qrCodeUri: string; manualEntryKey: string; issuer: string }>(endpoint, { userName });
+    }
+
+    verifyMFA(userName: string, code: string, deviceName?: string): Observable<{ success: boolean; message?: string }> {
+      const endpoint = `${this.mfaUrl}${apiEndpoints.confirmMfaSetup}`;
+      return this.httpClient.post<{ success: boolean; message?: string }>(endpoint, { userId: userName, TotpCode: code, deviceName });
+    }
+
+    disableMFA(userName: string, totpCode: string): Observable<{ success: boolean; message?: string }> {
+      const endpoint = `${this.mfaUrl}${apiEndpoints.disableMFA}`;
+      return this.httpClient.post<{ success: boolean; message?: string }>(
+        endpoint,
+        { UserId: userName, TotpCode: totpCode }
+      );
+    }
+
+}

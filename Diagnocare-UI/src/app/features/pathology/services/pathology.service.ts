@@ -1,0 +1,188 @@
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { apiEndpoints, controllerEndpoints } from 'src/app/shared/constants/constants';
+import { FileToUpload } from 'src/app/features/pathology/models/fileToUpload';
+import { PathologyListDto } from 'src/app/features/pathology/models/pathology-list.dto';
+import { PathologyEditDto } from 'src/app/features/pathology/models/pathology-edit.dto';
+import { PathologyRegisterDto } from 'src/app/features/pathology/models/pathology-register.dto';
+import { PathologyRegisterResponseDto } from 'src/app/features/pathology/models/pathology-register-response.dto';
+import { PathologyPublicInfoDto } from 'src/app/features/pathology/models/pathology-public-info.dto';
+import { PathologyProfileDto } from 'src/app/features/pathology/models/pathology-profile.dto';
+import { getDiagnocareApiUrl } from 'src/app/core/utils/api-base-url.util';
+import { CommonService } from 'src/app/shared/services/common.service';
+import { TokenService } from 'src/app/core/services/token.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PathologyService {
+
+  url:string;
+
+  constructor(
+    private httpClient: HttpClient,
+    private commonService: CommonService,
+    private tokenService: TokenService,
+  ) {
+      this.url=getDiagnocareApiUrl()+controllerEndpoints.pathology;
+  }
+     
+     uploadFile(theFile: FileToUpload) : Observable<any> {
+        const httpOptions = {
+          headers: new HttpHeaders({
+            'Content-Type': 'application/json'
+          })
+        };
+        return this.httpClient.post<FileToUpload>(this.url+apiEndpoints.uploadImage, theFile, httpOptions);
+      }
+
+      getPathology(): Observable<PathologyListDto>
+      {
+        let geturl=this.url+apiEndpoints.getProfile;
+        return this.httpClient.get<PathologyListDto>(geturl);
+      }
+
+      /**
+       * Lab profile: identity + license summary from the shared PathologyManager API,
+       * merged with fields that live only in this lab's own database. No raw license
+       * key is ever returned — safe to cache client-side (see PathologyProfileCacheService).
+       */
+      getProfile(): Observable<PathologyProfileDto>
+      {
+        let geturl=this.url+apiEndpoints.getProfile;
+        return this.httpClient.get<PathologyProfileDto>(geturl);
+      }
+
+      /** Cheap change-check: returns { version } for the lab's shared profile. */
+      getProfileVersion(): Observable<{ version: number }>
+      {
+        return this.httpClient.get<{ version: number }>(this.url + apiEndpoints.getProfileVersion);
+      }
+
+      updatePathology(path: FormData | PathologyEditDto): Observable<PathologyListDto>
+      {
+        return this.httpClient.put<PathologyListDto>(this.url+apiEndpoints.update, path);
+      }
+
+      /** Public endpoint — no auth token required */
+      registerPathology(dto: PathologyRegisterDto, provisioningToken: string): Observable<PathologyRegisterResponseDto> {
+        return this.httpClient.post<PathologyRegisterResponseDto>(
+          this.url + apiEndpoints.add, dto,
+          { headers: { 'X-Provisioning-Token': provisioningToken } }
+        );
+      }
+
+      /**
+       * Public (no-auth) — check if pathology is registered and get licence info.
+       * Works both before and after login.
+       *
+       * @param refresh  false (default) → licence details come from the server-side cache.
+       *                 true            → pulls the latest licence from the shared
+       *                                   PathologyManager API. Capped at 5 refreshes per hour;
+       *                                   past that the API still returns 200 with cached values
+       *                                   and `rateLimited: true`, so this never throws for
+       *                                   over-refreshing. Check `refreshesRemaining` for the
+       *                                   quota left.
+       */
+      getPublicInfo(refresh: boolean = false): Observable<PathologyPublicInfoDto> {
+        // An empty HttpParams adds no query string, so the default call is byte-for-byte
+        // the same request this method has always made.
+        let params = new HttpParams();
+        if (refresh) {
+          params = params.set('refresh', 'true');
+        }
+
+        return this.httpClient.get<PathologyPublicInfoDto>(
+          this.url + apiEndpoints.getPublicInfo, { params }
+        );
+      }
+
+      // Note: no extendLicense() here by design. Licence extension lives in the
+      // shared Diagnocare application; this app only reads licence state via
+      // getPublicInfo() / getActiveLicense().
+
+      /**
+       * PUT — updates the grace buffer duration (minutes) stored in token_expiry_in_minutes.
+       * Within this window after JWT expiry, users with a PIN are prompted to re-authenticate
+       * instead of being immediately redirected to /login.
+       * Set to 0 to disable PIN re-authentication entirely.
+       */
+      updateGraceBuffer(minutes: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updateGraceBuffer}?graceBufferInMinutes=${minutes}`,
+          null
+        ).pipe(
+          // Keep the cached value in sync so callers don't need to (and so the
+          // cache is fresh the next time AppComponent/interceptor reads it,
+          // without another GET round-trip).
+          tap(() => this.tokenService.setGraceBufferMinutes(minutes)));
+      }
+
+      /**
+       * PUT — updates the maximum discount percentage (0–99).
+       * Only Admin users should call this.
+       */
+      updateMaxDiscount(maxDiscountPercent: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updateMaxDiscount}?maxDiscountPercent=${maxDiscountPercent}`,
+          null
+        ).pipe(
+          tap(() => this.tokenService.setMaxDiscountPercent(maxDiscountPercent)));
+      }
+
+      /**
+       * PUT — updates the session lockout threshold (minutes). 0 = disabled.
+       * Only Admin users should call this.
+       */
+      updateSessionLockout(sessionLockoutMinutes: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updateSessionLockout}?sessionLockoutMinutes=${sessionLockoutMinutes}`,
+          null
+        ).pipe(
+          tap(() => this.tokenService.setSessionLockoutMinutes(sessionLockoutMinutes)));
+      }
+
+      /**
+       * PUT - updates the share of an employee's ANNUAL paid-leave entitlement (0-100)
+       * that may be carried into the next leave year. Default 50. Super Admin only.
+       *
+       * A cap on the carry-forward, not a share of the unused balance: at 50% an employee
+       * entitled to 24 days a year carries over at most 12, so 18 unused days become 12
+       * and 8 unused days stay 8. Set to 0 to make leave lapse at the end of every year.
+       *
+       * No TokenService cache to keep in step - the percentage is read server-side when a
+       * balance or a year-end run needs it, never from the client.
+       */
+      updatePaidLeaveCarryForward(paidLeaveCarryForwardPercent: number): Observable<any> {
+        return this.httpClient.put<any>(
+          `${this.url}${apiEndpoints.updatePaidLeaveCarryForward}` +
+            `?paidLeaveCarryForwardPercent=${paidLeaveCarryForwardPercent}`,
+          null
+        );
+      }
+
+      /**
+       * POST — uploads the pathology logo to the database.
+       * Accepts a data-URL (e.g. from FileReader.readAsDataURL); the API strips
+       * the data-URI prefix automatically before storing the raw bytes.
+       */
+      uploadLogo(logoBase64: string): Observable<any> {
+        return this.httpClient.post<any>(
+          `${this.url}UploadLogo`,
+          { logoBase64 }
+        );
+      }
+
+      /** DELETE — removes the pathology logo from the database. */
+      removeLogo(): Observable<any> {
+        return this.httpClient.delete<any>(`${this.url}Logo`);
+      }
+
+      getPathologyExpiryDate(): Observable<any> {
+        const geturl = this.url + apiEndpoints.getPathologyExpiryDate;
+        return this.httpClient.get<any>(geturl);
+      }
+
+}
+

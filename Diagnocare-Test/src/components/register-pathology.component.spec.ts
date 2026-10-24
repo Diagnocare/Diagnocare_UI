@@ -2,8 +2,8 @@ import { TestBed }                    from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { of, throwError }            from 'rxjs';
 
-import { RegisterPathologyComponent } from 'src/app/component/pathology/register-pathology/register-pathology.component';
-import { PathologyService }            from 'src/app/services/pathologyServices/pathology.service';
+import { RegisterPathologyComponent } from 'src/app/features/pathology/pages/register-pathology/register-pathology.component';
+import { PathologyService }            from 'src/app/features/pathology/services/pathology.service';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

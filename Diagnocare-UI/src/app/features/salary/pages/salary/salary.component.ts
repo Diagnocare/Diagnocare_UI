@@ -1,0 +1,1326 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
+import { ToastrService } from 'ngx-toastr';
+
+import { LoadingSpinnerComponent } from 'src/app/shared/components/loading-spinner/loading-spinner.component';
+import { DatePickerComponent } from 'src/app/shared/components/date-picker/date-picker.component';
+import { SalaryService } from 'src/app/features/salary/services/salary.service';
+import { MemberService } from 'src/app/features/staff/services/member.service';
+import { MemberDto } from 'src/app/features/staff/models/member.dto';
+import { filterActiveMembers, isActiveByDate } from 'src/app/shared/utils/member-utils';
+import { Role } from 'src/app/shared/constants/enums';
+import {
+  SalaryStatus,
+  PaymentFor,
+  PaymentForLabels,
+  PaymentType,
+  PaymentMode,
+  PaymentModeLabels,
+  PaymentModeIcons,
+  MODES_REQUIRING_REFERENCE,
+  PaymentStatus,
+  PaymentStatusLabels,
+  SalaryRecordDTO,
+  MonthlySalaryResponseDTO,
+  UserSalaryConfigDTO,
+  AddPaymentDTO,
+  SaveSalaryConfigDTO,
+  CalculatePayableSalaryDTO,
+  PartialPaymentDTO,
+  PaymentHistoryDTO,
+} from 'src/app/features/salary/models/salary.dto';
+
+@Component({
+  selector: 'app-salary',
+  templateUrl: './salary.component.html',
+  styleUrls: ['./salary.component.scss'],
+  standalone: true,
+  imports: [CommonModule, FormsModule, LoadingSpinnerComponent, DatePickerComponent],
+  providers: [CurrencyPipe, DatePipe],
+})
+export class SalaryComponent implements OnInit, OnDestroy {
+
+  readonly revenuePercentEnabled = false;
+  // ── Tab state ──────────────────────────────────────────────────────────────
+  activeTab: 'monthly' | 'config' = 'monthly';
+
+  // ── Month navigation ───────────────────────────────────────────────────────
+  currentYear  = new Date().getFullYear();
+  currentMonth = new Date().getMonth() + 1;
+
+  readonly MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  get monthLabel(): string {
+    return `${this.MONTH_NAMES[this.currentMonth - 1]} ${this.currentYear}`;
+  }
+
+  get isCurrentMonth(): boolean {
+    const now = new Date();
+    return this.currentYear === now.getFullYear() && this.currentMonth === now.getMonth() + 1;
+  }
+
+  /** True when the displayed month is exactly the calendar month before today. */
+  get isLastMonth(): boolean {
+    const now = new Date();
+    // getMonth() is 0-indexed, so getMonth() alone = previous month in 1-indexed form
+    let lm = now.getMonth()+1;        // e.g. May(4) → 4 = April in 1-indexed
+    let ly = now.getFullYear();
+    if (lm === 0) { lm = 12; ly--; }  // January edge-case → December of prev year
+    return this.currentYear === ly && this.currentMonth === lm;
+  }
+
+  /**
+   * True when the Calculate Payable Salary option should be shown:
+   * - Any past month (before the current calendar month), OR
+   * - The current month, but only on the last day of that month.
+   */
+  get shouldShowCalc(): boolean {
+    const now        = new Date();
+    const todayYear  = now.getFullYear();
+    const todayMonth = now.getMonth() + 1; // 1-indexed
+
+    // Past month: displayed month is strictly before today's month
+    if (
+      this.currentYear < todayYear ||
+      (this.currentYear === todayYear && this.currentMonth < todayMonth)
+    ) {
+      return true;
+    }
+
+    // Current month: only on the last day
+    if (this.currentYear === todayYear && this.currentMonth === todayMonth) {
+      const lastDay = new Date(todayYear, todayMonth, 0).getDate(); // day-0 of next month = last day of this month
+      return now.getDate() === lastDay;
+    }
+
+    return false;
+  }
+
+  // ── Inactive toggle ────────────────────────────────────────────────────────
+  showInactive = false;
+
+  toggleInactive(): void {
+    this.showInactive = !this.showInactive;
+    // No reload — all employees are already in monthlyData.
+    // filteredRecords recomputes automatically from showInactive.
+    this.closePanel();
+  }
+
+  // ── Monthly salary state ───────────────────────────────────────────────────
+  monthlyData:   MonthlySalaryResponseDTO | null = null;
+  isLoading      = false;
+  isGenerating   = false;
+  spinnerMessage = 'Loading salary data…';
+  searchTerm     = '';
+
+  // ── Role filter ────────────────────────────────────────────────────────────
+  roleFilter: 'all' | 'doctor' | 'collection-boy' | 'other' = 'other';
+
+  setRoleFilter(f: 'all' | 'doctor' | 'collection-boy' | 'other'): void {
+    this.roleFilter = f;
+  }
+
+  /**
+   * PERF-020 — keys for the salary grid and the payment-history panel. Every
+   * re-fetch (month change, a payment recorded, a recalculation) replaces these
+   * arrays with fresh instances, so without a key each refresh rebuilt every row
+   * of a table whose template is 1,379 lines.
+   */
+  trackBySalaryId(_index: number, rec: { salaryId: number }): number {
+    return rec.salaryId;
+  }
+
+  trackByMemberId(_index: number, member: { id: number }): number {
+    return member.id;
+  }
+
+  trackByPaymentId(_index: number, pay: { paymentId: number }): number {
+    return pay.paymentId;
+  }
+
+  trackByMonth(_index: number, month: { month: string }): string {
+    return month.month;
+  }
+
+  get filteredRecords(): SalaryRecordDTO[] {
+    let employees = this.monthlyData?.employees ?? [];
+
+    // Active/inactive filter — client-side via member-utils
+    if (!this.showInactive) employees = employees.filter(r => isActiveByDate(r.deactivatedAt));
+
+    // Role filter
+    if (this.roleFilter === 'doctor')              employees = employees.filter(r => r.typeUserId === 6);
+    else if (this.roleFilter === 'collection-boy') employees = employees.filter(r => r.typeUserId === 5);
+    else if (this.roleFilter === 'other')          employees = employees.filter(r => [1, 2, 3].includes(r.typeUserId));
+
+    // Name search
+    if (!this.searchTerm.trim()) return employees;
+    const q = this.searchTerm.toLowerCase();
+    return employees.filter(r => r.fullName.toLowerCase().includes(q));
+  }
+
+  get displayTotals(): { payable: number; paid: number; pending: number } {
+    const recs = this.filteredRecords;
+    return {
+      payable: recs.reduce((s, r) => s + (r.netSalary     ?? 0), 0),
+      paid:    recs.reduce((s, r) => s + (r.totalPaid     ?? 0), 0),
+      pending: recs.reduce((s, r) => s + (r.pendingAmount ?? 0), 0),
+    };
+  }
+
+  get isMonthGenerated(): boolean {
+    const employees = this.monthlyData?.employees ?? [];
+    return employees.length > 0 && employees.every(r => r.salaryId > 0);
+  }
+
+  // ── Payment panel ──────────────────────────────────────────────────────────
+  panelRecord:      SalaryRecordDTO | null = null;
+  isPanelOpen       = false;
+  isAddingPayment   = false;
+  paymentForm: AddPaymentDTO = this.blankPaymentForm();
+  paymentAmountError = '';
+  /** Locks the amount field when Pay Full auto-calculates the value. */
+  isFullPaymentAmountLocked  = false;
+  /** True while the Pay Full button is fetching the calculated salary. */
+  isCalculatingForPayment    = false;
+  /** Stored result from calculatePayableSalary — used to show adjusted net in the Pay Full modal. */
+  fullPaymentCalcResult: CalculatePayableSalaryDTO | null = null;
+
+  /**
+   * When a Pay Full calculation result is available, returns
+   * payableBaseSalary + TA + OA − PF (the deduction-adjusted net salary).
+   * Falls back to panelRecord.netSalary for partial payments.
+   */
+  get displayNetSalary(): number {
+    if (this.fullPaymentCalcResult && this.panelRecord) {
+      return (
+        this.fullPaymentCalcResult.payableBaseSalary +
+        (this.panelRecord.travelAllowance ?? 0) +
+        (this.panelRecord.otherAllowance  ?? 0) -
+        (this.panelRecord.pfAmount        ?? 0)
+      );
+    }
+    return this.panelRecord?.netSalary ?? 0;
+  }
+
+  /**
+   * Pending = displayNetSalary − totalPaid.
+   * In Full Payment mode displayNetSalary is leave-deduction-adjusted,
+   * so this always reflects the true outstanding amount.
+   */
+  get displayPendingAmount(): number {
+    if (!this.panelRecord) return 0;
+    return Math.max(0, this.displayNetSalary - (this.panelRecord.totalPaid ?? 0));
+  }
+
+  readonly PaymentType = PaymentType;
+  readonly PaymentMode = PaymentMode;
+  readonly PaymentStatus = PaymentStatus;
+
+  private blankPaymentForm(): AddPaymentDTO {
+    const d = new Date();
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return {
+      salaryId:             0,
+      paymentAmount:        0,
+      paymentMonth:         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      paymentDate:          iso,
+      reference:            '',
+      paymentFor:           PaymentFor.BaseSalary,
+      paymentType:          PaymentType.Partial,
+      paymentMode:          PaymentMode.Cash,
+      transactionReference: '',
+      remarks:              '',
+      paymentStatus:        PaymentStatus.Completed,
+    };
+  }
+
+  // ── Payment mode / status pickers ──────────────────────────────────────────
+
+  readonly paymentModeOptions: { value: PaymentMode; label: string; icon: string }[] = [
+    PaymentMode.Cash,
+    PaymentMode.UPI,
+    PaymentMode.BankTransfer,
+    PaymentMode.Cheque,
+    PaymentMode.Card,
+    PaymentMode.Other,
+  ].map(value => ({ value, label: PaymentModeLabels[value], icon: PaymentModeIcons[value] }));
+
+  readonly paymentStatusOptions: { value: PaymentStatus; label: string }[] = [
+    PaymentStatus.Completed,
+    PaymentStatus.Pending,
+    PaymentStatus.Failed,
+  ].map(value => ({ value, label: PaymentStatusLabels[value] }));
+
+  /** Error shown under the transaction reference field. */
+  transactionRefError = '';
+
+  /**
+   * True when the selected mode moves money through a traceable channel, so a
+   * transaction number must be supplied. Mirrors the API's own rule — the server
+   * rejects the request either way; this just says so before the round trip.
+   */
+  get isReferenceRequired(): boolean {
+    return MODES_REQUIRING_REFERENCE.includes(this.paymentForm.paymentMode);
+  }
+
+  /** Clear a stale "reference required" error when the mode no longer needs one. */
+  onPaymentModeChange(): void {
+    this.validateTransactionRef();
+  }
+
+  validateTransactionRef(): void {
+    const ref = (this.paymentForm.transactionReference ?? '').trim();
+    if (this.isReferenceRequired && !ref) {
+      this.transactionRefError =
+        `A transaction / reference number is required for ${this.paymentModeLabel(this.paymentForm.paymentMode)} payments.`;
+    } else if (ref.length > 100) {
+      this.transactionRefError = 'Reference cannot exceed 100 characters.';
+    } else {
+      this.transactionRefError = '';
+    }
+  }
+
+  paymentModeLabel(mode: PaymentMode | number | undefined): string {
+    if (mode === undefined || mode === null) return '—';
+    return PaymentModeLabels[mode as PaymentMode] ?? '—';
+  }
+
+  paymentModeIcon(mode: PaymentMode | number | undefined): string {
+    return PaymentModeIcons[mode as PaymentMode] ?? 'fa-money-bill-wave';
+  }
+
+  /** Stable CSS modifier per mode, so history badges colour consistently. */
+  paymentModeClass(mode: PaymentMode | number | undefined): string {
+    switch (Number(mode)) {
+      case PaymentMode.Cash:         return 'pay-mode-cash';
+      case PaymentMode.UPI:          return 'pay-mode-upi';
+      case PaymentMode.BankTransfer: return 'pay-mode-bank';
+      case PaymentMode.Cheque:       return 'pay-mode-cheque';
+      case PaymentMode.Card:         return 'pay-mode-card';
+      default:                       return 'pay-mode-other';
+    }
+  }
+
+  paymentStatusLabel(status: PaymentStatus | number | undefined): string {
+    // Rows written before payment status existed read back as Completed.
+    if (status === undefined || status === null) return PaymentStatusLabels[PaymentStatus.Completed];
+    return PaymentStatusLabels[status as PaymentStatus] ?? '—';
+  }
+
+  paymentStatusClass(status: PaymentStatus | number | undefined): string {
+    switch (Number(status ?? PaymentStatus.Completed)) {
+      case PaymentStatus.Pending: return 'pay-status-pending';
+      case PaymentStatus.Failed:  return 'pay-status-failed';
+      default:                    return 'pay-status-completed';
+    }
+  }
+
+  readonly paymentForOptions: { value: PaymentFor; label: string }[] = [
+    { value: PaymentFor.BaseSalary,      label: PaymentForLabels[PaymentFor.BaseSalary] },
+    { value: PaymentFor.TravelAllowance, label: PaymentForLabels[PaymentFor.TravelAllowance] },
+    { value: PaymentFor.OtherAllowance,  label: PaymentForLabels[PaymentFor.OtherAllowance] },
+  ];
+
+  /** Returns the display label for a paymentSource numeric value. */
+  paymentForLabel(val: PaymentFor | number | undefined): string {
+    if (val === undefined || val === null) return '—';
+    return PaymentForLabels[val as PaymentFor] ?? '—';
+  }
+
+  /** Returns a stable CSS modifier class for a paymentSource numeric value. */
+  paymentForClass(val: PaymentFor | number | undefined): string {
+    switch (Number(val)) {
+      case PaymentFor.BaseSalary:      return 'pay-for-basesalary';
+      case PaymentFor.TravelAllowance: return 'pay-for-travelallowance';
+      case PaymentFor.OtherAllowance:  return 'pay-for-otherallowance';
+      case PaymentFor.AllComponents:   return 'pay-for-allcomponents';
+      default:                          return '';
+    }
+  }
+
+  // ── "All Components" labelling of a Pay Full row ───────────────────────────
+  //
+  // A Pay Full settles base + travel + other in a single transaction, but the
+  // API records it as ONE row filed under Base Salary. Showing that row as
+  // "Base Salary" is misleading — the money covers every component.
+  //
+  // The row is recognised by the only thing that can distinguish it: its amount
+  // exceeds the cap of the component it is filed under, which is impossible for
+  // a payment that really is for that component alone.
+  //
+  // Deliberately NOT keyed off paymentType. The API marks a row "Full" whenever
+  // it *completes* its component, so an ordinary partial that finishes off
+  // Travel Allowance comes back as "Full" too and must keep its own label.
+
+  /** Server-authoritative cap for one component in the month on screen. */
+  private capForSource(source: PaymentFor | number): number {
+    const rec = this.panelRecord;
+    if (!rec) return 0;
+    switch (Number(source)) {
+      case PaymentFor.BaseSalary:      return rec.baseSalaryCap ?? 0;
+      case PaymentFor.TravelAllowance: return rec.travelAllowance ?? 0;
+      case PaymentFor.OtherAllowance:  return rec.otherAllowance ?? 0;
+      default:                          return 0;
+    }
+  }
+
+  /**
+   * Payment ids that overshoot their component, recomputed only when the
+   * payments array itself changes (the getters below run on every change
+   * detection pass, so this must not walk the list each time).
+   */
+  private allCompCacheKey: PartialPaymentDTO[] | null = null;
+  private allCompIds = new Set<number>();
+
+  private allComponentsIds(): Set<number> {
+    const rows = this.panelRecord?.payments ?? [];
+    if (this.allCompCacheKey === rows) return this.allCompIds;
+
+    const ids = new Set<number>();
+    const cumulative = new Map<number, number>();
+
+    // Same ordering the API uses to decide Full vs Partial, so the two agree.
+    const ordered = [...rows].sort((a, b) =>
+      (a.paymentDate ?? '').localeCompare(b.paymentDate ?? '') || a.paymentId - b.paymentId);
+
+    for (const p of ordered) {
+      const src   = Number(p.paymentSource);
+      const cap   = this.capForSource(src);
+      const total = (cumulative.get(src) ?? 0) + (p.paymentAmount ?? 0);
+      cumulative.set(src, total);
+
+      // Paying more into a component than that component is worth is only
+      // possible when the row is really covering the other components too.
+      // Amounts are whole rupees; the half-rupee margin absorbs rounding.
+      if (cap > 0 && total > cap + 0.5) ids.add(p.paymentId);
+    }
+
+    this.allCompCacheKey = rows;
+    this.allCompIds      = ids;
+    return ids;
+  }
+
+  /** True when a recorded payment spans more than the component it is filed under. */
+  isAllComponentsPayment(pay: PartialPaymentDTO): boolean {
+    return this.allComponentsIds().has(pay.paymentId);
+  }
+
+  /** Display label for a payment row in the history list. */
+  paymentRowLabel(pay: PartialPaymentDTO): string {
+    return this.isAllComponentsPayment(pay)
+      ? PaymentForLabels[PaymentFor.AllComponents]
+      : this.paymentForLabel(pay.paymentSource);
+  }
+
+  /** Matching CSS modifier for a payment row in the history list. */
+  paymentRowClass(pay: PartialPaymentDTO): string {
+    return this.isAllComponentsPayment(pay)
+      ? this.paymentForClass(PaymentFor.AllComponents)
+      : this.paymentForClass(pay.paymentSource);
+  }
+
+  /** Strips the time portion from an ISO datetime string for clean display. */
+  formatPaymentDate(isoDate: string | null | undefined): string {
+    if (!isoDate) return '—';
+    return isoDate.split('T')[0];
+  }
+
+  // ── Calculate payable salary modal ────────────────────────────────────────
+  calcResult:        CalculatePayableSalaryDTO | null = null;
+  calcRecord:        SalaryRecordDTO | null = null;   // source record for TA / OA / PF
+  isCalcModalOpen    = false;
+  isCalculating      = false;
+  calcLoadingUserId: number | null = null;            // tracks which row is loading
+
+  /** Net payable = payableBaseSalary + TA + OA − PF */
+  get calcNetPayable(): number {
+    if (!this.calcResult || !this.calcRecord) return 0;
+    return (
+      this.calcResult.payableBaseSalary +
+      (this.calcRecord.travelAllowance ?? 0) +
+      (this.calcRecord.otherAllowance  ?? 0) -
+      (this.calcRecord.pfAmount        ?? 0)
+    );
+  }
+
+  openCalcModal(rec: SalaryRecordDTO): void {
+    if (this.isCalculating) return;
+    this.isCalculating     = true;
+    this.calcLoadingUserId = rec.userId;
+
+    this.salarySvc.calculatePayableSalary(rec.userId, this.currentYear, this.currentMonth)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: result => {
+          this.calcResult        = result;
+          this.calcRecord        = rec;
+          this.isCalcModalOpen   = true;
+          this.isCalculating     = false;
+          this.calcLoadingUserId = null;
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isCalculating     = false;
+          this.calcLoadingUserId = null;
+        },
+      });
+  }
+
+  closeCalcModal(): void {
+    this.isCalcModalOpen = false;
+    this.calcResult      = null;
+    this.calcRecord      = null;
+  }
+
+  // ── Salary config state ────────────────────────────────────────────────────
+  /**
+   * Every member eligible for a salary config — users, collection boys and doctors.
+   * The user endpoint omits Collection Boys (5) and Doctors (6) unless a role is
+   * passed, so the three lists are fetched separately and merged here.
+   */
+  userList: MemberDto[] = [];
+
+  // ── Staff-type selector (config tab) ──────────────────────────────────────
+  configStaffType: 'user' | 'collection-boy' | 'doctor' = 'user';
+
+  /** Which typeUserId values belong to each staff type in the picker. */
+  private readonly STAFF_TYPE_ROLES: Record<'user' | 'collection-boy' | 'doctor', number[]> = {
+    'user':           [Role.User.id, Role.Assistant.id, Role.Admin.id],
+    'collection-boy': [Role.Collection_Boy.id],
+    'doctor':         [Role.Doctor.id],
+  };
+
+  /** Plural label for the selected staff type — used in placeholders and empty states. */
+  get staffTypeLabel(): string {
+    switch (this.configStaffType) {
+      case 'doctor':         return 'Doctors';
+      case 'collection-boy': return 'Collection Boys';
+      default:               return 'Users';
+    }
+  }
+
+  /** How many active members the selected user type has (search term ignored). */
+  get staffTypeCount(): number {
+    const allowedRoles = this.STAFF_TYPE_ROLES[this.configStaffType];
+    return this.userList.filter(u =>
+      allowedRoles.includes(u.typeUserId) &&
+      u.last_Name?.toLowerCase() !== 'admin'
+    ).length;
+  }
+
+  /** Singular label for the selected staff type. */
+  get staffTypeSingular(): string {
+    switch (this.configStaffType) {
+      case 'doctor':         return 'Doctor';
+      case 'collection-boy': return 'Collection Boy';
+      default:               return 'User';
+    }
+  }
+
+  setConfigStaffType(type: 'user' | 'collection-boy' | 'doctor'): void {
+    if (this.configStaffType === type) return;
+    this.configStaffType = type;
+    // The selected employee belongs to the previous type — drop it so the
+    // config card below never shows someone who is not in the visible list.
+    this.clearUserSelection();
+    this.isDropdownOpen = false;
+  }
+
+  get filteredUserList(): MemberDto[] {
+    const allowedRoles = this.STAFF_TYPE_ROLES[this.configStaffType];
+    const eligible = this.userList.filter(u =>
+      allowedRoles.includes(u.typeUserId) &&
+      u.last_Name?.toLowerCase() !== 'admin'
+    );
+    if (!this.userSearchTerm.trim()) return eligible;
+    const q = this.userSearchTerm.toLowerCase();
+    return eligible.filter(u =>
+      (`${u.first_Name} ${u.last_Name}`).toLowerCase().includes(q) ||
+      u.user_Name?.toLowerCase().includes(q)
+    );
+  }
+
+  configList: UserSalaryConfigDTO[] = [];
+  isLoadingConfigTab = false;
+  isSavingConfig     = false;
+
+  selectedConfigUserId: number | null = null;
+  userSearchTerm = '';
+  isDropdownOpen = false;
+
+  get selectedUserConfig(): UserSalaryConfigDTO | null {
+    if (!this.selectedConfigUserId) return null;
+    return this.configList.find(c => c.userId === this.selectedConfigUserId) ?? null;
+  }
+
+  get isNewConfig(): boolean {
+    return !!this.selectedConfigUserId && !this.selectedUserConfig;
+  }
+
+  isEditingConfig = false;
+
+  configDraft: SaveSalaryConfigDTO = {
+    userId:                 0,
+    baseSalary:             0,
+    pfPercentage:           12,
+    travelAllowance:        0,
+    otherAllowance:         0,
+    allowedLeavesPerMonth:  1,
+    salaryType:             0,
+    revenuePercentage:      null,
+  };
+
+  // ── Config live preview computations ──────────────────────────────────────
+  get draftPfAmount(): number {
+    return Math.round(((this.configDraft.baseSalary ?? 0) * (this.configDraft.pfPercentage ?? 0)) / 100);
+  }
+  get draftGrossSalary(): number {
+    return (this.configDraft.baseSalary ?? 0)
+         + (this.configDraft.travelAllowance ?? 0)
+         + (this.configDraft.otherAllowance  ?? 0);
+  }
+  /** Net = gross − PF on base. PF is only on base salary, not allowances. */
+  get draftNetPayable(): number {
+    return this.draftGrossSalary - this.draftPfAmount;
+  }
+
+  get hasFixedComponent(): boolean  { return (this.configDraft.baseSalary ?? 0) > 0; }
+  get hasPercentComponent(): boolean { return (this.configDraft.revenuePercentage ?? 0) > 0; }
+
+  // ── Existing config net (for view card) ───────────────────────────────────
+  configNetSalary(cfg: UserSalaryConfigDTO): number {
+    return (cfg.baseSalary ?? 0)
+         + (cfg.travelAllowance ?? 0)
+         + (cfg.otherAllowance  ?? 0)
+         - (cfg.pfAmount        ?? 0);
+  }
+
+  get selectedUserName(): string {
+    if (!this.selectedConfigUserId) return '';
+    const u = this.userList.find(x => x.id === this.selectedConfigUserId);
+    return u ? this.fullName(u) : '';
+  }
+
+  readonly SalaryStatus = SalaryStatus;
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private salarySvc: SalaryService,
+    private memberSvc: MemberService,
+    private toastr:    ToastrService,
+  ) {}
+
+  ngOnInit(): void {
+    this.loadMonthly();
+    this.loadConfigTab(); // prefetch in background so config tab is instant
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+
+  switchTab(tab: 'monthly' | 'config'): void {
+    this.activeTab = tab;
+    this.closePanel();
+    // Reload only if prefetch hasn't started or failed (isLoadingConfigTab = false AND list empty)
+    if (tab === 'config' && !this.userList.length && !this.isLoadingConfigTab) {
+      this.loadConfigTab();
+    }
+  }
+
+  // ── Month navigation ───────────────────────────────────────────────────────
+
+  prevMonth(): void {
+    if (this.currentMonth === 1) { this.currentMonth = 12; this.currentYear--; }
+    else { this.currentMonth--; }
+    this.monthlyData = null;
+    this.closePanel();
+    this.loadMonthly();
+  }
+
+  nextMonth(): void {
+    if (this.isCurrentMonth) return;
+    if (this.currentMonth === 12) { this.currentMonth = 1; this.currentYear++; }
+    else { this.currentMonth++; }
+    this.monthlyData = null;
+    this.closePanel();
+    this.loadMonthly();
+  }
+
+  // ── Monthly data ───────────────────────────────────────────────────────────
+
+  private loadMonthly(): void {
+    this.isLoading      = true;
+    this.spinnerMessage = `Loading salary data for ${this.monthLabel}…`;
+    this.salarySvc.getMonthlySalary(this.currentYear, this.currentMonth)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: data => {
+          data.employees = (data.employees ?? []).map(r => ({
+            ...r,
+            status: this.deriveStatus(r),
+          }));
+          this.monthlyData = data;
+
+          if (this.panelRecord) {
+            const fresh = data.employees.find(r => r.userId === this.panelRecord!.userId);
+            this.panelRecord = fresh ?? null;
+            if (!this.panelRecord) this.closePanel();
+          }
+          this.isLoading = false;
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isLoading = false;
+        },
+      });
+  }
+
+  private deriveStatus(rec: SalaryRecordDTO): SalaryStatus {
+    if (rec.isFullyPaid)            return SalaryStatus.Paid;
+    if ((rec.totalPaid ?? 0) > 0)   return SalaryStatus.PartiallyPaid;
+    return SalaryStatus.Pending;
+  }
+
+  // ── Generate salary ────────────────────────────────────────────────────────
+
+  // generateSalary(): void {
+  //   if (this.isGenerating) return;
+  //   this.isGenerating = true;
+  //   this.salarySvc.generateSalary({ month: this.currentMonth, year: this.currentYear })
+  //     .pipe(takeUntil(this.destroy$))
+  //     .subscribe({
+  //       next: () => {
+  //         this.toastr.success(`Salary generated for ${this.monthLabel}.`, 'Done');
+  //         this.isGenerating = false;
+  //         this.loadMonthly();
+  //       },
+  //       error: () => {
+  //         this.toastr.error('Failed to generate salary.', 'Error');
+  //         this.isGenerating = false;
+  //       },
+  //     });
+  // }
+
+  // ── Payment panel ──────────────────────────────────────────────────────────
+
+  openPanel(record: SalaryRecordDTO): void {
+    this.panelRecord         = record;
+    this.isPanelOpen         = true;
+    this.isAddingPayment     = false;
+    this.paymentAmountError  = '';
+    this.transactionRefError = '';
+    this.clearProofSelection();
+    this.paymentForm = {
+      ...this.blankPaymentForm(),
+      salaryId:     record.salaryId,
+      paymentMonth: `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
+    };
+  }
+
+  closePanel(): void {
+    this.isPanelOpen               = false;
+    this.panelRecord               = null;
+    this.isAddingPayment           = false;
+    this.isFullPaymentAmountLocked = false;
+    this.fullPaymentCalcResult     = null;
+    this.transactionRefError       = '';
+    this.clearProofSelection();
+  }
+
+  toggleAddPayment(): void {
+    if (!this.isAddingPayment && this.panelRecord) {
+      // Opening — reset to a blank Partial form (amount intentionally empty)
+      this.paymentForm = {
+        ...this.blankPaymentForm(),
+        salaryId:      this.panelRecord.salaryId,
+        paymentMonth:  `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
+        paymentAmount: null as unknown as number,   // renders as blank in the number input
+        paymentFor:    PaymentFor.BaseSalary,
+        paymentType:   PaymentType.Partial,
+      };
+    }
+    this.isAddingPayment           = !this.isAddingPayment;
+    this.isFullPaymentAmountLocked = false;
+    this.fullPaymentCalcResult     = null;
+    this.paymentAmountError        = '';
+    this.transactionRefError       = '';
+    this.clearProofSelection();
+  }
+
+  /**
+   * Pay Full: calls CalculatePayableSalary to get the deduction-adjusted net,
+   * subtracts any payments already recorded, then pre-fills and locks the amount field.
+   */
+  openFullPayment(): void {
+    if (!this.panelRecord || this.isCalculatingForPayment) return;
+    this.isCalculatingForPayment = true;
+
+    this.salarySvc
+      .calculatePayableSalary(this.panelRecord.userId, this.currentYear, this.currentMonth)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: result => {
+          const rec = this.panelRecord!;
+
+          // Net payable after leave deductions + allowances - PF
+          const netPayable =
+            result.payableBaseSalary +
+            (rec.travelAllowance ?? 0) +
+            (rec.otherAllowance  ?? 0) -
+            (rec.pfAmount        ?? 0);
+
+          // Subtract whatever has already been paid
+          const finalAmount = Math.max(0, netPayable - (rec.totalPaid ?? 0));
+
+          this.fullPaymentCalcResult     = result;
+          this.isAddingPayment           = true;
+          this.isFullPaymentAmountLocked = true;
+          this.paymentAmountError        = '';
+          this.transactionRefError       = '';
+          this.isCalculatingForPayment   = false;
+          this.clearProofSelection();
+
+          this.paymentForm = {
+            ...this.blankPaymentForm(),
+            salaryId:      rec.salaryId,
+            paymentMonth:  `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}`,
+            paymentAmount: finalAmount,
+            paymentFor:    PaymentFor.AllComponents,
+            paymentType:   PaymentType.Full,
+          };
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isCalculatingForPayment = false;
+        },
+      });
+  }
+
+  /**
+   * Returns the outstanding (unpaid) amount for whichever PaymentFor component
+   * is currently selected in the partial-payment form.
+   * Falls back to total pendingAmount for Full payments or unknown types.
+   */
+  get pendingForSelectedType(): number {
+    const rec = this.panelRecord;
+    if (!rec) return 0;
+
+    if (this.paymentForm.paymentType === PaymentType.Partial) {
+      switch (this.paymentForm.paymentFor) {
+        case PaymentFor.BaseSalary:
+          return Math.max(0, (rec.baseSalary ?? 0) - (rec.pfAmount ?? 0) - (rec.baseSalaryPaid ?? 0));
+        case PaymentFor.TravelAllowance:
+          return Math.max(0, (rec.travelAllowance ?? 0) - (rec.travelAllowancePaid ?? 0));
+        case PaymentFor.OtherAllowance:
+          return Math.max(0, (rec.otherAllowance ?? 0) - (rec.otherAllowancePaid ?? 0));
+      }
+    }
+
+    // Full payment — use total pending
+    return rec.pendingAmount ?? 0;
+  }
+
+  /** Fills the amount field with the max pending for the selected payment component. */
+  fillMaxAmount(): void {
+    if (!this.panelRecord) return;
+    this.paymentForm.paymentAmount = this.pendingForSelectedType;
+    this.onAmountInput();
+  }
+
+  /** Re-validate amount whenever the Payment For selection changes. */
+  onPaymentForChange(): void {
+    // Clear amount and error when switching components so the user starts fresh
+    this.paymentForm.paymentAmount = null as unknown as number;
+    this.paymentAmountError = '';
+  }
+
+  onAmountInput(): void {
+    if (!this.panelRecord) return;
+    const amt = this.paymentForm.paymentAmount ?? 0;
+    const max = this.pendingForSelectedType;
+
+    if (amt <= 0) {
+      this.paymentAmountError = 'Amount must be greater than ₹ 0.';
+    } else if (amt > max) {
+      const label = this.paymentForm.paymentType === PaymentType.Partial
+        ? `${this.paymentForLabel(this.paymentForm.paymentFor)} pending`
+        : 'pending';
+      this.paymentAmountError =
+        `Amount cannot exceed ${label} ₹ ${max.toLocaleString('en-IN')}.`;
+    } else {
+      this.paymentAmountError = '';
+    }
+  }
+
+  get paymentFormValid(): boolean {
+    const isPartial = this.paymentForm.paymentType === PaymentType.Partial;
+    const refOk = !this.isReferenceRequired || !!(this.paymentForm.transactionReference ?? '').trim();
+    return (
+      !this.paymentAmountError &&
+      !this.transactionRefError &&
+      refOk &&
+      (this.paymentForm.paymentAmount ?? 0) > 0 &&
+      !!this.paymentForm.paymentDate &&
+      (!isPartial || !!this.paymentForm.paymentFor)  // paymentFor only needed for Partial
+    );
+  }
+
+  // ── Payment proof upload ───────────────────────────────────────────────────
+
+  /** Largest proof the API accepts — 5 MB. Checked here so the user hears about it at once. */
+  private readonly MAX_PROOF_BYTES = 5 * 1024 * 1024;
+
+  /** What the API accepts. Kept in step with SalaryController.AllowedProofContentTypes. */
+  private readonly ALLOWED_PROOF_TYPES = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf',
+  ];
+
+  readonly proofAccept = '.jpg,.jpeg,.png,.webp,.pdf';
+
+  /** File chosen in the payment modal, uploaded after the payment row is created. */
+  selectedProofFile: File | null = null;
+  /** Object URL for the image preview, revoked whenever the selection changes. */
+  proofPreviewUrl: string | null = null;
+  proofError = '';
+  isUploadingProof = false;
+
+  /** True for a selection we can show inline; a PDF gets a file-name chip instead. */
+  get isProofImage(): boolean {
+    return !!this.selectedProofFile && this.selectedProofFile.type.startsWith('image/');
+  }
+
+  onProofFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    this.clearProofSelection();
+    if (!file) return;
+
+    if (!this.ALLOWED_PROOF_TYPES.includes(file.type.toLowerCase())) {
+      this.proofError = 'Unsupported file type. Choose a JPG, PNG, WEBP image or a PDF.';
+      input.value = '';
+      return;
+    }
+    if (file.size > this.MAX_PROOF_BYTES) {
+      this.proofError = 'File is larger than 5 MB.';
+      input.value = '';
+      return;
+    }
+
+    this.selectedProofFile = file;
+    if (file.type.startsWith('image/')) this.proofPreviewUrl = URL.createObjectURL(file);
+  }
+
+  /** Drops the pending selection and releases its preview URL. */
+  clearProofSelection(): void {
+    if (this.proofPreviewUrl) URL.revokeObjectURL(this.proofPreviewUrl);
+    this.proofPreviewUrl   = null;
+    this.selectedProofFile = null;
+    this.proofError        = '';
+  }
+
+  /** Human-readable size for the selected file / a stored proof. */
+  formatFileSize(bytes: number | null | undefined): string {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  /** PaymentId whose stored proof is being fetched, for the row spinner. */
+  proofLoadingId: number | null = null;
+
+  /**
+   * Opens a payment's stored proof in a new tab. The file is fetched as a blob
+   * (the endpoint needs the auth header, so a plain link would get a 401) and
+   * falls back to a download when the pop-up is blocked.
+   */
+  viewPaymentProof(pay: PartialPaymentDTO): void {
+    if (this.proofLoadingId || !pay.hasPaymentProof) return;
+    this.proofLoadingId = pay.paymentId;
+
+    this.salarySvc.getPaymentProof(pay.paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob: Blob) => {
+          this.proofLoadingId = null;
+          if (!blob || blob.size === 0) {
+            this.toastr.error('Payment proof could not be opened.', 'Error');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          if (!window.open(url, '_blank')) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = pay.proofFileName || `payment-proof-${pay.paymentId}`;
+            a.click();
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.proofLoadingId = null;
+        },
+      });
+  }
+
+  /** Removes a stored proof, leaving the payment itself in place. */
+  removePaymentProof(pay: PartialPaymentDTO): void {
+    if (!pay.hasPaymentProof) return;
+
+    this.salarySvc.deletePaymentProof(pay.paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastr.success('Payment proof removed.', 'Removed');
+          this.loadMonthly();
+          if (this.isHistoryModalOpen && this.historyRecord) this.loadHistory(this.historyRecord);
+        },
+        // Message shown centrally by ErrorInterceptor.
+        error: () => {},
+      });
+  }
+
+  submitPayment(): void {
+    if (!this.paymentFormValid || !this.panelRecord) return;
+    this.isAddingPayment = false;
+
+    // A Full payment settles EVERY component, so it must go to PayAllComponents,
+    // which writes one row per component that still has a balance.
+    //
+    // AddPayment's "Full" means something narrower — "settle ONE component in
+    // full" — and it reads that component from paymentFor. Sending a Full row
+    // without a paymentFor let the API fall back to its default of BaseSalary,
+    // so the request was validated against the base cap alone and failed with
+    // "BaseSalary for YYYY-MM is already fully paid" once base was settled, or
+    // "amount must exactly equal the pending BaseSalary balance" whenever
+    // allowances made the net differ from base. Neither is the intent here.
+    const request$ =
+      this.paymentForm.paymentType === PaymentType.Full
+        ? this.salarySvc.payAllComponents({
+            salaryId:             this.paymentForm.salaryId,
+            paymentMonth:         this.paymentForm.paymentMonth,
+            paymentDate:          this.paymentForm.paymentDate,
+            reference:            this.paymentForm.reference || null,
+            paymentMode:          this.paymentForm.paymentMode,
+            transactionReference: this.paymentForm.transactionReference || null,
+            remarks:              this.paymentForm.remarks || null,
+            paymentStatus:        this.paymentForm.paymentStatus,
+          })
+        : this.salarySvc.addPayment(this.paymentForm);
+
+    const amount = this.paymentForm.paymentAmount ?? 0;
+    const payee  = this.panelRecord.fullName;
+    const proof  = this.selectedProofFile;
+
+    request$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (created: any) => {
+          // A Full settlement returns one row per component. The proof is a single
+          // screenshot of a single transfer, so it is attached to the first row —
+          // which is also the one the history list surfaces first.
+          const paymentId = Array.isArray(created)
+            ? created[0]?.paymentId
+            : created?.paymentId;
+
+          if (proof && paymentId) {
+            this.uploadProofFor(paymentId, proof, amount, payee);
+            return;
+          }
+
+          if (proof && !paymentId) {
+            // Payment is safely recorded; only the attachment could not be placed.
+            this.toastr.warning(
+              'Payment recorded, but the proof could not be attached. Add it from the payment history.',
+              'Proof not attached',
+            );
+          }
+
+          this.finishPayment(amount, payee);
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isAddingPayment = true;
+        },
+      });
+  }
+
+  /**
+   * Uploads the screenshot for a payment that has just been recorded.
+   *
+   * A failure here is reported as a warning, not an error: the money is already
+   * recorded and the figures are correct — only the attachment is missing, and it
+   * can be added later from the payment history.
+   */
+  private uploadProofFor(paymentId: number, file: File, amount: number, payee: string): void {
+    this.isUploadingProof = true;
+
+    this.salarySvc.uploadPaymentProof(paymentId, file)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isUploadingProof = false;
+          this.finishPayment(amount, payee);
+        },
+        error: () => {
+          this.isUploadingProof = false;
+          this.toastr.warning(
+            'Payment recorded, but the proof upload failed. Attach it again from the payment history.',
+            'Proof not attached',
+          );
+          this.finishPayment(amount, payee);
+        },
+      });
+  }
+
+  /** Shared tail of a successful payment: confirm, clear the form, refresh. */
+  private finishPayment(amount: number, payee: string): void {
+    this.toastr.success(
+      `₹ ${amount.toLocaleString('en-IN')} recorded for ${payee}.`,
+      'Payment Added',
+    );
+    this.clearProofSelection();
+    this.transactionRefError = '';
+    this.isAddingPayment = false;
+    this.loadMonthly();
+  }
+
+  // ── Payment history modal (all months) ─────────────────────────────────────
+
+  isHistoryModalOpen = false;
+  isLoadingHistory   = false;
+  historyData: PaymentHistoryDTO | null = null;
+  historyRecord: SalaryRecordDTO | null = null;
+  /** Months collapsed in the history modal, keyed by "YYYY-MM". */
+  private collapsedMonths = new Set<string>();
+
+  openHistoryModal(rec: SalaryRecordDTO): void {
+    this.historyRecord      = rec;
+    this.isHistoryModalOpen = true;
+    this.collapsedMonths.clear();
+    this.loadHistory(rec);
+  }
+
+  private loadHistory(rec: SalaryRecordDTO): void {
+    this.isLoadingHistory = true;
+    this.salarySvc.getPaymentHistory(rec.userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: data => {
+          this.historyData      = data;
+          this.isLoadingHistory = false;
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.historyData      = null;
+          this.isLoadingHistory = false;
+        },
+      });
+  }
+
+  closeHistoryModal(): void {
+    this.isHistoryModalOpen = false;
+    this.historyData        = null;
+    this.historyRecord      = null;
+  }
+
+  isMonthCollapsed(month: string): boolean {
+    return this.collapsedMonths.has(month);
+  }
+
+  toggleMonth(month: string): void {
+    if (this.collapsedMonths.has(month)) this.collapsedMonths.delete(month);
+    else this.collapsedMonths.add(month);
+  }
+
+  // ── Config tab ─────────────────────────────────────────────────────────────
+
+  private loadConfigTab(): void {
+    this.isLoadingConfigTab = true;
+    forkJoin({
+      // The role-less call returns everyone EXCEPT collection boys and doctors,
+      // so those two roles are requested explicitly and merged below.
+      users:          this.memberSvc.getAll().pipe(catchError(() => of([] as MemberDto[]))),
+      collectionBoys: this.memberSvc.getAll(Role.Collection_Boy.id).pipe(catchError(() => of([] as MemberDto[]))),
+      doctors:        this.memberSvc.getAll(Role.Doctor.id).pipe(catchError(() => of([] as MemberDto[]))),
+      configs: this.salarySvc.getSalaryConfig().pipe(catchError(() => of([] as UserSalaryConfigDTO[]))),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ users, collectionBoys, doctors, configs }) => {
+          // De-duplicate by id in case a role appears in more than one response.
+          const merged = Array.from(
+            new Map([...users, ...collectionBoys, ...doctors].map(u => [u.id, u] as [number, MemberDto])).values()
+          );
+          // Only active staff are relevant for salary configuration
+          this.userList           = filterActiveMembers(merged);
+          this.configList         = configs;
+          this.isLoadingConfigTab = false;
+          if (!this.userList.length) this.toastr.warning('Could not load employee list.', 'Warning');
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isLoadingConfigTab = false;
+        },
+      });
+  }
+
+  private refreshConfigs(): void {
+    this.salarySvc.getSalaryConfig()
+      .pipe(catchError(() => of([] as UserSalaryConfigDTO[])), takeUntil(this.destroy$))
+      .subscribe(data => { this.configList = data; });
+  }
+
+  // ── User dropdown ──────────────────────────────────────────────────────────
+
+  openDropdown(): void { this.isDropdownOpen = true; this.userSearchTerm = ''; }
+
+  closeDropdown(): void { setTimeout(() => { this.isDropdownOpen = false; }, 150); }
+
+  selectUser(user: MemberDto): void {
+    this.selectedConfigUserId = user.id;
+    this.isDropdownOpen       = false;
+    this.userSearchTerm       = '';
+    this.isEditingConfig      = false;
+    if (this.isNewConfig) this.beginAddConfig();
+  }
+
+  clearUserSelection(): void {
+    this.selectedConfigUserId = null;
+    this.isEditingConfig      = false;
+    this.userSearchTerm       = '';
+  }
+
+  // ── Config CRUD ────────────────────────────────────────────────────────────
+
+  beginAddConfig(): void {
+    this.configDraft = {
+      userId:                this.selectedConfigUserId!,
+      baseSalary:            0,
+      pfPercentage:          12,
+      travelAllowance:       0,
+      otherAllowance:        0,
+      allowedLeavesPerMonth: 1,
+      salaryType:            0,
+      revenuePercentage:     null,
+    };
+    this.isEditingConfig = true;
+  }
+
+  startEditConfig(): void {
+    const cfg = this.selectedUserConfig;
+    if (!cfg) return;
+    this.configDraft = {
+      userId:                cfg.userId,
+      baseSalary:            cfg.baseSalary,
+      pfPercentage:          cfg.pfPercentage,
+      travelAllowance:       cfg.travelAllowance ?? 0,
+      otherAllowance:        cfg.otherAllowance  ?? 0,
+      allowedLeavesPerMonth: cfg.allowedLeavesPerMonth ?? 1,
+      salaryType:            cfg.salaryType ?? 0,
+      revenuePercentage:     cfg.revenuePercentage ?? null,
+    };
+    this.isEditingConfig = true;
+  }
+
+  cancelEditConfig(): void {
+    this.isEditingConfig = false;
+    if (!this.selectedUserConfig) this.selectedConfigUserId = null;
+  }
+
+  saveConfig(): void {
+    const hasFixed   = (this.configDraft.baseSalary ?? 0) > 0;
+    const hasPct     = (this.configDraft.revenuePercentage ?? 0) > 0;
+    if (!hasFixed && !hasPct) {
+      this.toastr.warning('Enter a fixed base salary, a revenue %, or both.', 'Validation');
+      return;
+    }
+    // Derive salaryType: 0 = fixed only, 1 = % only, 2 = both
+    this.configDraft.salaryType = hasFixed && hasPct ? 2 : hasPct ? 1 : 0;
+    const pf = this.configDraft.pfPercentage ?? 0;
+    if (pf < 0 || pf > 100) {
+      this.toastr.warning('PF % must be between 0 and 100.', 'Validation');
+      return;
+    }
+    const leaves = this.configDraft.allowedLeavesPerMonth ?? 0;
+    if (!Number.isInteger(leaves) || leaves < 0 || leaves > 31) {
+      this.toastr.warning('Allowed leaves must be a whole number between 0 and 31.', 'Validation');
+      return;
+    }
+    this.isSavingConfig = true;
+    this.salarySvc.saveSalaryConfig(this.configDraft)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastr.success('Salary config saved successfully.', 'Saved');
+          this.isSavingConfig  = false;
+          this.isEditingConfig = false;
+          this.refreshConfigs();
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.isSavingConfig = false;
+        },
+      });
+  }
+
+  // ── Template helpers ───────────────────────────────────────────────────────
+
+  isInactiveRecord(rec: SalaryRecordDTO): boolean {
+    if (!rec.deactivatedAt) return false;
+    return new Date(rec.deactivatedAt) <= new Date();
+  }
+
+  statusClass(status: SalaryStatus | undefined): string {
+    switch (status) {
+      case SalaryStatus.Paid:          return 'badge-paid';
+      case SalaryStatus.PartiallyPaid: return 'badge-partial';
+      default:                         return 'badge-pending';
+    }
+  }
+
+  statusLabel(status: SalaryStatus | undefined): string {
+    switch (status) {
+      case SalaryStatus.Paid:          return 'Paid';
+      case SalaryStatus.PartiallyPaid: return 'Partial';
+      default:                         return 'Pending';
+    }
+  }
+
+  formatINR(val: number | null | undefined): string {
+    return '₹ ' + (val ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
+  }
+
+  userInitial(name: string | undefined): string {
+    return (name?.charAt(0) ?? '?').toUpperCase();
+  }
+
+  fullName(u: MemberDto): string {
+    return `${u.first_Name ?? ''} ${u.last_Name ?? ''}`.trim() || u.user_Name || 'Unknown';
+  }
+
+  hasConfig(userId: number): boolean {
+    return this.configList.some(c => c.userId === userId);
+  }
+
+
+  private todayIso(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  ngOnDestroy(): void {
+    // Release any preview object URL before the component goes away.
+    this.clearProofSelection();
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}

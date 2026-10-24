@@ -1,0 +1,57 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+
+import { getDiagnocareApiUrl } from 'src/app/core/utils/api-base-url.util';
+import { controllerEndpoints, apiEndpoints } from 'src/app/shared/constants/constants';
+import { HolidayDTO, CreateHolidayDTO, UpdateHolidayDTO } from 'src/app/features/holiday/models/holiday.dto';
+
+@Injectable({ providedIn: 'root' })
+export class HolidayService {
+
+  private readonly baseUrl: string;
+
+  constructor(private http: HttpClient) {
+    this.baseUrl = getDiagnocareApiUrl() + controllerEndpoints.holiday;
+  }
+
+  /** GET api/holiday/GetByYear?year=YYYY */
+  getByYear(year: number): Observable<HolidayDTO[]> {
+    return this.http
+      .get<HolidayDTO[]>(`${this.baseUrl}${apiEndpoints.getHolidaysByYear}?year=${year}`);
+  }
+
+  /** POST api/holiday/Add */
+  add(dto: CreateHolidayDTO): Observable<HolidayDTO> {
+    return this.http
+      .post<HolidayDTO>(`${this.baseUrl}${apiEndpoints.add}`, dto);
+  }
+
+  /**
+   * POST multiple holidays in parallel.
+   * Each request is isolated — a failure on one does not cancel the others.
+   * Returns an array where successful items are `HolidayDTO` and failed ones are `null`.
+   */
+  addBulk(dtos: CreateHolidayDTO[]): Observable<(HolidayDTO | null)[]> {
+    if (!dtos.length) return of([]);
+    return forkJoin(
+      dtos.map(dto =>
+        this.add(dto).pipe(catchError(() => of(null)))
+      )
+    );
+  }
+
+  /** PUT api/holiday/Update */
+  update(dto: UpdateHolidayDTO): Observable<HolidayDTO> {
+    return this.http
+      .put<HolidayDTO>(`${this.baseUrl}${apiEndpoints.update}`, dto);
+  }
+
+  /** DELETE api/holiday/Delete/{id} */
+  delete(holidayId: number): Observable<any> {
+    return this.http
+      .delete(`${this.baseUrl}${apiEndpoints.delete}/${holidayId}`);
+  }
+
+}

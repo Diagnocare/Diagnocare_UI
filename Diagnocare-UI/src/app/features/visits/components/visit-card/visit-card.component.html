@@ -1,0 +1,68 @@
+<article class="vc"
+         [class.vc--done]="visit.status === 'Completed'"
+         [class.vc--cancelled]="visit.status === 'Cancelled'">
+
+  <!-- Time -->
+  <div class="vc-time">
+    <span class="vc-time-main">{{ timeMain(visit.visitTime) }}</span>
+    <span class="vc-time-meridiem">{{ timeMeridiem(visit.visitTime) }}</span>
+  </div>
+
+  <!-- Details -->
+  <div class="vc-body">
+    <div class="vc-title-row">
+      <h4 class="vc-name" [attr.title]="visit.contactName">{{ visit.contactName }}</h4>
+      <span class="vc-type" *ngIf="visit.contactType">{{ visit.contactType }}</span>
+    </div>
+
+    <div class="vc-meta">
+      <span class="vc-meta-item vc-member" *ngIf="showMember && visit.memberName">
+        <span class="vc-avatar">{{ initials(visit.memberName) }}</span>
+        {{ visit.memberName }}
+      </span>
+      <a class="vc-meta-item vc-link" *ngIf="visit.contactPhone" [href]="'tel:' + visit.contactPhone">
+        <i class="fa fa-phone"></i>{{ visit.contactPhone }}
+      </a>
+      <a class="vc-meta-item vc-link vc-address" *ngIf="visit.contactAddress"
+         [href]="mapsUrl(visit.contactAddress)" target="_blank" rel="noopener"
+         [attr.title]="'Open in Maps: ' + visit.contactAddress">
+        <i class="fa fa-map-marker-alt"></i><span>{{ visit.contactAddress }}</span>
+      </a>
+    </div>
+
+    <p class="vc-note" *ngIf="visit.purpose || visit.notes">
+      <span *ngIf="visit.purpose" class="vc-purpose">{{ visit.purpose }}</span>
+      <span *ngIf="visit.purpose && visit.notes" class="vc-sep">·</span>
+      <span *ngIf="visit.notes">{{ visit.notes }}</span>
+    </p>
+  </div>
+
+  <!-- Status + actions -->
+  <div class="vc-side">
+    <span class="vc-status"
+          [class.vc-status--done]="visit.status === 'Completed'"
+          [class.vc-status--cancelled]="visit.status === 'Cancelled'">
+      <span class="vc-status-dot"></span>{{ visit.status }}
+    </span>
+
+    <div class="vc-actions">
+      <ng-container *ngIf="visit.status === 'Pending'">
+        <button type="button" class="vc-btn vc-btn--ghost" *ngIf="canManage" (click)="edit.emit(visit)">
+          <i class="fa fa-pencil-alt"></i> Edit
+        </button>
+        <button type="button" class="vc-btn vc-btn--primary" (click)="complete.emit(visit)">
+          <i class="fa fa-check"></i> Complete
+        </button>
+      </ng-container>
+
+      <button type="button" class="vc-btn vc-btn--ghost" *ngIf="visit.status === 'Completed'" (click)="viewDetails.emit(visit)">
+        <i class="fa fa-eye"></i> Details
+      </button>
+
+      <button type="button" class="vc-btn vc-btn--icon vc-btn--danger" *ngIf="canManage"
+              (click)="remove.emit(visit.id)" title="Delete visit" aria-label="Delete visit">
+        <i class="fa fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+</article>

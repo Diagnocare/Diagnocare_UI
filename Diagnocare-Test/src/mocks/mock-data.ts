@@ -3,8 +3,8 @@
  * Keeps test data consistent and easy to update in one place.
  */
 
-import { Receipt } from 'src/app/models/receipt/receiptModel';
-import { PatientCreateDto } from 'src/app/models/patient/patient-create.dto';
+import { Receipt } from 'src/app/features/receipts/models/receiptModel';
+import { PatientCreateDto } from 'src/app/features/patients/models/patient-create.dto';
 
 // ── Receipt mocks ─────────────────────────────────────────────────────────────
 

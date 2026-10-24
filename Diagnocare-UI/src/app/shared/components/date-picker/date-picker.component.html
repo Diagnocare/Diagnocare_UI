@@ -1,0 +1,165 @@
+<div class="dp-root" [class.dp-disabled]="isDisabled" [class.dp-readonly]="readonly" [class.dp-open]="showCalendar">
+
+  <!-- ── Trigger ──────────────────────────────────────────────────────────── -->
+  <div
+    class="dp-trigger {{ inputClass }}"
+    [class.dp-trigger--empty]="!displayValue"
+    (click)="toggleCalendar()"
+    role="button"
+    [attr.aria-expanded]="showCalendar"
+    [attr.aria-disabled]="isDisabled"
+    tabindex="0"
+    (keydown.enter)="toggleCalendar()"
+    (keydown.space)="toggleCalendar()"
+    (blur)="onTouched()"
+  >
+    <span class="dp-display">{{ displayValue || placeholder }}</span>
+    <span class="dp-trigger-icon" [class.dp-trigger-icon--open]="showCalendar">
+      <i class="fa fa-calendar"></i>
+    </span>
+  </div>
+
+  <!-- ── Backdrop — click to dismiss ──────────────────────────────────────── -->
+  <!--
+    Backdrop uses (click). Day buttons and Today button use (mousedown) for
+    selection, which fires before (click), so selection is always guaranteed
+    to run before the backdrop could close the calendar.
+    A document:click HostListener also closes the calendar when the user clicks
+    outside the component — this backdrop handles the dark-overlay area only.
+  -->
+  <div class="dp-backdrop" *ngIf="showCalendar"
+       (click)="closeCalendar()"></div>
+
+  <!-- ── Calendar modal panel ─────────────────────────────────────────────── -->
+  <!--
+    stopPropagation on mousedown prevents parent containers (custom modals,
+    overlays) from reacting to mousedown events inside the panel.
+    The document:click HostListener is harmless for in-panel clicks because
+    by the time the click bubbles to document, showCalendar is already false.
+  -->
+  <div class="dp-panel" *ngIf="showCalendar" role="dialog" aria-modal="true" aria-label="Date picker"
+       (mousedown)="$event.stopPropagation()">
+
+    <!--
+      Header. The label in the middle is a button that switches grids: from the
+      days it opens the years, from the months or years it goes back to the days.
+      The arrows either side step whatever the open grid steps in — a month, a
+      year, or a page of years.
+    -->
+    <div class="dp-header">
+      <div class="dp-nav-row">
+        <button type="button" class="dp-nav-btn" *ngIf="view === 'days'"
+                (click)="prevYear()"  title="Previous year">
+          <i class="fa fa-angle-double-left"></i>
+        </button>
+        <button type="button" class="dp-nav-btn"
+                (click)="stepBack()"
+                [disabled]="view === 'years' && !canPageBack"
+                [title]="view === 'years' ? 'Earlier years' : view === 'months' ? 'Previous year' : 'Previous month'">
+          <i class="fa fa-angle-left"></i>
+        </button>
+
+        <button type="button" class="dp-month-year dp-view-switch"
+                (click)="toggleView()"
+                [attr.aria-label]="viewSwitchLabel"
+                [title]="viewSwitchLabel">
+          {{ viewLabel }}
+          <i class="fa dp-view-caret" [ngClass]="view === 'days' ? 'fa-angle-down' : 'fa-angle-up'"></i>
+        </button>
+
+        <button type="button" class="dp-nav-btn"
+                (click)="stepForward()"
+                [disabled]="view === 'years' && !canPageForward"
+                [title]="view === 'years' ? 'Later years' : view === 'months' ? 'Next year' : 'Next month'">
+          <i class="fa fa-angle-right"></i>
+        </button>
+        <button type="button" class="dp-nav-btn" *ngIf="view === 'days'"
+                (click)="nextYear()"  title="Next year">
+          <i class="fa fa-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Year grid — 24 years a page, paged by the arrows above -->
+    <table *ngIf="view === 'years'" class="dp-grid" style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <tbody>
+        <tr *ngFor="let row of yearRows">
+          <td *ngFor="let cell of row; trackBy: trackByCell" class="dp-td">
+            <button
+              type="button"
+              class="dp-day dp-cell"
+              [class.dp-day--selected]="cell.isSelected"
+              [class.dp-day--today]="cell.isCurrent && !cell.isSelected"
+              [class.dp-day--disabled]="cell.isDisabled"
+              [disabled]="cell.isDisabled"
+              (mousedown)="selectYear(cell)"
+              [title]="cell.label"
+            >{{ cell.label }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Month grid for the chosen year -->
+    <table *ngIf="view === 'months'" class="dp-grid" style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <tbody>
+        <tr *ngFor="let row of monthRows">
+          <td *ngFor="let cell of row; trackBy: trackByCell" class="dp-td">
+            <button
+              type="button"
+              class="dp-day dp-cell"
+              [class.dp-day--selected]="cell.isSelected"
+              [class.dp-day--today]="cell.isCurrent && !cell.isSelected"
+              [class.dp-day--disabled]="cell.isDisabled"
+              [disabled]="cell.isDisabled"
+              (mousedown)="selectMonth(cell)"
+              [title]="monthNames[cell.value] + ' ' + viewYear"
+            >{{ cell.label }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Calendar table -->
+    <table *ngIf="view === 'days'" style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <thead>
+        <tr>
+          <th *ngFor="let d of weekDays" class="dp-th">
+            {{ d }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let week of calendarWeeks">
+          <td *ngFor="let day of week" class="dp-td">
+            <button
+              type="button"
+              class="dp-day"
+              [class.dp-day--selected]="day.isSelected"
+              [class.dp-day--today]="day.isToday && !day.isSelected"
+              [class.dp-day--other]="!day.inMonth"
+              [class.dp-day--disabled]="day.isDisabled"
+              [disabled]="day.isDisabled"
+              (mousedown)="selectDay(day)"
+              [title]="day.date | date:'dd-MM-yyyy'"
+            >{{ day.date.getDate() }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="dp-footer">
+      <button type="button" class="dp-footer-btn dp-today-btn" (mousedown)="goToToday()">
+        <i class="fa fa-clock-o"></i> Today
+      </button>
+      <button type="button" class="dp-footer-btn dp-clear-btn" (click)="clearValue()" *ngIf="value">
+        <i class="fa fa-times"></i> Clear
+      </button>
+      <button type="button" class="dp-footer-btn dp-close-btn" (click)="closeCalendar()">
+        <i class="fa fa-times-circle"></i> Close
+      </button>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,193 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — SIMPLE UI KIT  ·  design tokens
+   ──────────────────────────────────────────────────────────────────────────────
+   Building blocks for screens used by people who are not comfortable with
+   computers: lab technicians, front-desk staff, admins.
+
+   Every component in shared/ui-kit/ reads these tokens, and every token has a
+   fallback baked into the component, so the kit still looks right if this file
+   is not imported. Importing it lets you retune the whole kit in one place.
+
+   Imported from src/styles.css (with the other @imports, above the first rule).
+   Do not import it a second time from a component: a component stylesheet is
+   scoped, so the tokens would only exist inside that one component's elements.
+
+   The tokens deliberately sit on top of the existing Diagnocare palette
+   (--primary-color, --bg-white, --text-primary …) so all five themes —
+   default, dark, midnight, warm, system — keep working with no extra work.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Touch targets ──────────────────────────────────────────────────────────
+     48px is the smallest target an adult finger hits reliably, and the smallest
+     a hurried mouse user hits without aiming. Nothing clickable goes below it. */
+  --dc-touch:     3rem;      /* 48px — every button, input, select, checkbox   */
+  --dc-touch-lg:  3.5rem;    /* 56px — primary actions and step buttons        */
+  --dc-touch-xl:  4.5rem;    /* 72px — home-screen task tiles                  */
+
+  /* ── Type scale ─────────────────────────────────────────────────────────────
+     No text a user must read is below 0.875rem. Labels are as large as values,
+     because "which box is this?" is the question people actually ask. */
+  --dc-text-sm:   0.875rem;  /* hints, secondary lines                          */
+  --dc-text:      1rem;      /* body, inputs, buttons                           */
+  --dc-text-lg:   1.125rem;  /* field labels, tile labels                       */
+  --dc-text-xl:   1.375rem;  /* step titles, empty-state headings               */
+
+  /* ── The app's own scale, as rem ─────────────────────────────────────────────
+     styles.css sizes everything in em: .data-table td 0.875em, .form-control /
+     .form-select 0.875em, .search-group label 0.8125em, .form-error 0.75em,
+     .card-header h3 1.25em. A span nested inside a cell or panel that is already
+     sized cannot reuse those em values — they would compound and come out a
+     fraction of the cell. These are the same sizes expressed as rem, so nested
+     text lands exactly on the global scale and a new screen matches an old one.
+     Use these for anything inside a table cell, panel or modal. */
+  --dc-text-body:  0.875rem;   /* cell text, inputs, buttons, body copy         */
+  --dc-text-meta:  0.8125rem;  /* secondary lines under a value, field labels   */
+  --dc-text-micro: 0.75rem;    /* hints, flags, error text                      */
+  --dc-text-title: 1.25rem;    /* card and modal headings (.card-header h3)     */
+
+  /* ── Spacing ──────────────────────────────────────────────────────────────── */
+  --dc-gap-xs:    0.35rem;
+  --dc-gap-sm:    0.6rem;
+  --dc-gap:       1rem;
+  --dc-gap-lg:    1.5rem;
+
+  /* ── Shape ────────────────────────────────────────────────────────────────── */
+  --dc-radius:    0.625rem;
+  --dc-radius-lg: 0.875rem;
+  --dc-border:    2px;       /* thick enough to see on a cheap monitor          */
+
+  /* ── Surfaces (mapped onto the existing theme variables) ──────────────────── */
+  --dc-surface:        var(--bg-white, #ffffff);
+  --dc-surface-muted:  var(--bg-light, #f8f9fa);
+  --dc-line:           var(--border-color, #e1e8ed);
+  --dc-ink:            var(--text-primary, #2c3e50);
+  --dc-ink-soft:       var(--text-secondary, #666666);
+  --dc-brand:          var(--primary-color, #1e5ba8);
+
+  /* Aliases for the names the components were written against. They are kept
+     because the alternative is every one of those usages silently falling back
+     to a light-mode hex, which is what made the /work screens unreadable in the
+     dark themes. --ink-2 and --ink-3 are the two steps below the body ink;
+     --surface-2 is the raised/zebra surface; --link is a text link. */
+  --dc-ink-2:          var(--text-primary, #2c3e50);
+  --dc-ink-3:          var(--text-secondary, #666666);
+  --dc-surface-2:      var(--bg-light, #f8f9fa);
+  --dc-link:           var(--primary-color, #1e5ba8);
+
+  /* ── Meaning colours ────────────────────────────────────────────────────────
+     One colour per meaning, used identically everywhere. Each pairs a strong
+     ink with a soft background so a pill is readable in every theme, and each
+     is always accompanied by an icon and a word — never colour alone. */
+  --dc-ok-ink:      #15803d;  --dc-ok-bg:      #dcfce7;  --dc-ok-line:      #86efac;
+  --dc-wait-ink:    #b45309;  --dc-wait-bg:    #fef3c7;  --dc-wait-line:    #fcd34d;
+  --dc-info-ink:    #1d4ed8;  --dc-info-bg:    #dbeafe;  --dc-info-line:    #93c5fd;
+  --dc-danger-ink:  #b91c1c;  --dc-danger-bg:  #fee2e2;  --dc-danger-line:  #fca5a5;
+  --dc-idle-ink:    #475569;  --dc-idle-bg:    #f1f5f9;  --dc-idle-line:    #cbd5e1;
+
+  /* ── Focus ──────────────────────────────────────────────────────────────────
+     A keyboard user must always be able to see where they are. This ring is
+     deliberately loud. */
+  --dc-focus: 0 0 0 3px rgba(30, 91, 168, 0.35);
+
+  /* --dc-focus is a box-shadow value. Several components want a focus ring as an
+     outline instead, and `outline: 3px solid <box-shadow>` is invalid CSS — the
+     whole declaration is dropped and the keyboard ring disappears. So the colour
+     has a token of its own; use this one with `outline`, --dc-focus with
+     `box-shadow`. */
+  --dc-focus-color: var(--primary-color, #1e5ba8);
+}
+
+/* Dark-family themes: soften the meaning backgrounds so pills do not glow. */
+html[data-theme="dark"],
+html[data-theme="midnight"] {
+  --dc-ok-ink:      #4ade80;  --dc-ok-bg:      rgba(22, 101, 52, 0.28);  --dc-ok-line:      #166534;
+  --dc-wait-ink:    #fbbf24;  --dc-wait-bg:    rgba(180, 83, 9, 0.28);   --dc-wait-line:    #92400e;
+  --dc-info-ink:    #60a5fa;  --dc-info-bg:    rgba(29, 78, 216, 0.28);  --dc-info-line:    #1e40af;
+  --dc-danger-ink:  #f87171;  --dc-danger-bg:  rgba(185, 28, 28, 0.28);  --dc-danger-line:  #7f1d1d;
+  --dc-idle-ink:    #cbd5e1;  --dc-idle-bg:    rgba(71, 85, 105, 0.28);  --dc-idle-line:    #334155;
+  --dc-focus: 0 0 0 3px rgba(96, 165, 250, 0.45);
+  --dc-focus-color: #60a5fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] {
+    --dc-ok-ink:      #4ade80;  --dc-ok-bg:      rgba(22, 101, 52, 0.28);  --dc-ok-line:      #166534;
+    --dc-wait-ink:    #fbbf24;  --dc-wait-bg:    rgba(180, 83, 9, 0.28);   --dc-wait-line:    #92400e;
+    --dc-info-ink:    #60a5fa;  --dc-info-bg:    rgba(29, 78, 216, 0.28);  --dc-info-line:    #1e40af;
+    --dc-danger-ink:  #f87171;  --dc-danger-bg:  rgba(185, 28, 28, 0.28);  --dc-danger-line:  #7f1d1d;
+    --dc-idle-ink:    #cbd5e1;  --dc-idle-bg:    rgba(71, 85, 105, 0.28);  --dc-idle-line:    #334155;
+    --dc-focus: 0 0 0 3px rgba(96, 165, 250, 0.45);
+    --dc-focus-color: #60a5fa;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   OPTIONAL: "Large text" accessibility mode.
+   Set <html data-dc-size="large"> from a settings toggle and every component in
+   the kit grows together, because they all measure themselves in these tokens.
+   Nothing else in the app is affected.
+   ────────────────────────────────────────────────────────────────────────────── */
+html[data-dc-size="large"] {
+  --dc-touch:    3.5rem;
+  --dc-touch-lg: 4rem;
+  --dc-touch-xl: 5.25rem;
+  --dc-text-sm:  1rem;
+  --dc-text:     1.125rem;
+  --dc-text-lg:  1.3rem;
+  --dc-text-xl:  1.6rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LAYOUT HELPERS
+   Three classes, because layout is where "simple" is usually lost. They are
+   global (not inside a component) so you can put them on any existing element.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Home-screen tiles. Wraps <dc-task-tile> children into a responsive grid that
+   never squeezes a tile below a comfortable reading width. */
+.dc-task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: var(--dc-gap, 1rem);
+}
+
+/* Form layout. Two columns on a wide screen, one on a narrow one — and never
+   more than two, because a three-column form has no reading order. Add
+   .dc-form-grid__wide to any field that should span the full width. */
+.dc-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 0 var(--dc-gap-lg, 1.5rem);
+  max-width: 60rem;
+}
+.dc-form-grid__wide { grid-column: 1 / -1; }
+
+/* A row of buttons that wraps instead of overflowing, with each button keeping
+   its full touch height. */
+.dc-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dc-gap-sm, 0.6rem);
+  align-items: center;
+}
+
+/* Visually hidden but read aloud — for the text a screen reader needs and a
+   sighted user gets from context. */
+.dc-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect the operating-system "reduce motion" setting across the whole kit. */
+@media (prefers-reduced-motion: reduce) {
+  [class^="dc-"], [class*=" dc-"] {
+    transition: none !important;
+    animation: none !important;
+  }
+}

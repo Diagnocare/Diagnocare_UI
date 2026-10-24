@@ -1,0 +1,430 @@
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
+import { ReceiptService } from 'src/app/features/receipts/services/receipt.service';
+import { Receipt, ReceiptGroup } from 'src/app/features/receipts/models/receiptModel';
+import { PaymentModalComponent } from 'src/app/shared/components/payment-modal/payment-modal.component';
+import { RefundModalComponent } from 'src/app/shared/components/refund-modal/refund-modal.component';
+import { TpaDetailsModalComponent } from 'src/app/shared/components/tpa-details-modal/tpa-details-modal.component';
+import { TpaDetails } from 'src/app/features/receipts/models/tpa-details.model';
+
+@Component({
+  selector: 'app-bill-receipt',
+  imports: [CommonModule, LoadingSpinnerComponent, FormsModule, PaymentModalComponent, RefundModalComponent, TpaDetailsModalComponent],
+  templateUrl: './bill-receipt.html',
+  styleUrls: ['./bill-receipt.scss'],
+  standalone: true
+})
+export class BillReceipt implements OnInit {
+  inputSearchValue: string = '';
+  showSearchInput:  boolean = false;
+  receipts:         Receipt[] = [];
+  notFound          = false;
+  isLoading         = false;
+  errorMessage      = '';
+  loadingMessage:   string = '';
+  private navigatedViaQueryParam: boolean = false;
+
+  // ── Card Stack ─────────────────────────────────────────────────────────
+  activeCardIndex = 0;
+
+  // ── Payment Modal (per group) ──────────────────────────────────────────
+  showPaymentModal = false;
+  activeGroup: ReceiptGroup | null = null;
+
+  // ── Computed: group receipts by patientTestId ──────────────────────────
+
+  get groupedReceipts(): ReceiptGroup[] {
+    const map = new Map<number, Receipt[]>();
+    for (const r of this.receipts) {
+      const list = map.get(r.patientTestId) ?? [];
+      list.push(r);
+      map.set(r.patientTestId, list);
+    }
+    return Array.from(map.entries()).map(([id, recs]) => {
+      // Sort ascending so receipt[0] is the very first payment ever made for this test
+      const sorted = [...recs].sort((a, b) => a.receiptId - b.receiptId);
+
+      // ── Net amount ────────────────────────────────────────────────────
+      // Backend stores amountPending per-receipt (= netAmount − thatReceiptPaid),
+      // NOT as a running balance.  The FIRST receipt is reliable:
+      //   firstRec.amountPaid + firstRec.amountPending  =  netAmount
+      // Use the API's netAmount field when it is present and positive;
+      // otherwise derive from the first receipt.
+      const firstRec  = sorted[0];
+      const apiNet    = sorted.find(r => r.netAmount != null && r.netAmount > 0)?.netAmount;
+      const net       = (apiNet != null && apiNet > 0)
+                          ? apiNet
+                          : +((firstRec?.amountPaid || 0) + (firstRec?.amountPending || 0)).toFixed(2);
+
+      // ── Total paid ────────────────────────────────────────────────────
+      // Sum every amountPaid across all receipts for this test
+      const totalPaid = sorted.reduce((s, r) => s + (r.amountPaid || 0), 0);
+
+      // ── Refunded  =  Σ(refundAmount) for refunded receipts ───────────
+      const totalRefunded = +sorted.reduce((s, r) => s + (r.isRefunded ? (r.refundAmount || 0) : 0), 0).toFixed(2);
+
+      const isCancelled = (sorted[0]?.bookingStatus || '').toLowerCase() === 'cancelled';
+
+      // ── Remaining  =  netAmount − Σ(amountPaid) − Σ(refundAmount) ────
+      // Cancelled bookings have no outstanding balance regardless of what was paid.
+      const remaining = isCancelled ? 0 : Math.max(0, +(net - totalPaid - totalRefunded).toFixed(2));
+
+      // Discount over the lab limit waiting on a Super Admin → billing is held.
+      const awaitingApproval = !isCancelled && sorted.some(r => r.discountApprovalStatus === 'Pending');
+
+      const status = isCancelled ? 'Cancelled'
+                   : awaitingApproval ? 'Awaiting Approval'
+                   : remaining === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending';
+      return { patientTestId: id, receipts: sorted, netAmount: net, totalPaid, remaining, paymentStatus: status, isCancelled, totalRefunded, awaitingApproval };
+    });
+  }
+
+  // ── Patient-level summary (across all groups) ─────────────────────────
+
+  get totalNetAmount(): number {
+    return this.groupedReceipts.reduce((s, g) => s + g.netAmount, 0);
+  }
+
+  get totalPaidOverall(): number {
+    return this.receipts.reduce((s, r) => s + (r.amountPaid || 0), 0);
+  }
+
+  get totalRefundedOverall(): number {
+    return +this.receipts.reduce((s, r) => s + (r.isRefunded ? (r.refundAmount || 0) : 0), 0).toFixed(2);
+  }
+
+  get totalRemainingOverall(): number {
+    return Math.max(0, +(this.totalNetAmount - this.totalPaidOverall - this.totalRefundedOverall).toFixed(2));
+  }
+
+  get hasAnyPendingBalance(): boolean {
+    return this.receipts.length > 0 && this.totalRemainingOverall > 0;
+  }
+
+  get groupCount(): number { return this.groupedReceipts.length; }
+
+  // ── Payment Modal getters (bound to active group) ─────────────────────
+
+  get groupPaymentTestId(): string {
+    return this.activeGroup?.patientTestId?.toString() ?? '';
+  }
+  get groupNetAmount(): number { return this.activeGroup?.netAmount ?? 0; }
+  get groupPrefillAmount(): number { return this.activeGroup?.remaining ?? 0; }
+
+  // ── Booking tabs — only the selected booking's card is rendered ──────
+
+  selectCard(i: number): void { this.activeCardIndex = i; }
+
+  /** Falls back to the first booking if the index is out of range (e.g. after a reload
+   *  returns fewer bookings), so a card is always shown. */
+  isActiveCard(i: number): boolean {
+    const active = this.activeCardIndex < this.groupCount ? this.activeCardIndex : 0;
+    return active === i;
+  }
+
+  // ── Receipt list: sort + filter (display only) ───────────────────────
+
+  /** Show the filter box only when a booking has enough receipts to need it. */
+  readonly receiptFilterThreshold = 5;
+  newestFirst = true;
+  receiptFilter: Record<number, string> = {};
+
+  toggleSortOrder(event: Event): void {
+    event.stopPropagation();
+    this.newestFirst = !this.newestFirst;
+  }
+
+  /** Receipts of a group as shown in the table — filtered by the search box and sorted by date. */
+  visibleReceipts(group: ReceiptGroup): Receipt[] {
+    const q = (this.receiptFilter[group.patientTestId] || '').trim().toLowerCase();
+    const list = q
+      ? group.receipts.filter(r => [
+          String(r.receiptId),
+          r.paymentMode || '',
+          (r.amountPaid ?? 0).toFixed(2),
+          this.formatDate(r.createdDate),
+          r.isRefunded ? 'refund ' + this.formatDate(r.refundedAt || '') : ''
+        ].join(' ').toLowerCase().includes(q))
+      : [...group.receipts];
+    const time = (r: Receipt) => new Date(r.createdDate).getTime() || 0;
+    return list.sort((a, b) => {
+      const diff = (time(a) - time(b)) || (a.receiptId - b.receiptId);
+      return this.newestFirst ? -diff : diff;
+    });
+  }
+
+  /** Most recent receipt date in a group — shown in the booking navigator. */
+  latestReceiptDate(group: ReceiptGroup): string {
+    const latest = group.receipts.reduce<Receipt | null>((best, r) =>
+      !best || new Date(r.createdDate) > new Date(best.createdDate) ? r : best, null);
+    return latest ? this.formatDate(latest.createdDate).split(' ')[0] : '';
+  }
+
+  // groupedReceipts rebuilds group objects on every check — track by id so cards/rows
+  // (and keyboard focus inside them) are kept instead of being re-rendered.
+  trackGroup = (_: number, g: ReceiptGroup) => g.patientTestId;
+  trackReceipt = (_: number, r: Receipt) => r.receiptId;
+
+  clearReceiptFilter(group: ReceiptGroup, event: Event): void {
+    event.stopPropagation();
+    this.receiptFilter[group.patientTestId] = '';
+  }
+
+  /** Enter / Space on a focused receipt row opens its PDF — same as a click.
+   *  Keys pressed on nested controls (e.g. TPA Details) are left to those controls. */
+  onReceiptRowKeydown(receipt: Receipt, event: Event, kind: 'payment' | 'refund'): void {
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    if (kind === 'refund') this.onRefundRowClick(receipt, event);
+    else this.onReceiptClick(receipt, event);
+  }
+
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private receiptService: ReceiptService,
+    private location: Location,
+    private toastr: ToastrService
+  ) {}
+
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe(params => {
+      const pid = params.get('patientId');
+      if (pid) {
+        this.inputSearchValue = pid;
+        this.showSearchInput = false;
+        this.navigatedViaQueryParam = true;
+        this.loadReceipts();
+      } else {
+        this.showSearchInput = true;
+        this.navigatedViaQueryParam = false;
+      }
+    });
+  }
+
+  onSearchSubmit(): void {
+    if (this.inputSearchValue && this.inputSearchValue.trim()) {
+      this.inputSearchValue = this.inputSearchValue.trim();
+      this.showSearchInput = false;
+      this.loadReceipts();
+    }
+  }
+
+  /** @param keepSelection stay on the currently selected booking tab — used when
+   *  reloading after an action (payment, refund, TPA edit) on that booking. */
+  loadReceipts(keepSelection = false): void {
+    const selectedTestId = keepSelection
+      ? this.groupedReceipts.find((_, i) => this.isActiveCard(i))?.patientTestId
+      : undefined;
+
+    this.loadingMessage = 'Loading receipts for: ' + this.inputSearchValue + '…';
+    this.isLoading = true;
+    this.notFound  = false;
+    this.errorMessage = '';
+    this.receipts = [];
+    this.activeCardIndex = 0;
+    this.receiptFilter = {};
+
+    this.receiptService.getReceiptList(this.inputSearchValue).subscribe({
+      next: (data) => {
+        this.receipts = data ?? [];
+        this.showSearchInput = false;
+        this.notFound = !this.receipts.length;
+        this.isLoading = false;
+        if (selectedTestId != null) {
+          this.activeCardIndex = Math.max(0, this.groupedReceipts.findIndex(g => g.patientTestId === selectedTestId));
+        }
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.receipts  = [];
+        if (err instanceof Error && err.message?.includes('404')) {
+          this.notFound = true;
+        } else {
+          this.errorMessage = err.message || 'Unable to load receipts.';
+        }
+      }
+    });
+  }
+
+  // ── Receipt / Refund PDF (backend-generated) ──────────────────────────
+
+  onReceiptClick(receipt: Receipt, event: Event): void {
+    event.stopPropagation();
+    this.openReceiptPdf(receipt.receiptId, 'Payment receipt');
+  }
+
+  /** Clicking the refund row generates the same PDF (which now includes the refund section). */
+  onRefundRowClick(receipt: Receipt, event: Event): void {
+    event.stopPropagation();
+    this.openReceiptPdf(receipt.receiptId, 'Refund receipt');
+  }
+
+  private openReceiptPdf(receiptId: number, label: string): void {
+    this.loadingMessage = `Generating ${label} #${receiptId}…`;
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.receiptService.generateReceiptPdf(receiptId).subscribe({
+      next: (blob: Blob) => {
+        this.isLoading = false;
+        const url = URL.createObjectURL(blob);
+        const tab = window.open(url, '_blank');
+        if (tab) {
+          tab.focus();
+        } else {
+          this.toastr.warning(
+            'Pop-up was blocked. Please allow pop-ups for this site.',
+            'Pop-up Blocked'
+          );
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        // Inline banner kept; HTTP error message shown centrally by ErrorInterceptor.
+        this.errorMessage = err.message || `Unable to generate ${label} PDF.`;
+      }
+    });
+  }
+
+  // ── Payment Modal (per group) ──────────────────────────────────────────
+
+  openGroupPaymentModal(group: ReceiptGroup, event: Event): void {
+    event.stopPropagation();
+    this.activeGroup = group;
+    this.showPaymentModal = true;
+  }
+
+  onPaymentSaved(): void {
+    this.showPaymentModal = false;
+    this.activeGroup = null;
+    this.loadReceipts(true);
+  }
+
+  onPaymentCancelled(): void {
+    this.showPaymentModal = false;
+    this.activeGroup = null;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+
+  getPaymentStatusClass(status: string): string {
+    switch ((status || '').toLowerCase()) {
+      case 'paid':    return 'status-paid';
+      case 'partial': return 'status-partial';
+      default:        return 'status-pending';
+    }
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const day   = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const time  = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    return `${day}-${month}-${d.getFullYear()} ${time}`;
+  }
+
+  // ── Refund Modal ───────────────────────────────────────────────────────
+
+  showRefundModal = false;
+  refundTargetReceipt: Receipt | null = null;
+  @ViewChild('refundModal') refundModalRef?: RefundModalComponent;
+
+  openRefundModal(receipt: Receipt, event: Event): void {
+    event.stopPropagation();
+    this.refundTargetReceipt = receipt;
+    this.showRefundModal = true;
+  }
+
+  onRefundConfirmed(payload: { refundAmount: number; reason: string | null }): void {
+    if (!this.refundTargetReceipt) return;
+    const id = this.refundTargetReceipt.receiptId;
+
+    this.receiptService.refundReceipt(id, payload.refundAmount, payload.reason ?? undefined).subscribe({
+      next: () => {
+        this.showRefundModal = false;
+        this.refundTargetReceipt = null;
+        this.loadReceipts(true);
+      },
+      error: (err: Error) => {
+        this.refundModalRef?.setError(err.message || 'Failed to process refund. Please try again.');
+      }
+    });
+  }
+
+  onRefundDismissed(): void {
+    this.showRefundModal = false;
+    this.refundTargetReceipt = null;
+  }
+
+  // ── TPA Details Edit Modal ─────────────────────────────────────────────
+  showTpaModal     = false;
+  tpaModalDetails: TpaDetails | null = null;
+  tpaEditReceiptId = 0;
+  tpaSaving        = false;
+  tpaSaveError     = '';
+
+  openTpaView(receipt: Receipt, event: Event): void {
+    event.stopPropagation();
+    this.tpaEditReceiptId = receipt.receiptId;
+    this.tpaModalDetails  = {
+      tpaName:            receipt.tpaName            ?? '',
+      tpaPolicyNumber:    receipt.tpaPolicyNumber    ?? '',
+      tpaClaimNumber:     receipt.tpaClaimNumber     ?? '',
+      tpaApprovalCode:    receipt.tpaApprovalCode    ?? '',
+      tpaPolicyValidFrom: receipt.tpaPolicyValidFrom ?? '',
+      tpaPolicyValidTo:   receipt.tpaPolicyValidTo   ?? '',
+      tpaPaymentStatus:   receipt.tpaPaymentStatus   ?? 'Pending',
+      tpaSettledDate:     receipt.tpaSettledDate     ?? '',
+    };
+    this.tpaSaveError = '';
+    this.showTpaModal = true;
+  }
+
+  onTpaConfirmed(details: TpaDetails): void {
+    this.tpaSaving = true;
+    this.tpaSaveError = '';
+    this.receiptService.updateTpaDetails(this.tpaEditReceiptId, details).subscribe({
+      next: () => {
+        this.tpaSaving    = false;
+        this.showTpaModal = false;
+        this.tpaModalDetails = null;
+        this.loadReceipts(true);
+      },
+      error: (err: Error) => {
+        this.tpaSaving    = false;
+        // Inline banner kept; HTTP error message shown centrally by ErrorInterceptor.
+        this.tpaSaveError = err.message || 'Failed to update TPA details.';
+      }
+    });
+  }
+
+  closeTpaModal(): void {
+    this.showTpaModal    = false;
+    this.tpaModalDetails = null;
+    this.tpaSaveError    = '';
+  }
+
+  goBack(): void {
+    if (this.navigatedViaQueryParam) {
+      this.location.back();
+    } else if (this.receipts.length || this.notFound || this.errorMessage) {
+      this.receipts = [];
+      this.inputSearchValue = '';
+      this.showSearchInput = true;
+      this.notFound = false;
+      this.errorMessage = '';
+    } else {
+      this.location.back();
+    }
+  }
+
+  handlePrint(): void { window.print(); }
+}

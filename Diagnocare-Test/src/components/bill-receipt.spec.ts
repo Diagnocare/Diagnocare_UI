@@ -3,9 +3,9 @@ import { ActivatedRoute, Router }     from '@angular/router';
 import { Location }                   from '@angular/common';
 import { of, throwError, Subject }    from 'rxjs';
 
-import { BillReceipt }         from 'src/app/component/receipt/bill-receipt';
-import { ReceiptService }      from 'src/app/services/receiptServices/receipt.service';
-import { ReceiptPdfService }   from 'src/app/services/receiptServices/receipt-pdf.service';
+import { BillReceipt }         from 'src/app/features/receipts/pages/bill-receipt/bill-receipt';
+import { ReceiptService }      from 'src/app/features/receipts/services/receipt.service';
+import { ReceiptPdfService }   from 'src/app/features/receipts/services/receipt-pdf.service';
 import { ToastrService }       from 'ngx-toastr';
 import {
   MOCK_RECEIPTS_SAME_TEST,
@@ -13,7 +13,7 @@ import {
   MOCK_RECEIPT_NULL_NET,
   MOCK_RECEIPTS_TWO_TESTS,
 } from '../mocks/mock-data';
-import { Receipt } from 'src/app/models/receipt/receiptModel';
+import { Receipt } from 'src/app/features/receipts/models/receiptModel';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -298,32 +298,6 @@ describe('BillReceipt', () => {
     });
   });
 
-  // ── getCardZIndex ──────────────────────────────────────────────────────────
-
-  describe('getCardZIndex()', () => {
-    it('gives the active card the highest z-index (groupCount + 1)', () => {
-      const { component } = createComponent();
-      component.receipts       = MOCK_RECEIPTS_TWO_TESTS; // 2 groups
-      component.activeCardIndex = 0;
-      // groupCount = 2 → active gets z-index = 3
-      expect(component.getCardZIndex(0)).toBe(3);
-    });
-
-    it('gives adjacent cards lower z-index', () => {
-      const { component } = createComponent();
-      component.receipts        = MOCK_RECEIPTS_TWO_TESTS;
-      component.activeCardIndex = 0;
-      expect(component.getCardZIndex(1)).toBeLessThan(component.getCardZIndex(0));
-    });
-
-    it('adjusts when a non-first card is active', () => {
-      const { component } = createComponent();
-      component.receipts        = MOCK_RECEIPTS_TWO_TESTS;
-      component.activeCardIndex = 1;
-      expect(component.getCardZIndex(1)).toBeGreaterThan(component.getCardZIndex(0));
-    });
-  });
-
   // ── selectCard / isActiveCard ──────────────────────────────────────────────
 
   describe('selectCard() / isActiveCard()', () => {
@@ -334,11 +308,30 @@ describe('BillReceipt', () => {
       expect(component.activeCardIndex).toBe(2);
     });
 
-    it('isActiveCard returns true for the active index', () => {
+    it('isActiveCard returns true for the active index only', () => {
       const { component } = createComponent();
+      component.receipts        = MOCK_RECEIPTS_TWO_TESTS;
       component.activeCardIndex = 1;
       expect(component.isActiveCard(1)).toBe(true);
       expect(component.isActiveCard(0)).toBe(false);
+    });
+
+    it('marks exactly one booking active when switching tabs', () => {
+      const { component } = createComponent();
+      component.receipts = MOCK_RECEIPTS_TWO_TESTS;
+      component.selectCard(1);
+      component.selectCard(0);
+      const active = component.groupedReceipts.filter((_, i) => component.isActiveCard(i));
+      expect(active.length).toBe(1);
+      expect(active[0]).toEqual(component.groupedReceipts[0]);
+    });
+
+    it('falls back to the first booking when the index is out of range', () => {
+      const { component } = createComponent();
+      component.receipts        = MOCK_RECEIPTS_TWO_TESTS;
+      component.activeCardIndex = 5;
+      expect(component.isActiveCard(0)).toBe(true);
+      expect(component.isActiveCard(1)).toBe(false);
     });
   });
 
@@ -474,6 +467,19 @@ describe('BillReceipt', () => {
       component.loadReceipts();
 
       expect(component.activeCardIndex).toBe(0);
+    });
+
+    it('keeps the selected booking tab when reloading with keepSelection', () => {
+      const { component, receiptSvc } = createComponent();
+      receiptSvc.getReceiptList.mockReturnValue(of(MOCK_RECEIPTS_TWO_TESTS));
+      component.inputSearchValue = 'P-001';
+      component.loadReceipts();
+      const secondId = component.groupedReceipts[1].patientTestId;
+      component.selectCard(1);
+
+      component.loadReceipts(true);
+
+      expect(component.groupedReceipts[component.activeCardIndex].patientTestId).toBe(secondId);
     });
 
     it('sets notFound when the API returns an empty array', () => {

@@ -1,8 +1,8 @@
 import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
-import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
-import { CommonService }    from 'src/app/shared/common.service';
+import { PathologyService } from 'src/app/features/pathology/services/pathology.service';
+import { CommonService }    from 'src/app/shared/services/common.service';
 import { MOCK_PATHOLOGY }   from '../mocks/mock-data';
 
 const BASE = 'http://localhost:5000/api/pathology/';

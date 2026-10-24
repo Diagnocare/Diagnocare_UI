@@ -1,8 +1,8 @@
 import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
-import { PathTestService }  from 'src/app/services/pathTestServices/path-test-service';
-import { CommonService }    from 'src/app/shared/common.service';
+import { PathTestService }  from 'src/app/features/path-tests/services/path-test-service';
+import { CommonService }    from 'src/app/shared/services/common.service';
 import {
   MOCK_GROUP_RAW, MOCK_SUBGROUP_RAW, MOCK_TEST_LIST,
 } from '../mocks/mock-data';

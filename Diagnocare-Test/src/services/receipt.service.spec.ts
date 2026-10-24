@@ -1,7 +1,7 @@
 import { TestBed }                              from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
-import { ReceiptService } from 'src/app/services/receiptServices/receipt.service';
+import { ReceiptService } from 'src/app/features/receipts/services/receipt.service';
 import { MOCK_RECEIPTS_SAME_TEST, MOCK_RECEIPT_FULLY_PAID } from '../mocks/mock-data';
 
 const BASE = 'http://localhost:5000/api/receipt/';

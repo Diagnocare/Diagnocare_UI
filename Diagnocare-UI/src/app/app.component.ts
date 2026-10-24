@@ -1,16 +1,15 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
-import { HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { filter, Subscription } from 'rxjs';
 
-import { ConfirmModalComponent } from './shared/confirm-modal/confirm-modal.component';
-import { PinModalComponent }    from './shared/pin-modal/pin-modal.component';
-import { TokenService }         from './core/interceptors/token.service';
-import { LoginService }         from './services/loginServices/login.service';
+import { ConfirmModalComponent } from './shared/components/confirm-modal/confirm-modal.component';
+import { PinModalComponent }    from './shared/components/pin-modal/pin-modal.component';
+import { TokenService }         from './core/services/token.service';
+import { LoginService }         from './features/auth/services/login.service';
 import { SessionLockService }   from './core/services/session-lock.service';
-import { ThemeService }         from './services/themeServices/theme.service';
-import { PathologyService }     from './services/pathologyServices/pathology.service';
+import { ThemeService }         from './core/services/theme.service';
+import { PathologyService }     from './features/pathology/services/pathology.service';
 import { NavigationHistoryService } from './core/services/navigation-history.service';
 
 /**
@@ -58,7 +57,7 @@ import { NavigationHistoryService } from './core/services/navigation-history.ser
   templateUrl: './app.component.html',
   standalone: true,
   styleUrls: ['./app.component.css'],
-  imports: [RouterModule, HttpClientModule, ConfirmModalComponent, PinModalComponent, CommonModule],
+  imports: [RouterModule, ConfirmModalComponent, PinModalComponent, CommonModule],
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'diagnocare';
@@ -71,6 +70,9 @@ export class AppComponent implements OnInit, OnDestroy {
    */
   private static readonly POLL_INTERVAL_MS = 300_000;   // 5 minutes
   private sessionKickedSub: Subscription | null = null;
+
+  /** Latched once a policy GET has been attempted — see ensurePoliciesCached(). */
+  private policiesHydrationAttempted = false;
 
   constructor(
     private tokenService:    TokenService,
@@ -124,22 +126,41 @@ export class AppComponent implements OnInit, OnDestroy {
           if (username) {
             this.themeService.loadForUser(username);
           }
+          // Login navigates by router, not by reloading the page, so ngOnInit
+          // does NOT run again once the user is authenticated. Hydrating here —
+          // on the first authenticated navigation — is what covers a fresh
+          // login; the ngOnInit call below only ever catches a hard refresh.
+          // Without this, policies stayed at their defaults for the whole
+          // session (max discount 50, grace buffer 0, lockout 30) until the
+          // user happened to refresh or open lab-setup → Policies.
+          this.ensurePoliciesCached();
         }
       });
 
     // Kick off immediately if already on an authenticated route (page refresh).
     if (this.tokenService.hasToken()) {
       this.startSessionServices();
-      // Fetch and cache grace buffer minutes so the interceptor can use them
-      // on the next request without waiting for the lab-setup page to be opened.
-      // Only hit the DB on the first load after login — once cached in
-      // localStorage, subsequent page loads read from there instead. The
-      // cache is cleared on logout (see TokenService.removeToken) so a new
-      // login always gets fresh values.
-      if (!this.tokenService.hasCachedPolicies()) {
-        this.fetchAndCachePathologyDetails();
-      }
+      this.ensurePoliciesCached();
     }
+  }
+
+  /**
+   * Hydrates the lab's policy settings if they are not already cached.
+   *
+   * Safe to call on every authenticated navigation: it is a no-op once the cache
+   * is warm, and it attempts the GET at most once per page load. The latch
+   * matters because the fetch can legitimately fail — GetProfile answers 404
+   * until registration is complete — and without it every navigation would
+   * retry. A failed attempt leaves the screens on their defaults for this load
+   * only; the next page load tries again.
+   *
+   * The cache survives logout by design (see TokenService.removeToken), so this
+   * normally costs one GET on the first login in a given browser profile.
+   */
+  private ensurePoliciesCached(): void {
+    if (this.policiesHydrationAttempted || this.tokenService.hasCachedPolicies()) return;
+    this.policiesHydrationAttempted = true;
+    this.fetchAndCachePathologyDetails();
   }
 
   /**
@@ -150,6 +171,9 @@ export class AppComponent implements OnInit, OnDestroy {
    *   graceBufferMinutes   → 0   (grace disabled)
    *   maxDiscountPercent   → 50
    *   sessionLockoutMinutes→ 30 minutes
+   *
+   * Call ensurePoliciesCached() rather than this directly, so the cache check
+   * and the once-per-load latch are applied.
    */
   private fetchAndCachePathologyDetails(): void {
     this.pathologyService.getPathology().subscribe({
@@ -164,7 +188,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.tokenService.setSessionLockoutMinutes(data.sessionLockoutMinutes);
         }
       },
-      error: () => { /* silently ignore — defaults apply */ },
+      error: () => { /* silently ignore — defaults apply for this page load */ },
     });
   }
 

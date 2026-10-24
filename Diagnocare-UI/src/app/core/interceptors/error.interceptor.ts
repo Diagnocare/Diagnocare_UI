@@ -3,7 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { catchError, throwError } from 'rxjs';
-import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
+import { apiEndpoints, controllerEndpoints } from 'src/app/shared/constants/constants';
 import { extractErrorMessage, toAppHttpError } from 'src/app/core/errors/http-error';
 
 /**

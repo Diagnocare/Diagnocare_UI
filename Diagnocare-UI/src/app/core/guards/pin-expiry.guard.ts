@@ -1,8 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
-import { PinService }   from 'src/app/services/pinServices/pin.service';
-import { TokenService } from '../interceptors/token.service';
+import { PinService }   from 'src/app/features/account/services/pin.service';
+import { TokenService } from '../services/token.service';
 
 /**
  * PinExpiryGuard

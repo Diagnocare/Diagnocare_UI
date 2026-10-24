@@ -1,0 +1,165 @@
+# GitHub Actions – Diagnocare UI (UAT / Production)
+# Converted from azure-uat-prod-UI-pipelines.yml
+# (Azure template build-deploy-stage.yml expanded inline)
+#
+# Trigger: push to main (excluding .md and docs/**)
+# Flow:    Build-UAT (manual approval) → Deploy-UAT
+#          → Build-PROD (manual approval) → Deploy-PROD
+#
+# ── Required GitHub Secrets ─────────────────────────────────────────────────
+#   SSH_HOST        – Windows IIS server hostname or IP
+#   SSH_USERNAME    – SSH username on that server
+#   SSH_PRIVATE_KEY – SSH private key (PEM, matches authorized_keys on server)
+#
+# ── Manual approval gates ───────────────────────────────────────────────────
+#   Go to GitHub → Settings → Environments and create:
+#     "uat-ui-approval"  – Required reviewers before UAT build+deploy
+#     "prod-ui-approval" – Required reviewers before Production build+deploy
+
+name: UI – UAT / Production
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+
+env:
+  NODE_VERSION: '22.x'
+  WORKING_DIR: '.'
+  BASE_HREF: '/diagnocareUi/'
+
+jobs:
+
+  # ── 5. Build UAT (manual approval gate) ───────────────────────────────────
+  # Waits for approval before building UAT.
+  # Create environment "uat-ui-approval" in GitHub → Settings → Environments
+  # and add Required Reviewers.
+  build-uat:
+    name: Build [UAT]
+    runs-on: ubuntu-latest
+    environment: uat-ui-approval
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Build Angular app (UAT)
+        run: npx ng build --configuration uat
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Upload UAT artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drop-uat
+          path: ./dist/diagnocareUi-app
+
+  # ── 6. Deploy UAT ──────────────────────────────────────────────────────────
+  deploy-uat:
+    name: Deploy [UAT]
+    runs-on: ubuntu-latest
+    needs: build-uat
+
+    steps:
+      - name: Download UAT artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: drop-uat
+          path: ./drop-uat
+
+      - name: Ensure target folder exists (UAT)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            if not exist "C:\inetpub\wwwroot\DiagnocareUATUI" mkdir "C:\inetpub\wwwroot\DiagnocareUATUI"
+            icacls "C:\inetpub\wwwroot\DiagnocareUATUI" /grant IIS_IUSRS:(OI)(CI)M /T
+
+      - name: Copy files to UAT server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "drop-uat/*"
+          target: "C:/inetpub/wwwroot/DiagnocareUATUI"
+          strip_components: 1
+
+  # ── 7. Build Production (manual approval gate) ─────────────────────────────
+  # Waits for approval before building Production.
+  # Create environment "prod-ui-approval" in GitHub → Settings → Environments
+  # and add Required Reviewers.
+  build-prod:
+    name: Build [PROD]
+    runs-on: ubuntu-latest
+    needs: deploy-uat
+    environment: prod-ui-approval
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Build Angular app (Production)
+        run: npx ng build --configuration production
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Upload Production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drop-prod
+          path: ./dist/diagnocareUi-app
+
+  # ── 8. Deploy Production ───────────────────────────────────────────────────
+  deploy-prod:
+    name: Deploy [PROD]
+    runs-on: ubuntu-latest
+    needs: build-prod
+
+    steps:
+      - name: Download Production artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: drop-prod
+          path: ./drop-prod
+
+      - name: Ensure target folder exists (Production)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            if not exist "C:\inetpub\wwwroot\DiagnocareProdUI" mkdir "C:\inetpub\wwwroot\DiagnocareProdUI"
+            icacls "C:\inetpub\wwwroot\DiagnocareProdUI" /grant IIS_IUSRS:(OI)(CI)M /T
+
+      - name: Copy files to Production server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "drop-prod/*"
+          target: "C:/inetpub/wwwroot/DiagnocareProdUI"
+          strip_components: 1

@@ -3,10 +3,10 @@ import { Router } from '@angular/router';
 import { EMPTY } from 'rxjs';
 import { catchError, finalize, switchMap, take } from 'rxjs/operators';
 
-import { TokenService }    from '../interceptors/token.service';
-import { PinService }      from '../../services/pinServices/pin.service';
-import { PinModalService } from '../../shared/pin-modal/pin-modal.service';
-import { LoginService }    from '../../services/loginServices/login.service';
+import { TokenService }    from './token.service';
+import { PinService }      from '../../features/account/services/pin.service';
+import { PinModalService } from '../../shared/components/pin-modal/pin-modal.service';
+import { LoginService }    from '../../features/auth/services/login.service';
 
 /**
  * SessionLockService

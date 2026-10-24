@@ -1,8 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
-import { TokenService } from 'src/app/core/interceptors/token.service';
-import { RoleId } from 'src/app/constant/enums';
+import { TokenService } from 'src/app/core/services/token.service';
+import { RoleId } from 'src/app/shared/constants/enums';
 
 /**
  * Factory that creates a `CanActivateFn` restricting a route to the given roles.

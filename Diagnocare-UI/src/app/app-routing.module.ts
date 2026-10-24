@@ -9,30 +9,30 @@ import { authGuard } from './core/guards/auth.guard';
 import { licenceGuard } from './core/guards/licence.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { pinExpiryGuard } from './core/guards/pin-expiry.guard';
-import { Role } from './constant/enums';
+import { Role } from './shared/constants/enums';
 
 export const routes: Routes = [
   // Public (no header)
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', title: 'Home',
-    loadComponent: () => import('./component/login/home.component').then(m => m.HomeComponent) },
+    loadComponent: () => import('./features/auth/pages/home/home.component').then(m => m.HomeComponent) },
   { path: 'login', title: 'Login',
-    loadComponent: () => import('./component/login/login.component').then(m => m.LoginComponent) },
+    loadComponent: () => import('./features/auth/pages/login/login.component').then(m => m.LoginComponent) },
   { path: 'login/callback',
-    loadComponent: () => import('./component/login/login.component').then(m => m.LoginComponent) },
+    loadComponent: () => import('./features/auth/pages/login/login.component').then(m => m.LoginComponent) },
   { path: 'forgot-password', title: 'Forgot Password',
-    loadComponent: () => import('./component/login/forgot-password.component').then(m => m.ForgotPasswordComponent) },
+    loadComponent: () => import('./features/auth/pages/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent) },
   // Help / Contact Us — public, accessible to everyone (no auth or role guard)
   { path: 'help', title: 'Help & Contact',
-    loadComponent: () => import('./component/help/help.component').then(m => m.HelpComponent) },
+    loadComponent: () => import('./features/help/pages/help/help.component').then(m => m.HelpComponent) },
   { path: 'register-pathology', title: 'Register Pathology',
-    loadComponent: () => import('./component/pathology/register-pathology/register-pathology.component').then(m => m.RegisterPathologyComponent) },
+    loadComponent: () => import('./features/pathology/pages/register-pathology/register-pathology.component').then(m => m.RegisterPathologyComponent) },
   // Note: there is deliberately no 'extend-license' route. Licence extension is
   // performed in the shared Diagnocare application — this app only reads the licence.
 
   // Licence expired — accessible even when licence has expired (public, no layout header)
   { path: 'licence-expired', title: 'Licence Expired',
-    loadComponent: () => import('./component/pathology/licence-expired/licence-expired.component').then(m => m.LicenceExpiredComponent) },
+    loadComponent: () => import('./features/pathology/pages/licence-expired/licence-expired.component').then(m => m.LicenceExpiredComponent) },
 
   // ── Device-verified attendance ──────────────────────────────────────────────
   // Public on purpose, and the reason needs stating because it looks like an omission.
@@ -52,20 +52,20 @@ export const routes: Routes = [
   // administrator's attendance grid inside the authenticated shell. The backend builds
   // its QR deep link from AttendanceQrCodeGenerator.EmployeeRoute, which must match.
   { path: 'check-in', title: 'Attendance',
-    loadComponent: () => import('./component/attendance-checkin/attendance-checkin.component').then(m => m.AttendanceCheckinComponent) },
+    loadComponent: () => import('./features/attendance/pages/attendance-checkin/attendance-checkin.component').then(m => m.AttendanceCheckinComponent) },
 
   // Installs a device token from a link an administrator sends. Seen once per handset.
   { path: 'check-in/enrol', title: 'Set Up Attendance',
-    loadComponent: () => import('./component/attendance-enrol/attendance-enrol.component').then(m => m.AttendanceEnrolComponent) },
+    loadComponent: () => import('./features/attendance/pages/attendance-enrol/attendance-enrol.component').then(m => m.AttendanceEnrolComponent) },
 
   // The laboratory wall display. Left running unattended, so it has no navigation.
   { path: 'attendance-kiosk', title: 'Attendance Kiosk',
-    loadComponent: () => import('./component/attendance-kiosk/attendance-kiosk.component').then(m => m.AttendanceKioskComponent) },
+    loadComponent: () => import('./features/attendance/pages/attendance-kiosk/attendance-kiosk.component').then(m => m.AttendanceKioskComponent) },
 
   // Authenticated (header shown via LayoutComponent)
   {
     path: '',
-    loadComponent: () => import('./component/layout/layout.component').then(m => m.LayoutComponent),
+    loadComponent: () => import('./layout/layout/layout.component').then(m => m.LayoutComponent),
     canActivate: [authGuard, licenceGuard, pinExpiryGuard],
     children: [
       // Access denied — every role may open it; it is where roleGuard and the
@@ -74,77 +74,100 @@ export const routes: Routes = [
       // It carries NO roleGuard: guarding the "you are not allowed" page would
       // be a redirect loop.
       { path: 'access-denied', title: 'Access Denied',
-        loadComponent: () => import('./component/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
+        loadComponent: () => import('./layout/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
 
-      // Pathology dashboard — Admin / User / Assistant only
+      // Pathology home — every staff role. It is the landing route for all of them
+      // (MODULE_ACCESS), so excluding Collection Boy / Doctor sent them straight to
+      // Access Denied after login. The page itself only shows each role the cards
+      // and dashboard figures it may open.
       { path: 'pathology', title: 'Pathology',
-        loadComponent: () => import('./component/pathology/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+        loadComponent: () => import('./features/pathology/pages/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id, Role.Collection_Boy.id, Role.Doctor.id)] },
 
       // Address Manager — Admin+
       { path: 'contacts', title: 'Address Manager',
-        loadComponent: () => import('./component/addressManager/contact-list.component').then(m => m.ContactListComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        loadComponent: () => import('./features/address-manager/pages/contact-list/contact-list.component').then(m => m.ContactListComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id,Role.Collection_Boy.id,Role.Doctor.id)] },
       { path: 'contacts/add', title: 'Add Contact',
-        loadComponent: () => import('./component/addressManager/contact-form.component').then(m => m.ContactFormComponent),
+        loadComponent: () => import('./features/address-manager/pages/contact-form/contact-form.component').then(m => m.ContactFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'contacts/edit/:id', title: 'Edit Contact',
-        loadComponent: () => import('./component/addressManager/contact-form.component').then(m => m.ContactFormComponent),
+        loadComponent: () => import('./features/address-manager/pages/contact-form/contact-form.component').then(m => m.ContactFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'contacts/delete/:id', title: 'Delete Contact',
-        loadComponent: () => import('./component/addressManager/contact-delete.component').then(m => m.ContactDeleteComponent),
+        loadComponent: () => import('./features/address-manager/pages/contact-delete/contact-delete.component').then(m => m.ContactDeleteComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Users — Admin+
       { path: 'users', title: 'Staff Management',
-        loadComponent: () => import('./component/staff/staff-management.component').then(m => m.StaffManagementComponent),
+        loadComponent: () => import('./features/staff/pages/staff-management/staff-management.component').then(m => m.StaffManagementComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'users/add', title: 'Add Staff',
-        loadComponent: () => import('./component/staff/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
+        loadComponent: () => import('./features/staff/pages/staff-unified-form/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'users/edit/:id', title: 'Edit Staff',
-        loadComponent: () => import('./component/staff/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
+        loadComponent: () => import('./features/staff/pages/staff-unified-form/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+
+      // Work — the worklist. The lab's outstanding tests, grouped into queues
+      // rather than reached by guessing which patient contains them. Every role
+      // that does clinical work lands here; which queue they land on comes from
+      // their role (see defaultQueueForRole in work-queue.util.ts).
+      { path: 'work', title: 'Work',
+        loadComponent: () => import('./features/worklist/pages/worklist/worklist.component').then(m => m.WorklistComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Verification — the sign-off step. Restricted to the roles allowed to
+      // stand behind a clinical result; the API enforces the same list, because
+      // a guard the client owns is not a control.
+      { path: 'work/verify/:id', title: 'Verify results',
+        loadComponent: () => import('./features/worklist/pages/verify/verify-results.component').then(m => m.VerifyResultsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // Patients — all lab staff (not Doctor who just views reports)
       { path: 'patients', title: 'Patients',
-        loadComponent: () => import('./component/patient/patients-list/patients-list.component').then(m => m.PatientsListComponent),
+        loadComponent: () => import('./features/patients/pages/patients-list/patients-list.component').then(m => m.PatientsListComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id)] },
       { path: 'patients/add', title: 'Add Patient',
-        loadComponent: () => import('./component/patient/add-patient/add-patient.component').then(m => m.AddPatientComponent),
+        loadComponent: () => import('./features/patients/pages/add-patient/add-patient.component').then(m => m.AddPatientComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
       { path: 'patients/stepper', title: 'Add Patient',
-        loadComponent: () => import('./component/patient/stepper/stepper.component').then(m => m.StepperComponent),
+        loadComponent: () => import('./features/patients/pages/stepper/stepper.component').then(m => m.StepperComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
       { path: 'patients/edit/:id', title: 'Edit Patient',
-        loadComponent: () => import('./component/patient/edit-patient/edit-patient.component').then(m => m.EditPatientComponent),
+        loadComponent: () => import('./features/patients/pages/edit-patient/edit-patient.component').then(m => m.EditPatientComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
 
       // Patient Tests — all lab staff + Doctor (read-only for Doctor handled in component).
       // These two carried no guard at all, so collection boys could reach clinical
       // results. Now matches the API's ReportPrint policy.
       { path: 'patient-tests', title: 'Patient Tests',
-        loadComponent: () => import('./component/patient-test/patient-test-list/patient-test-list.component').then(m => m.PatientTestListComponent),
+        loadComponent: () => import('./features/patient-tests/pages/patient-test-list/patient-test-list.component').then(m => m.PatientTestListComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'patient-tests/view/:id', title: 'View Test',
-        loadComponent: () => import('./component/patient-test/view-test/view-test.component').then(m => m.ViewTestComponent),
+        loadComponent: () => import('./features/patient-tests/pages/view-test/view-test.component').then(m => m.ViewTestComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'patient-tests/edit/:id', title: 'Edit Test',
-        loadComponent: () => import('./component/patient-test/edit-test/edit-test.component').then(m => m.EditTestComponent),
+        loadComponent: () => import('./features/patient-tests/pages/edit-test/edit-test.component').then(m => m.EditTestComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
 
       // Lab Tests — Admin / User / Assistant
       { path: 'manage-tests', title: 'Manage Tests',
-        loadComponent: () => import('./component/pathTest/manage-tests/manage-tests.component').then(m => m.ManageTestsComponent),
+        loadComponent: () => import('./features/path-tests/pages/manage-tests/manage-tests.component').then(m => m.ManageTestsComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
       // Defining test parameters is the lab assistant's core task — they were
       // previously locked out of the one screen their role exists to use.
       // Mirrors the API's TestResultEntry policy.
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter',
-        loadComponent: () => import('./component/pathTest/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
+        loadComponent: () => import('./features/path-tests/pages/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
         canActivate: [roleGuard(Role.Admin.id, Role.Assistant.id, Role.Super_Admin.id)] },
+      // Bulk import is a structural write like Add/Edit — Admin and Super Admin only,
+      // mirroring the API's AdminOrSuperAdmin policy on TestImportController.
+      { path: 'manage-tests/import', title: 'Import Tests',
+        loadComponent: () => import('./features/path-tests/pages/import-tests/import-tests.component').then(m => m.ImportTestsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id', title: 'Edit Test',
-        loadComponent: () => import('./component/pathTest/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
+        loadComponent: () => import('./features/path-tests/pages/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Summary Reports — container shell with child routes rendered in its <router-outlet>
@@ -155,7 +178,7 @@ export const routes: Routes = [
       // which is exactly how Assistant behaved before.
       {
         path: 'reports',
-        loadComponent: () => import('./component/summary-report/summary-report-container.component').then(m => m.SummaryReportContainerComponent),
+        loadComponent: () => import('./features/reports/pages/summary-report-container/summary-report-container.component').then(m => m.SummaryReportContainerComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)],
         children: [
           // Default redirect to patient-register when no child is specified
@@ -163,56 +186,56 @@ export const routes: Routes = [
 
           // Time-series chart report (uses BaseReportComponent)
           { path: 'patient-register', title: 'Patient Register',
-            loadComponent: () => import('./component/summary-report/reports/patient-register.component').then(m => m.PatientRegisterComponent) },
+            loadComponent: () => import('./features/reports/pages/patient-register.component').then(m => m.PatientRegisterComponent) },
 
           // Tabular reports (use TableReportComponent)
           { path: 'referrer-collection', title: 'Referrer Collection',
-            loadComponent: () => import('./component/summary-report/reports/referrer-collection.component').then(m => m.ReferrerCollectionComponent) },
+            loadComponent: () => import('./features/reports/pages/referrer-collection.component').then(m => m.ReferrerCollectionComponent) },
           // Legacy routes — redirect to merged report so old bookmarks still work
           { path: 'doctor-wise-collection', redirectTo: 'referrer-collection' },
           { path: 'panel-company-wise', redirectTo: 'referrer-collection' },
           { path: 'collection-boys-wise', redirectTo: 'referrer-collection' },
           { path: 'reporting-doctor-wise', title: 'Reporting Doctor Wise',
-            loadComponent: () => import('./component/summary-report/reports/reporting-doctor-wise.component').then(m => m.ReportingDoctorWiseComponent),
+            loadComponent: () => import('./features/reports/pages/reporting-doctor-wise.component').then(m => m.ReportingDoctorWiseComponent),
             canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
           { path: 'discount-authority-wise', title: 'Discount Authority Wise',
-            loadComponent: () => import('./component/summary-report/reports/discount-authority-wise.component').then(m => m.DiscountAuthorityWiseComponent) },
+            loadComponent: () => import('./features/reports/pages/discount-authority-wise.component').then(m => m.DiscountAuthorityWiseComponent) },
           { path: 'patient-history-wise', title: 'Patient History Wise',
-            loadComponent: () => import('./component/summary-report/reports/patient-history-wise.component').then(m => m.PatientHistoryWiseComponent),
+            loadComponent: () => import('./features/reports/pages/patient-history-wise.component').then(m => m.PatientHistoryWiseComponent),
             canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
           { path: 'worksheet', title: 'Worksheet Report',
-            loadComponent: () => import('./component/summary-report/reports/worksheet-report.component').then(m => m.WorksheetReportComponent) },
+            loadComponent: () => import('./features/reports/pages/worksheet-report.component').then(m => m.WorksheetReportComponent) },
           { path: 'register-reports', title: 'Register Reports',
-            loadComponent: () => import('./component/summary-report/reports/register-reports.component').then(m => m.RegisterReportsComponent) },
+            loadComponent: () => import('./features/reports/pages/register-reports.component').then(m => m.RegisterReportsComponent) },
           { path: 'patient-diagnosis', title: 'Patient Diagnosis Report',
-            loadComponent: () => import('./component/summary-report/reports/patient-diagnosis-report.component').then(m => m.PatientDiagnosisReportComponent),
+            loadComponent: () => import('./features/reports/pages/patient-diagnosis-report.component').then(m => m.PatientDiagnosisReportComponent),
             canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id)] },
           { path: 'pndt-test', title: 'PNDT Test Report',
-            loadComponent: () => import('./component/summary-report/reports/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
+            loadComponent: () => import('./features/reports/pages/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
           { path: 'master-test-list', title: 'Master Test List',
-            loadComponent: () => import('./component/summary-report/reports/master-test-list.component').then(m => m.MasterTestListComponent) },
-          { path: 'rate-list', title: 'Rate List',
-            loadComponent: () => import('./component/summary-report/reports/rate-list.component').then(m => m.RateListComponent) },
+            loadComponent: () => import('./features/reports/pages/master-test-list.component').then(m => m.MasterTestListComponent) },
+          // Rate List was folded into Master Test List, which lists every catalogue
+          // test with its rate at the Test level. Redirect kept for existing links.
+          { path: 'rate-list', redirectTo: 'master-test-list', pathMatch: 'full' },
           { path: 'address-manager', title: 'Address Manager Report',
-            loadComponent: () => import('./component/summary-report/reports/address-manager-report.component').then(m => m.AddressManagerReportComponent) },
+            loadComponent: () => import('./features/reports/pages/address-manager-report.component').then(m => m.AddressManagerReportComponent) },
           { path: 'tpa-report', title: 'TPA Report',
-            loadComponent: () => import('./component/summary-report/reports/tpa-report.component').then(m => m.TpaReportComponent) },
+            loadComponent: () => import('./features/reports/pages/tpa-report.component').then(m => m.TpaReportComponent) },
         ]
       },
 
       // Templates — Super Admin only
       { path: 'template', title: 'Report Templates',
-        loadComponent: () => import('./component/template/template.component').then(m => m.TemplateComponent),
+        loadComponent: () => import('./features/templates/pages/template/template.component').then(m => m.TemplateComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
-      // Lab Setup & Profile — Admin may view, only Super Admin may save.
-      // The API enforces the write half (PathologyController writes are SuperAdminOnly);
-      // the components render read-only for Admin.
+      // Lab Setup & Profile — Super Admin ONLY, matching the API. No other role
+      // may open these pages; anyone else is sent to Access Denied.
       { path: 'lab-setup', title: 'Lab Setup',
-        loadComponent: () => import('./component/lab-setup/lab-setup.component').then(m => m.LabSetupComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        loadComponent: () => import('./features/lab/pages/lab-setup/lab-setup.component').then(m => m.LabSetupComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
       { path: 'lab-profile', title: 'Lab Profile',
-        loadComponent: () => import('./component/lab-profile/lab-profile.component').then(m => m.LabProfileComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        loadComponent: () => import('./features/lab/pages/lab-profile/lab-profile.component').then(m => m.LabProfileComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
 
       // ── Attendance administration — one entry, four tabs ────────────────────
       //
@@ -236,23 +259,23 @@ export const routes: Routes = [
       // deliberately NOT tabs here — see the top of this file. They authenticate
       // with a device token instead of a login and must stay outside this shell.
       { path: 'attendance',
-        loadComponent: () => import('./component/attendance-shell/attendance-shell.component').then(m => m.AttendanceShellComponent),
+        loadComponent: () => import('./features/attendance/pages/attendance-shell/attendance-shell.component').then(m => m.AttendanceShellComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)],
         children: [
           { path: '', redirectTo: 'marking', pathMatch: 'full' },
 
           // The existing marking grid, unchanged — only its URL moved.
           { path: 'marking', title: 'Attendance',
-            loadComponent: () => import('./component/attendance/attendance.component').then(m => m.AttendanceComponent) },
+            loadComponent: () => import('./features/attendance/pages/attendance/attendance.component').then(m => m.AttendanceComponent) },
 
           // Device-verified attendance: the evidence behind the grid. Who was
           // proved present by GPS and a scanned code, who was typed in by hand,
           // and what was refused.
           { path: 'verified', title: 'Verified Attendance',
-            loadComponent: () => import('./component/attendance-dashboard/attendance-dashboard.component').then(m => m.AttendanceDashboardComponent) },
+            loadComponent: () => import('./features/attendance/pages/attendance-dashboard/attendance-dashboard.component').then(m => m.AttendanceDashboardComponent) },
 
           { path: 'setup', title: 'Attendance Setup',
-            loadComponent: () => import('./component/attendance-setup/attendance-setup.component').then(m => m.AttendanceSetupComponent) },
+            loadComponent: () => import('./features/attendance/pages/attendance-setup/attendance-setup.component').then(m => m.AttendanceSetupComponent) },
 
           // The same list component the User Panel route below renders. Drilling
           // into one request navigates to the top-level '/attendance-requests/:id'
@@ -261,28 +284,33 @@ export const routes: Routes = [
           // are a task, not a view, and re-pointing them would mean editing a
           // pre-existing component this change has no other reason to touch.
           { path: 'requests', title: 'Attendance Requests',
-            loadComponent: () => import('./component/attendance-request/requests-list/requests-list.component').then(m => m.RequestsListComponent) },
+            loadComponent: () => import('./features/attendance/pages/requests-list/requests-list.component').then(m => m.RequestsListComponent) },
         ] },
       // Staff location — Super Admin ONLY, mirroring LocationController (every admin
       // action is SuperAdminOnly). Where people are is more sensitive than their pay.
       { path: 'location', title: 'Staff Location',
-        loadComponent: () => import('./component/location/location.component').then(m => m.LocationComponent),
+        loadComponent: () => import('./features/location/pages/location/location.component').then(m => m.LocationComponent),
         canActivate: [roleGuard(Role.Super_Admin.id)] },
       // Payroll is owner-only: an Admin with salary access could edit their own pay.
       // Mirrors SalaryController, where every administrative action is SuperAdminOnly.
       { path: 'salary', title: 'Salary',
-        loadComponent: () => import('./component/salary/salary.component').then(m => m.SalaryComponent),
+        loadComponent: () => import('./features/salary/pages/salary/salary.component').then(m => m.SalaryComponent),
         canActivate: [roleGuard(Role.Super_Admin.id)] },
       { path: 'holidays', title: 'Holiday Calendar',
-        loadComponent: () => import('./component/holiday/holiday.component').then(m => m.HolidayComponent),
+        loadComponent: () => import('./features/holiday/pages/holiday/holiday.component').then(m => m.HolidayComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
 
       // Visit Schedule — Admin manages, all staff see their own
       { path: 'visit-schedule', title: 'Visit Schedule',
-        loadComponent: () => import('./component/visit-schedule/visit-schedule.component').then(m => m.VisitScheduleComponent),
+        loadComponent: () => import('./features/visits/pages/visit-schedule/visit-schedule.component').then(m => m.VisitScheduleComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      // My Pickups — the collection boy's samples to collect and hand over.
+      // Collection Boy only, matching the API's CollectionBoyOnly policy.
+      { path: 'my-pickups', title: 'My Pickups',
+        loadComponent: () => import('./features/visits/pages/my-pickups/my-pickups.component').then(m => m.MyPickupsComponent),
+        canActivate: [roleGuard(Role.Collection_Boy.id)] },
       { path: 'my-visits', title: 'My Visits Today',
-        loadComponent: () => import('./component/my-visits/my-visits.component').then(m => m.MyVisitsComponent),
+        loadComponent: () => import('./features/visits/pages/my-visits/my-visits.component').then(m => m.MyVisitsComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // ── User Panel — self-service views for non-admin staff ──────────────────
@@ -295,12 +323,12 @@ export const routes: Routes = [
       // GetMyMonthly, which are [Authorize(Policy = "AllStaffRoles")] and already
       // answer an Admin correctly.
       { path: 'my-attendance', title: 'My Attendance',
-        loadComponent: () => import('./component/my-attendance/my-attendance.component').then(m => m.MyAttendanceComponent),
+        loadComponent: () => import('./features/attendance/pages/my-attendance/my-attendance.component').then(m => m.MyAttendanceComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Holidays — reuses HolidayComponent, which renders read-only for non-admins
       { path: 'my-holidays', title: 'Holiday Calendar',
-        loadComponent: () => import('./component/holiday/holiday.component').then(m => m.HolidayComponent),
+        loadComponent: () => import('./features/holiday/pages/holiday/holiday.component').then(m => m.HolidayComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // My Salary — read-only own salary summary & payment history
@@ -312,24 +340,34 @@ export const routes: Routes = [
       // GenerateMyPaymentReceipt) are scoped to the caller and carry no role
       // policy, so they already answer an Admin correctly.
       { path: 'my-salary', title: 'My Salary',
-        loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
+        loadComponent: () => import('./features/salary/pages/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Repeat-test reminders on WhatsApp — the Lab Operations roles (API: LabOperations policy).
+      { path: 'test-reminders', title: 'Test Reminders',
+        loadComponent: () => import('./features/test-reminders/pages/test-reminders/test-reminders.component').then(m => m.TestRemindersComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+
+      // Discount approvals — Super Admin only (the API enforces SuperAdminOnly too).
+      { path: 'discount-approvals', title: 'Discount Approvals',
+        loadComponent: () => import('./features/discount-approvals/pages/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
 
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
       // requests; admins see all requests and can approve/reject. Order matters:
       // 'new' must precede the ':id' param routes.
       { path: 'attendance-requests', title: 'Attendance Requests',
-        loadComponent: () => import('./component/attendance-request/requests-list/requests-list.component').then(m => m.RequestsListComponent),
+        loadComponent: () => import('./features/attendance/pages/requests-list/requests-list.component').then(m => m.RequestsListComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/new', title: 'New Attendance Request',
-        loadComponent: () => import('./component/attendance-request/request-form/request-form.component').then(m => m.RequestFormComponent),
+        loadComponent: () => import('./features/attendance/pages/request-form/request-form.component').then(m => m.RequestFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/:id/edit', title: 'Edit Attendance Request',
-        loadComponent: () => import('./component/attendance-request/request-form/request-form.component').then(m => m.RequestFormComponent),
+        loadComponent: () => import('./features/attendance/pages/request-form/request-form.component').then(m => m.RequestFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
       { path: 'attendance-requests/:id', title: 'Attendance Request',
-        loadComponent: () => import('./component/attendance-request/request-detail/request-detail.component').then(m => m.RequestDetailComponent),
+        loadComponent: () => import('./features/attendance/pages/request-detail/request-detail.component').then(m => m.RequestDetailComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // Access denied — reachable by every authenticated role by design. Sits inside
@@ -337,29 +375,33 @@ export const routes: Routes = [
       // using nav they do have. Deliberately has no roleGuard: guarding the page
       // that explains guard failures would loop.
       { path: 'access-denied', title: 'Access Denied',
-        loadComponent: () => import('./component/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
+        loadComponent: () => import('./layout/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
 
       // Account / Header pages
       { path: 'profile', title: 'Profile',
-        loadComponent: () => import('./component/header/profile/profile.component').then(m => m.ProfileComponent) },
+        loadComponent: () => import('./features/account/pages/profile/profile.component').then(m => m.ProfileComponent) },
       { path: 'settings', title: 'Settings',
-        loadComponent: () => import('./component/header/settings/settings.component').then(m => m.SettingsComponent) },
+        loadComponent: () => import('./features/account/pages/settings/settings.component').then(m => m.SettingsComponent) },
       { path: 'change-password', title: 'Change Password',
-        loadComponent: () => import('./component/header/change-password/change-password.component').then(m => m.ChangePasswordComponent) },
+        loadComponent: () => import('./features/account/pages/change-password/change-password.component').then(m => m.ChangePasswordComponent) },
       // Authenticator App merged into Settings — keep old link/bookmark working.
       { path: 'setup-mfa', redirectTo: 'settings', pathMatch: 'full' },
       // PIN change — also reachable as forced flow when PIN has expired (?reason=expired)
       { path: 'change-pin', title: 'Change PIN',
-        loadComponent: () => import('./component/header/change-pin/change-pin.component').then(m => m.ChangePinComponent) },
+        loadComponent: () => import('./features/account/pages/change-pin/change-pin.component').then(m => m.ChangePinComponent) },
 
       // Receipt
       { path: 'receipt/:id', title: 'Receipt',
-        loadComponent: () => import('./component/receipt/bill-receipt').then(m => m.BillReceipt) },
+        loadComponent: () => import('./features/receipts/pages/bill-receipt/bill-receipt').then(m => m.BillReceipt) },
       { path: 'receipt', title: 'Receipt', pathMatch: 'full',
-        loadComponent: () => import('./component/receipt/bill-receipt').then(m => m.BillReceipt) },
+        loadComponent: () => import('./features/receipts/pages/bill-receipt/bill-receipt').then(m => m.BillReceipt) },
     ]
   },
-
+  {
+    path: 'ui-kit', title: 'UI Kit',
+    loadComponent: () => import('./shared/ui-kit/showcase/simple-ui-showcase.component')
+      .then(m => m.SimpleUiShowcaseComponent)
+  },
   // Fallback
   { path: '**', redirectTo: 'login' }
 ];

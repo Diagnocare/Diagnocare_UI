@@ -1,5 +1,5 @@
 {
-  "extends": "../Diagnocare_UI/tsconfig.json",
+  "extends": "../Diagnocare-UI/tsconfig.json",
   "compilerOptions": {
     "rootDir":          ".",
     "baseUrl":          ".",
@@ -13,15 +13,15 @@
     "noImplicitAny":    false,
     "types":            ["jest", "node"],
     "paths": {
-      "src/app/*":          ["../Diagnocare_UI/src/app/*"],
-      "src/environments/*": ["../Diagnocare_UI/src/environments/*"]
+      "src/app/*":          ["../Diagnocare-UI/src/app/*"],
+      "src/environments/*": ["../Diagnocare-UI/src/environments/*"]
     }
   },
   "include": [
     "src/**/*.spec.ts",
     "setup-jest.ts",
-    "../Diagnocare_UI/src/app/**/*.ts",
-    "../Diagnocare_UI/src/environments/*.ts"
+    "../Diagnocare-UI/src/app/**/*.ts",
+    "../Diagnocare-UI/src/environments/*.ts"
   ],
   "exclude": [
     "node_modules",
