@@ -39,17 +39,21 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [`
-    :host { display: block; margin-bottom: var(--dc-gap, 1rem); }
+    /* Geometry taken from the global .alert in styles.css, so a notice here is
+       the same object as a notice on any other screen: same padding, same
+       radius, same spacing below, one uniform border. The colours stay on the
+       --dc- tokens rather than .alert's hardcoded pastels, because those are
+       light-only and these follow the five themes. */
+    :host { display: block; margin-bottom: 1.25em; }
 
     .dc-note {
       display: flex;
       align-items: flex-start;
       gap: 0.65rem;
-      padding: 0.8rem 1rem;
-      border-radius: var(--dc-radius, 0.625rem);
-      border: 1px solid transparent;
-      border-left-width: 4px;
-      font-size: var(--dc-text, 1rem);
+      padding: 0.9375em 1.25em;
+      border-radius: var(--radius-md, 0.5em);
+      border: 0.0625em solid transparent;
+      font-size: var(--dc-text-body, 0.875rem);
       line-height: 1.5;
     }
     .dc-note__icon { margin-top: 0.15em; font-size: 1.05em; flex: 0 0 auto; }

@@ -48,8 +48,11 @@
                        (keydown)="onDateKeyDown($event)"
                        autocomplete="off"
                        [attr.tabindex]="getTabIndex('patient_DOB')" />
-                    <!-- Calendar picker (no formControlName — bridges via dateChange event) -->
-                    <app-date-picker [max]="todayIso"
+                    <!-- Calendar picker. No formControlName: the text box above owns the
+                         value as dd/mm/yyyy, so the picker reads it back in as ISO
+                         through [value] and hands picks out through (dateChange). -->
+                    <app-date-picker [value]="dobIso"
+                                     [max]="todayIso"
                                      (dateChange)="onDobPickerChange($event)"
                                      placeholder="Pick from calendar"
                                      class="dob-cal-picker"
@@ -70,7 +73,7 @@
             <div class="form-group">
               <label class="form-label">Age Group</label>
               <input type="text" class="form-control" formControlName="patient_Age_Group"
-                     placeholder="Auto-calculated from Date of Birth" readonly [attr.tabindex]="getTabIndex('patient_Age_Group')" />
+                     placeholder="Auto-calculated from Age" readonly [attr.tabindex]="getTabIndex('patient_Age_Group')" />
             </div>
           </div>
 
@@ -119,7 +122,8 @@
                 <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                   <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                 </select>
-                <input type="number" appNumericOnly class="form-control" [class.is-invalid]="isFieldInvalid('patient_Contact')"
+                <input type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
+                       appNumericOnly class="form-control" [class.is-invalid]="isFieldInvalid('patient_Contact')"
                        formControlName="patient_Contact" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;">
               </div>
               <app-field-error [control]="editPatientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="formSubmitted"></app-field-error>

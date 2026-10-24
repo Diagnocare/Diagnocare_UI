@@ -49,6 +49,12 @@
       <i class="fa fa-home"></i><span>Home</span>
     </a>
 
+    <!-- My Pickups — the collection boy's samples to collect and hand over -->
+    <a *ngIf="access.myPickups" class="dc-nav-link" href="#"
+       (click)="redirectionToModule({route:'my-pickups'}); $event.preventDefault()">
+      <i class="fa fa-motorcycle"></i><span>My Pickups</span>
+    </a>
+
     <!-- Patients link — Collection Boy direct access -->
     <a *ngIf="access.patientsLink" class="dc-nav-link" href="#"
        (click)="redirectionToModule({route:'patients'}); $event.preventDefault()">
@@ -153,6 +159,7 @@
            [id]="item.id"
            (click)="redirectionToModule(item)">
           <i class="fas {{ item.icon }} dc-item-icon"></i> {{ item.label }}
+          <span class="dc-nav-badge dc-nav-badge--info" *ngIf="badgeFor(item) > 0">{{ badgeText(badgeFor(item)) }}</span>
         </a>
       </div>
     </div>
@@ -165,6 +172,9 @@
               [disabled]="isLicenceExpired"
               [title]="isLicenceExpired ? 'Licence expired — access disabled' : ''">
         <i class="fa fa-cog"></i><span>Admin Panel</span>
+        <!-- Total of every Super Admin queue (discount approvals + attendance requests) -->
+        <span class="dc-nav-badge" *ngIf="!isLicenceExpired && adminPanelBadge > 0"
+              [title]="adminPanelBadgeTitle">{{ badgeText(adminPanelBadge) }}</span>
         <i class="fa fa-lock dc-expired-icon" *ngIf="isLicenceExpired"></i>
         <i class="fa fa-chevron-down dc-caret" *ngIf="!isLicenceExpired"></i>
       </button>
@@ -176,6 +186,7 @@
              [id]="item.id"
              (click)="redirectionToModule(item)">
             <i class="fas {{ item.icon }} dc-item-icon"></i> {{ item.label }}
+            <span class="dc-nav-badge" *ngIf="badgeFor(item) > 0">{{ badgeText(badgeFor(item)) }}</span>
           </a>
         </ng-container>
       </div>
@@ -186,8 +197,49 @@
   <!-- ── Right section: user chip + profile dropdown ── -->
   <div class="dc-user-section">
 
+    <!-- Notification bell — the caller's own updates: visits, attendance, salary, requests.
+         Click-toggled (not hover like the menus) so it also works on a touch screen. -->
+    <div class="dc-bell-host" [class.dc-bell-open]="bellOpen" *ngIf="!isLicenceExpired">
+      <button class="dc-bell-btn" type="button" (click)="toggleBell($event)"
+              [attr.aria-expanded]="bellOpen" aria-haspopup="true"
+              [title]="notificationCounts.unread > 0 ? notificationCounts.unread + ' unread notification(s)' : 'Notifications'">
+        <i class="fa fa-bell"></i>
+        <span class="dc-bell-count" *ngIf="notificationCounts.unread > 0">{{ badgeText(notificationCounts.unread) }}</span>
+      </button>
+
+      <div class="dc-bell-panel" *ngIf="bellOpen" role="menu" (click)="$event.stopPropagation()">
+        <div class="dc-dropdown-header dc-bell-header">
+          <span><i class="fa fa-bell"></i> Notifications</span>
+          <button type="button" class="dc-bell-markall" *ngIf="hasUnreadInBell"
+                  (click)="markAllNotificationsRead($event)">Mark all as read</button>
+        </div>
+
+        <div class="dc-bell-state" *ngIf="bellLoading">
+          <i class="fa fa-spinner fa-spin"></i> Loading…
+        </div>
+
+        <div class="dc-bell-state" *ngIf="!bellLoading && bellItems.length === 0">
+          <i class="fa fa-check-circle"></i> You're all caught up.
+        </div>
+
+        <ul class="dc-bell-list" *ngIf="!bellLoading && bellItems.length > 0">
+          <li *ngFor="let n of bellItems; trackBy: trackByNotificationId" class="dc-bell-item" [class.dc-bell-unread]="!n.isRead"
+              role="menuitem" tabindex="0"
+              (click)="openNotification(n)" (keydown.enter)="openNotification(n)">
+            <i class="fa {{ notificationIcon(n.module) }} dc-bell-icon"></i>
+            <div class="dc-bell-body">
+              <div class="dc-bell-title">{{ n.title }}</div>
+              <div class="dc-bell-msg">{{ n.message }}</div>
+              <div class="dc-bell-time">{{ timeAgo(n.createdAt) }}</div>
+            </div>
+            <span class="dc-bell-dot" *ngIf="!n.isRead" aria-label="Unread"></span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Username pill -->
-    <div class="dc-username-chip">
+    <div class="dc-username-chip" [title]="userName || 'User'">
       <i class="fa fa-user-circle"></i>
       <span class="dc-username-text">{{ userName || 'User' }}</span>
     </div>
@@ -274,6 +326,12 @@
     <i class="fa fa-home"></i> Home
   </a>
 
+  <!-- My Pickups (Collection Boy) -->
+  <a *ngIf="access.myPickups" class="dc-mobile-item" href="#"
+     (click)="redirectionToModule({route:'my-pickups'}); mobileNavOpen=false; $event.preventDefault()">
+    <i class="fa fa-motorcycle"></i> My Pickups
+  </a>
+
   <!-- Patients link (Collection Boy) -->
   <a *ngIf="access.patientsLink" class="dc-mobile-item" href="#"
      (click)="redirectionToModule({route:'patients'}); mobileNavOpen=false; $event.preventDefault()">
@@ -296,6 +354,7 @@
       <a *ngFor="let item of visibleUserOptions" class="dc-mobile-item dc-mobile-sub"
          (click)="redirectionToModule(item); mobileNavOpen=false">
         <i class="fa {{ item.icon }}"></i> {{ item.label }}
+        <span class="dc-nav-badge dc-nav-badge--info" *ngIf="badgeFor(item) > 0">{{ badgeText(badgeFor(item)) }}</span>
       </a>
     </ng-container>
   </div>
@@ -356,6 +415,7 @@
            class="dc-mobile-item dc-mobile-sub"
            (click)="redirectionToModule(item); mobileNavOpen=false">
           <i class="fa {{ item.icon }}"></i> {{ item.label }}
+          <span class="dc-nav-badge" *ngIf="badgeFor(item) > 0">{{ badgeText(badgeFor(item)) }}</span>
         </a>
       </ng-container>
     </ng-container>

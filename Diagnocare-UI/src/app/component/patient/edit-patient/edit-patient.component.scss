@@ -47,16 +47,9 @@
   transition: all 0.3s ease;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #45a049, #4CAF50);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
+/* .btn-primary uses the app-wide button style — solid blue, inverts to white
+   on hover — defined in styles.css → "UNIFIED PRIMARY BUTTON".
+   Do not restyle it locally. */
 
 .btn-secondary {
   background: linear-gradient(135deg, #2196F3, #1976D2);

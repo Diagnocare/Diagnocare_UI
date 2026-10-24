@@ -52,10 +52,46 @@
       </div>
       <div class="vem-field">
         <label class="vem-label"><i class="fa fa-clock"></i> Visit Time</label>
-        <input type="time" class="vem-input" formControlName="visitTime"
-               [class.is-invalid]="isInvalid('visitTime')" />
+        <div class="vem-time-row">
+          <select class="vem-select" aria-label="Hour"
+                  [(ngModel)]="timePicker.hour" [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="timePicker.commit()" (blur)="timePicker.touch()"
+                  [class.is-invalid]="isInvalid('visitTime')">
+            <option value="" disabled>Hour</option>
+            <option *ngFor="let h of timePicker.hours" [value]="h">{{ h }}</option>
+          </select>
+          <select class="vem-select" aria-label="Minute"
+                  [(ngModel)]="timePicker.minute" [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="timePicker.commit()" (blur)="timePicker.touch()"
+                  [class.is-invalid]="isInvalid('visitTime')">
+            <option value="" disabled>Min</option>
+            <option *ngFor="let m of timePicker.minutes" [value]="m">{{ m }}</option>
+          </select>
+          <select class="vem-select" aria-label="AM or PM"
+                  [(ngModel)]="timePicker.meridiem" [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="timePicker.commit()" (blur)="timePicker.touch()"
+                  [class.is-invalid]="isInvalid('visitTime')">
+            <option value="" disabled>AM/PM</option>
+            <option *ngFor="let p of timePicker.meridiems" [value]="p">{{ p }}</option>
+          </select>
+        </div>
         <small class="vem-error" *ngIf="isInvalid('visitTime')">Valid time is required.</small>
       </div>
+    </div>
+
+    <!-- ── Holiday warning + override ───────────────────────────────────── -->
+    <div class="vem-holiday-warning" *ngIf="holidayWarning">
+      <div class="vem-hw-head">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>
+          {{ form.get('visitDate')?.value | date:'d MMMM yyyy' }} is a holiday
+          — <strong>{{ holidayWarning }}</strong>.
+        </span>
+      </div>
+      <label class="vem-hw-check">
+        <input type="checkbox" [(ngModel)]="overrideHoliday" [ngModelOptions]="{ standalone: true }" />
+        <span>Move this visit there anyway</span>
+      </label>
     </div>
 
   </div>
@@ -63,7 +99,9 @@
   <!-- Footer -->
   <div class="vem-footer">
     <button class="dc-btn dc-btn--cancel" type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
-    <button class="dc-btn dc-btn--save"   type="button" (click)="save()"   [disabled]="saving">
+    <button class="dc-btn dc-btn--save"   type="button" (click)="save()"
+            [disabled]="saving || blocked"
+            [title]="blocked ? 'Confirm the holiday warning to continue' : ''">
       <i class="fa" [class.fa-save]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
       {{ saving ? 'Saving…' : 'Save Changes' }}
     </button>

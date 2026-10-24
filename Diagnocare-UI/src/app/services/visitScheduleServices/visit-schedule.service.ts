@@ -7,11 +7,12 @@ import {
   VisitScheduleCreateDto,
   VisitScheduleUpdateDto,
   VisitCalendarDayDto,
+  HolidayVisitConflictDto,
 } from 'src/app/models/visitSchedule/visit-schedule.dto';
 
 @Injectable({ providedIn: 'root' })
 export class VisitScheduleService {
-  private base = getDiagnocareApiUrl() + 'api/visitSchedule/';
+  private base = getDiagnocareApiUrl() + 'api/v1/visitSchedule/';
 
   constructor(private http: HttpClient) {}
 
@@ -35,6 +36,22 @@ export class VisitScheduleService {
   /** Member's own visit calendar summary for a month (self-service). */
   getMyCalendar(year: number, month: number): Observable<VisitCalendarDayDto[]> {
     return this.http.get<VisitCalendarDayDto[]>(`${this.base}GetMyCalendar?year=${year}&month=${month}`);
+  }
+
+  /** Holidays in a year that still have visits scheduled on them. */
+  getHolidayConflicts(year: number): Observable<HolidayVisitConflictDto[]> {
+    return this.http.get<HolidayVisitConflictDto[]>(
+      `${this.base}GetHolidayConflicts?year=${year}`);
+  }
+
+  /**
+   * Holiday/visit conflicts inside an explicit date range — used before
+   * registering a holiday so the admin sees which visits it would clash with.
+   */
+  getConflictsForRange(from: string, to?: string): Observable<HolidayVisitConflictDto[]> {
+    const toParam = to ? `&to=${to}` : '';
+    return this.http.get<HolidayVisitConflictDto[]>(
+      `${this.base}GetHolidayConflicts?from=${from}${toParam}`);
   }
 
   update(dto: VisitScheduleUpdateDto): Observable<any> {

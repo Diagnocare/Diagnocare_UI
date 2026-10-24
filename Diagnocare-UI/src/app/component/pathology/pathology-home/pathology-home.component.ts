@@ -1,11 +1,48 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
+import { LicenceService } from 'src/app/services/licenceServices/licence.service';
+import { DashboardService } from 'src/app/services/dashboardServices/dashboard.service';
+import { HomeSummary, HomeActivity, HomeWeekDay } from 'src/app/models/dashboard/home-summary';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role, RoleId } from 'src/app/constant/enums';
+import { MODULE_ACCESS, DEFAULT_ACCESS, ModuleAccess } from 'src/app/constant/module-access';
+
+/**
+ * A count the API sent, or null when it sent nothing usable.
+ *
+ * The tiles render null as a dash, so a missing figure reads as "not known" rather
+ * than as a genuinely quiet day. Revenue arrives as null by design for a role that
+ * may not see report data.
+ */
+function numberOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && !Number.isNaN(value) ? value : null;
+}
+
+/**
+ * One tile in the "Every Module, at a Glance" gallery.
+ *
+ * The tiles were previously decorative — they carried `cursor: pointer` and a
+ * hover lift but no handler, so they read as clickable and did nothing. Each one
+ * now carries the route of the module it previews.
+ */
+interface ShowcaseModule {
+  /** Used for the aria-label, so it must match the title rendered on the tile. */
+  title: string;
+  /** Route the tile opens. Must exist in app-routing.module.ts. */
+  route: string;
+  /**
+   * Module-access flag the role must hold to open this route. Omitted when every
+   * role that can reach this page can also open the route.
+   *
+   * This mirrors the route's own roleGuard — without it a User would click
+   * Revenue Dashboards and land on Access Denied, because /reports is granted to
+   * every role EXCEPT User (see MODULE_ACCESS and the /reports guard).
+   */
+  requires?: keyof ModuleAccess;
+}
 
 interface ActionCard {
   title: string;
@@ -13,12 +50,36 @@ interface ActionCard {
   icon: string;
   route: string;
   color: string;
+  /** Roles that may open the route (mirrors its roleGuard). Omitted = every role. */
+  roles?: RoleId[];
 }
 
 interface CardGroup {
   label: string;
   icon: string;
   cards: ActionCard[];
+}
+
+/** One row in the hero's live-activity card. */
+interface ActivityRow {
+  name: string;
+  /** 'Pending' | 'Partial' | 'Completed' — as computed by the API. */
+  status: string;
+  /** CSS class for the status pill (vb-done | vb-prog | vb-wait). */
+  badgeClass: string;
+  /** Dot colour, matched to the status. */
+  dotColor: string;
+}
+
+/** One bar in the hero's "Registrations This Week" sparkline. */
+interface SparkBar {
+  /** Mon…Sun */
+  label: string;
+  count: number;
+  /** Rendered height in px, scaled against the busiest day of the week. */
+  height: number;
+  /** True for days that haven't happened yet — rendered flat and faded. */
+  future: boolean;
 }
 
 @Component({
@@ -45,18 +106,70 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   cardGroups: CardGroup[] = [];
 
+  /**
+   * Routes behind the module gallery tiles. Kept here rather than inline in the
+   * template so the four tiles, their guards and their labels sit in one place.
+   *
+   * Routes are the same ones the header menu uses (see labOperationMenu in
+   * constants.ts), so a tile and the nav entry for the same module always land
+   * on the same screen.
+   */
+  readonly modules: Record<'patients' | 'reports' | 'analytics' | 'billing', ShowcaseModule> = {
+    patients:  { title: 'Patient Registration', route: '/patients' },
+    reports:   { title: 'PDF Report Engine',    route: '/patient-tests' },
+    analytics: { title: 'Revenue Dashboards',   route: '/reports/referrer-collection',
+                 requires: 'summaryReports' },
+    billing:   { title: 'Billing & Receipts',   route: '/receipt' },
+  };
+
+  /** Nav/module permissions for the signed-in role; drives the tile locks. */
+  private access: ModuleAccess = DEFAULT_ACCESS;
+
   /** Inline style strings for floating hero particles (generated once on init). */
   particleStyles: string[] = [];
 
   /** Controls the video tutorial modal. */
   isVideoOpen = false;
 
+  // ── Dashboard state ─────────────────────────────────────────────────────
+  //  Null means "no value": still loading, or the request failed. Deliberately
+  //  not 0, which would read as a real quiet day.
+  //
+  //  All five come from one call (see loadDashboard), and the three test counts
+  //  are at test grain, so the row adds up:
+  //  testsBookedToday = reportsDone + testsPending.
+
+  patientsToday:    number | null = null;
+  /** Individual tests booked today — a three-test visit counts three. */
+  testsBookedToday: number | null = null;
+  /** Of today's booked tests, how many have results. */
+  reportsDone:      number | null = null;
+  /** Of today's booked tests, how many are still waiting. */
+  testsPending:     number | null = null;
+  /** Null for a role that may not see report data — the tile shows a dash. */
+  revenueToday:     number | null = null;
+
+  /** Today's collection is shown to Admin / Super Admin only (mirrors the API). */
+  get showRevenue(): boolean {
+    return this.tokenService.isAdmin() || this.tokenService.isSuperAdmin();
+  }
+
+  /** Today's most recent bookings, newest first. Max 3. */
+  activityRows: ActivityRow[] = [];
+
+  /** Mon–Sun registration counts for the current week. */
+  sparkBars: SparkBar[] = [];
+
+  isDashboardLoading = true;
+
   private destroy$ = new Subject<void>();
 
   constructor(
-    private pathologyService: PathologyService,
+    private licenceService: LicenceService,
+    private dashboardService: DashboardService,
     private router: Router,
     private tokenService: TokenService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -65,6 +178,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     this.buildCards();
     this.checkPathologyExpiry();
     this.initParticles();
+    this.loadDashboard();
   }
 
   // ── Licence progress ────────────────────────────────────────────────────
@@ -89,6 +203,122 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     this.router.navigate([route]);
   }
 
+  /**
+   * True when the signed-in role may open this tile's route.
+   *
+   * A tile the role cannot open stays on the page — the gallery is a tour of what
+   * the product does, not a menu — but it is rendered inert and out of the tab
+   * order instead of routing the user into Access Denied.
+   */
+  canOpen(module: ShowcaseModule): boolean {
+    return !module.requires || this.access[module.requires] === true;
+  }
+
+  /** Opens a module gallery tile. Ignored for tiles the role cannot open. */
+  openModule(module: ShowcaseModule): void {
+    if (!this.canOpen(module)) return;
+    this.router.navigate([module.route]);
+  }
+
+  // ── Dashboard data ──────────────────────────────────────────────────────
+
+  /**
+   * Loads the whole hero in one request.
+   *
+   * It used to take four — two pages of the patient search, the daily-collection
+   * report and a booked-test count — and assemble the tiles here. That left the
+   * counts capped by a page size, had two of them counting patients while their
+   * labels said tests, and drew the hero in pieces as each call landed.
+   *
+   * The browser's own date is sent, so the figures follow the user's calendar day
+   * rather than the server's. On failure every tile stays null and shows a dash,
+   * which is the honest answer: nothing was read.
+   */
+  private loadDashboard(): void {
+    // The summary endpoint is LabOperations-only (Collection Boy / Doctor get 403),
+    // so don't call it for them — the tiles simply show a dash.
+    if (!this.access.labOps) {
+      this.isDashboardLoading = false;
+      return;
+    }
+
+    this.dashboardService
+      .getHomeSummary(this.toApiDate(new Date()))
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: summary => {
+          this.applySummary(summary);
+          this.isDashboardLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.isDashboardLoading = false;
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  /** Spreads the one response across the tiles, the activity card and the sparkline. */
+  private applySummary(summary: HomeSummary): void {
+    if (!summary) return;
+
+    this.patientsToday    = numberOrNull(summary.patientsToday);
+    this.testsBookedToday = numberOrNull(summary.testsBooked);
+    this.reportsDone      = numberOrNull(summary.reportsDone);
+    this.testsPending     = numberOrNull(summary.testsPending);
+    this.revenueToday     = numberOrNull(summary.revenueToday);
+
+    this.activityRows = (summary.recentActivity ?? []).map(row => this.toActivityRow(row));
+    this.sparkBars    = this.toSparkBars(summary.weekRegistrations ?? []);
+  }
+
+  /** Turns an API activity row into its pill, dot and wording. */
+  private toActivityRow(row: HomeActivity): ActivityRow {
+    const status = (row.status ?? '').trim().toLowerCase();
+
+    const badgeClass =
+      status === 'completed' ? 'vb-done' :
+      status === 'partial'   ? 'vb-prog' : 'vb-wait';
+
+    const dotColor =
+      status === 'completed' ? '#00b894' :
+      status === 'partial'   ? '#1e88e5' : '#ffc107';
+
+    const label =
+      status === 'completed' ? 'Report Ready' :
+      status === 'partial'   ? 'In Lab' : 'Pending';
+
+    return {
+      name: (row.patientName ?? '').trim() || 'Unknown',
+      status: label,
+      badgeClass,
+      dotColor,
+    };
+  }
+
+  /**
+   * Scales the week's counts into bar heights. Against the busiest day of the week,
+   * so the tallest bar always fills the track whatever the lab's volume; a day with
+   * nothing keeps a 4px stub rather than disappearing.
+   */
+  private toSparkBars(week: HomeWeekDay[]): SparkBar[] {
+    const max = Math.max(1, ...week.map(d => d.count ?? 0));
+
+    return week.map(d => ({
+      label: d.label,
+      count: d.count ?? 0,
+      future: d.future === true,
+      height: !d.count ? 4 : Math.round(8 + (d.count / max) * 32),
+    }));
+  }
+
+  /** dd-MM-yyyy — the one date format the API reads. */
+  private toApiDate(d: Date): string {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}-${mm}-${d.getFullYear()}`;
+  }
+
   // ── Private helpers ─────────────────────────────────────────────────────
 
   private loadUserInfo(): void {
@@ -97,6 +327,9 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       ? (Object.values(Role).find(r => r.id === this.userRole)?.label ?? '')
       : '';
     this.userName        = this.tokenService.getUserId() ?? 'User';
+    this.access          = this.userRole !== null
+      ? (MODULE_ACCESS[this.userRole] ?? DEFAULT_ACCESS)
+      : DEFAULT_ACCESS;
   }
 
   private buildGreeting(): void {
@@ -114,6 +347,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   private buildCards(): void {
     const isAdmin      = this.tokenService.isAdmin();
+    const isSuperAdmin = this.tokenService.isSuperAdmin();
 
     const patientCards: ActionCard[] = [
       {
@@ -121,14 +355,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Register, search and manage patient records',
         icon: 'fa-users',
         route: '/patients',
-        color: 'indigo'
+        color: 'indigo',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
       },
       {
         title: 'Patient Tests',
         description: 'View and manage test requests and results',
         icon: 'fa-flask',
         route: '/patient-tests',
-        color: 'blue'
+        color: 'blue',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
       },
     ];
 
@@ -138,14 +374,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Configure lab tests, parameters and pricing',
         icon: 'fa-list-alt',
         route: '/manage-tests',
-        color: 'teal'
+        color: 'teal',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id]
       },
       {
         title: 'Reports',
         description: 'Generate and export diagnostic reports',
         icon: 'fa-bar-chart',
         route: '/reports',
-        color: 'green'
+        color: 'green',
+        roles: [Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id]
       },
     ];
 
@@ -184,6 +422,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     }
 
     const systemCards: ActionCard[] = [];
+    // Lab Profile and Lab Setup are Super Admin only (route guard + API).
+    if (isSuperAdmin) {
       systemCards.push(
         {
           title: 'Lab Profile',
@@ -199,14 +439,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
           route: '/lab-setup',
           color: 'slate'
         },
-        {
-          title: 'Report Templates',
-          description: 'Design and manage report templates',
-          icon: 'fa-file-text',
-          route: '/template',
-          color: 'violet'
-        },
       );
+    }
+    systemCards.push({
+      title: 'Report Templates',
+      description: 'Design and manage report templates',
+      icon: 'fa-file-text',
+      route: '/template',
+      color: 'violet',
+      roles: [Role.Admin.id, Role.Super_Admin.id]
+    });
 
     const accountCards: ActionCard[] = [
       {
@@ -214,7 +456,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Track and manage staff attendance',
         icon: 'fa-calendar-check-o',
         route: '/attendance',
-        color: 'teal'
+        color: 'teal',
+        roles: [Role.Admin.id, Role.Super_Admin.id]
       },
       {
         title: 'Settings',
@@ -231,36 +474,37 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       { label: 'Administration',     icon: 'fa-users',     cards: adminCards   },
       { label: 'System',             icon: 'fa-cog',       cards: systemCards  },
       { label: 'Account',            icon: 'fa-id-badge',  cards: accountCards },
-    ].filter(g => g.cards.length > 0);
+    ]
+      .map(g => ({
+        ...g,
+        cards: g.cards.filter(c => !c.roles || this.tokenService.hasRole(...c.roles)),
+      }))
+      .filter(g => g.cards.length > 0);
   }
 
   private checkPathologyExpiry(): void {
-    this.pathologyService.getPathologyExpiryDate()
+    // LicenceService owns the one expiry request per session (licenceGuard already
+    // triggers it). Calling the API here as well meant a second hit on every home visit.
+    // load() is a no-op once resolved, and shares the in-flight call while it is pending.
+    this.licenceService.load()
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          if (response?.pathologyExpiryDate) {
-            const expiryDate = new Date(response.pathologyExpiryDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            expiryDate.setHours(0, 0, 0, 0);
-            this.daysUntilExpiry = Math.ceil(
-              (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            );
-            const ed = expiryDate;
-            this.expiryDate =
-              `${ed.getDate().toString().padStart(2, '0')}-` +
-              `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
-              `${ed.getFullYear()}`;
+      .subscribe(() => {
+        const ed = this.licenceService.expiryDate;
+        const daysLeft = this.licenceService.daysLeft;
+        if (!ed || daysLeft === null) return;   // check failed or no licence: fail open, as before
 
-            if (this.daysUntilExpiry <= 0) {
-              this.isLicenseExpired = true;
-            } else if (this.daysUntilExpiry <= 15) {
-              this.showExpiryBanner = true;
-            }
-          }
-        },
-        error: () => {}
+        this.daysUntilExpiry = daysLeft;
+        this.expiryDate =
+          `${ed.getDate().toString().padStart(2, '0')}-` +
+          `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
+          `${ed.getFullYear()}`;
+
+        if (this.daysUntilExpiry <= 0) {
+          this.isLicenseExpired = true;
+        } else if (this.daysUntilExpiry <= 15) {
+          this.showExpiryBanner = true;
+        }
+        this.cdr.markForCheck();
       });
   }
 

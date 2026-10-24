@@ -72,7 +72,8 @@
               <input
                 id="pinInput"
                 class="pam-input"
-                [type]="showPin ? 'text' : 'password'"
+                type="text"
+                [appMasked]="!showPin"
                 inputmode="numeric"
                 pattern="[0-9]*"
                 maxlength="6"

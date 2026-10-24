@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,13 +7,24 @@ import { ToastrService } from 'ngx-toastr';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { RequestStatusBadgeComponent } from '../shared/request-status-badge.component';
+import { RequestDetailComponent } from '../request-detail/request-detail.component';
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import {
+  AttendanceRequestCounts,
   AttendanceRequestDTO,
   AttendanceRequestFilter,
+  RequestBucket,
   RequestStatus,
+  REQUEST_BUCKETS,
+  USER_STATUS_FILTERS,
 } from 'src/app/models/attendanceRequest/attendance-request.model';
+
+/** One row of the employee dropdown. */
+interface EmployeeOption { id: number; name: string; detail: string; }
+
+/** Shared empty result for collapsed history — see historyRows(). */
+const NO_HISTORY: AttendanceRequestDTO[] = [];
 
 /**
  * Single shared list of attendance correction requests for BOTH User and Admin.
@@ -26,42 +37,26 @@ import {
   templateUrl: './requests-list.component.html',
   styleUrls: ['./requests-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingSpinnerComponent, DatePickerComponent, RequestStatusBadgeComponent],
+  imports: [CommonModule, FormsModule, LoadingSpinnerComponent, DatePickerComponent, RequestStatusBadgeComponent, RequestDetailComponent],
 })
 export class RequestsListComponent implements OnInit {
 
   readonly RequestStatus = RequestStatus;
 
   /**
-   * Sentinel for the admin's default view. Not a real RequestStatus — it maps to the
-   * `awaitingDecision` flag, which the server expands to Pending + WithdrawalRequested.
-   * Negative so it can never collide with a status value.
+   * The admin's three views. A queue is a worklist, not a database browser: the
+   * question on arrival is "what needs me?", and after that "what did I decide about
+   * X?" — so those are the filters. Listing all six lifecycle states instead meant
+   * three of them overlapped (Awaiting decision IS Pending + Withdrawal requested) and
+   * two were outcomes no admin acts on. The exact state is still on every row's badge.
    */
-  static readonly AWAITING_DECISION = -1;
-  readonly AWAITING_DECISION = RequestsListComponent.AWAITING_DECISION;
+  readonly buckets = REQUEST_BUCKETS;
 
-  readonly statusOptions = [
-    { value: 0, label: 'All' },
-    // Admin's working queue: both things that need a decision, in one list.
-    { value: RequestsListComponent.AWAITING_DECISION, label: 'Awaiting decision' },
-    { value: RequestStatus.Pending, label: 'Pending' },
-    { value: RequestStatus.Approved, label: 'Approved' },
-    { value: RequestStatus.WithdrawalRequested, label: 'Withdrawal requested' },
-    { value: RequestStatus.Rejected, label: 'Rejected' },
-    // Labels match REQUEST_STATUS_CONFIG — Cancelled is what withdrawing an unreviewed
-    // request produces; Withdrawn is an approved one whose attendance was rolled back.
-    { value: RequestStatus.Cancelled, label: 'Withdrawn' },
-    { value: RequestStatus.Withdrawn, label: 'Reverted' },
-  ];
+  /** Status chips for an employee's own list — short and personal, so all states stay. */
+  readonly userStatusOptions = USER_STATUS_FILTERS;
 
-  /**
-   * Chips shown to employees. "Awaiting decision" is an admin queue view and would be
-   * meaningless in a personal list, so it is filtered out rather than duplicated as a
-   * second array that could drift from statusOptions.
-   */
-  get userStatusOptions() {
-    return this.statusOptions.filter(o => o.value !== this.AWAITING_DECISION);
-  }
+  /** Tab badges. Null until loaded, so a tab never briefly claims zero work. */
+  counts: AttendanceRequestCounts | null = null;
 
   /**
    * True when the signed-in user REVIEWS other people's requests, i.e. Super
@@ -74,12 +69,39 @@ export class RequestsListComponent implements OnInit {
   rows: AttendanceRequestDTO[] = [];
   total = 0;
   isLoading = false;
+  /** Set when the list call failed — drives the error card with its Retry. */
+  loadError: string | null = null;
+
+  // ── Employee filter ──────────────────────────────────────────────────────
+  // Active staff only, loaded from the user API (filtered server-side).
+  employees: EmployeeOption[] = [];
+  employeesLoading = false;
+  employeesError = false;
+  employeeMenuOpen = false;
+  employeeQuery = '';
+  @ViewChild('employeeSearch') private employeeSearchInput?: ElementRef<HTMLInputElement>;
+
+  /**
+   * Filters as last APPLIED. The tab badges and the empty-state copy follow these, not
+   * the half-edited controls, so a badge never describes a filter that hasn't run yet.
+   */
+  private applied: { userId?: number; fromDate?: string; toDate?: string } = {};
+
+  /** Request open in the review drawer; null = closed. */
+  selectedRequestId: number | null = null;
+
+  /**
+   * Rows whose earlier attempts are showing, keyed by requestId. Collapsed by
+   * default — the history is there for when it's asked for, not to reassert
+   * itself on every load. Cleared on reload so it can't point at stale ids.
+   */
+  private expanded = new Set<number>();
 
   // Admin default: everything awaiting a decision (actionable). User default: All.
   filter: AttendanceRequestFilter = {
-    status: RequestsListComponent.AWAITING_DECISION,
+    bucket: 'needsaction', status: 0,
     search: '', fromDate: '', toDate: '',
-    page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc',
+    page: 1, pageSize: 20, sortBy: 'date', sortDir: 'asc',
   };
 
   constructor(
@@ -91,49 +113,173 @@ export class RequestsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.isReviewer = this.token.isSuperAdmin();
-    if (!this.isReviewer) this.filter.status = 0;   // users default to All of their own
     this.load();
+    if (this.isReviewer) {
+      this.loadCounts();
+      this.loadEmployees();
+    }
   }
 
-  load(): void {
-    this.isLoading = true;
+  /**
+   * @param silent refresh in place (after a decision) without swapping the list for a
+   *               skeleton — the reviewer is mid-queue and the rows shouldn't flash.
+   */
+  load(silent = false): void {
+    if (!silent) this.isLoading = true;
+    this.loadError = null;
+    this.expanded.clear();
     if (this.isReviewer) {
-      // The AWAITING_DECISION sentinel is not a status — translate it into the flag the
-      // server understands, and drop `status` so it can't be sent as a negative number.
-      const awaiting = this.filter.status === this.AWAITING_DECISION;
-
       const payload: AttendanceRequestFilter = {
         ...this.filter,
-        status: awaiting ? undefined : (this.filter.status || undefined),
-        awaitingDecision: awaiting ? true : undefined,
-        search: this.filter.search?.trim() || undefined,
-        fromDate: this.filter.fromDate || undefined,
-        toDate: this.filter.toDate || undefined,
+        status: undefined,                       // the queue filters by bucket, not state
+        userId: this.applied.userId,
+        search: undefined,                       // employee dropdown replaced the free-text box
+        fromDate: this.applied.fromDate,
+        toDate: this.applied.toDate,
       };
       this.service.getAllRequests(payload).subscribe({
         next: (res) => { this.rows = res.items; this.total = res.totalCount; this.isLoading = false; },
-        error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
+        error: (msg) => { this.loadError = this.errorText(msg); this.isLoading = false; },
       });
     } else {
-      // Users have no "awaiting decision" view — their own list is short enough to read
-      // whole. Guard against the sentinel leaking through if the option is ever shown.
-      const status = this.filter.status === this.AWAITING_DECISION ? undefined : (this.filter.status || undefined);
-      this.service.getMyRequests(status).subscribe({
+      this.service.getMyRequests(this.filter.status || undefined).subscribe({
         next: (rows) => { this.rows = rows; this.total = rows.length; this.isLoading = false; },
-        error: (msg) => { this.toastr.error(msg); this.isLoading = false; },
+        error: (msg) => { this.loadError = this.errorText(msg); this.isLoading = false; },
       });
     }
   }
 
-  applyFilters(): void { this.filter.page = 1; this.load(); }
-
-  resetFilters(): void {
-    this.filter = { status: this.isReviewer ? this.AWAITING_DECISION : 0, search: '', fromDate: '', toDate: '',
-                    page: 1, pageSize: 20, sortBy: 'created', sortDir: 'desc' };
-    this.load();
+  private errorText(msg: unknown): string {
+    return typeof msg === 'string' && msg ? msg : 'Something went wrong while loading requests.';
   }
 
+  /**
+   * Badge totals for the tabs, scoped to the applied employee / date range so a badge
+   * agrees with the list under it. Failure is swallowed on purpose: a missing count is
+   * a cosmetic loss, and a toast on top of the list's own error would be noise.
+   */
+  private loadCounts(): void {
+    this.service.getRequestCounts(this.applied).subscribe({
+      next: (c) => (this.counts = c),
+      error: () => (this.counts = null),
+    });
+  }
+
+  /** Snapshot the filter controls, then run the list and the badges against them. */
+  applyFilters(): void {
+    this.filter.page = 1;
+    this.applied = {
+      userId: this.filter.userId || undefined,
+      fromDate: this.filter.fromDate || undefined,
+      toDate: this.filter.toDate || undefined,
+    };
+    this.load();
+    if (this.isReviewer) this.loadCounts();
+  }
+
+  /**
+   * Clear employee and date range. The admin's tab survives on purpose — it is the
+   * view they chose, not a filter they set, and silently throwing them back to the
+   * queue after a search would lose their place.
+   */
+  resetFilters(): void {
+    this.filter = {
+      ...this.filter,
+      status: 0,                       // employee chip bar back to All; unused by the queue
+      userId: undefined, search: '', fromDate: '', toDate: '', page: 1,
+    };
+    this.employeeQuery = '';
+    this.employeeMenuOpen = false;
+    this.applyFilters();
+  }
+
+  // ── Employee dropdown ─────────────────────────────────────────────────────
+
+  loadEmployees(): void {
+    this.employeesLoading = true;
+    this.employeesError = false;
+    this.service.getActiveUsers().subscribe({
+      next: (users) => {
+        this.employees = users
+          .map((u) => ({
+            id: (u.user_Id ?? u.id) as number,
+            name: [u.first_Name, u.last_Name].filter(Boolean).join(' ').trim() || u.user_Name || `User ${u.user_Id ?? u.id}`,
+            detail: u.position || '',
+          }))
+          .filter((e) => !!e.id)
+          .sort((a, b) => a.name.localeCompare(b.name));
+        this.employeesLoading = false;
+      },
+      error: () => { this.employeesLoading = false; this.employeesError = true; },
+    });
+  }
+
+  get selectedEmployee(): EmployeeOption | undefined {
+    return this.employees.find((e) => e.id === this.filter.userId);
+  }
+
+  get filteredEmployees(): EmployeeOption[] {
+    const q = this.employeeQuery.trim().toLowerCase();
+    return q ? this.employees.filter((e) => e.name.toLowerCase().includes(q) || e.detail.toLowerCase().includes(q)) : this.employees;
+  }
+
+  toggleEmployeeMenu(): void {
+    this.employeeMenuOpen = !this.employeeMenuOpen;
+    if (this.employeeMenuOpen) {
+      this.employeeQuery = '';
+      setTimeout(() => this.employeeSearchInput?.nativeElement.focus());
+    }
+  }
+
+  /** null = "All Employees". Only stages the choice — Apply runs it. */
+  pickEmployee(id: number | null): void {
+    this.filter.userId = id ?? undefined;
+    this.employeeMenuOpen = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: Event): void {
+    if (this.employeeMenuOpen && !(ev.target as HTMLElement).closest?.('.emp-select')) this.employeeMenuOpen = false;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.employeeMenuOpen) this.employeeMenuOpen = false;
+    else if (this.selectedRequestId !== null) this.closeDrawer();
+  }
+
+  // ── Review drawer ─────────────────────────────────────────────────────────
+
+  closeDrawer(): void { this.selectedRequestId = null; }
+
+  /**
+   * A decision was saved in the drawer. Close it and refresh the list and badges in
+   * place — same tab, same filters, same page — ready for the next request.
+   */
+  onDecided(): void {
+    this.toastr.success('Request updated');
+    this.closeDrawer();
+    this.load(true);
+    this.loadCounts();
+  }
+
+  /** Employee chip bar. */
   setStatus(value: number): void { this.filter.status = value; this.applyFilters(); }
+
+  /**
+   * Admin tab switch. Re-applies the filters, which also refreshes the badges —
+   * arriving here after approving something is exactly when a stale one would mislead.
+   */
+  setBucket(value: RequestBucket): void {
+    if (this.filter.bucket === value) return;
+    this.filter.bucket = value;
+    this.applyFilters();
+  }
+
+  /** Badge number for a tab, or null while counts are still loading. */
+  bucketCount(key: keyof AttendanceRequestCounts): number | null {
+    return this.counts ? this.counts[key] : null;
+  }
 
   changePage(delta: number): void {
     const next = this.filter.page + delta;
@@ -144,7 +290,9 @@ export class RequestsListComponent implements OnInit {
 
   newRequest(): void { this.router.navigate(['/attendance-requests/new']); }
 
+  /** Reviewer: review in the drawer, never leaving the queue. Employee: the detail page. */
   open(r: AttendanceRequestDTO): void {
+    if (this.isReviewer) { this.selectedRequestId = r.requestId; return; }
     this.router.navigate(['/attendance-requests', r.requestId]);
   }
 
@@ -180,18 +328,25 @@ export class RequestsListComponent implements OnInit {
   }
 
   /**
-   * True once the admin has narrowed the list beyond the default "awaiting
-   * decision" queue. Drives the empty-state copy — "nothing matches your
-   * filters" reads very differently from "there is nothing here at all".
+   * True once the admin has narrowed the list with the date range or search box.
+   * Switching tabs is not "filtering" here — an empty Decided tab means nothing has
+   * been decided yet, and offering to clear filters would be answering the wrong
+   * question. Only the controls the admin typed into count.
    */
   get hasActiveFilters(): boolean {
     if (this.isReviewer) {
-      return this.filter.status !== this.AWAITING_DECISION
-        || !!this.filter.search?.trim()
-        || !!this.filter.fromDate
-        || !!this.filter.toDate;
+      return !!this.applied.userId || !!this.applied.fromDate || !!this.applied.toDate;
     }
     return this.filter.status !== 0;
+  }
+
+  /** Empty-state heading for the current tab — each bucket is empty for its own reason. */
+  get emptyBucketMessage(): string {
+    switch (this.filter.bucket) {
+      case 'decided': return 'Nothing decided yet';
+      case 'all':     return 'No requests yet';
+      default:        return 'Nothing awaiting a decision';
+    }
   }
 
   /** Highlights rows the reviewer still needs to act on, so the queue scans at a glance. */
@@ -200,9 +355,39 @@ export class RequestsListComponent implements OnInit {
       && (r.requestStatus === RequestStatus.Pending || r.requestStatus === RequestStatus.WithdrawalRequested);
   }
 
+  // ── Same-day history ───────────────────────────────────────────────────────
+  // "My requests" returns one row per date. Where that date was asked about more
+  // than once, the older attempts come nested on the row rather than as separate
+  // rows, and open here on demand.
+
+  /** How many superseded requests sit behind this row. 0 when the day was asked about once. */
+  earlierCount(r: AttendanceRequestDTO): number {
+    return r.earlierAttempts?.length ?? 0;
+  }
+
+  isExpanded(r: AttendanceRequestDTO): boolean {
+    return this.expanded.has(r.requestId);
+  }
+
+  /** Opens or closes the history under one row. Stops the click reaching the row itself. */
+  toggleHistory(r: AttendanceRequestDTO, ev: Event): void {
+    ev.stopPropagation();
+    if (!this.expanded.delete(r.requestId)) this.expanded.add(r.requestId);
+  }
+
+  /**
+   * The history rows to render under `r` right now. Returns the same frozen empty
+   * array when collapsed rather than a fresh `[]` in the template, so ngFor's
+   * differ sees an unchanged reference instead of re-checking on every cycle.
+   */
+  historyRows(r: AttendanceRequestDTO): AttendanceRequestDTO[] {
+    return this.isExpanded(r) ? (r.earlierAttempts ?? NO_HISTORY) : NO_HISTORY;
+  }
+
   /** Toggles newest/oldest first. Reviewer-only — a personal list is short enough to read whole. */
   toggleDateSort(): void {
     if (!this.isReviewer) return;
+    this.filter.sortBy = 'date';
     this.filter.sortDir = this.filter.sortDir === 'asc' ? 'desc' : 'asc';
     this.applyFilters();
   }

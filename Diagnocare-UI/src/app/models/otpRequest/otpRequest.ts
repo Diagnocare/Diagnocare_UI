@@ -1,10 +1,9 @@
 
 export interface OtpRequest {
-  id: number;
   userId: string;
   channel: 'email' | 'phone' | 'other';
-  email?: string;
-  contactPhone?: string;
+  /** What the code will be redeemed for. Defaults to a login on the server. */
+  purpose?: 'login' | 'reset';
 }
 
 export interface OtpVerificationRequest {

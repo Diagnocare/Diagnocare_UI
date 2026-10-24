@@ -12,13 +12,7 @@ export const environment: AppEnvironment = {
   helpUrl: 'https://feedback-system-rosy.vercel.app/',
   // Identifies this app + environment to the feedback portal (sent as
   // ?product=&env= on the help URL, so reports can be routed/filtered).
-  appName: 'Diagnocare',
+  appName: 'diagnocare-web',
   envName: 'uat',
-  // Never enabled outside local development.
-  devSkipSecondFactor: false,
 
-  basicAuth: {
-    username: 'Admin_Uat',
-    password: 'JYWZFCEHZeQmz+3HNQaOeLMJApJdCC4aPLB6iFNySBbGQmp+/HCe8NRpj9SL5CCO',
-  },
 };

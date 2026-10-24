@@ -9,6 +9,7 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { ToastrService } from 'ngx-toastr';
 import { Role } from 'src/app/constant/enums';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 /** sessionStorage key for the cached profile photo data-URL. */
 const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${userName}`;
@@ -18,7 +19,7 @@ const PROFILE_PHOTO_CACHE_KEY = (userName: string) => `diagnocare_profile_img_${
   templateUrl: './change-password.component.html',
   styleUrls: ['../account-pages.shared.css', './change-password.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, FormKeyboardDirective]
+  imports: [CommonModule, FormsModule, FormKeyboardDirective, MaskedInputDirective]
 })
 export class ChangePasswordComponent {
   oldPassword = '';
@@ -73,26 +74,9 @@ export class ChangePasswordComponent {
   }
 
   onOldPasswordChange() {
-    if (this.debounceSub) {
-      this.debounceSub.unsubscribe();
-    }
-    if (!this.oldPassword) {
-      this.oldPasswordValid = null;
-      return;
-    }
-    this.validating = true;
-    this.debounceSub = timer(ChangePasswordComponent.DEBOUNCE_MS).subscribe(() => {
-      this.headerService.validateOldPassword(this.userName, this.oldPassword).subscribe({
-        next: (res: any) => {
-          this.oldPasswordValid = !!res;
-          this.validating = false;
-        },
-        error: () => {
-          this.oldPasswordValid = false;
-          this.validating = false;
-        }
-      });
-    });
+    // The current password is verified by the server when the change is submitted. There is
+    // deliberately no live "is this my password?" check: that would be a password oracle.
+    this.oldPasswordValid = null;
   }
   
   onConfirmPasswordChange() {
@@ -113,15 +97,11 @@ export class ChangePasswordComponent {
       this.toastr.warning('New passwords do not match!', 'Validation Error');
       return;
     }
-    if (!this.isForceChange && this.oldPasswordValid === false) {
-      this.toastr.warning("Old password doesn't match!", 'Validation Error');
-      return;
-    }
     if (this.newPasswordValid === false) {
       this.toastr.warning('Password does not meet requirements!', 'Validation Error');
       return;
     }
-    this.headerService.resetPassword(this.userName, this.newPassword).subscribe({
+    this.headerService.changePassword(this.isForceChange ? '' : this.oldPassword, this.newPassword).subscribe({
       next: (res: any) => {
         if (res?.success === false) {
           this.toastr.error(res.message || 'Failed to change password.', 'Error');

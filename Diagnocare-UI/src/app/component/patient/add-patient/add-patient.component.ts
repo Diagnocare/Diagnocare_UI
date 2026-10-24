@@ -1,17 +1,19 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+﻿import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { StepperComponent } from '../stepper/stepper.component';
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, filter, switchMap, map, catchError } from 'rxjs/operators';
 import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
+import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
+import { BookingResultDto } from 'src/app/models/patient/booking-result.dto';
 import { CommonService } from 'src/app/shared/common.service';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -30,8 +32,19 @@ import { TestItem } from 'src/app/models/path-test/test/test.model';
 import { TpaDetailsModalComponent } from 'src/app/shared/tpa-details-modal/tpa-details-modal.component';
 import { TpaDetails } from 'src/app/models/tpa/tpa-details.model';
 import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/payment-calculator.component';
+// The one payment dialog. This screen used to carry its own Bootstrap modal
+// with its own markup, labels and buttons; it now opens the same component
+// Patient Tests and Bill / Receipt open, configured to collect only the figure
+// this step cannot (how much is being paid now) and to save nothing, because
+// the payment is written with the booking in registerPatient().
+import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
+// The catalogue itself. Shared with AddTestModalComponent so registration and
+// Add New Test are the same screen rather than two look-alikes that drift.
+import {
+  DcTestPickerComponent, DcPickableTest, DcTestGroup,
+} from 'src/app/shared/simple/dc-test-picker.component';
 import {
   TestBookingProtocolsDto,
   TestProtocolDto,
@@ -52,7 +65,9 @@ import {
     FormKeyboardDirective,
     NumericOnlyDirective,
     PaymentCalculatorComponent,
+    PaymentModalComponent,
     TestProtocolPanelComponent,
+    DcTestPickerComponent,
   ],
   providers: [],
   standalone: true,
@@ -72,13 +87,13 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       'relation', 'relative_Name', 'patient_Contact', 'patient_Email'
     ],
     3: ['test_Name', 'test_Amount', 'referred_By_Type', 'referred_By'],
-    4: ['net_Amount', 'payment_Type', 'amount_Paid', 'amount_Pending', 'payment_Mode']
+    4: ['discount', 'discount_Reason', 'net_Amount', 'payment_Type', 'amount_Paid', 'amount_Pending', 'payment_Mode']
     // Note: TPA sub-fields are validated separately via isTpaValid getter (not in stepFields)
     // because they are conditionally required only when payment_Mode === 'TPA'
   };
 
   isLoading: boolean = false;
-  currentStep = 2;
+  currentStep = 1;
 
   /** Exposed for [tabFields] binding on the form element. */
   readonly tabFields = tabOrderAdd;
@@ -87,13 +102,26 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   paymentConfirmed = false;
   /** Inline error shown inside the Partial Payment modal. */
   amountPaidError  = '';
+
+  // ── Shared payment dialog ──────────────────────────────────────────────────
+  // Visibility is a plain boolean now, not a Bootstrap show/hide call, because
+  // the dialog is an Angular component bound with [visible] exactly as it is on
+  // Patient Tests and Bill / Receipt.
+  showPaymentModal = false;
+  /** Amount the dialog opens at, so Edit shows the figure being amended. */
+  paymentModalSeed = 0;
+  /**
+   * True when a discount edit has just reset a Partial payment back to Full.
+   * Drives the note on the payment step — the payment type changes under the
+   * user, so it has to say so. Cleared as soon as they touch the type again.
+   */
+  partialResetByDiscount = false;
   /** Tracks whether Next/Submit was clicked on each step — triggers inline errors. */
   stepTouched: Record<number, boolean> = { 1: false, 2: false, 3: false, 4: false };
 
   // ── TPA state ──────────────────────────────────────────────────────────────
   showTpaModal = false;
   tpaDetails: TpaDetails | null = null;
-  query = '';
   today: string = new Date().toISOString().split('T')[0];
   salutation = Object.values(salutation);
   gender = Object.values(gender);
@@ -115,17 +143,22 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   patientForm: FormGroup;
   countryCodes: { code: string, label: string }[] = [];
-  groupedTests: GroupSubGroupModel[] = [];
-  subGroupTests: GroupSubGroupModel[] = [];
-  pathologyTest: any[] = [];
-  selectedTestGroup?: GroupSubGroupModel;
-  selectedSubGroup?: GroupSubGroupModel;
-  selectedTest?: any;
   showTest: boolean = false;
   showOtherTestDetails: boolean = true;
 
-  selectedGroupId: string | null = null;
-  selectedSubGroupId: string | null = null;
+  /** True while the catalogue has taken over the card from the step form. */
+  showTestCatalog = false;
+
+  /**
+   * The catalogue as a tree, for <dc-test-picker>. The old browser fetched one
+   * column at a time because one column was all it could show; the picker also
+   * searches across every test, so it needs the lot up front.
+   */
+  testGroups: DcTestGroup[] = [];
+  /** The same catalogue flat and de-duplicated — resolves a code the picker returns. */
+  allTests: TestItem[] = [];
+  isLoadingAllTests = false;
+
   selectedTestIds = new Set<string>();
   selectedTests: TestItem[] = [];
   focusedTestId: string | null = null;
@@ -148,7 +181,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
   selectedTestProtocols: TestBookingProtocolsDto[] = [];
   selectedProtocolsLoading = false;
-  showSelectedProtocols = true;
+  /** Collapsed by default so selecting tests stays uncluttered; the operator opens it with the toggle. */
+  showSelectedProtocols = false;
+  /** Catalogue protocol panel for the last-clicked test — hidden until the operator asks for it. */
+  showFocusedProtocol = false;
 
   /** Upper bound for the DOB picker — today in YYYY-MM-DD format. */
   readonly todayIso = new Date().toISOString().split('T')[0];
@@ -174,6 +210,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     private _memberService:   MemberService,
     private _contactService:  ContactAddressService,
     private _token:           TokenService,
+    private _sampleLabelService: SampleLabelService,
   ) {
     this.patientForm = this.fb.group({
       country_Code:      ['+91', Validators.required],
@@ -182,10 +219,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Id:           new FormControl({ value: '',  disabled: true }),
       patient_Salutation:   ['Mr.', Validators.required],
       patient_Name:         ['', [Validators.required, AppValidators.stringOnly()]],
-      // Date of birth is no longer required on its own: a patient who does not
-      // know it can be recorded by typing their age instead, and the DOB is
-      // back-calculated. `patient_Age` stays required, so one of the two routes
-      // must still be used — it is filled by whichever the operator chooses.
+      // Date of birth is optional: a patient who does not know it can be
+      // recorded by typing their age instead, and the DOB is left empty — it is
+      // never derived from the age. `patient_Age` stays required, so one of the
+      // two routes must still be used — it is filled by whichever the operator chooses.
       patient_DOB:          ['', [AppValidators.noFutureDate()]],
       patient_Age:          ['', Validators.required],
       patient_Age_Group:    ['', Validators.required],
@@ -201,7 +238,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       patient_Marital_Status: [''],
       // Optional: walk-in patients often register without giving an address.
       patient_Address:      [''],
-      relation:             ['S/O'],
+      relation:             [''],
       // Optional, but still letters-only when something IS typed — stringOnly()
       // returns null for an empty value, so a blank field is valid.
       relative_Name:        ['', [AppValidators.stringOnly()]],
@@ -213,6 +250,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_id:              [''],
       test_Name:            ['', Validators.required],
       urgent_Report:        [false],
+      // Per-booking: send THIS booking's report on WhatsApp, to whatsApp_Number.
+      // The number is pre-filled from patient_Contact and may be changed to send
+      // the report elsewhere; required only while the toggle is on
+      // (see syncWhatsAppNumberRule).
+      report_On_WhatsApp:   [false],
+      whatsApp_Number:      ['', [AppValidators.contactNumber()]],
       test_Amount:          ['', Validators.required],
       referred_By_Type:     ['Doctor', Validators.required],
       referred_By:          ['', Validators.required],
@@ -220,11 +263,16 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       collected_Outside:    [false],
       area:                 [''],
       collected_By:         [''],
-      sampling_Done:        [],
+      /** User_Id of the collection boy who fetches the sample; '' = drawn at the lab. */
+      collection_Assigned_To: [''],
+      sampling_Done:        [this._sampling.getDefault(), Validators.required],   // index 0 of the list
       discount:             [0],
-      net_Amount:           [0, Validators.required],
+      // Required only while the discount is above the lab limit (it then goes to a
+      // Super Admin, who needs to know why) — toggled in syncDiscountApproval().
+      discount_Reason:      ['', [Validators.maxLength(500)]],
+      net_Amount:           ['0', Validators.required],
       payment_Type:         ['Full', Validators.required],
-      amount_Paid:          ['', Validators.required],
+      amount_Paid:          ['0', Validators.required],
       amount_Pending:       ['0', Validators.required],
       payment_Mode:         ['Cash', Validators.required]
     });
@@ -235,13 +283,24 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.countryCodes = [{ code: DEFAULT_DIALING_CODE, label: `India (${DEFAULT_DIALING_CODE})` }];
       this.patientForm.patchValue({ country_Code: DEFAULT_DIALING_CODE });
 
-      // Load collection boys for "Collected By" dropdown
-      this._memberService.getAll(Role.Collection_Boy.id)
+      // Load collection boys for "Collected By" dropdown.
+      // Uses the LabOperations-scoped lookup, not api/User (Admin-only), so a
+      // Receptionist / Lab Assistant isn't 403'd off this page.
+      this._memberService.getCollectionBoysLookup()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (list: MemberDto[]) => { this.collectionBoys = list ?? []; },
           error: ()                  => { this.collectionBoys = []; },
         });
+
+    // Unticking Outside Collection means the sample is drawn at the lab, so nobody
+    // is sent: drop the collection boy and area rather than saving a stale pick.
+    this.patientForm.get('collected_Outside')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(outside => {
+        if (!outside) this.patientForm.patchValue({ collection_Assigned_To: '', area: '' }, { emitEvent: false });
+        this.syncCollectorRule(!!outside);
+      });
 
     // Keep amount_Paid in sync when payment type / net amount changes
     this.patientForm.get('payment_Type')?.valueChanges
@@ -255,7 +314,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         } else {
           // Partial — reset amounts so user goes through the modal
           this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+          this.clearPartialAmounts();
         }
       });
 
@@ -271,18 +330,63 @@ export class AddPatientComponent implements OnInit, OnDestroy {
           // Net changed after partial confirmation → stale; require re-confirmation
           if (this.paymentConfirmed) {
             this.paymentConfirmed = false;
-            this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+            this.clearPartialAmounts();
           }
         }
+      });
+
+    this.patientForm.get('report_On_WhatsApp')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(on => this.syncWhatsAppNumberRule(!!on));
+
+    // While the WhatsApp number is still the patient's own mobile (or empty), keep it
+    // in step when the mobile is corrected on the Patient step. A number that was
+    // deliberately changed to someone else's is left alone.
+    let lastMobile = `${this.patientForm.get('patient_Contact')?.value ?? ''}`;
+    this.patientForm.get('patient_Contact')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        const mobile = `${value ?? ''}`;
+        const number = this.patientForm.get('whatsApp_Number');
+        const current = `${number?.value ?? ''}`;
+        if (this.reportOnWhatsApp && number && (current === '' || current === lastMobile)) {
+          number.setValue(mobile, { emitEvent: false });
+        }
+        lastMobile = mobile;
       });
 
     this.patientForm.get('discount')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial && this.paymentConfirmed) {
-          this.paymentConfirmed = false;
-          this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+        // A discount edit changes the net amount, so any partial amount already
+        // entered is stale. This used to blank amount_Paid / amount_Pending,
+        // which stranded the user: both fields are readonly and can only be
+        // filled from the Partial Payment modal, and the only control that
+        // reopens that modal sits behind *ngIf="paymentConfirmed" — which this
+        // same code had just set false. Two blank, required, unfillable fields.
+        //
+        // The booking now falls back to Full payment instead. The payment_Type
+        // subscription above rewrites amount_Paid / amount_Pending to the new
+        // net, so the form stays valid, and the radio visibly moves to Full so
+        // the change is not silent (the note on the step says so too). The user
+        // picks Partial again if they still want one, which reopens the modal.
+        //
+        // Deliberately not conditional on paymentConfirmed: closing the modal
+        // with the X leaves Partial selected and unconfirmed, and that state
+        // needs the same escape.
+        //
+        // This runs per keystroke in the discount box, but only the first one
+        // does anything — after it the type is Full, not Partial.
+        if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
+          this.paymentConfirmed       = false;
+          this.amountPaidError        = '';
+          this.partialResetByDiscount = true;
+          this.patientForm.patchValue({ payment_Type: paymentType.Full });
         }
+        // Runs after the control holds the new value, whichever order the (input)
+        // handler and the value accessor fired in — so an over-limit discount
+        // always ends in a consistent No Payment state.
+        this.syncDiscountApproval();
       });
   }
 
@@ -316,7 +420,57 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     return this.tpaDetails !== null;
   }
 
+  // ── Report on WhatsApp ─────────────────────────────────────────────────────
+
+  get reportOnWhatsApp(): boolean {
+    return !!this.patientForm?.get('report_On_WhatsApp')?.value;
+  }
+
+  /** WhatsApp is on but there is no valid number to send to yet. */
+  get whatsAppNeedsNumber(): boolean {
+    const number = this.patientForm.get('whatsApp_Number');
+    return this.reportOnWhatsApp && (!number?.value || !!number?.invalid);
+  }
+
+  /** The WhatsApp number typed for this booking is the patient's own mobile. */
+  get whatsAppIsPatientNumber(): boolean {
+    const mobile = `${this.patientForm.get('patient_Contact')?.value ?? ''}`;
+    const number = `${this.patientForm.get('whatsApp_Number')?.value ?? ''}`;
+    return !!mobile && mobile === number;
+  }
+
+  /**
+   * Turning the toggle on makes the WhatsApp number required and pre-fills it with
+   * the patient's mobile, which staff can change to send the report to someone else.
+   * Turning it off clears the number. The patient's own mobile stays optional.
+   */
+  private syncWhatsAppNumberRule(on: boolean): void {
+    const number = this.patientForm.get('whatsApp_Number');
+    const mobile = this.patientForm.get('patient_Contact');
+    if (!number) return;
+    if (on) {
+      number.addValidators(Validators.required);
+      if (!number.value && mobile?.value && mobile.valid) {
+        number.setValue(`${mobile.value}`, { emitEvent: false });
+      }
+    } else {
+      number.removeValidators(Validators.required);
+      number.setValue('', { emitEvent: false });
+    }
+    number.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Puts the patient's mobile back into the WhatsApp number field. */
+  usePatientMobileForWhatsApp(): void {
+    const mobile = this.patientForm.get('patient_Contact')?.value;
+    this.patientForm.get('whatsApp_Number')?.setValue(mobile ? `${mobile}` : '');
+  }
+
   get isCurrentStepValid(): boolean {
+    // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
+    if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
+    // Outside collection needs a collection boy to send.
+    if (this.currentStep === 3 && this.collectorMissing) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
     if (fields.length === 0) return true;   // Step 1 — no user input required
     // NoPayment: payment_Mode is not required (no payment is collected now)
@@ -417,6 +571,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.stepTouched[this.currentStep] = true;
     const fields = this.stepFields[this.currentStep] ?? [];
     fields.forEach(f => this.patientForm.get(f)?.markAsTouched());
+    if (this.currentStep === 3 && this.reportOnWhatsApp) {
+      this.patientForm.get('whatsApp_Number')?.markAsTouched();
+    }
   }
 
   handleNext() {
@@ -540,8 +697,19 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── DOB / Age ──────────────────────────────────────────────────────────────
 
+  /**
+   * The typed DOB as YYYY-MM-DD for the calendar picker beside the text box.
+   *
+   * The text box is the single source of truth for the date; this getter is how
+   * the calendar follows it, so opening the calendar after typing 11/08/2001
+   * lands on August 2001 with the 11th highlighted rather than on today's month.
+   * Empty while the date is still half-typed or impossible — see dmyToIso().
+   */
+  get dobIso(): string {
+    return this._common.dmyToIso(this.patientForm.get('patient_DOB')?.value);
+  }
+
   onDateInput(event: Event): void {
-    debugger;
     const input = event.target as HTMLInputElement;
     let { value, cursorPos } = this._common.formatDateInputMask(input.value);
 
@@ -628,8 +796,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * is sent to the API, and the age group.
    *
    * `emitEvent: false` on the parts: they are being written BY this method, and
-   * letting them emit would call onAgePartChange(), which writes the DOB back —
-   * a loop that would fight the operator mid-keystroke.
+   * letting them emit would call onAgePartChange(), which clears the DOB —
+   * wiping the date the operator just entered.
    */
   calculateAge() {
     if (this.patientForm.controls['patient_DOB'].errors?.['noFutureDate']) return;
@@ -652,12 +820,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Age → date of birth. The other direction, for the patient who knows they
-   * are "about 45" but not the date.
+   * Age typed directly, for the patient who knows they are "about 45" but not
+   * the date. The typed age is stored as-is and no DOB is derived from it.
    *
-   * The DOB it produces is an approximation, which is what an age-only record
-   * is regardless — writing it keeps every downstream consumer (reports, the
-   * report header, the age group) working off one field.
+   * Any DOB already in the box is cleared: the record is either DOB-based or
+   * age-based, and a leftover DOB would disagree with the typed age (and
+   * calculateAge() on blur would overwrite it).
    */
   onAgePartChange(): void {
     const f = this.patientForm.value;
@@ -685,7 +853,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.patientForm.patchValue({
       patient_Age:       hasAge ? this._common.formatAgeParts(clamped.years, clamped.months, clamped.days) : '',
       patient_Age_Group: hasAge ? this._common.calculateAgeRange(clamped.years) : '',
-      patient_DOB:       hasAge ? this._common.dobFromAgeParts(clamped.years, clamped.months, clamped.days) : '',
+      patient_DOB:       '',
     }, { emitEvent: false });
 
     this.patientForm.get('patient_Age')?.markAsDirty();
@@ -706,57 +874,123 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Tests ──────────────────────────────────────────────────────────────────
 
-  get filteredGroups():    GroupSubGroupModel[] { const q = this.query.trim().toLowerCase(); return q ? this.groupedTests.filter(g  => `${g.testGroupId} ${g.name}`.toLowerCase().includes(q))  : this.groupedTests;  }
-  get filteredSubGroups(): GroupSubGroupModel[] { const q = this.query.trim().toLowerCase(); return q ? this.subGroupTests.filter(s  => `${s.testGroupId} ${s.name}`.toLowerCase().includes(q))  : this.subGroupTests; }
-  get filteredTests():     any[]           { const q = this.query.trim().toLowerCase(); return q ? this.pathologyTest.filter(t  => `${t.testCode} ${t.testName}`.toLowerCase().includes(q)) : this.pathologyTest; }
   get totalAmount(): number { return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0); }
 
-  openTestForm(event: Event): void {
-    this.query = '';
-    this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.groupedTests = res ?? [];
-        this.selectedTestGroup = this.groupedTests[0];
-        this.selectedGroupId = this.selectedTestGroup?.testGroupId;
-        this.getSubGroupList(this.selectedTestGroup!);
+  /** Codes of the chosen tests, in pick order — what the picker highlights. */
+  get selectedTestCodes(): string[] {
+    return this.selectedTests.map(t => t.testCode).filter(c => !!c);
+  }
+
+  /** Hands the card over to the catalogue and fetches it if this is the first time. */
+  openTestForm(_event?: Event): void {
+    this.showTestCatalog = true;
+    this.loadAllTests();
+  }
+
+  /** Back out without touching the selection — the form is exactly as it was. */
+  cancelTestCatalog(): void {
+    this.showTestCatalog = false;
+  }
+
+  /**
+   * The whole catalogue — groups, their sub-groups, and the tests in each.
+   *
+   * Built from the three endpoints that already exist, so no API change was
+   * needed. Every request fails soft: one bad sub-group costs its own tests,
+   * not the whole catalogue. Cached for the life of the component.
+   *
+   * Mirrors AddTestModalComponent.loadAllTests.
+   */
+  private loadAllTests(): void {
+    if (this.testGroups.length > 0 || this.isLoadingAllTests) return;
+    this.isLoadingAllTests = true;
+
+    this._testService.getTestGroupList().pipe(
+      switchMap((groups: GroupSubGroupModel[]) => {
+        if (!groups || groups.length === 0) return of([] as any[]);
+
+        return forkJoin(groups.map(group =>
+          this._testService.getTestSubGroupList(group.testGroupId).pipe(
+            catchError(() => of([] as GroupSubGroupModel[])),
+            switchMap((subs: GroupSubGroupModel[]) => {
+              if (!subs || subs.length === 0) {
+                return of({
+                  id: group.testGroupId, name: group.name,
+                  subGroups: [] as { id: string; name: string; tests: DcPickableTest[] }[],
+                  rawTests:  [] as TestItem[],
+                });
+              }
+              return forkJoin(subs.map(sub =>
+                this._testService.getMedicalTestList(sub.testGroupId).pipe(
+                  catchError(() => of([] as any[])),
+                  map((tests: any[]) => ({
+                    id:       sub.testGroupId,
+                    name:     sub.name,
+                    tests:    (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
+                    rawTests: (tests ?? []) as TestItem[],
+                  })),
+                )
+              )).pipe(map(subGroups => ({
+                id:        group.testGroupId,
+                name:      group.name,
+                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
+                rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
+              })));
+            }),
+          )
+        ));
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe({
+      next: (groups: any[]) => {
+        this.testGroups = (groups ?? []).map((g: any) => ({
+          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
+        })) as DcTestGroup[];
+
+        // A test can sit under more than one sub-group, and the picker hands
+        // back a code we have to resolve to exactly one TestItem.
+        const seen = new Set<string>();
+        this.allTests = ([] as TestItem[])
+          .concat(...(groups ?? []).map((g: any) => g.rawTests ?? []))
+          .filter((t: TestItem) => {
+            const code = String(t?.testCode ?? '');
+            if (!code || seen.has(code)) return false;
+            seen.add(code);
+            return true;
+          });
+
+        this.isLoadingAllTests = false;
       },
-      error: () => { this.groupedTests = []; }   // message shown centrally by ErrorInterceptor
+      // Message shown centrally by ErrorInterceptor.
+      error: () => { this.isLoadingAllTests = false; },
     });
   }
 
-  getSubGroupList(tg: GroupSubGroupModel): void {
-    this.selectedTestGroup = tg;
-    this._testService.getTestSubGroupList(tg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.subGroupTests = res ?? [];
-        this.selectedSubGroup = this.subGroupTests[0];
-        this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
-        this.getMedicalTestList(this.selectedSubGroup!);
-      },
-      error: () => { this.subGroupTests = []; }   // message shown centrally by ErrorInterceptor
-    });
+  /** TestItem → the plain shape the picker understands. */
+  private toPickable(t: TestItem, groupName: string): DcPickableTest {
+    return {
+      code:     String(t?.testCode ?? ''),
+      name:     String(t?.testName ?? ''),
+      price:    Number(t?.price ?? 0),
+      bookable: this.isTestBookable(t),
+      group:    groupName,
+    };
   }
 
-  getMedicalTestList(sg: GroupSubGroupModel): void {
-    this.selectedSubGroup = sg;
-    this._testService.getMedicalTestList(sg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.pathologyTest = res ?? [];
-        this.selectedTest  = this.pathologyTest[0];
-        const el = document.getElementById('testCatalogModal');
-          if (el) this.showModal('testCatalogModal');
-      },
-      error: () => { this.pathologyTest = []; }   // message shown centrally by ErrorInterceptor
-    });
+  /** Bridges a code from the picker back to the selection rules below. */
+  onPickerToggled(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) this.toggleTestSelection(test);
   }
 
-  getSelectedClass(item: any): string {
-    return (item === this.selectedTestGroup || item === this.selectedSubGroup || item === this.selectedTest)
-      ? 'selectedTestFormRow' : '';
+  /** The test the protocol panel under the catalogue is describing. */
+  onPickerFocused(picked: DcPickableTest): void {
+    const test = this.allTests.find(t => t.testCode === picked.code);
+    if (test) {
+      this.focusedTestId = test.testCode;
+      this.loadFocusedProtocol(test);
+    }
   }
-
-  selectGroup(g: GroupSubGroupModel)    { this.selectedGroupId = g.testGroupId; this.getSubGroupList(g); }
-  selectSubGroup(s: GroupSubGroupModel) { this.selectedSubGroupId = s.testGroupId; this.getMedicalTestList(s); }
 
   /**
    * A test with no parameters configured cannot be booked — there is nothing to
@@ -856,10 +1090,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       .filter((x): x is { testName: string; hours: number | null } => x !== null);
   }
 
+  /**
+   * Adds or removes one test. Focus and its protocol are handled by
+   * onPickerFocused, which the picker fires first on the same tap — loading it
+   * here as well would send two requests for every click.
+   */
   toggleTestSelection(t: TestItem) {
-    this.focusedTestId = t.testCode;
-    this.loadFocusedProtocol(t);
-
     // Selecting is blocked, but de-selecting must always work — otherwise a test
     // whose last parameter was deleted after it was picked would be stuck in the
     // basket with no way to remove it.
@@ -873,21 +1109,16 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.selectedTestIds.has(t.testCode)) {
       this.selectedTestIds.delete(t.testCode);
       this.selectedTests = this.selectedTests.filter(x => x.testCode !== t.testCode);
+      // Drop the protocol card for a test that is no longer in the basket.
+      this.selectedTestProtocols = this.selectedTestProtocols.filter(p => p.testCode !== t.testCode);
     } else {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
     }
   }
 
-  removeSelected(testId: string) {
-    const t = this.selectedTests.find(x => x.testCode === testId);
-    if (!t) return;
-    this.selectedTestIds.delete(testId);
-    this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
-    this.selectedTestProtocols = this.selectedTestProtocols.filter(t => t.testCode !== testId);
-  }
-
-  modalTestClose() {
+  /** Applies the basket to the form and returns to the step. */
+  confirmTestSelection() {
     // Catches anything that got in before its parameters were removed.
     const unbookable = this.selectedTests.filter(t => !this.isTestBookable(t));
     if (unbookable.length) {
@@ -901,96 +1132,279 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_Name:   this.selectedTests.map(t => t.testName).join(', '),
       test_Amount: this.totalAmount
     });
-    const el = document.getElementById('testCatalogModal');
-    if (el) this.hideModal('testCatalogModal');
+    this.showTestCatalog = false;
     this.calculateNetAmount();
     // Bring the requirements back to the form step, where the operator is still with the
     // patient and can tell them about fasting before they leave.
     this.loadSelectedProtocols();
   }
 
-  // ── Collection Modal ───────────────────────────────────────────────────────
+  // ── Outside collection ─────────────────────────────────────────────────────
 
-  onCollectedOutsideClick(event: any) {
-    if (event.target.checked) {
-      const el = document.getElementById('collectionModal');
-      if (el) this.showModal('collectionModal');
+  /**
+   * The collection boy's User_Id as a number, or 0 when nobody usable is chosen.
+   *
+   * A select's value is always a string, and "0" is truthy — so a plain truthiness test
+   * accepts an id of 0 and a non-numeric value alike, and the booking then fails at the API
+   * with "Choose the collection boy who will collect this outside sample." after the whole
+   * form has been filled in. Everything that asks "is a collector chosen?" goes through
+   * this, so the UI and `ApplyCollectionAssignmentAsync` on the API agree on the answer:
+   * the API requires `> 0`, and so does this.
+   */
+  private get collectorId(): number {
+    const raw = this.patientForm.get('collection_Assigned_To')?.value;
+    const id = Number(raw);
+    return Number.isFinite(id) && id > 0 ? id : 0;
+  }
+
+  /** Outside collection is ticked but nobody has been named to go and collect it. */
+  get collectorMissing(): boolean {
+    return !!this.patientForm.get('collected_Outside')?.value && this.collectorId <= 0;
+  }
+
+  /** True once the lookup has answered and there is nobody to send. */
+  get noCollectionBoys(): boolean {
+    return this.collectionBoys.length === 0;
+  }
+
+  /**
+   * Makes the collection boy required exactly while Outside Collection is on.
+   *
+   * Why a validator and not another check at the submit button: the wizard is a single
+   * `<form>`, so Enter submits it from any step, and `registerPatient()` gates on
+   * `patientForm.valid` alone. With no validator here the form was *valid* with the toggle
+   * on and nobody chosen, so Enter on step 3 sent the booking and the only complaint came
+   * back from the server. As a validator the rule holds on every path into submit, and
+   * `describeInvalidFields()` names the field in the toast like any other.
+   */
+  private syncCollectorRule(outside: boolean): void {
+    // The collection boy goes to the patient's address (not the Area, which is only the
+    // neighbourhood), so the address is required exactly while Outside Collection is on.
+    const address = this.patientForm.get('patient_Address');
+    if (address) {
+      if (outside) address.addValidators(AddPatientComponent.addressValidator);
+      else address.removeValidators(AddPatientComponent.addressValidator);
+      address.updateValueAndValidity({ emitEvent: false });
     }
-  }
 
-  modalCollectionClose() {
-    const el = document.getElementById('collectionModal');
-    if (el) this.hideModal('collectionModal');
-    if (!this.patientForm.get('area')?.value && !this.patientForm.get('collected_By')?.value) {
-      this.patientForm.patchValue({ collected_Outside: false });
+    const boy = this.patientForm.get('collection_Assigned_To');
+    if (!boy) return;
+
+    if (outside) {
+      boy.addValidators(AddPatientComponent.positiveIdValidator);
+    } else {
+      boy.removeValidators(AddPatientComponent.positiveIdValidator);
     }
+    boy.updateValueAndValidity({ emitEvent: false });
   }
 
-  clearOutsideCollectionModal() {
-    this.patientForm.patchValue({ collected_By: '', area: '', collected_Outside: false });
-    this.modalCollectionClose();
-  }
+  /** Rejects a blank or whitespace-only address (`Validators.required` accepts "   "). */
+  private static readonly addressValidator = (c: AbstractControl): ValidationErrors | null =>
+    String(c.value ?? '').trim() ? null : { required: true };
+
+  /**
+   * Requires a positive numeric id. Not `Validators.required`: that passes on "0" and on a
+   * stray non-numeric value, which are the two ways this field actually goes wrong.
+   */
+  private static readonly positiveIdValidator = (c: AbstractControl): ValidationErrors | null => {
+    const id = Number(c.value);
+    return Number.isFinite(id) && id > 0 ? null : { collectorRequired: true };
+  };
 
   // ── Payment ────────────────────────────────────────────────────────────────
 
   /** Maximum discount % allowed for this lab (admin-configured). */
   get maxDiscountPercent(): number { return this._token.getMaxDiscountPercent(); }
 
-  calculateNetAmount() {
-    const testAmount  = this.patientForm.get('test_Amount')?.value;
-    const discount    = this.patientForm.get('discount')?.value;
-    const maxDiscount = this._token.getMaxDiscountPercent();
+  /** Hard ceiling regardless of approval — 100% would make the test free. The API enforces the same. */
+  readonly absoluteMaxDiscount = 99;
 
-    if (discount > maxDiscount) {
-      this.patientForm.get('discount')?.setErrors({ maxExceeded: true });
-      return;
-    }
-    this.patientForm.get('discount')?.setErrors(null);
+  /** A Super Admin's own over-limit discount is self-approved by the API. */
+  get isSuperAdmin(): boolean { return this._token.isSuperAdmin(); }
 
-    if (discount <= maxDiscount && testAmount > 0) {
-      this.patientForm.patchValue({ net_Amount: testAmount - discount * testAmount / 100 });
-    }
+  /** Discount is above the lab limit (but still within the hard ceiling). */
+  get isDiscountOverLimit(): boolean {
+    const d = this.toNumber(this.patientForm.get('discount')?.value);
+    return d > this.maxDiscountPercent && d <= this.absoluteMaxDiscount;
   }
 
-  calculateDiscount() {
-    const testAmount = this.patientForm.get('test_Amount')?.value;
-    const netAmount  = this.patientForm.get('net_Amount')?.value;
-    if (netAmount > 0 && netAmount <= testAmount && testAmount > 0) {
-      this.patientForm.patchValue({ discount: (testAmount - netAmount) * 100 / testAmount });
+  /**
+   * This booking's discount will go to a Super Admin for approval. While it does,
+   * billing is held: no money may be taken now, and a reason is required.
+   */
+  get needsDiscountApproval(): boolean {
+    return this.isDiscountOverLimit && !this.isSuperAdmin;
+  }
+
+  /** Payment types the operator may pick right now. */
+  isPaymentTypeLocked(entry: string): boolean {
+    return this.needsDiscountApproval && entry !== paymentType.NoPayment;
+  }
+
+  /**
+   * Keeps the form consistent with whether the discount needs approval:
+   *  - over the limit → force "No Payment" and require a reason;
+   *  - back within it → drop the reason requirement (the operator picks payment again).
+   */
+  private syncDiscountApproval(): void {
+    const reason = this.patientForm.get('discount_Reason');
+    if (!reason) return;
+
+    if (this.needsDiscountApproval) {
+      reason.setValidators([Validators.required, Validators.maxLength(500)]);
+      // Always re-assert the No Payment state, not only when the type changes:
+      // a Partial payment cleared by a discount edit leaves amount_Paid blank
+      // even if payment_Type already reads "No Payment", and a blank
+      // amount_Paid fails `required` ("Please complete: Amount Paid").
+      this.paymentConfirmed = false;
+      this.amountPaidError  = '';
+      this.patientForm.patchValue({
+        payment_Type:   paymentType.NoPayment,
+        amount_Paid:    0,
+        amount_Pending: this.patientForm.get('net_Amount')?.value ?? 0,
+      }, { emitEvent: false });
+      this.patientForm.get('payment_Type')?.updateValueAndValidity({ emitEvent: false });
+      this.patientForm.get('amount_Paid')?.updateValueAndValidity({ emitEvent: false });
+    } else {
+      reason.setValidators([Validators.maxLength(500)]);
+    }
+    reason.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Parses a form value that may be a string, number, null or '' into a number. */
+  private toNumber(value: any): number {
+    const n = parseFloat(String(value ?? '').trim());
+    return isNaN(n) ? 0 : n;
+  }
+
+  /** Rounds to 2 decimals — keeps money and percentages clean and API-friendly. */
+  private round2(n: number): number {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+  }
+
+  /**
+   * Adds or removes a single named error on a control WITHOUT wiping the errors
+   * its own validators produced.
+   *
+   * setErrors(null) clears everything — including `required` — which is how the
+   * old code could leave a control looking valid when it wasn't, and how a
+   * `maxExceeded` flag set from one field could never be cleared from the other.
+   */
+  private setControlError(controlName: string, key: string, on: boolean): void {
+    const ctrl = this.patientForm.get(controlName);
+    if (!ctrl) return;
+
+    const errors = { ...(ctrl.errors ?? {}) };
+
+    if (on) {
+      if (errors[key]) return;              // already flagged — nothing to do
+      errors[key] = true;
+      ctrl.setErrors(errors);
+      return;
+    }
+
+    if (!(key in errors)) return;           // not flagged — nothing to do
+    delete errors[key];
+    if (Object.keys(errors).length) {
+      ctrl.setErrors(errors);
+    } else {
+      ctrl.setErrors(null);
+      // Re-run the control's own validators (required, etc.) that setErrors(null)
+      // just cleared, so removing OUR flag can't accidentally make an empty
+      // field look valid.
+      ctrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 
   /**
-   * Live calculation — bound to (input) on the Amount Paid field inside the
-   * Partial Payment modal. Updates amount_Pending in real time.
+   * Enforces the lab's maximum discount, from BOTH directions.
    *
-   * Reads value from the DOM event directly (not from the form control) to avoid
-   * the NumberValueAccessor timing gap where the control value hasn't been updated
-   * yet when the (input) handler fires.
+   * Called whether the operator typed a percentage or typed a net amount, so the
+   * cap cannot be bypassed by entering a low net amount, and — just as important —
+   * the error can never get stuck after the value is corrected from the other field.
    *
-   * Does NOT use { emitEvent: false } so that Angular's FormControlName directive
-   * receives the valueChanges notification and calls writeValue() on the step-4
-   * readonly input — keeping both bound inputs in sync.
+   * @returns true when the discount is within the allowed range.
    */
-  onAmountPaidInput(event: Event) {
-    this.amountPaidError = '';
-    const raw        = (event.target as HTMLInputElement).value;
-    const amountPaid = parseFloat(raw) || 0;
-    const netAmount  = parseFloat(this.patientForm.get('net_Amount')?.value) || 0;
+  private validateDiscountLimit(discount: number): boolean {
+    const negative = discount < 0;
+    // Only the hard ceiling is an error now. Above the LAB limit is allowed — it is
+    // sent to a Super Admin for approval (see syncDiscountApproval).
+    const exceeded = discount > this.absoluteMaxDiscount;
 
-    if (amountPaid <= 0) {
-      this.patientForm.patchValue({ amount_Pending: '' });
-      return;
-    }
-    if (amountPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Use "Full" payment type instead.`;
-      this.patientForm.patchValue({ amount_Pending: 0 });
-      return;
-    }
+    this.setControlError('discount', 'negative',    negative);
+    this.setControlError('discount', 'maxExceeded', !negative && exceeded);
 
-    const pending = +(netAmount - amountPaid).toFixed(2);
-    this.patientForm.patchValue({ amount_Pending: pending });
+    this.syncDiscountApproval();
+    return !negative && !exceeded;
   }
+
+  /**
+   * Discount % → Net Amount.
+   *
+   * Bound to (input), not (change), so the Net Amount field and the summary cards
+   * move on every keystroke instead of waiting for the field to lose focus.
+   *
+   * Only net_Amount is patched here, so this can never ping-pong with
+   * calculateDiscount().
+   */
+  calculateNetAmount(typed?: string | number) {
+    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    // Prefer the value from the input event: a template (input) handler can run
+    // before the form control's own value accessor, so the control may still
+    // hold the previous keystroke's value here.
+    const discount   = this.toNumber(typed ?? this.patientForm.get('discount')?.value);
+
+    // A net amount typed by hand may have been flagged as above the test amount;
+    // recalculating from the discount always produces a valid one.
+    this.setControlError('net_Amount', 'aboveTestAmount', false);
+
+    if (!this.validateDiscountLimit(discount)) return;  // keep the last good net amount
+    if (testAmount <= 0) return;
+
+    this.patientForm.patchValue({
+      net_Amount: this.round2(testAmount - discount * testAmount / 100)
+    });
+  }
+
+  /**
+   * Net Amount → Discount %.
+   *
+   * Bound to (input) for the same reason as above. Rounds to 2 dp so the operator
+   * sees "90.43%" rather than "90.43478260869566%", and so the value the API
+   * stores is a sane percentage.
+   */
+  calculateDiscount(typed?: string | number) {
+    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const rawNet     = String(typed ?? this.patientForm.get('net_Amount')?.value ?? '').trim();
+
+    if (testAmount <= 0) return;
+
+    // Field cleared mid-edit — leave the discount alone and let `required` speak.
+    if (rawNet === '') {
+      this.setControlError('net_Amount', 'aboveTestAmount', false);
+      return;
+    }
+
+    const netAmount = this.toNumber(rawNet);
+
+    // A net amount above the test amount is a negative discount — reject it here
+    // instead of silently doing nothing, which used to leave the two fields
+    // disagreeing with no explanation.
+    const aboveTest = netAmount > testAmount;
+    this.setControlError('net_Amount', 'aboveTestAmount', aboveTest);
+    if (aboveTest || netAmount < 0) return;
+
+    const discount = this.round2((testAmount - netAmount) * 100 / testAmount);
+    this.patientForm.patchValue({ discount });
+    this.validateDiscountLimit(discount);
+  }
+
+  // The live amount-pending calculation that used to sit here belonged to this
+  // screen's own Amount Paid field, inside its own Partial Payment modal. The
+  // shared dialog works the running total out itself and shows it beside the
+  // figure being typed, so there is no second field to keep in step and no
+  // NumberValueAccessor timing gap to work around. onPaymentCollected() patches
+  // both amounts once, when the operator confirms.
 
   onTpaConfirmed(details: TpaDetails): void {
     this.tpaDetails   = details;
@@ -1015,8 +1429,14 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * FormControl timing issues with the change event.
    */
   onPaymentTypeChange(selectedType: string): void {
-    this.paymentConfirmed = false;
-    this.amountPaidError  = '';
+    // Over-limit discount awaiting approval: payment can't be taken yet.
+    if (this.isPaymentTypeLocked(selectedType)) {
+      this.patientForm.patchValue({ payment_Type: paymentType.NoPayment }, { emitEvent: false });
+      selectedType = paymentType.NoPayment;
+    }
+    this.paymentConfirmed       = false;
+    this.amountPaidError        = '';
+    this.partialResetByDiscount = false;   // the user has chosen; the note goes
 
     if (selectedType === paymentType.Full) {
       this.patientForm.patchValue({
@@ -1031,8 +1451,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       });
     } else {
       // Partial — reset amounts and open modal for the user to enter how much they're paying
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
-      this.showModal('paymentModal');
+      this.clearPartialAmounts();
+      this.openPaymentModal();
     }
   }
 
@@ -1054,27 +1474,39 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     if (this.patientForm.get('payment_Type')?.value === paymentType.Partial) {
       this.paymentConfirmed = false;
       this.amountPaidError  = '';
-      this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
-      this.showModal('paymentModal');
+      this.clearPartialAmounts();
+      this.openPaymentModal();
     }
   }
 
   /**
-   * Called when the user clicks "Confirm" in the Partial Payment modal.
-   *
-   * Reads the modal's native input value directly (not from the form control)
-   * to avoid any NumberValueAccessor timing gap, then explicitly patches both
-   * amount_Paid and amount_Pending without emitEvent:false so that Angular's
-   * FormControlName directive propagates writeValue() to the step-4 readonly
-   * inputs and the view updates reliably when the modal closes.
+   * Opens the shared payment dialog, seeded with whatever is already entered so
+   * reopening to amend shows the figure being amended rather than a fresh guess.
    */
-  confirmPayment() {
-    // Read directly from the DOM to avoid form-control timing issues
-    const modalInput = document.querySelector<HTMLInputElement>(
-      '#paymentModal input[formcontrolname="amount_Paid"], #paymentModal input[ng-reflect-name="amount_Paid"]'
-    );
-    const rawValue   = modalInput?.value ?? (this.patientForm.get('amount_Paid')?.value ?? '');
-    const amountPaid = parseFloat(String(rawValue)) || 0;
+  private openPaymentModal(): void {
+    this.amountPaidError  = '';   // never greet the operator with last time's error
+    this.paymentModalSeed = parseFloat(String(this.patientForm.get('amount_Paid')?.value)) || 0;
+    this.showPaymentModal = true;
+  }
+
+  /**
+   * Called when the user confirms in the shared payment dialog.
+   *
+   * The dialog hands back the figures; the rules about them stay here, because
+   * they belong to this booking and not to the dialog. A partial amount has to
+   * be strictly less than the net amount — equal means the booking is paid in
+   * full and should be recorded as Full, which is a different payment type and
+   * a different receipt, not a partial payment that happens to add up.
+   *
+   * The error is pushed back into the dialog's own error slot rather than
+   * shown behind it, so the message appears where the number was typed.
+   *
+   * Both values are patched without emitEvent:false so Angular's
+   * FormControlName directive propagates writeValue() to the step-4 readonly
+   * inputs and the view updates reliably when the dialog closes.
+   */
+  onPaymentCollected(result: PaymentModalResult): void {
+    const amountPaid = result.amountPaid || 0;
     const netAmount  = parseFloat(String(this.patientForm.get('net_Amount')?.value)) || 0;
 
     if (amountPaid <= 0) {
@@ -1082,7 +1514,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       return;
     }
     if (amountPaid >= netAmount) {
-      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}).`;
+      this.amountPaidError = `Amount paid cannot equal or exceed net amount (₹${netAmount}). Choose "Full" instead.`;
       return;
     }
 
@@ -1090,9 +1522,6 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
     this.amountPaidError = '';
 
-    // Explicitly patch both values — this fires valueChanges (no emitEvent:false)
-    // so FormControlName's writeValue() runs on every bound input including the
-    // step-4 readonly fields, guaranteeing the view shows the confirmed values.
     this.patientForm.patchValue({
       amount_Paid:    amountPaid,
       amount_Pending: pending
@@ -1103,15 +1532,37 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   modalPaymentClose() {
-    const el = document.getElementById('paymentModal');
-    if (el) this.hideModal('paymentModal');
+    this.showPaymentModal = false;
+  }
+
+  /**
+   * Blank the two amount fields AND forget that the user ever touched them.
+   *
+   * Both are cleared by code, never by the user, so any touched/dirty state left
+   * over from an earlier pass describes a value that no longer exists. Without
+   * the reset the fields come back red the instant they are cleared, before the
+   * user has been given a chance to type anything: `isFieldInvalid()` tests
+   * `c.touched`, and styles.css paints every `input.ng-invalid.ng-touched` with
+   * a red left border — which is why the error appeared both inside the Partial
+   * Payment modal and on the step behind it.
+   *
+   * The controls stay `required` and still invalid; this only stops the form
+   * claiming the user got it wrong when they have not been asked yet.
+   */
+  private clearPartialAmounts(): void {
+    this.patientForm.patchValue({ amount_Paid: '', amount_Pending: '' });
+    for (const name of ['amount_Paid', 'amount_Pending']) {
+      const c = this.patientForm.get(name);
+      c?.markAsUntouched();
+      c?.markAsPristine();
+    }
   }
 
   /** Opens the Partial Payment modal again so the user can amend confirmed values. */
   editPaymentDetails() {
     this.paymentConfirmed = false;
     this.amountPaidError  = '';
-    this.showModal('paymentModal');
+    this.openPaymentModal();
   }
 
   clearPaymentModal() {
@@ -1138,9 +1589,16 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   // ── Register ───────────────────────────────────────────────────────────────
 
   registerPatient() {
+    // Over-limit discount → No Payment with amount_Paid 0, re-asserted here so a
+    // stale payment state can never block registration with "Amount Paid".
+    this.syncDiscountApproval();
+
     if (!this.patientForm.valid) {
       this.stepTouched[this.currentStep] = true;
       this.patientForm.markAllAsTouched();
+      // Previously this returned silently, so a problem on an earlier step — or a
+      // discount over the lab limit — looked like a dead "Register Patient" button.
+      this.toastr.error(this.describeInvalidFields(), 'Cannot register yet');
       return;
     }
 
@@ -1166,10 +1624,50 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.doRegisterPatient();
   }
 
+  /** Human-readable labels for the controls named in validation messages. */
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    patient_Name: 'Patient Name', patient_DOB: 'Date of Birth', patient_Age: 'Age',
+    patient_Age_Group: 'Age Group', patient_Gender: 'Gender',
+    patient_Address: 'Address', relative_Name: 'Relative Name',
+    patient_Contact: 'Contact Number', patient_Email: 'Email',
+    test_Name: 'Test', test_Amount: 'Test Amount', referred_By_Type: 'Referred By Type',
+    referred_By: 'Referred By', discount: 'Discount (%)', net_Amount: 'Net Amount',
+    discount_Reason: 'Reason for Discount',
+    collection_Assigned_To: 'Collection boy',
+    payment_Type: 'Payment Type', amount_Paid: 'Amount Paid',
+    amount_Pending: 'Amount Pending', payment_Mode: 'Payment Mode',
+  };
+
+  /** Builds the toast text listing what is still blocking registration. */
+  private describeInvalidFields(): string {
+    const discount = this.patientForm.get('discount');
+    if (discount?.errors?.['maxExceeded']) {
+      return `Discount cannot exceed ${this.absoluteMaxDiscount}%. Lower the discount or raise the net amount.`;
+    }
+    if (discount?.errors?.['negative']) {
+      return 'Discount cannot be negative.';
+    }
+    if (this.patientForm.get('discount_Reason')?.errors?.['required']) {
+      return `The discount is above the lab limit of ${this.maxDiscountPercent}%. Enter a reason for the Super Admin.`;
+    }
+    if (this.patientForm.get('net_Amount')?.errors?.['aboveTestAmount']) {
+      return 'Net amount cannot be more than the test amount.';
+    }
+
+    const invalid = Object.keys(this.patientForm.controls)
+      .filter(k => this.patientForm.get(k)?.invalid)
+      .map(k => AddPatientComponent.FIELD_LABELS[k] ?? k);
+
+    return invalid.length
+      ? `Please complete: ${invalid.slice(0, 4).join(', ')}${invalid.length > 4 ? '…' : ''}`
+      : 'Please review the highlighted fields.';
+  }
+
   private doRegisterPatient() {
 
     this.isLoading = true;
     const f = this.patientForm.getRawValue();
+    const sentForApproval = this.needsDiscountApproval;
 
     // ── Build test IDs comma string ────────────────────────────────────
     let testIds = '';
@@ -1197,6 +1695,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       amountPaid:    amtPaid,
       amountPending: amtPending,
       paymentMode:   isNoPayment ? '' : f.payment_Mode,
+      // Sent whenever typed; the API only requires it when the discount is over the limit.
+      ...(this.isDiscountOverLimit && f.discount_Reason?.trim() && {
+        discountReason: f.discount_Reason.trim(),
+      }),
       // TPA fields — only included when mode is TPA and details confirmed
       ...(isTpa && this.tpaDetails && {
         tpaName:            this.tpaDetails.tpaName            || undefined,
@@ -1213,14 +1715,24 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       test_Id:          testIds,
       test_Name:         f.test_Name,
       urgent_Report:     f.urgent_Report    ?? false,
+      report_On_WhatsApp: !!f.report_On_WhatsApp,
+      // The API stores it on the booking only when it differs from the patient's mobile.
+      whatsApp_Number:    f.report_On_WhatsApp && f.whatsApp_Number ? `${f.whatsApp_Number}` : null,
       test_Amount:       f.test_Amount      ?? 0,
       referred_By_Type:  f.referred_By_Type ?? '',
       referred_By:  f.referred_By      ?? '',
       remark:            f.remark           ?? '',
       collected_Outside: f.collected_Outside ?? false,
       area:              f.area             ?? '',
-      collected_By:      f.collected_By     ?? '',
-      sampling_Done:     f.sampling_Done    ?? '',
+      // The API fills Collected_By with the collection boy's name.
+      collected_By:      '',
+      // Only an outside collection sends a collection boy, and only a usable id.
+      // `+value` on an empty or non-numeric select value is 0 or NaN, and both reach the
+      // API as a value it then refuses — null is the honest way to say "nobody".
+      collection_Assigned_To: f.collected_Outside && this.collectorId > 0 ? this.collectorId : null,
+      // Must be sampling_Done_At — the API property is Sampling_Done_At, and the
+      // old key 'sampling_Done' matched nothing, so the location was never saved.
+      sampling_Done_At:  f.sampling_Done    ?? '',
     };
 
     // ── Root patient payload — matches backend PatientModel ────────────
@@ -1247,16 +1759,25 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     };
 
     this._patientService.AddPatient(payload).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: any) => {
+      next: (res: BookingResultDto) => {
         this.isLoading = false;
-        if (res) {
-          this._route.navigate(['/patients']);
-        } else {
+
+        if (!res?.success) {
           // API returned HTTP 200 but the operation failed (e.g. transaction
           // rolled back). This is not an HTTP error, so the global interceptor
           // won't fire — surface it explicitly.
-          this.toastr.error('Failed to register patient. Please try again.', 'Error');
+          this.toastr.error(res?.message || 'Failed to register patient. Please try again.', 'Error');
+          return;
         }
+
+        if (sentForApproval) {
+          this.toastr.info(
+            'The discount has been sent to the Super Admin for approval. Payment can be collected once it is approved.',
+            'Discount awaiting approval', { timeOut: 8000 });
+        }
+
+        this.printSampleLabels(res);
+        this._route.navigate(['/patients']);
       },
       error: () => {
         // HTTP/network errors are surfaced centrally by ErrorInterceptor;
@@ -1264,6 +1785,61 @@ export class AddPatientComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     });
+  }
+
+  /**
+   * Opens the sample collection labels for a just-created booking — one sticker
+   * per booked test, with the print dialog opening by itself.
+   *
+   * Called only after a confirmed successful registration, so a label can never
+   * be printed for a booking that was rolled back and does not exist.
+   *
+   * Failures here are deliberately non-fatal: the patient IS registered by this
+   * point, and blocking or alarming the operator over a label would misrepresent
+   * what happened. They are told how to reprint instead — the booking's labels
+   * remain available from the patient's test list.
+   */
+  private printSampleLabels(booking: BookingResultDto): void {
+    if (booking.testRegId && booking.labelsReady === false) {
+      // No sampling location → no barcode. It is generated once the location is
+      // selected and saved from the patient's test list.
+      this.toastr.info(
+        'Barcode not generated because "Sampling Done At" was not selected. ' +
+        'Select it from the patient\'s tests to generate the barcode.',
+        'Barcode pending', { timeOut: 8000 });
+      return;
+    }
+
+    if (!booking.testRegId || !booking.labels?.length) {
+      return;
+    }
+
+    // Deliberately NOT piped through takeUntil(this.destroy$).
+    //
+    // The caller navigates to the patient list immediately after this returns,
+    // which destroys this component and completes destroy$. A label request bound
+    // to it would be cancelled mid-flight and the labels would silently never
+    // appear. This request has to outlive the screen that started it; ToastrService
+    // is app-scoped, so the messages below still reach the operator afterwards.
+    this._sampleLabelService.printLabels(booking.testRegId)
+      .subscribe({
+        next: (opened: boolean) => {
+          if (!opened) {
+            // A blocked pop-up is silent in most browsers; without this the
+            // operator would simply never see the labels and not know why.
+            this.toastr.warning(
+              'Patient registered, but the label window was blocked. ' +
+              'Allow pop-ups for this site, then reprint from the patient\'s tests.',
+              'Labels not shown');
+          }
+        },
+        error: () => {
+          this.toastr.warning(
+            'Patient registered, but the sample labels could not be fetched. ' +
+            'You can reprint them from the patient\'s tests.',
+            'Labels not printed');
+        }
+      });
   }
 
   getInvalidControls(form: FormGroup): string[] {

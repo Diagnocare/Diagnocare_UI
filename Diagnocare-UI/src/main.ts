@@ -1,6 +1,6 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
-import { provideRouter, withRouterConfig } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { TitleStrategy } from '@angular/router';
 import { Injectable } from '@angular/core';
 import { RouterStateSnapshot } from '@angular/router';
@@ -25,6 +25,12 @@ import { installAutofillGuard } from './app/shared/autofill-guard';
 import { provideAppInitializer, inject as injectFn } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { TenantConfigService } from './app/core/tenant/tenant-config.service';
+import { preconnectToApiOrigin } from './app/shared/api-preconnect';
+
+// Start the DNS + TCP + TLS handshake to the API origin now, so it runs while
+// Angular bootstraps instead of in front of the first XHR. Costs ~1.8 s when it
+// is paid serially (PERF-009); no-op once the API is same-origin.
+preconnectToApiOrigin();
 
 // Stop Chrome pushing the saved login user id into every text box.
 // Must run before the first render so fields are stamped as they appear.
@@ -43,10 +49,15 @@ bootstrapApplication(AppComponent, {
     // Deliberately non-fatal: TenantConfigService swallows the error and the app boots with
     // neutral branding. A branding endpoint being down is not a reason nobody can work.
     provideAppInitializer(() => firstValueFrom(injectFn(TenantConfigService).load())),
-    provideRouter(
-      routes,
-      withRouterConfig({ onSameUrlNavigation: 'reload' })
-    ),
+    // PERF-022: no `withRouterConfig({ onSameUrlNavigation: 'reload' })`.
+    // It made the router re-run authGuard, licenceGuard and pinExpiryGuard when
+    // navigating to the URL already shown — work that changes nothing, since the
+    // default RouteReuseStrategy keeps the component instance and does not re-run
+    // ngOnInit either way. It is also the likeliest cause of the licence expiry
+    // endpoint being called twice per post-login load (PERF-025). A screen that
+    // must re-read data on a repeat click should subscribe to `route.params` or
+    // `router.events` itself.
+    provideRouter(routes),
     { provide: TitleStrategy, useClass: DiagnocarePageTitleStrategy },
     importProvidersFrom(
       BrowserAnimationsModule,

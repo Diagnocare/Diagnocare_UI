@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -12,6 +13,7 @@ import { DatePickerComponent }     from 'src/app/shared/date-picker/date-picker.
 import { AppValidators }            from 'src/app/shared/validators/app-validators';
 import { VisitCalendarComponent }  from 'src/app/shared/visit-calendar/visit-calendar.component';
 import { VisitCardComponent }      from 'src/app/shared/visit-card/visit-card.component';
+import { formatTime12h, TimePartsPicker } from 'src/app/shared/time-slots/time-slots';
 
 import {
   VisitCompleteModalComponent,
@@ -31,17 +33,10 @@ import { ContactAddressListDto } from 'src/app/models/contactAddress/contactAddr
 import { MemberDto }             from 'src/app/models/member/member.dto';
 import { InstitutionType } from 'src/app/constant/enums';
 
-interface CalendarDay {
-  date:      Date;
-  inMonth:   boolean;
-  isToday:   boolean;
-  visitInfo: VisitCalendarDayDto | null;
-}
-
 @Component({
   selector:    'app-visit-schedule',
   standalone:  true,
-  imports:     [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, VisitCompleteModalComponent, VisitEditModalComponent, DatePickerComponent, VisitCalendarComponent, VisitCardComponent],
+  imports:     [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, VisitCompleteModalComponent, VisitEditModalComponent, DatePickerComponent, VisitCalendarComponent, VisitCardComponent],
   providers:   [DatePipe],
   templateUrl: './visit-schedule.component.html',
   styleUrls:   ['./visit-schedule.component.scss'],
@@ -54,42 +49,23 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
   viewMonth = new Date().getMonth() + 1;
   calendarData: VisitCalendarDayDto[] = [];
 
-  /** Computed getter — recalculated on every change-detection cycle, immune to manual-call issues. */
-  get calendarWeeks(): CalendarDay[][] {
-    const today    = new Date();
-    const first    = new Date(this.viewYear, this.viewMonth - 1, 1);
-    const lastDay  = new Date(this.viewYear, this.viewMonth, 0).getDate();
-    const startDow = first.getDay();   // 0 = Sunday
-
-    const visitMap = new Map<string, VisitCalendarDayDto>(
-      this.calendarData.map(d => [d.date, d])
+  /**
+   * Holiday lookup for the displayed month, keyed by yyyy-MM-dd.
+   * The calendar response now carries holidays alongside visit counts, so the
+   * two calendars are always read from a single source.
+   */
+  private get holidayMap(): Map<string, string> {
+    return new Map(
+      this.calendarData
+        .filter(d => d.isHoliday)
+        .map(d => [d.date, d.holidayName ?? 'Holiday'])
     );
+  }
 
-    const cells: CalendarDay[] = [];
-
-    // Leading days from previous month
-    const prevLast = new Date(this.viewYear, this.viewMonth - 1, 0).getDate();
-    for (let i = startDow - 1; i >= 0; i--) {
-      cells.push({ date: new Date(this.viewYear, this.viewMonth - 2, prevLast - i), inMonth: false, isToday: false, visitInfo: null });
-    }
-
-    // Current month
-    for (let d = 1; d <= lastDay; d++) {
-      const date    = new Date(this.viewYear, this.viewMonth - 1, d);
-      const key     = this.toIso(date);
-      const isToday = date.toDateString() === today.toDateString();
-      cells.push({ date, inMonth: true, isToday, visitInfo: visitMap.get(key) ?? null });
-    }
-
-    // Trailing days to complete last row
-    let trail = 1;
-    while (cells.length % 7 !== 0) {
-      cells.push({ date: new Date(this.viewYear, this.viewMonth, trail++), inMonth: false, isToday: false, visitInfo: null });
-    }
-
-    const weeks: CalendarDay[][] = [];
-    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-    return weeks;
+  /** Holiday name for a date, or null when it is a normal working day. */
+  holidayNameFor(iso: string | null): string | null {
+    if (!iso) return null;
+    return this.holidayMap.get(iso) ?? null;
   }
 
   readonly weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -112,6 +88,26 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
   get pendingCount():   number { return this.dayVisits.filter(v => v.status === 'Pending').length; }
   get completedCount(): number { return this.dayVisits.filter(v => v.status === 'Completed').length; }
 
+  // ── Holiday awareness ──────────────────────────────────────────────────────
+
+  /** Holiday falling on the date currently chosen in the assign form, if any. */
+  get formHolidayName(): string | null {
+    return this.holidayNameFor(this.assignForm?.get('visitDate')?.value ?? null);
+  }
+
+  /** Holiday falling on the currently selected calendar day, if any. */
+  get selectedDayHolidayName(): string | null {
+    return this.holidayNameFor(this.selectedDate);
+  }
+
+  /** Admin ticked "schedule anyway" for the holiday shown in the form. */
+  overrideHoliday = false;
+
+  /** Assign is blocked until the holiday warning is explicitly acknowledged. */
+  get holidayBlocksSave(): boolean {
+    return !!this.formHolidayName && !this.overrideHoliday;
+  }
+
   // ── Edit visit modal ───────────────────────────────────────────────────────
   editingVisit: VisitScheduleGetDto | null = null;
   savingEdit    = false;
@@ -126,6 +122,7 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       assignedMemberId: data.assignedMemberId,
       visitDate:        data.visitDate,
       visitTime:        data.visitTime,
+      overrideHoliday:  data.overrideHoliday,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.savingEdit   = false;
@@ -191,12 +188,21 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       purpose:          [''],
       notes:            [''],
     });
+    // Visit time = Hour / Minute (15-min steps) / AM-PM dropdowns.
+    this.timePicker = new TimePartsPicker(this.assignForm.get('visitTime')!);
   }
+
+  timePicker!: TimePartsPicker;
 
   ngOnInit(): void {
     this.loadMembers();
     this.loadAllContacts();
     this.loadCalendar();
+
+    // Any change of visit date invalidates a previously-given holiday override.
+    this.assignForm.get('visitDate')!.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => (this.overrideHoliday = false));
   }
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -212,14 +218,36 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     { label: 'User',           value: 1 },
     { label: 'Assistant',      value: 2 },
     { label: 'Admin',          value: 3 },
-    { label: 'Collection Boy', value: 5 },
-    { label: 'Doctor',         value: 6 },
+    // { label: 'Collection Boy', value: 5 },
+    // { label: 'Doctor',         value: 6 },
   ];
 
   /** Members visible in the member select — filtered by role when one is chosen. */
   get displayMembers(): MemberDto[] {
     if (this.memberTypeFilter === null) return this.allMembers;
     return this.allMembers.filter(m => m.typeUserId === this.memberTypeFilter);
+  }
+
+  /** True once the member list request has finished (success or failure). */
+  membersLoaded = false;
+
+  /** Number of active members in a role (null = all roles). */
+  memberCountFor(type: number | null): number {
+    return type === null
+      ? this.allMembers.length
+      : this.allMembers.filter(m => m.typeUserId === type).length;
+  }
+
+  /** Plural, lower-case name of the selected role — "collection boys", "doctors". */
+  get memberFilterPlural(): string {
+    const label = this.memberTypeOptions.find(o => o.value === this.memberTypeFilter)?.label;
+    return label ? `${label.toLowerCase()}s` : 'staff members';
+  }
+
+  /** Clear the role filter and show every member. */
+  showAllMembers(): void {
+    this.memberTypeFilter = null;
+    this.onMemberTypeFilterChange();
   }
 
   onMemberTypeFilterChange(): void {
@@ -230,13 +258,16 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
   private loadMembers(): void {
     this._memberSvc.getAll().pipe(takeUntil(this.destroy$)).subscribe({
       // Exclude Super Admin (typeUserId=4) and the lab-owner admin row (last name = "admin")
-      next: users => (this.allMembers = filterActiveMembers(
-        (users ?? []).filter(u =>
-          u.typeUserId !== 4 &&
-          (u.last_Name ?? '').toLowerCase() !== 'admin'
-        )
-      )),
-      error: () => (this.allMembers = []),
+      next: users => {
+        this.allMembers = filterActiveMembers(
+          (users ?? []).filter(u =>
+            u.typeUserId !== 4 &&
+            (u.last_Name ?? '').toLowerCase() !== 'admin'
+          )
+        );
+        this.membersLoaded = true;
+      },
+      error: () => { this.allMembers = []; this.membersLoaded = true; },
     });
   }
 
@@ -338,6 +369,16 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     return !this.contactsByType.some(c => c.name.toLowerCase() === name);
   }
 
+  /** Saved contacts of a given institution type. */
+  contactCountFor(type: InstitutionType): number {
+    return this.allContacts.filter(c => +c.institutionType === +type).length;
+  }
+
+  /** Contact type chosen but the address book has nobody of that type yet. */
+  get noContactsForType(): boolean {
+    return this.assignForm.get('contactType')?.value != null && this.contactsByType.length === 0;
+  }
+
   get selectedContactTypeName(): string {
     const type: InstitutionType | null = this.assignForm.get('contactType')?.value;
     return this.contactTypeOptions.find(o => +o.value === +type!)?.label ?? 'Contact';
@@ -364,12 +405,13 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
 
   // ── Form ───────────────────────────────────────────────────────────────────
 
-  openForm(): void { this.showForm = true; }
+  openForm(): void { this.showForm = true; this.overrideHoliday = false; }
 
   cancelForm(): void {
     this.showForm = false;
     this.selectedContactId = null;
     this.showContactSuggestions = false;
+    this.overrideHoliday = false;
     this.assignForm.reset({ visitDate: this.selectedDate ?? '' });
     this.contactsByType = [];
     this.filteredContactSuggestions = [];
@@ -380,6 +422,9 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       this.assignForm.markAllAsTouched();
       return;
     }
+
+    // The date is a holiday and the warning has not been acknowledged.
+    if (this.holidayBlocksSave) return;
 
     const contactName: string = this.assignForm.get('contactName')!.value.trim();
     const contactType: InstitutionType = this.assignForm.get('contactType')!.value;
@@ -418,12 +463,15 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
       visitTime: f.visitTime,
       purpose:   f.purpose  || undefined,
       notes:     f.notes    || undefined,
+      // Only sent when the admin has confirmed the holiday warning.
+      overrideHoliday: this.overrideHoliday || undefined,
     };
 
     this._visitSvc.create(dto).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.savingForm = false;
         this.showForm   = false;
+        this.overrideHoliday   = false;
         this.selectedContactId = null;
         this.loadCalendar();
         if (this.selectedDate) this.loadDayVisits(this.selectedDate);
@@ -490,13 +538,14 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  /** True when the selected calendar day is today. */
+  get isSelectedToday(): boolean {
+    return this.selectedDate === this.toIso(new Date());
+  }
+
   get viewLabel(): string { return `${this.months[this.viewMonth - 1]} ${this.viewYear}`; }
 
-  formatTime(t: string): string {
-    if (!t) return '';
-    const [h, m] = t.split(':').map(Number);
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-  }
+  formatTime(t: string): string { return formatTime12h(t); }
 
   toIsoPublic(d: Date): string { return this.toIso(d); }
   private toIso(d: Date): string {
@@ -508,5 +557,5 @@ export class VisitScheduleComponent implements OnInit, OnDestroy {
     return !!(c?.invalid && c.touched);
   }
 
-  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy(): void { this.timePicker.destroy(); this.destroy$.next(); this.destroy$.complete(); }
 }

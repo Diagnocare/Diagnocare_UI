@@ -1,0 +1,19 @@
+/*
+ * TypeScript config for the UI-kit preview app only.
+ * Extends the project's own tsconfig.json, so the kit is checked under exactly
+ * the same strictness the app uses — strictTemplates included. Nothing in the
+ * app's build reads this file.
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/ui-kit",
+    "types": []
+  },
+  "files": [
+    "src/app/shared/simple/showcase/ui-kit.main.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ]
+}

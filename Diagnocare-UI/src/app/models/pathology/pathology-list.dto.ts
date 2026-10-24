@@ -35,5 +35,7 @@ export interface PathologyListDto {
   maxDiscountPercent?: number;
   /** Minutes the page must be hidden before the screen-lock PIN fires on return. 0 = disabled. */
   sessionLockoutMinutes?: number;
+  /** Share of the ANNUAL paid-leave entitlement carried into the next leave year (0-100). Default 50. */
+  paidLeaveCarryForwardPercent?: number;
   licenseKey?: string;
 }

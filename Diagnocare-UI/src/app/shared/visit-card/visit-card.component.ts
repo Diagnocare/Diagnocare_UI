@@ -34,6 +34,30 @@ export class VisitCardComponent {
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
   }
 
+  /** "20:25" → "8:25" */
+  timeMain(t: string): string {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')}`;
+  }
+
+  /** "20:25" → "PM" */
+  timeMeridiem(t: string): string {
+    if (!t) return '';
+    return Number(t.split(':')[0]) >= 12 ? 'PM' : 'AM';
+  }
+
+  /** "Vijayendra Kumar" → "VK" */
+  initials(name: string): string {
+    return (name ?? '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(p => p[0].toUpperCase())
+      .join('');
+  }
+
   mapsUrl(address: string): string {
     return 'https://maps.google.com/?q=' + encodeURIComponent(address);
   }

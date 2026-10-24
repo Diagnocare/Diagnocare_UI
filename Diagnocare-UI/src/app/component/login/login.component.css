@@ -821,3 +821,88 @@ input[type="password"]::-ms-clear {
   :host-context(html[data-theme="system"]) .sc-device-name { color: #e2e8f0 !important; }
   :host-context(html[data-theme="system"]) .sc-btn-secondary { background: #0f172a; color: #cbd5e1; border-color: #334155; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIT THE VIEWPORT — no scrollbar between the panels
+   ──────────────────────────────────────────────────────────────────────
+   `.lp-left` is pinned to exactly one screen tall with `overflow: hidden
+   auto`. The moment its content is taller than the viewport it grows its
+   OWN scrollbar, and because the panel ends where the login card begins,
+   that scrollbar appears down the middle of the page. That is the bar
+   people see; the page itself is not scrolling.
+
+   The content is a fixed set of blocks, so the honest fix is to make it
+   fit rather than to clip it. These queries tighten the vertical rhythm
+   as the window gets shorter, dropping ornament before information.
+
+   Height queries, not width. The panel overflows because of how TALL the
+   window is — a 1366×768 laptop has roughly 620px of usable viewport once
+   browser chrome is taken off, and a zoomed-in desktop is the same case.
+   `min-width: 56.25em` (900px) keeps all of this out of the way of the
+   stacked mobile layout above, which scrolls normally and should.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Laptops and 125% zoom — trim the generous desktop spacing. */
+@media (min-width: 56.25em) and (max-height: 860px) {
+  .lp-left       { padding: 2rem 3rem; }
+  .lp-brand      { margin-bottom: 1.5rem; }
+  .lp-brand-icon { width: 2.3rem; height: 2.3rem; font-size: 1rem; }
+  .lp-brand-name { font-size: 1.4rem; }
+
+  .lp-hero-title { font-size: clamp(1.6rem, 2.4vw, 2.2rem); margin-bottom: 0.6rem; }
+  .lp-hero-sub   { font-size: 0.94rem; line-height: 1.6; margin-bottom: 1.5rem; }
+
+  .lp-features   { gap: 0.8rem; margin-bottom: 1.5rem; }
+  .lp-feat-icon  { width: 2rem; height: 2rem; font-size: 0.88rem; }
+
+  .lp-right       { padding: 1.75rem 2rem; }
+  .lp-card        { padding: 1.75rem 2rem; }
+  .lp-card-header { margin-bottom: 1.5rem; }
+  .lp-card-logo   { width: 2.8rem; height: 2.8rem; font-size: 1.2rem; margin-bottom: 0.75rem; }
+}
+
+/* 150% zoom, and the shorter laptop panels. */
+@media (min-width: 56.25em) and (max-height: 720px) {
+  .lp-left       { padding: 1.5rem 2.5rem; }
+  .lp-brand      { margin-bottom: 1rem; }
+  .lp-hero-title { font-size: clamp(1.4rem, 2vw, 1.85rem); }
+  .lp-hero-sub   { margin-bottom: 1.1rem; }
+
+  .lp-features   { gap: 0.6rem; margin-bottom: 1.1rem; }
+  /* Keep each feature's headline, drop its second line. The headline alone
+     still says what the feature is; the sub-line is elaboration. */
+  .lp-features li span { display: none; }
+
+  .lp-right       { padding: 1.25rem 1.75rem; }
+  .lp-card        { padding: 1.5rem 1.75rem; }
+  .lp-card-header { margin-bottom: 1.25rem; }
+}
+
+/* 175–200% zoom, and small laptop panels in landscape. Below this the
+   decorative content cannot fit however tightly it is set, so ornament
+   goes — pills first, then the hero paragraph. The brand, the headline,
+   the feature list and the whole form all stay. */
+@media (min-width: 56.25em) and (max-height: 620px) {
+  .lp-left        { padding: 1.25rem 2rem; }
+  .lp-stat-pills  { display: none; }
+  .lp-hero-sub    { display: none; }
+  .lp-brand       { margin-bottom: 0.75rem; }
+  .lp-features    { margin-bottom: 0; }
+  .lp-card-logo   { display: none; }
+  .lp-card-header { margin-bottom: 1rem; }
+}
+
+/* Last resort: if the window is shorter than the form itself can possibly
+   be — a very short window, or 250%+ zoom — the RIGHT panel scrolls, not
+   the left one. A scrollbar on the form is expected; one down the middle
+   of the page is not. */
+@media (min-width: 56.25em) {
+  .lp-left  { scrollbar-width: none; }          /* Firefox */
+  .lp-left::-webkit-scrollbar { width: 0; height: 0; }
+
+  .lp-right {
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+}

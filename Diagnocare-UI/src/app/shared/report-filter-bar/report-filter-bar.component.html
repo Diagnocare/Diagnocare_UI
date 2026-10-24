@@ -7,13 +7,27 @@
       <!-- Year (hidden for static/non-date-filtered reports) -->
       <div class="rfb-group" *ngIf="showDateFilters">
         <label class="rfb-label">Year</label>
-        <select class="rfb-select"
-                [ngModel]="selectedYear"
-                (ngModelChange)="yearChange.emit($event)"
-                [disabled]="isLoading">
-          <option value="">All</option>
-          <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
-        </select>
+        <!-- Custom dropdown: the native <select> popup flashes black on Windows -->
+        <div class="rfb-dropdown">
+          <button type="button" class="rfb-select"
+                  (click)="toggleYearMenu($event)"
+                  [disabled]="isLoading"
+                  aria-haspopup="listbox"
+                  [attr.aria-expanded]="yearMenuOpen">
+            <span>{{ selectedYear || 'All' }}</span>
+            <i class="fa fa-chevron-down rfb-caret" [class.rfb-caret--open]="yearMenuOpen"></i>
+          </button>
+          <ul class="rfb-menu" *ngIf="yearMenuOpen" role="listbox">
+            <li *ngFor="let y of yearOptions"
+                role="option"
+                class="rfb-menu__item"
+                [class.rfb-menu__item--active]="y === selectedYear"
+                [attr.aria-selected]="y === selectedYear"
+                (click)="selectYear(y)">
+              {{ y || 'All' }}
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- Period (hidden for static/non-date-filtered reports) -->

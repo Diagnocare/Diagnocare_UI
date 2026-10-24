@@ -18,6 +18,10 @@
           <span class="legend-chip chip-h">H</span>
           <span class="legend-lbl">Holiday</span>
         </span>
+        <span class="legend-item">
+          <span class="legend-chip chip-req">R</span>
+          <span class="legend-lbl">Requested — awaiting approval</span>
+        </span>
       </div>
     </div>
 
@@ -25,6 +29,10 @@
       <a class="request-btn" routerLink="/attendance-requests"
          title="See your correction requests or raise a new one">
         <i class="fa fa-pen-to-square"></i> Request Correction
+      </a>
+      <a class="request-btn" routerLink="/attendance-requests/new" [queryParams]="{ type: 'leave' }"
+         title="Apply for leave (past 7 days up to next week)">
+        <i class="fa fa-calendar-plus"></i> Apply Leave
       </a>
     </div>
   </div>
@@ -136,11 +144,12 @@
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
                   [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                  [class.requestable]="!cell.isFuture && !cell.isHoliday"
-                  [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                  [class.requestable]="isActionable(cell)"
+                  [title]="cellActionTitle(cell)"
                   (click)="requestCorrection(cell)">
                   {{ cellLabel(cell) }}
-                  <i class="fa fa-pen req-pen" *ngIf="!cell.isFuture && !cell.isHoliday"></i>
+                  <i class="fa fa-pen req-pen"
+                     *ngIf="isActionable(cell) && !hasOpenRequest(cell)"></i>
                 </span>
               </td>
 
@@ -210,8 +219,8 @@
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
-                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      [class.requestable]="isActionable(cell)"
+                      [title]="cellActionTitle(cell)"
                       (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
                     </span>
@@ -278,8 +287,8 @@
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
                       [class.today-glow]="cell.isToday && !cell.isFuture && !cell.isHoliday"
-                      [class.requestable]="!cell.isFuture && !cell.isHoliday"
-                      [title]="(!cell.isFuture && !cell.isHoliday) ? 'Click to request a correction for this day' : cellTitle(cell)"
+                      [class.requestable]="isActionable(cell)"
+                      [title]="cellActionTitle(cell)"
                       (click)="requestCorrection(cell)">
                       {{ cellLabel(cell) }}
                     </span>

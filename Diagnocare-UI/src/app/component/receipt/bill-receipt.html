@@ -109,20 +109,36 @@
       </div>
     </div>
 
-    <!-- ── Card Stack ─────────────────────────────────────────────────── -->
-    <div class="test-cards-stack">
-      <div *ngFor="let group of groupedReceipts; let i = index"
-           class="test-card card"
-           [class.active]="isActiveCard(i)"
-           [style.z-index]="getCardZIndex(i)"
-           [style.transform]="isActiveCard(i) ? 'translateX(0)' : 'translateX(' + (i - activeCardIndex) * 60 + 'px)'"
-           (click)="selectCard(i)">
+    <!-- ── Booking navigator — jump straight to any booking ────────────── -->
+    <nav class="br-booking-nav no-print" *ngIf="groupCount > 1" aria-label="Bookings">
+      <div class="br-booking-nav-list" role="tablist">
+        <button *ngFor="let group of groupedReceipts; let i = index; trackBy: trackGroup"
+                type="button"
+                role="tab"
+                class="br-booking-chip"
+                [class.active]="isActiveCard(i)"
+                [attr.aria-selected]="isActiveCard(i)"
+                (click)="selectCard(i)">
+          <span class="br-booking-chip-id">#{{ group.patientTestId }}</span>
+          <span class="br-booking-chip-meta">
+            {{ group.receipts.length }} rec · {{ latestReceiptDate(group) }}
+          </span>
+          <span class="br-booking-chip-dot"
+                [class.br-dot--paid]="!group.isCancelled && group.paymentStatus === 'Paid'"
+                [class.br-dot--due]="!group.isCancelled && group.paymentStatus !== 'Paid'"
+                [class.br-dot--cancelled]="group.isCancelled"
+                [title]="group.paymentStatus"></span>
+        </button>
+      </div>
+    </nav>
 
-        <!-- Side tab (visible on stacked / inactive cards) -->
-        <div class="card-tab" [class.hidden]="isActiveCard(i)">
-          <span class="tab-id">#{{ group.patientTestId }}</span>
-          <span class="tab-count">{{ group.receipts.length }} Rec.</span>
-        </div>
+    <!-- ── Selected booking card — only the active tab's receipt is rendered ── -->
+    <div class="test-cards-stack">
+      <ng-container *ngFor="let group of groupedReceipts; let i = index; trackBy: trackGroup">
+      <div *ngIf="isActiveCard(i)"
+           class="test-card card active"
+           role="tabpanel"
+           [attr.aria-label]="'Receipts for test ' + group.patientTestId">
 
         <div class="card-content">
 
@@ -146,7 +162,8 @@
                    [ngClass]="{
                      'fa-check-circle': group.paymentStatus === 'Paid',
                      'fa-adjust':       group.paymentStatus === 'Partial',
-                     'fa-clock-o':      group.paymentStatus === 'Pending'
+                     'fa-clock-o':      group.paymentStatus === 'Pending',
+                     'fa-hourglass-half': group.paymentStatus === 'Awaiting Approval'
                    }"></i>
                 {{ group.paymentStatus }}
               </span>
@@ -163,7 +180,42 @@
               <span class="br-refund-strip-value">−₹{{ group.totalRefunded | number:'1.2-2' }}</span>
             </div>
 
+            <!-- Receipt toolbar — hint, sort, and (for long lists) filter -->
+            <div class="br-receipt-toolbar no-print">
+              <span class="br-receipt-hint">
+                <i class="fa fa-download"></i> Select a receipt to download its PDF
+              </span>
+              <div class="br-receipt-tools">
+                <div class="br-receipt-filter" *ngIf="group.receipts.length > receiptFilterThreshold">
+                  <i class="fa fa-search" aria-hidden="true"></i>
+                  <input type="search"
+                         [(ngModel)]="receiptFilter[group.patientTestId]"
+                         placeholder="Receipt #, date, mode, amount"
+                         [attr.aria-label]="'Filter receipts for test ' + group.patientTestId"
+                         (click)="$event.stopPropagation()">
+                  <button type="button" class="br-filter-clear"
+                          *ngIf="receiptFilter[group.patientTestId]"
+                          aria-label="Clear filter"
+                          (click)="clearReceiptFilter(group, $event)">
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
+                <button type="button" class="br-sort-btn"
+                        [attr.aria-label]="newestFirst ? 'Sorted newest first. Switch to oldest first' : 'Sorted oldest first. Switch to newest first'"
+                        (click)="toggleSortOrder($event)">
+                  <i class="fa" [ngClass]="newestFirst ? 'fa-arrow-down-wide-short' : 'fa-arrow-up-short-wide'"></i>
+                  {{ newestFirst ? 'Newest first' : 'Oldest first' }}
+                </button>
+              </div>
+            </div>
+
+            <ng-container *ngIf="visibleReceipts(group) as rows">
+            <p class="br-filter-count" *ngIf="receiptFilter[group.patientTestId]" aria-live="polite">
+              Showing {{ rows.length }} of {{ group.receipts.length }} receipts
+            </p>
+
             <!-- Receipt table — single grid so header and rows always align -->
+            <div class="br-receipt-scroll">
             <table class="br-receipt-table">
               <thead>
                 <tr class="br-receipt-thead">
@@ -172,16 +224,25 @@
                   <th>Mode</th>
                   <th>Kind</th>
                   <th class="br-th-amount">Amount</th>
+                  <th class="br-th-action"><span class="sr-only">Download</span></th>
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let r of group.receipts">
+                <tr *ngIf="!rows.length" class="br-empty-tr">
+                  <td colspan="6">No receipts match “{{ receiptFilter[group.patientTestId] }}”</td>
+                </tr>
+                <ng-container *ngFor="let r of rows; trackBy: trackReceipt">
 
                   <!-- ── Payment row ────────────────────────────── -->
                   <tr class="br-receipt-tr"
                       [class.br-tr--has-refund]="r.isRefunded"
+                      role="button"
+                      tabindex="0"
+                      [attr.aria-label]="'Download payment receipt ' + r.receiptId + ', ' + formatDate(r.createdDate) + ', ₹' + (r.amountPaid | number:'1.2-2')"
                       (click)="onReceiptClick(r, $event)"
-                      title="Click to generate payment receipt PDF">
+                      (keydown.enter)="onReceiptRowKeydown(r, $event, 'payment')"
+                      (keydown.space)="onReceiptRowKeydown(r, $event, 'payment')"
+                      title="Click to download payment receipt PDF">
 
                     <td class="br-td-id">
                       <i class="fa fa-file-text-o br-rcpt-file-icon"></i>
@@ -189,7 +250,8 @@
                     </td>
                     <td class="br-td-date">{{ formatDate(r.createdDate) }}</td>
                     <td class="br-td-mode">
-                      {{ r.paymentMode || '—' }}
+                      <span class="br-rcpt-mode" *ngIf="r.paymentMode; else noMode">{{ r.paymentMode }}</span>
+                      <ng-template #noMode>—</ng-template>
                       <ng-container *ngIf="r.paymentMode === 'TPA'">
                         <span class="tpa-status-badge"
                               [class.tpa-status--pending]="!r.tpaPaymentStatus || r.tpaPaymentStatus === 'Pending'"
@@ -215,14 +277,23 @@
                         ₹{{ r.amountPaid | number:'1.2-2' }}
                       </span>
                     </td>
-                    <td class="br-td-action" (click)="$event.stopPropagation()"></td>
+                    <td class="br-td-action">
+                      <span class="br-dl-cue" aria-hidden="true">
+                        <i class="fa fa-download"></i><span class="br-dl-label">Download</span>
+                      </span>
+                    </td>
                   </tr>
 
                   <!-- ── Refund row ──────────────────────────────── -->
                   <tr class="br-refund-tr"
                       *ngIf="r.isRefunded"
+                      role="button"
+                      tabindex="0"
+                      [attr.aria-label]="'Download refund receipt ' + r.receiptId + ', ' + formatDate(r.refundedAt || '') + ', ₹' + (r.refundAmount | number:'1.2-2') + ' refunded'"
                       (click)="onRefundRowClick(r, $event)"
-                      title="Click to generate refund receipt PDF">
+                      (keydown.enter)="onReceiptRowKeydown(r, $event, 'refund')"
+                      (keydown.space)="onReceiptRowKeydown(r, $event, 'refund')"
+                      title="Click to download refund receipt PDF">
 
                     <td class="br-td-id br-rr-id">
                       <i class="fa fa-undo br-rr-icon"></i>
@@ -238,9 +309,12 @@
                     <td class="br-td-amount br-rr-amount">
                       −₹{{ r.refundAmount | number:'1.2-2' }}
                     </td>
-                    <td class="br-td-action br-rr-action" (click)="$event.stopPropagation()">
+                    <td class="br-td-action br-rr-action">
                       <span class="br-rr-reason" *ngIf="r.refundReason" [title]="r.refundReason">
                         <i class="fa fa-info-circle"></i> {{ r.refundReason }}
+                      </span>
+                      <span class="br-dl-cue" aria-hidden="true">
+                        <i class="fa fa-download"></i><span class="br-dl-label">Download</span>
                       </span>
                     </td>
                   </tr>
@@ -248,6 +322,8 @@
                 </ng-container>
               </tbody>
             </table>
+            </div><!-- /br-receipt-scroll -->
+            </ng-container>
 
           </div><!-- /card-body -->
 
@@ -263,8 +339,12 @@
               <span class="br-footer-remaining" *ngIf="group.remaining > 0">
                 Balance: <strong>₹{{ group.remaining | number:'1.2-2' }}</strong>
               </span>
+              <span class="br-cancelled-footer-chip" *ngIf="group.awaitingApproval"
+                    title="The discount on this booking is above the lab limit and is waiting for a Super Admin">
+                <i class="fa fa-hourglass-half"></i> Discount awaiting Super Admin approval — payment on hold
+              </span>
               <button class="btn-pay-now-card"
-                      *ngIf="group.remaining > 0"
+                      *ngIf="group.remaining > 0 && !group.awaitingApproval"
                       (click)="openGroupPaymentModal(group, $event)">
                 <i class="fa fa-credit-card"></i> Pay Now
               </button>
@@ -276,6 +356,7 @@
 
         </div><!-- /card-content -->
       </div>
+      </ng-container>
     </div>
 
   </ng-container>

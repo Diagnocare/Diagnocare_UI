@@ -45,10 +45,6 @@
           <i class="fas fa-clock"></i>
           <span>15-Day Trial</span>
         </div>
-        <div class="rp-pill rp-pill-license">
-          <i class="fas fa-certificate"></i>
-          <span>Full Licence</span>
-        </div>
       </div>
     </div>
   </div>
@@ -200,6 +196,15 @@
             </div>
           </div>
 
+          <div class="rp-field">
+            <label class="rp-label">Provisioning code <span class="req">*</span></label>
+            <div class="rp-input-wrap" [class.rp-input-error]="hasError('provisioning_Token')">
+              <span class="rp-input-icon"><i class="fas fa-key"></i></span>
+              <input type="password" class="rp-input" formControlName="provisioning_Token" autocomplete="off" placeholder="Issued by your Diagnocare administrator" />
+            </div>
+            <app-field-error [control]="form.get('provisioning_Token')" label="Provisioning code" [forceShow]="submitted"></app-field-error>
+          </div>
+
           <!-- ── Section: Licence ── -->
           <div class="rp-section-label">Licence Plan</div>
           <div class="rp-licence-toggle">
@@ -210,15 +215,6 @@
               <div>
                 <span class="rp-lic-name">Trial</span>
                 <span class="rp-lic-desc">15 days free access</span>
-              </div>
-            </button>
-            <button type="button" class="rp-lic-btn"
-                    [class.rp-lic-active]="licenseType === 'License'"
-                    (click)="selectLicenseType('License')">
-              <i class="fas fa-certificate"></i>
-              <div>
-                <span class="rp-lic-name">Full Licence</span>
-                <span class="rp-lic-desc">365 days full access</span>
               </div>
             </button>
           </div>

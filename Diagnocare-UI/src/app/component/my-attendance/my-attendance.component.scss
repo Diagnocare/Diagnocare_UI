@@ -117,6 +117,8 @@ $clr-holiday-light: #fef3c7;
   &.chip-hd { background: $clr-hd-bg; }
   &.chip-wo { background: $clr-wo-bg; }
   &.chip-h  { background: $clr-holiday-bg; }
+  // Days with a correction request awaiting a decision.
+  &.chip-req { background: #7c3aed; }
 }
 
 // ── Controls bar ─────────────────────────────────────────────────
@@ -434,6 +436,16 @@ $clr-holiday-light: #fef3c7;
     color: $clr-holiday-bdr;
     border-color: #fcd34d;
     font-weight: 800;
+  }
+
+  // A correction request is awaiting a decision on this day: the tile reads "R".
+  // Declared after the status colours so it wins over them — a half-signalled cell
+  // (green fill, purple ring) was the confusing part.
+  &.cell-requested {
+    background: #7c3aed;
+    color: #fff;
+    border-color: #6d28d9;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
   }
 
   &.today-glow {

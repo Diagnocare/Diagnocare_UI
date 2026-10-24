@@ -45,8 +45,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "4mb",
-                  "maximumError": "5mb"
+                  "maximumWarning": "1.35mb",
+                  "maximumError": "1.5mb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -78,14 +78,20 @@
                   "with": "src/environments/environment.qa.ts"
                 }
               ],
-              "outputHashing": "all",
-              "buildOptimizer": false,
-              "optimization": false,
-              "vendorChunk": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1.35mb",
+                  "maximumError": "1.5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "30kb",
+                  "maximumError": "50kb"
+                }
+              ],
               "baseHref": "/",
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true
+              "outputHashing": "all"
             },
             "uat": {
               "fileReplacements": [
@@ -94,13 +100,25 @@
                   "with": "src/environments/environment.uat.ts"
                 }
               ],
-              "buildOptimizer": false,
-              "optimization": false,
-              "vendorChunk": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1.35mb",
+                  "maximumError": "1.5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "30kb",
+                  "maximumError": "50kb"
+                }
+              ],
+              "sourceMap": {
+                "scripts": true,
+                "styles": false,
+                "hidden": true
+              },
               "baseHref": "/",
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true
+              "outputHashing": "all"
             }
           },
           "defaultConfiguration": "development"

@@ -32,8 +32,13 @@
   <div class="pin-field-row" *ngIf="!isResetMode">
     <label>Current PIN</label>
     <div class="pin-input-group">
+      <!-- Masked via appMasked rather than type="password": a 4–6 digit session
+           PIN is not an account credential and must never reach the browser's
+           password manager. The old autocomplete="current-password" hint was
+           telling it to do exactly that. -->
       <input
-        [type]="showCurrentPin ? 'text' : 'password'"
+        type="text"
+        [appMasked]="!showCurrentPin"
         class="form-input"
         inputmode="numeric"
         pattern="[0-9]*"
@@ -41,7 +46,7 @@
         placeholder="Enter current PIN"
         [ngModel]="currentPin"
         (ngModelChange)="currentPin = onlyDigits($event); pinError = ''"
-        autocomplete="current-password" />
+        autocomplete="off" />
       <button type="button" class="pin-eye-btn" (click)="toggleCurrent()" tabindex="-1">
         <i class="fa" [class.fa-eye]="!showCurrentPin" [class.fa-eye-slash]="showCurrentPin"></i>
       </button>
@@ -58,7 +63,8 @@
     <label>New PIN</label>
     <div class="pin-input-group">
       <input
-        [type]="showNewPin ? 'text' : 'password'"
+        type="text"
+        [appMasked]="!showNewPin"
         class="form-input"
         inputmode="numeric"
         pattern="[0-9]*"
@@ -66,7 +72,7 @@
         placeholder="4–6 digit PIN"
         [ngModel]="newPin"
         (ngModelChange)="newPin = onlyDigits($event); pinError = ''"
-        autocomplete="new-password" />
+        autocomplete="off" />
       <button type="button" class="pin-eye-btn" (click)="toggleNew()" tabindex="-1">
         <i class="fa" [class.fa-eye]="!showNewPin" [class.fa-eye-slash]="showNewPin"></i>
       </button>
@@ -78,7 +84,8 @@
     <label>Confirm New PIN</label>
     <div class="pin-input-group">
       <input
-        [type]="showConfirmPin ? 'text' : 'password'"
+        type="text"
+        [appMasked]="!showConfirmPin"
         class="form-input"
         inputmode="numeric"
         pattern="[0-9]*"
@@ -87,7 +94,7 @@
         [ngModel]="confirmPin"
         (ngModelChange)="confirmPin = onlyDigits($event); pinError = ''"
         (keyup.enter)="canSubmit && save()"
-        autocomplete="new-password" />
+        autocomplete="off" />
       <button type="button" class="pin-eye-btn" (click)="toggleConfirm()" tabindex="-1">
         <i class="fa" [class.fa-eye]="!showConfirmPin" [class.fa-eye-slash]="showConfirmPin"></i>
       </button>

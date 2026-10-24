@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -36,7 +36,18 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, LoadingSpinnerComponent, RequestStatusBadgeComponent],
 })
-export class RequestDetailComponent implements OnInit {
+export class RequestDetailComponent implements OnInit, OnChanges {
+
+  /**
+   * Embedded mode: the list hosts this inside its review drawer, so the reviewer never
+   * leaves the queue. Supply `requestId` instead of a route param; the hero and the
+   * back button are dropped, and decisions are announced through `changed`.
+   */
+  @Input() embedded = false;
+  @Input() requestId: number | null = null;
+  /** A decision (approve / reject / withdrawal grant or refusal) was saved. */
+  @Output() changed = new EventEmitter<AttendanceRequestDTO>();
+  loadFailed = false;
 
   readonly RequestStatus = RequestStatus;
   readonly allStatuses = ALL_ATTENDANCE_STATUSES;
@@ -76,13 +87,24 @@ export class RequestDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.isReviewer = this.token.isSuperAdmin();
+    if (this.embedded) return;   // ngOnChanges loads from requestId
     const id = +(this.route.snapshot.paramMap.get('id') || 0);
     if (!id) { this.router.navigate(['/attendance-requests']); return; }
     this.load(id);
   }
 
-  private load(id: number): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.embedded || !changes['requestId'] || !this.requestId) return;
+    this.isReviewer = this.token.isSuperAdmin();
+    // A different request must not inherit the previous one's half-typed remarks.
+    this.confirmMode = null;
+    this.approveRemarks = this.rejectRemarks = this.withdrawReason = this.withdrawDecisionRemarks = '';
+    this.load(this.requestId);
+  }
+
+  load(id: number): void {
     this.isLoading = true;
+    this.loadFailed = false;
     const call = this.isReviewer ? this.service.getRequest(id) : this.service.getMyRequest(id);
     call.subscribe({
       next: (r) => {
@@ -90,8 +112,24 @@ export class RequestDetailComponent implements OnInit {
         this.appliedStatus = r.requestedStatus;   // pre-fill override selector
         this.isLoading = false;
       },
-      error: (msg) => { this.toastr.error(msg); this.isLoading = false; this.router.navigate(['/attendance-requests']); },
+      error: (msg) => {
+        this.isLoading = false;
+        if (this.embedded) { this.loadFailed = true; return; }   // drawer shows a retry
+        this.toastr.error(msg);
+        this.router.navigate(['/attendance-requests']);
+      },
     });
+  }
+
+  /** Re-fetch the request currently shown (drawer retry button). */
+  retry(): void { if (this.requestId) this.load(this.requestId); }
+
+  /** Tell the host a decision landed, so it can refresh the list behind the drawer. */
+  private decided(r: AttendanceRequestDTO): void {
+    this.request = r;
+    this.isSaving = false;
+    this.confirmMode = null;
+    this.changed.emit(r);
   }
 
   get isPending(): boolean { return this.request?.requestStatus === RequestStatus.Pending; }
@@ -145,12 +183,7 @@ export class RequestDetailComponent implements OnInit {
     this.service.approveWithdrawal(this.request.requestId, {
       remarks: this.withdrawDecisionRemarks?.trim() || undefined,
     }).subscribe({
-      next: (r) => {
-        this.request = r;
-        this.isSaving = false;
-        this.confirmMode = null;
-        this.withdrawDecisionRemarks = '';
-      },
+      next: (r) => { this.withdrawDecisionRemarks = ''; this.decided(r); },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }
@@ -165,12 +198,7 @@ export class RequestDetailComponent implements OnInit {
     this.service.rejectWithdrawal(this.request.requestId, {
       remarks: this.withdrawDecisionRemarks.trim(),
     }).subscribe({
-      next: (r) => {
-        this.request = r;
-        this.isSaving = false;
-        this.confirmMode = null;
-        this.withdrawDecisionRemarks = '';
-      },
+      next: (r) => { this.withdrawDecisionRemarks = ''; this.decided(r); },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }
@@ -183,7 +211,7 @@ export class RequestDetailComponent implements OnInit {
       approvedStatus: String(this.appliedStatus),
       remarks: this.approveRemarks?.trim() || undefined,
     }).subscribe({
-      next: (r) => { this.request = r; this.isSaving = false; this.confirmMode = null; },
+      next: (r) => { this.approveRemarks = ''; this.decided(r); },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }
@@ -192,7 +220,7 @@ export class RequestDetailComponent implements OnInit {
     if (!this.rejectRemarks?.trim()) { this.toastr.warning('Remarks are required to reject.'); return; }
     this.isSaving = true;
     this.service.rejectRequest(this.request.requestId, { remarks: this.rejectRemarks.trim() }).subscribe({
-      next: (r) => { this.request = r; this.isSaving = false; this.confirmMode = null; },
+      next: (r) => { this.rejectRemarks = ''; this.decided(r); },
       error: (msg) => { this.toastr.error(msg); this.isSaving = false; this.confirmMode = null; },
     });
   }

@@ -23,13 +23,17 @@ export type PaymentDisplayStatus =
   | 'Partial'
   | 'Paid'
   | 'Payment Settled'
-  | 'Payment Not Needed';
+  | 'Payment Not Needed'
+  /** Discount over the lab limit is waiting for a Super Admin — payment is held. */
+  | 'Awaiting Approval';
 
 /** Minimal receipt shape needed to derive a payment label. */
 export interface PaymentReceiptLike {
   amount_Paid?: number | null;
   amount_Pending?: number | null;
   payment_Status?: string | null;
+  /** 'NotRequired' | 'Pending' | 'Approved' | 'Rejected' */
+  discount_Approval_Status?: string | null;
 }
 
 /** Minimal booking shape needed to derive a payment label. */
@@ -267,6 +271,7 @@ export function resolvePaymentStatus(test: PaymentContext | null | undefined): P
 
   // Trust an explicit backend-provided status when present.
   const raw = (receipt.payment_Status || '').trim();
+  if (raw === 'Awaiting Approval' || receipt.discount_Approval_Status === 'Pending') return 'Awaiting Approval';
   if (raw === 'Payment Settled' || raw === 'Payment Not Needed') return raw;
   if (raw === 'Paid' || raw === 'Partial' || raw === 'Pending') return raw as PaymentDisplayStatus;
 
@@ -296,6 +301,7 @@ export function getPaymentStatusClass(status: PaymentDisplayStatus | PaymentCont
     case 'Payment Settled':    return 'badge-success';
     case 'Payment Not Needed': return 'badge-secondary';
     case 'Partial':            return 'badge-warning';
+    case 'Awaiting Approval':  return 'badge-info';
     default:                   return 'badge-danger';   // Pending
   }
 }

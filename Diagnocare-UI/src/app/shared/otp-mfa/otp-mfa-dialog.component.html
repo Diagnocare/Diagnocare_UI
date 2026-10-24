@@ -222,12 +222,14 @@
             <ng-container *ngFor="let _ of digits.controls; let i = index">
               <input
                 class="otp-box"
-                [type]="otpVisible ? 'text' : 'password'"
+                type="text"
+                [appMasked]="!otpVisible"
                 inputmode="numeric"
                 maxlength="1"
                 autocomplete="one-time-code"
                 [formControlName]="i"
                 [attr.disabled]="sessionExpiredFlag ? true : null"
+                [attr.readonly]="isSubmitting ? true : null"
                 (input)="onInput(i, $event)"
                 (keydown)="onKeydown(i, $event)"
                 (paste)="onPaste($event)"

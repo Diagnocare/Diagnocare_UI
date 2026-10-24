@@ -288,7 +288,7 @@
         <div class="config-card-body">
           <div class="token-hint" style="margin:0">
             <i class="fa fa-lock"></i>
-            Policy settings can only be changed by an <strong>Admin</strong> or <strong>Super Admin</strong>.
+            Policy settings can only be changed by a <strong>Super Admin</strong>.
             Contact your administrator to update these values.
           </div>
         </div>
@@ -491,6 +491,74 @@
                 for at least this long. Locking the computer's screen always prompts for the PIN immediately.
                 Recommended: <strong>5–30 minutes</strong>.
                 Users must set their own PIN from <strong>Settings → Session PIN</strong> for the lock screen to appear.
+              </p>
+            </div>
+          </div>
+
+          <!-- ── Paid Leave Carry Forward ──────────────────────────────── -->
+          <div class="config-card" style="margin-top: 16px;">
+            <div class="config-card-header">
+              <i class="fa fa-calendar-check-o"></i>
+              <div>
+                <h4 class="config-card-title">Paid Leave Carry Forward (%)</h4>
+                <p class="config-card-sub">
+                  Unused paid leave accumulates through the year instead of expiring each month.
+                  At the end of the leave year, this setting caps how much of an employee's
+                  <strong>total annual entitlement</strong> can be carried into the next year.
+                  Set to <strong>0</strong> to make unused leave lapse at year end.
+                </p>
+              </div>
+            </div>
+            <div class="config-card-body">
+
+              <div class="token-current" *ngIf="leaveCarryForwardValue !== null">
+                <i class="fa fa-info-circle"></i>
+                <ng-container *ngIf="leaveCarryForwardValue > 0">
+                  Current limit: <strong>{{ leaveCarryForwardValue }}%</strong> of annual entitlement
+                </ng-container>
+                <ng-container *ngIf="leaveCarryForwardValue === 0">
+                  Carry forward is currently <strong>disabled</strong> (set to 0) &mdash; unused leave lapses at year end
+                </ng-container>
+              </div>
+
+              <div class="token-field-label">
+                <i class="fa fa-percent"></i> Maximum carry forward (0&ndash;100% of annual entitlement) &mdash; 0 to disable
+              </div>
+              <div class="token-input-row">
+                <input
+                  class="token-input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  placeholder="e.g. 50"
+                  [(ngModel)]="leaveCarryForwardInput"
+                  (keyup.enter)="saveLeaveCarryForward()"
+                  [disabled]="leaveCarryForwardSaving" />
+                <button
+                  class="btn-token-save"
+                  (click)="saveLeaveCarryForward()"
+                  [disabled]="leaveCarryForwardSaving || leaveCarryForwardInput === null">
+                  <i class="fa" [class.fa-save]="!leaveCarryForwardSaving" [class.fa-spinner]="leaveCarryForwardSaving" [class.fa-spin]="leaveCarryForwardSaving"></i>
+                  {{ leaveCarryForwardSaving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+
+              <div class="item-error" *ngIf="leaveCarryForwardError">{{ leaveCarryForwardError }}</div>
+              <div class="token-success" *ngIf="leaveCarryForwardSuccess">
+                <i class="fa fa-check-circle"></i> {{ leaveCarryForwardSuccess }}
+              </div>
+
+              <p class="token-hint">
+                <i class="fa fa-lightbulb"></i>
+                This is a <strong>ceiling</strong>, not a share of the leftover balance. An employee on
+                2 paid leaves a month is entitled to {{ exampleAnnualEntitlement }} days a year, so at
+                <strong>{{ leaveCarryForwardValue ?? 50 }}%</strong> they can carry over at most
+                <strong>{{ exampleMaxCarryForward }}</strong> day(s): 18 unused days become
+                {{ exampleCarryForwardFor18 }}, while 3 unused days stay
+                {{ exampleCarryForwardFor3 }}.
+                Each employee's monthly allocation is set per person under
+                <strong>Salary &rarr; Paid leaves per month</strong>.
               </p>
             </div>
           </div>

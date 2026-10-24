@@ -168,26 +168,6 @@ throw new Error('Method not implemented.');
   }
 
   /**
-   * Today minus the given age, as dd/mm/yyyy for the DOB text field.
-   *
-   * This is what lets an operator record a patient who does not know their date
-   * of birth — extremely common — by typing the age they do know. The result is
-   * an approximation by construction, which is exactly what an age-only record
-   * is anyway.
-   */
-  dobFromAgeParts(years: number, months: number, days: number): string {
-    if (!years && !months && !days) return '';
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setFullYear(d.getFullYear() - (years || 0));
-    d.setMonth(d.getMonth() - (months || 0));
-    d.setDate(d.getDate() - (days || 0));
-
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-  }
-
-  /**
    * Normalises a date entered as DD/MM/YYYY to YYYY-MM-DD (ISO).
    * Passes through any value already in acceptable format.
    */
@@ -199,6 +179,32 @@ throw new Error('Method not implemented.');
     const day   = d.getDate().toString().padStart(2, '0');
     const month = (d.getMonth() + 1).toString().padStart(2, '0');
     return `${day}-${month}-${d.getFullYear()}`;
+  }
+
+  /**
+   * DD/MM/YYYY → YYYY-MM-DD, but only for a date that actually exists.
+   *
+   * Unlike setYearofDate() this one returns '' for anything half-typed
+   * ("11/08"), impossible ("31/02/2001") or still in the future, which is what
+   * makes it safe to bind straight to a calendar: the grid holds still while the
+   * operator is mid-keystroke instead of jumping to the year 0011.
+   */
+  dmyToIso(dmy: string | null | undefined): string {
+    if (!dmy) return '';
+    const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dmy.trim());
+    if (!parts) return '';
+
+    const [, dd, mm, yyyy] = parts;
+    const day = +dd, month = +mm, year = +yyyy;
+    const d = new Date(year, month - 1, day);
+    // Date() rolls 31/02 over into March — compare the parts back to reject it.
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return '';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (d > today) return '';
+
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   setYearofDate(dob: string): string {

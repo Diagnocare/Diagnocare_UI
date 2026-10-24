@@ -59,7 +59,8 @@ import { FormsModule } from '@angular/forms';
           </button>
         </div>
 
-        <button type="button" class="dc-search__go" [disabled]="disabled" (click)="run()">
+        <button type="button" class="dc-btn dc-btn--search dc-search__go"
+                [disabled]="disabled" (click)="run()">
           <i class="fa fa-search" aria-hidden="true"></i>
           <span>{{ buttonLabel }}</span>
         </button>
@@ -78,9 +79,12 @@ import { FormsModule } from '@angular/forms';
   styles: [`
     :host { display: block; }
 
+    /* Sizes here are the ones styles.css uses for .search-group label and
+       .search-input, so this bar reads as the same control as the filter bars on
+       the older screens rather than a larger one from somewhere else. */
     .dc-search__label {
       display: block;
-      font-size: var(--dc-text-lg, 1.125rem);
+      font-size: var(--dc-text-meta, 0.8125rem);
       font-weight: 600;
       color: var(--dc-ink, #2c3e50);
       margin-bottom: var(--dc-gap-xs, 0.35rem);
@@ -88,6 +92,7 @@ import { FormsModule } from '@angular/forms';
 
     .dc-search__row {
       display: flex;
+      align-items: center;   /* not stretch — the button keeps its global height */
       gap: var(--dc-gap-sm, 0.6rem);
       flex-wrap: wrap;
     }
@@ -98,7 +103,7 @@ import { FormsModule } from '@angular/forms';
       align-items: center;
       gap: 0.5rem;
       padding: 0 0.85rem;
-      min-height: var(--dc-touch-lg, 3.5rem);
+      min-height: var(--dc-touch, 3rem);
       background: var(--dc-surface, #fff);
       border: var(--dc-border, 2px) solid var(--dc-line, #e1e8ed);
       border-radius: var(--dc-radius, 0.625rem);
@@ -108,7 +113,7 @@ import { FormsModule } from '@angular/forms';
       box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,0.35));
     }
 
-    .dc-search__icon { color: var(--dc-ink-soft, #666); font-size: 1.05rem; }
+    .dc-search__icon { color: var(--dc-ink-soft, #666); font-size: var(--dc-text-body, 0.875rem); }
 
     .dc-search__input {
       flex: 1 1 auto;
@@ -118,7 +123,7 @@ import { FormsModule } from '@angular/forms';
       background: transparent;
       color: var(--dc-ink, #2c3e50);
       font-family: inherit;
-      font-size: var(--dc-text-lg, 1.125rem);
+      font-size: var(--dc-text-body, 0.875rem);
       padding: 0;
     }
     /* The browser's own clear cross is tiny and inconsistent — we draw our own. */
@@ -146,30 +151,11 @@ import { FormsModule } from '@angular/forms';
       box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,0.35));
     }
 
-    .dc-search__go {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      min-height: var(--dc-touch-lg, 3.5rem);
-      padding: 0 1.5rem;
-      font-family: inherit;
-      font-size: var(--dc-text, 1rem);
-      font-weight: 600;
-      color: #fff;
-      background: var(--dc-brand, #1e5ba8);
-      border: var(--dc-border, 2px) solid transparent;
-      border-radius: var(--dc-radius, 0.625rem);
-      cursor: pointer;
-      transition: filter 0.15s ease;
-    }
-    .dc-search__go:hover:not(:disabled) { filter: brightness(1.1); }
-    .dc-search__go:focus-visible {
-      outline: none;
-      box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,0.35));
-    }
-    .dc-search__go:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* The button itself is a global .dc-btn--search — colour, size, shape, hover
+       and disabled state all come from styles.css, so it is the same button as
+       every other Search in the app. Only how it sits in this row belongs here;
+       do not restyle it, the canonical button system says so for good reason. */
+    .dc-search__go { flex: 0 0 auto; }
 
     .dc-search__count {
       margin: var(--dc-gap-xs, 0.35rem) 0 0;

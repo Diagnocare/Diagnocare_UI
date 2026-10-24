@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
@@ -13,6 +13,14 @@ import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-moda
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { LicenceService } from 'src/app/services/licenceServices/licence.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
+import { DiscountApprovalService } from 'src/app/services/discountApprovalServices/discount-approval.service';
+import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
+import { NotificationService } from 'src/app/services/notificationServices/notification.service';
+import {
+  EMPTY_NOTIFICATION_COUNTS, NotificationModuleKey, UserNotification, UserNotificationCounts,
+} from 'src/app/models/notification/user-notification.model';
+import { Subscription, interval, fromEvent } from 'rxjs';
+import { debounceTime, filter, throttleTime } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
@@ -58,6 +66,38 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   mobileNavOpen = false;
 
+  /** Super Admin only: discounts over the lab limit awaiting a decision (nav badge). */
+  discountPendingCount = 0;
+  /** Super Admin only: attendance corrections / withdrawals awaiting a decision (nav badge). */
+  attendanceRequestPendingCount = 0;
+  /** Everyone: the caller's own unread notifications (bell + User Panel badges). */
+  notificationCounts: UserNotificationCounts = EMPTY_NOTIFICATION_COUNTS;
+
+  /** Bell dropdown state. Click-toggled rather than hover, so it works on touch screens. */
+  bellOpen = false;
+  bellLoading = false;
+  bellItems: UserNotification[] = [];
+
+  private badgeSubs = new Subscription();
+  /**
+   * How often every badge re-checks — ONE timer for all of them. Live push was
+   * removed on purpose (see services/sessionSignalR/session-signalr.service.ts).
+   *
+   * PERF-021 — this was 60 s, and a tick costs up to three API calls for a Super
+   * Admin. Against an HTTP/1.1 origin capped at six connections (PERF-009) those
+   * calls occupy slots a user-initiated click then queues behind; the logs caught
+   * 19 authenticated requests inside one 10-second window. Five minutes is still
+   * well inside what a front-desk queue needs, because the tab-focus refresh
+   * below covers the case that actually matters: someone coming back to look.
+   */
+  private static readonly BADGE_POLL_MS = 300_000;
+  /**
+   * Shortest gap between two focus-driven refreshes. Alt-tabbing through windows
+   * fires `visibilitychange` once per pass, and each pass used to cost a full
+   * badge sweep.
+   */
+  private static readonly VISIBILITY_REFRESH_MIN_GAP_MS = 30_000;
+
   // ── Licence state ──────────────────────────────────────────────────────────
   isLicenceExpired   = false;
   isLicenceExpiringSoon = false;
@@ -81,6 +121,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private loginService: LoginService,
     private licenceSvc: LicenceService,
     private pinService: PinService,
+    private discountApprovals: DiscountApprovalService,
+    private attendanceSvc: AttendanceService,
+    private notifications: NotificationService,
+    private host: ElementRef<HTMLElement>,
   ) {
     this.extractUserName();
     this.extractPathologyId();
@@ -98,6 +142,31 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.licenceExpiryDate     = this.licenceSvc.expiryDate;
     });
 
+    // ── Badges: Super Admin queues + everyone's own notifications ────────────
+    if (this.isSuperAdmin) {
+      this.badgeSubs.add(
+        this.discountApprovals.pendingCount$.subscribe(n => this.discountPendingCount = n));
+      this.badgeSubs.add(
+        this.attendanceSvc.pendingRequestCount$.subscribe(n => this.attendanceRequestPendingCount = n));
+    }
+    if (this.userName) {
+      this.badgeSubs.add(
+        this.notifications.counts$.subscribe(c => this.notificationCounts = c));
+    }
+    this.refreshBadges();
+    this.badgeSubs.add(
+      interval(HeaderComponent.BADGE_POLL_MS).subscribe(() => this.refreshBadges()));
+
+    // Refresh when the tab comes back into view, rather than up to five minutes
+    // later — but once per visit, not once per keystroke of alt-tabbing:
+    // debounceTime settles a burst of toggles, throttleTime caps the rate.
+    this.badgeSubs.add(
+      fromEvent(document, 'visibilitychange').pipe(
+        filter(() => document.visibilityState === 'visible'),
+        debounceTime(500),
+        throttleTime(HeaderComponent.VISIBILITY_REFRESH_MIN_GAP_MS),
+      ).subscribe(() => this.refreshBadges()));
+
     // ── PIN expiry banner ────────────────────────────────────────────────────
     if (this.userName) {
       this.isPinExpiringSoon = this.pinService.isPinExpiringSoon(this.userName);
@@ -107,6 +176,31 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('diagnocare-profile-updated', this.profileUpdatedHandler);
+    this.badgeSubs.unsubscribe();
+  }
+
+  /**
+   * One pass over every badge this user can see. Skipped while the licence is expired
+   * (every module is locked, so there is nothing to act on) and while the tab is
+   * hidden (the visibility handler catches up when it comes back).
+   */
+  private refreshBadges(): void {
+    if (this.isLicenceExpired || document.visibilityState === 'hidden') return;
+    if (this.isSuperAdmin) {
+      this.discountApprovals.refreshPendingCount();
+      this.attendanceSvc.refreshPendingRequestCount();
+    }
+    if (this.userName) this.notifications.refreshUnread();
+  }
+
+  /**
+   * PERF-020 — the bell list is re-fetched by the badge poll and on tab focus, and
+   * every response is a fresh set of object instances. Without a key, Angular's
+   * differ matches items by identity, so an unchanged list of notifications still
+   * tore down and rebuilt every row in the dropdown.
+   */
+  trackByNotificationId(_index: number, item: UserNotification): number {
+    return item.id;
   }
 
   navigateToHome() {
@@ -182,6 +276,122 @@ export class HeaderComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  /**
+   * Badge count for an Admin Panel or User Panel item.
+   * Admin Panel: things waiting on the Super Admin (a queue).
+   * User Panel: the user's own unread notifications for that page (events).
+   */
+  badgeFor(item: { id: string }): number {
+    const m = this.notificationCounts.byModule;
+    switch (item.id) {
+      case 'discountApprovals': return this.isSuperAdmin ? this.discountPendingCount : 0;
+      case 'attendance':        return this.isSuperAdmin ? this.attendanceRequestPendingCount : 0;
+      case 'myVisits':          return m.visit;
+      case 'mySalary':          return m.salary;
+      // Request decisions surface on My Attendance too — that is where a request is raised.
+      case 'myAttendance':      return m.attendance + m.attendanceRequest;
+      default:                  return 0;
+    }
+  }
+
+  /** Total on the Admin Panel button: every Super Admin queue. */
+  get adminPanelBadge(): number {
+    return this.isSuperAdmin ? this.discountPendingCount + this.attendanceRequestPendingCount : 0;
+  }
+
+  /** Tooltip naming each part, e.g. "2 discount approvals, 3 attendance requests". */
+  get adminPanelBadgeTitle(): string {
+    const parts: string[] = [];
+    if (this.discountPendingCount > 0)
+      parts.push(`${this.discountPendingCount} discount approval${this.discountPendingCount === 1 ? '' : 's'}`);
+    if (this.attendanceRequestPendingCount > 0)
+      parts.push(`${this.attendanceRequestPendingCount} attendance request${this.attendanceRequestPendingCount === 1 ? '' : 's'}`);
+    return parts.length ? `${parts.join(', ')} awaiting your decision` : '';
+  }
+
+  // No total on the User Panel button on purpose: it would repeat the bell's count
+  // (same unread notifications). The bell carries the total; the per-item badges inside
+  // the User Panel dropdown only point to which page has something new.
+
+  /** "9+" above nine, so the badge never widens the header. */
+  badgeText(n: number): string {
+    return n > 9 ? '9+' : String(n);
+  }
+
+  // ── Notification bell ──────────────────────────────────────────────────────
+
+  toggleBell(event: Event): void {
+    event.stopPropagation();
+    this.bellOpen = !this.bellOpen;
+    if (this.bellOpen) this.loadBell();
+  }
+
+  private loadBell(): void {
+    this.bellLoading = true;
+    this.notifications.list(20).subscribe(items => {
+      this.bellItems = items;
+      this.bellLoading = false;
+    });
+  }
+
+  openNotification(n: UserNotification): void {
+    this.bellOpen = false;
+    if (!n.isRead) {
+      n.isRead = true;
+      this.notifications.markRead(n.id).subscribe();
+    }
+    if (n.route) this._router.navigateByUrl(n.route);
+  }
+
+  markAllNotificationsRead(event: Event): void {
+    event.stopPropagation();
+    this.bellItems.forEach(n => n.isRead = true);
+    this.notifications.markAllRead().subscribe();
+  }
+
+  get hasUnreadInBell(): boolean {
+    return this.bellItems.some(n => !n.isRead);
+  }
+
+  /** Font Awesome icon per module. */
+  notificationIcon(module: NotificationModuleKey): string {
+    switch (module) {
+      case 'visit':             return 'fa-route';
+      case 'salary':            return 'fa-money-bill-wave';
+      case 'attendanceRequest': return 'fa-clipboard-check';
+      case 'sampleCollection':  return 'fa-motorcycle';
+      default:                  return 'fa-calendar-check';
+    }
+  }
+
+  /** "just now", "5 min ago", "3 h ago", "2 d ago", then the date. */
+  timeAgo(iso: string): string {
+    const then = new Date(iso).getTime();
+    if (isNaN(then)) return '';
+    const s = Math.max(0, Math.round((Date.now() - then) / 1000));
+    if (s < 60) return 'just now';
+    const min = Math.round(s / 60);
+    if (min < 60) return `${min} min ago`;
+    const h = Math.round(min / 60);
+    if (h < 24) return `${h} h ago`;
+    const d = Math.round(h / 24);
+    if (d < 7) return `${d} d ago`;
+    return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  /** Close the bell on any click outside it. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    if (!this.bellOpen) return;
+    const bell = this.host.nativeElement.querySelector('.dc-bell-host');
+    if (bell && !bell.contains(event.target as Node)) this.bellOpen = false;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.bellOpen = false;
+  }
 
   redirectionToModule(item: any): void {
     if (this.isLicenceExpired) {

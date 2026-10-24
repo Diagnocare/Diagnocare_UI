@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
+import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 
 export interface MethodDef {
   key:        string;               // internal key used for routing
@@ -21,7 +22,7 @@ export interface MethodDef {
   templateUrl: './otp-mfa-dialog.component.html',
   styleUrls: ['./otp-mfa-dialog.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent]
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, MaskedInputDirective]
 })
 export class OtpMfaDialogComponent implements OnInit, OnDestroy {
 
@@ -45,6 +46,8 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   @Input() otpMessage          = '';
   @Input() resendDisabled      = false;
   @Input() id: number          = 0;
+  /** What the code will be redeemed for — 'reset' on the forgot-password screen. */
+  @Input() purpose: 'login' | 'reset' = 'login';
   /**
    * When set to a future Date, the dialog switches to a lockout view:
    * method picker, OTP input, and Resend button are all hidden/disabled.
@@ -349,7 +352,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.isSendingOtp = true;
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
-      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+      : this.loginService.generateOtp(this.userId, this.selectedMethod, this.purpose);
     sender$.subscribe({
       next: (resp: any) => {
         this.isSendingOtp = false;
@@ -401,6 +404,19 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     // verify through in the gap between the timer firing and onSessionExpired()
     // actually navigating away.
     if (this.isLocked || this.sessionExpiredFlag) return;
+
+    // Do not emit while a verify is already in flight. The parent holds the
+    // authoritative re-entry guard, but the dialog has three independent ways to
+    // submit the same code — the 100 ms auto-submit after the sixth digit, the
+    // "Verify Code" button, and Enter on the form — and the OTP is single-use
+    // server-side. A second emit therefore lands on a code the first call has
+    // already consumed and comes back "OTP expired or not found. Please request
+    // a new OTP." on top of a login that actually succeeded.
+    //
+    // isSubmitting is the parent's (isSubmitting || isVerifyingOtp), so this
+    // clears again after a wrong code and the user can retry normally.
+    if (this.isSubmitting) return;
+
     this.verify.emit({ code: this.buildCode(), authType: this.currentAuthType });
   }
 
@@ -422,7 +438,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.focusInput(0);
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
-      : this.loginService.generateOtp(this.id, this.userId, this.selectedMethod);
+      : this.loginService.generateOtp(this.userId, this.selectedMethod, this.purpose);
     sender$.subscribe({
       next: (resp: any) => {
         this.isSendingOtp = false;

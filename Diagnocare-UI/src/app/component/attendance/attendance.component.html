@@ -19,6 +19,11 @@
           <span class="legend-chip chip-h">H</span>
           <span class="legend-lbl">Holiday</span>
         </span>
+        <!-- Not a status either: the employee has a correction request in the queue -->
+        <span class="legend-item">
+          <span class="legend-chip chip-req">R</span>
+          <span class="legend-lbl">Requested — awaiting your decision</span>
+        </span>
       </div>
     </div>
 
@@ -34,6 +39,8 @@
       <button class="btn btn-secondary" (click)="openAttendanceRequests()"
               title="Review attendance correction requests">
         <i class="fa fa-clipboard-check"></i> Attendance Requests
+        <span class="dirty-badge" *ngIf="pendingRequestCount > 0"
+              [title]="pendingRequestCount + ' request(s) awaiting your decision'">{{ pendingRequestCount }}</span>
       </button>
 
       <!-- Save -->
@@ -120,18 +127,39 @@
     </div>
 
     <!-- User filter -->
-    <div class="user-filter" *ngIf="displayRows.length > 0">
+    <div class="user-filter" *ngIf="rows.length > 0">
       <i class="fa fa-user filter-icon"></i>
       <select class="user-select"
               [(ngModel)]="selectedUserId"
               (ngModelChange)="recalcTotals()"
               title="Filter by staff member">
         <option [ngValue]="null">All ({{ roleFilteredRows().length }})</option>
-        <option *ngFor="let u of roleFilteredUserOptions" [ngValue]="u.userId">{{ u.fullName }}</option>
+        <option *ngFor="let u of roleFilteredUserOptions; trackBy: trackByUserId" [ngValue]="u.userId">{{ u.fullName }}</option>
       </select>
     </div>
 
   </div><!-- /controls-bar -->
+
+  <!-- ── Shared empty state ────────────────────────────────────────────
+       Rendered in place of the grid whenever there is nothing to show — no
+       staff at all, an empty role tab, an all-inactive group, or a filter
+       that matches nobody. The copy names which of those it is, and offers
+       the single click that resolves it where one exists.
+       ──────────────────────────────────────────────────────────────────── -->
+  <ng-template #emptyStateTpl>
+    <div class="empty-state-card">
+      <div class="empty-visual">
+        <i class="fa" [ngClass]="emptyIcon"></i>
+      </div>
+
+      <h3 class="empty-title">{{ emptyTitle }}</h3>
+      <p class="empty-message">{{ emptyMessage }}</p>
+
+      <button class="empty-btn" *ngIf="emptyActionLabel" (click)="runEmptyAction()">
+        <i class="fa" [ngClass]="emptyActionIcon"></i> {{ emptyActionLabel }}
+      </button>
+    </div>
+  </ng-template>
 
   <!-- ── Attendance grid ──────────────────────────────────────────────── -->
   <div class="content-container">
@@ -140,15 +168,13 @@
       <!-- ════════════════════════════════════════════════════════
            WEEKLY VIEW — single table, 7 columns
            ════════════════════════════════════════════════════════ -->
-      <div class="grid-wrapper" *ngIf="viewMode === 'weekly'">
+      <ng-container *ngIf="viewMode === 'weekly' && displayRows.length === 0">
+        <ng-container *ngTemplateOutlet="emptyStateTpl"></ng-container>
+      </ng-container>
 
-        <div class="empty-state" *ngIf="rows.length === 0">
-          <div class="empty-icon">👤</div>
-          <h3>No Users Found</h3>
-          <p>No registered users to display attendance for.</p>
-        </div>
+      <div class="grid-wrapper" *ngIf="viewMode === 'weekly' && displayRows.length > 0">
 
-        <table class="attendance-table" *ngIf="rows.length > 0">
+        <table class="attendance-table">
           <thead>
             <tr class="header-row">
               <th class="col-user sticky-col">
@@ -157,7 +183,7 @@
 
               <th
                 class="col-day"
-                *ngFor="let date of columnDates; let i = index"
+                *ngFor="let date of columnDates; let i = index; trackBy: trackByIndex"
                 [class.col-today]="date.toDateString() === today.toDateString()"
                 [class.col-future]="date > today"
                 [class.col-locked]="date < editCutoff && date <= today"
@@ -193,7 +219,7 @@
           </thead>
 
           <tbody>
-            <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+            <tr class="user-row" *ngFor="let row of displayRows; let ri = index; trackBy: trackByUserId"
                 [class.row-alt]="ri % 2 !== 0"
                 [class.row-inactive]="isInactiveRow(row)">
               <td class="col-user sticky-col">
@@ -207,7 +233,7 @@
                 </div>
               </td>
 
-              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td">
+              <td *ngFor="let cell of row.cells; let ci = index; trackBy: trackByIndex" class="att-cell-td">
                 <button
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
@@ -238,7 +264,7 @@
               <td class="col-user sticky-col totals-label">
                 {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
               </td>
-              <td *ngFor="let t of dayTotals" class="totals-cell">
+              <td *ngFor="let t of dayTotals; trackBy: trackByIndex" class="totals-cell">
                 <ng-container *ngFor="let s of statusList">
                   <span *ngIf="t[s.value] > 0" class="tot"
                         [ngClass]="'tot-' + s.value.toLowerCase()"
@@ -260,13 +286,11 @@
            ════════════════════════════════════════════════════════ -->
       <ng-container *ngIf="viewMode === 'monthly'">
 
-        <div class="empty-state" *ngIf="rows.length === 0">
-          <div class="empty-icon">👤</div>
-          <h3>No Users Found</h3>
-          <p>No registered users to display attendance for.</p>
-        </div>
+        <ng-container *ngIf="displayRows.length === 0">
+          <ng-container *ngTemplateOutlet="emptyStateTpl"></ng-container>
+        </ng-container>
 
-        <ng-container *ngIf="rows.length > 0">
+        <ng-container *ngIf="displayRows.length > 0">
 
           <!-- ── 1st Fortnight: days 1–15 ──────────────────────── -->
           <div class="fortnight-block" *ngIf="showFortnight1">
@@ -284,7 +308,7 @@
 
                     <th
                       class="col-day"
-                      *ngFor="let date of fortnight1Dates; let i = index"
+                      *ngFor="let date of fortnight1Dates; let i = index; trackBy: trackByIndex"
                       [class.col-today]="date.toDateString() === today.toDateString()"
                       [class.col-future]="date > today"
                       [class.col-locked]="date < editCutoff && date <= today"
@@ -320,7 +344,7 @@
                 </thead>
 
                 <tbody>
-                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index; trackBy: trackByUserId"
                       [class.row-alt]="ri % 2 !== 0">
                     <td class="col-user sticky-col">
                       <div class="user-info">
@@ -333,7 +357,7 @@
                     </td>
 
                     <!-- cells 0–14 → column indices 0–14 -->
-                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td">
+                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index; trackBy: trackByIndex" class="att-cell-td">
                       <button
                         class="att-cell"
                         [ngClass]="cellClass(cell)"
@@ -364,7 +388,7 @@
                     <td class="col-user sticky-col totals-label">
                       {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
                     </td>
-                    <td *ngFor="let t of fortnight1Totals" class="totals-cell">
+                    <td *ngFor="let t of fortnight1Totals; trackBy: trackByIndex" class="totals-cell">
                       <ng-container *ngFor="let s of statusList">
                         <span *ngIf="t[s.value] > 0" class="tot"
                               [ngClass]="'tot-' + s.value.toLowerCase()"
@@ -398,7 +422,7 @@
 
                     <th
                       class="col-day"
-                      *ngFor="let date of fortnight2Dates; let i = index"
+                      *ngFor="let date of fortnight2Dates; let i = index; trackBy: trackByIndex"
                       [class.col-today]="date.toDateString() === today.toDateString()"
                       [class.col-future]="date > today"
                       [class.col-locked]="date < editCutoff && date <= today"
@@ -434,7 +458,7 @@
                 </thead>
 
                 <tbody>
-                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index"
+                  <tr class="user-row" *ngFor="let row of displayRows; let ri = index; trackBy: trackByUserId"
                       [class.row-alt]="ri % 2 !== 0">
                     <td class="col-user sticky-col">
                       <div class="user-info">
@@ -447,7 +471,7 @@
                     </td>
 
                     <!-- cells 15..end → global column index = 15 + ci -->
-                    <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td">
+                    <td *ngFor="let cell of row.cells.slice(15); let ci = index; trackBy: trackByIndex" class="att-cell-td">
                       <button
                         class="att-cell"
                         [ngClass]="cellClass(cell)"
@@ -478,7 +502,7 @@
                     <td class="col-user sticky-col totals-label">
                       {{ selectedUserId !== null ? displayRows[0]?.fullName + ' total' : 'Daily Total' }}
                     </td>
-                    <td *ngFor="let t of fortnight2Totals" class="totals-cell">
+                    <td *ngFor="let t of fortnight2Totals; trackBy: trackByIndex" class="totals-cell">
                       <ng-container *ngFor="let s of statusList">
                         <span *ngIf="t[s.value] > 0" class="tot"
                               [ngClass]="'tot-' + s.value.toLowerCase()"

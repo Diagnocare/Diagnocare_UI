@@ -1,4 +1,6 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  Component, ContentChild, EventEmitter, Input, OnChanges, Output, SimpleChanges, TemplateRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -64,8 +66,14 @@ export interface DcTestGroup {
  *                   [selectedCodes]="selectedTestCodes"
  *                   [loading]="isLoadingAllTests"
  *                   (toggled)="onPickerToggled($event)"
+ *                   (focused)="onPickerFocused($event)"
  *                   (confirmed)="confirmTestSelection()"
  *                   (cancelled)="cancelTestCatalog()">
+ *
+ *     <!-- Optional: anything to show about the test last tapped. -->
+ *     <ng-template #dcpProtocol>
+ *       <app-test-protocol-panel [protocols]="focusedProtocols"></app-test-protocol-panel>
+ *     </ng-template>
  *   </dc-test-picker>
  */
 @Component({
@@ -180,7 +188,8 @@ export interface DcTestGroup {
         <button type="button" class="dcp__row"
                 *ngIf="test.bookable"
                 [class.dcp__row--on]="isSelected(test.code)"
-                (click)="toggled.emit(test)">
+                [class.dcp__row--focus]="protocolSlot && focusedTest?.code === test.code"
+                (click)="pick(test)">
           <span class="dcp__box" aria-hidden="true"><i class="fa fa-check"></i></span>
           <span class="dcp__rowtext">
             <span class="dcp__rowname">{{ test.name }}</span>
@@ -202,6 +211,16 @@ export interface DcTestGroup {
           <span class="dcp__price">₹{{ test.price }}</span>
         </div>
       </ng-template>
+
+      <!-- ── Collection protocol for the test last tapped ─────────────────
+           Optional, and supplied by the host: the picker has no idea what a
+           protocol is or where one comes from. Full width under the columns
+           rather than as a fourth column, because procedure and rejection
+           criteria are paragraphs and a narrow column makes them unreadable at
+           exactly the moment they matter. -->
+      <div class="dcp__slot" *ngIf="protocolSlot">
+        <ng-container *ngTemplateOutlet="protocolSlot; context: { $implicit: focusedTest }"></ng-container>
+      </div>
 
       <!-- ── Chosen tests + total, pinned ────────────────────────────────── -->
       <div class="dcp__basket">
@@ -382,6 +401,10 @@ export interface DcTestGroup {
     .dcp__row--off { opacity: .65; cursor: default; }
     .dcp__row--off:hover { border-color: var(--p-line); background: var(--p-surface); }
 
+    /* Which row the protocol below is describing. A left edge rather than a
+       background, so it reads on top of the green "chosen" state as well. */
+    .dcp__row--focus { box-shadow: inset 3px 0 0 0 var(--p-brand); }
+
     .dcp__box {
       flex: 0 0 auto; width: 1.5rem; height: 1.5rem; border-radius: 5px;
       border: 2px solid var(--p-line); background: var(--p-surface); color: transparent;
@@ -397,6 +420,11 @@ export interface DcTestGroup {
     .dcp__rowmeta { font-size: .78rem; font-weight: 400; color: var(--p-soft); }
     .dcp__row--on .dcp__rowmeta { color: inherit; opacity: .85; }
     .dcp__price { flex: 0 0 auto; margin-left: .25rem; font-weight: 700; white-space: nowrap; }
+
+    /* ── Host-supplied slot (collection protocol) ───────────────────────────
+       No margin of its own: what the host projects brings its own spacing, and
+       two sources of margin here is how panels end up with uneven gaps. */
+    .dcp__slot { display: block; }
 
     /* ── Basket ─────────────────────────────────────────────────────────── */
     .dcp__basket {
@@ -467,9 +495,30 @@ export class DcTestPickerComponent implements OnChanges {
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
+  /**
+   * The test row just tapped, whether that added or removed it. Hosts use this
+   * to load something about that one test — the sample collection protocol, in
+   * both of the screens that embed this picker.
+   */
+  @Output() focused = new EventEmitter<DcPickableTest>();
+
+  /**
+   * Optional region rendered full width between the catalogue and the basket,
+   * with the focused test as its implicit context:
+   *
+   *   <ng-template #dcpProtocol let-test> … </ng-template>
+   *
+   * Nothing is rendered when the host does not supply it, so the picker stays
+   * usable on its own and keeps knowing nothing about protocols or the API.
+   */
+  @ContentChild('dcpProtocol') protocolSlot?: TemplateRef<{ $implicit: DcPickableTest | null }>;
+
   query = '';
   openGroupId: string | null = null;
   openSubGroupId: string | null = null;
+
+  /** Last row tapped — drives the slot's context and the row marker. */
+  focusedTest: DcPickableTest | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
     // Open the first group and sub-group as soon as the catalogue arrives, so
@@ -477,6 +526,18 @@ export class DcTestPickerComponent implements OnChanges {
     if (changes['groups'] && this.groups.length && !this.openGroupId) {
       this.openGroup(this.groups[0]);
     }
+  }
+
+  /**
+   * One tap means two things: change the selection, and make this the test the
+   * protocol slot describes. Kept as one method so a host can never wire up the
+   * selection and forget the focus, which is how the two catalogues drifted
+   * apart in the first place.
+   */
+  pick(test: DcPickableTest): void {
+    this.focusedTest = test;
+    this.focused.emit(test);
+    this.toggled.emit(test);
   }
 
   openGroup(group: DcTestGroup): void {

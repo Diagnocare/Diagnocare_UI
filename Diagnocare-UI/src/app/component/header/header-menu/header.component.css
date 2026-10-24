@@ -182,8 +182,14 @@
 .dc-nav {
   display: flex;
   align-items: center;
-  gap: 2em;
-  margin-left: 4em;
+  /* The nav takes all the room between the brand and the user section, and
+     its links are centred in it. Previously they were packed to the left, so
+     on a wide window every pixel of spare width piled up as one empty stretch
+     between "Admin Panel" and the bell. The gap is fluid so the links sit
+     closer together on a laptop and spread out on a large monitor. */
+  justify-content: center;
+  gap: clamp(0.25rem, 1.6vw, 2.5rem);
+  padding-inline: clamp(0.5rem, 1.5vw, 2rem);
   flex: 1;
 }
 
@@ -411,6 +417,9 @@
   flex-shrink: 0;
   padding-left: 1rem;
   border-left: 1px solid var(--h-border);
+  /* Let the chip inside grow with the name instead of being clipped by a
+     fixed-width parent. */
+  min-width: 0;
 }
 
 /* Username chip */
@@ -426,12 +435,20 @@
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
+  /* Size to the name; only give ground after the nav has already given its. */
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
-.dc-username-chip i { opacity: 0.85; }
+.dc-username-chip i { opacity: 0.85; flex-shrink: 0; }
 
 .dc-username-text {
-  max-width: 120px;
+  /* The cap used to be a flat 120px, so a long name — or any name at a larger
+     browser/OS text size — hit the ellipsis while the pill still had room. The
+     ch unit is measured in the chip's own font, so the cap now grows in step
+     with the text; the vw term keeps a very long name from crowding out the
+     nav on a narrow window. Ellipsis stays as a last-resort safety net. */
+  max-width: min(32ch, 24vw);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -672,18 +689,59 @@
   margin: 0.5rem 0;
 }
 
+/* ── Wide screens: line the header up with the page column ──────────
+   The band stays full width, but its contents use the same inset as
+   .page-header / .content-container (see the PAGE WIDTH LAYER in
+   styles.css), so the logo sits above the page title and the avatar above
+   the right edge of the content on every monitor size. */
+@media (min-width: 64.0625em) {
+  .dc-header {
+    padding-inline: calc(
+      max(0px, (100% - var(--dc-page-max, 160rem)) / 2) + var(--dc-page-gutter, 2.5em)
+    );
+  }
+}
+
+/* Small laptops (1025–1280px): five dropdowns plus the user chip do not fit
+   beside the brand, and the links ended up drawn over the logo. Tighten the
+   links and drop the name pill — the name is still at the top of the profile
+   dropdown, exactly as on phones. */
+@media (min-width: 64.0625em) and (max-width: 80em) {
+  .dc-nav-link { padding: 0.45rem 0.55rem; }
+  .dc-username-chip { display: none; }
+}
+
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .dc-nav { display: none; }
-  .dc-username-chip { display: none; }
+  /* The nav is gone here, so there is room for the name even though the header
+     has switched to hamburger mode — which is what a desktop user at 150% zoom
+     sees. Keep the chip; only the narrow-phone rule below drops it. */
+  .dc-username-chip { max-width: 40vw; }
   .dc-hamburger { display: flex; }
   .dc-mobile-nav { display: block; }
   .dc-user-section { border-left: none; padding-left: 0; }
+
+  /* Below this width the nav collapses and the hamburger appears. Both the
+     hamburger and the user section carry margin-left:auto, so the free space
+     was being SPLIT between them — which parked the avatar in the middle-right
+     of the header instead of at its edge. Reordering puts the hamburger first
+     and lets its auto margin do all the pushing, so the avatar ends up flush
+     against the header padding where it belongs.
+
+     This is the zoom case: a 1440px monitor at 150% is a 960px viewport, so a
+     desktop user sees the mobile header without ever touching a phone. */
+  .dc-hamburger    { order: 1; margin-left: auto; }
+  .dc-user-section { order: 2; margin-left: 0; gap: 0.4rem; }
+  .dc-header       { padding: 0 1rem; }
 }
 
 @media (max-width: 480px) {
   .dc-header { padding: 0 1rem; }
   .dc-brand-text { font-size: 1.1rem; }
+  /* Genuinely no room beside the brand and the bell on a phone — the name is
+     still on the profile dropdown. */
+  .dc-username-chip { display: none; }
 }
 
 /* ── Focus / accessibility ──────────────────────────────────────── */
@@ -836,4 +894,173 @@ input.ng-invalid.ng-touched { border-left: 5px solid red; }
   :host-context(html[data-theme="system"]) .dc-logout-item        { color: #f87171 !important; }
   :host-context(html[data-theme="system"]) .dc-logout-item:hover  { background: #2d1515 !important; }
   :host-context(html[data-theme="system"]) .dc-dropdown-divider   { background: #334155; }
+}
+
+/* ── Pending-count badge (Discount Approvals, Super Admin) ── */
+.dc-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.35rem;
+  margin-left: 0.35rem;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Blue variant: the user's own updates (User Panel), as opposed to the amber
+   "waiting on you" queue badges in the Admin Panel. */
+.dc-nav-badge--info { background: #0ea5e9; }
+
+/* ── Notification bell (every role) ──────────────────────────────── */
+.dc-bell-host { position: relative; }
+
+.dc-bell-btn {
+  position: relative;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  border: 1px solid var(--h-border);
+  background: var(--h-hover-bg);
+  color: var(--h-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background 0.18s, transform 0.18s;
+  flex-shrink: 0;
+}
+.dc-bell-btn:hover,
+.dc-bell-open .dc-bell-btn { background: var(--h-active-bg); }
+.dc-bell-btn:focus-visible { outline: 2px solid var(--h-teal); outline-offset: 2px; }
+
+.dc-bell-count {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.35rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--h-bg);
+}
+
+.dc-bell-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+  background: var(--dd-bg);
+  border: 1px solid var(--dd-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--dd-shadow);
+  z-index: 1100;
+  overflow: hidden;
+}
+
+.dc-bell-header { justify-content: space-between; }
+
+.dc-bell-markall {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--dd-hover-text);
+  cursor: pointer;
+}
+.dc-bell-markall:hover { text-decoration: underline; }
+
+.dc-bell-state {
+  padding: 1.4rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--dd-text);
+  opacity: 0.75;
+}
+.dc-bell-state i { margin-right: 0.35rem; }
+
+.dc-bell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.dc-bell-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--dd-border);
+  color: var(--dd-text);
+  cursor: pointer;
+}
+.dc-bell-item:last-child { border-bottom: none; }
+.dc-bell-item:hover,
+.dc-bell-item:focus-visible { background: var(--dd-hover-bg); outline: none; }
+
+.dc-bell-icon {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  background: var(--dd-hover-bg);
+  color: var(--dd-hover-text);
+}
+
+.dc-bell-body { flex: 1; min-width: 0; }
+
+.dc-bell-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.dc-bell-unread .dc-bell-title { font-weight: 700; }
+
+.dc-bell-msg {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  opacity: 0.8;
+  margin-top: 0.1rem;
+  overflow-wrap: anywhere;
+}
+
+.dc-bell-time {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-top: 0.2rem;
+}
+
+.dc-bell-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #0ea5e9;
+  flex-shrink: 0;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 480px) {
+  .dc-bell-panel { position: fixed; top: calc(var(--h-height) + 0.25rem); right: 0.75rem; left: 0.75rem; width: auto; max-width: none; }
 }

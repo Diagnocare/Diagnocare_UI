@@ -13,6 +13,14 @@ export class SamplingLocationService {
 
   // ── Read ──────────────────────────────────────────────────────────────────
 
+  /**
+   * The location a new booking starts with: the first entry (index 0) of the
+   * configured list. Empty when no locations are configured.
+   */
+  getDefault(): string {
+    return this.getAll()[0] ?? '';
+  }
+
   getAll(): string[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

@@ -8,10 +8,17 @@ import { ToastrService } from 'ngx-toastr';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { SalaryService } from 'src/app/services/salaryServices/salary.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
+import { NotificationService } from 'src/app/services/notificationServices/notification.service';
+import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
 import {
   SalaryPaymentDTO,
   UserSalarySummaryDTO,
   MonthlySalarySummaryDTO,
+  PaymentMode,
+  PaymentModeLabels,
+  PaymentModeIcons,
+  PaymentStatus,
+  PaymentStatusLabels,
 } from 'src/app/models/salary/salary.dto';
 
 /**
@@ -21,7 +28,9 @@ import {
  * user (Month, Payment Date, Amount, Payment Mode) for the selected month. Clicking
  * a row opens that single payment's receipt PDF. The user is resolved server-side
  * from the JWT, so only the caller's own payments are ever shown.
- * Visible to the "User" role only.
+ *
+ * Visible to every role whose ModuleAccess carries `mySalary` — i.e. everyone
+ * except Super Admin, who reaches the same data through the admin Salary module.
  */
 @Component({
   selector: 'app-my-salary',
@@ -46,10 +55,15 @@ export class MySalaryComponent implements OnInit, OnDestroy {
   loadError = false;
 
   /**
-   * Whether the current user may view their own payments. Available to all staff
-   * types EXCEPT Super Admin and the Owner account (last name "admin"). The route
-   * guard already blocks Admin / Super Admin, and the backend enforces the Owner
-   * exclusion; this flag is a defensive UI check.
+   * Whether the current user may view their own payments. Resolved in ngOnInit
+   * from the role's `mySalary` ModuleAccess flag — the same flag that decides
+   * whether "My Salary" appears in the User Panel nav, so the page and the link
+   * can never disagree. Available to every staff type EXCEPT Super Admin; the
+   * Owner account (last name "admin") is excluded server-side. This is a
+   * defensive UI check — the route guard and the API are the real gates.
+   *
+   * Must be assigned before the template reads it: left at `false` the whole
+   * page collapses to the "Payments not available" card and no data is loaded.
    */
   canView = false;
 
@@ -71,12 +85,20 @@ export class MySalaryComponent implements OnInit, OnDestroy {
     private salarySvc: SalaryService,
     private tokenSvc: TokenService,
     private toastr: ToastrService,
+    private notifications: NotificationService,
   ) {}
 
   ngOnInit(): void {
     // Everyone except Super Admin may view their own payments. (The Owner account —
-    // last name "admin" — is excluded server-side.)
+    // last name "admin" — is excluded server-side.) Read the flag straight off
+    // MODULE_ACCESS so this page and the "My Salary" nav entry stay in step.
+    const role = this.tokenSvc.getUserRole();
+    this.canView = (role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS).mySalary;
+
     if (this.canView) this.loadPayments();
+
+    // Seeing the page is seeing the news — clear the My Salary badge.
+    this.notifications.markModuleRead('salary');
   }
 
   ngOnDestroy(): void {
@@ -287,10 +309,86 @@ export class MySalaryComponent implements OnInit, OnDestroy {
     return '₹ ' + (val ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 0 });
   }
 
-  /** "BaseSalary" → "Base Salary" (shown in the Payment Mode column). */
-  paymentModeLabel(sourceName: string | undefined): string {
+  /** "BaseSalary" → "Base Salary" (the salary component the payment came from). */
+  componentLabel(sourceName: string | undefined): string {
     if (!sourceName) return '—';
     return sourceName.replace(/([a-z])([A-Z])/g, '$1 $2');
+  }
+
+  // ── How the payment was made ───────────────────────────────────────────────
+
+  /** "Cash" / "UPI" / "Bank Transfer" … — falls back to Cash for pre-tracking rows. */
+  paymentModeLabel(p: SalaryPaymentDTO): string {
+    return p.paymentModeName || PaymentModeLabels[(p.paymentMode ?? PaymentMode.Cash) as PaymentMode] || '—';
+  }
+
+  paymentModeIcon(p: SalaryPaymentDTO): string {
+    return PaymentModeIcons[(p.paymentMode ?? PaymentMode.Cash) as PaymentMode] ?? 'fa-money-bill-wave';
+  }
+
+  paymentModeClass(p: SalaryPaymentDTO): string {
+    switch (Number(p.paymentMode ?? PaymentMode.Cash)) {
+      case PaymentMode.Cash:         return 'pay-mode-cash';
+      case PaymentMode.UPI:          return 'pay-mode-upi';
+      case PaymentMode.BankTransfer: return 'pay-mode-bank';
+      case PaymentMode.Cheque:       return 'pay-mode-cheque';
+      case PaymentMode.Card:         return 'pay-mode-card';
+      default:                       return 'pay-mode-other';
+    }
+  }
+
+  paymentStatusLabel(p: SalaryPaymentDTO): string {
+    return p.paymentStatusName
+        || PaymentStatusLabels[(p.paymentStatus ?? PaymentStatus.Completed) as PaymentStatus]
+        || '—';
+  }
+
+  paymentStatusClass(p: SalaryPaymentDTO): string {
+    switch (Number(p.paymentStatus ?? PaymentStatus.Completed)) {
+      case PaymentStatus.Pending: return 'pay-status-pending';
+      case PaymentStatus.Failed:  return 'pay-status-failed';
+      default:                    return 'pay-status-completed';
+    }
+  }
+
+  // ── Payment proof ──────────────────────────────────────────────────────────
+
+  /** PaymentId whose proof is being fetched, for the row spinner. */
+  proofLoadingId: number | null = null;
+
+  /**
+   * Opens the proof screenshot for one of the caller's own payments. Fetched as a
+   * blob because the endpoint needs the auth header; ownership is enforced server-side.
+   */
+  openProof(p: SalaryPaymentDTO, event: Event): void {
+    // The row itself opens the PDF receipt — this button must not do both.
+    event.stopPropagation();
+    if (this.proofLoadingId || !p.hasPaymentProof) return;
+    this.proofLoadingId = p.paymentId;
+
+    this.salarySvc.getMyPaymentProof(p.paymentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob: Blob) => {
+          this.proofLoadingId = null;
+          if (!blob || blob.size === 0) {
+            this.toastr.error('Payment proof could not be opened.', 'Error');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          if (!window.open(url, '_blank')) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = p.proofFileName || `payment-proof-${p.paymentId}`;
+            a.click();
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        },
+        error: () => {
+          // Message shown centrally by ErrorInterceptor.
+          this.proofLoadingId = null;
+        },
+      });
   }
 
   trackByPayment(_i: number, p: SalaryPaymentDTO): number { return p.paymentId; }

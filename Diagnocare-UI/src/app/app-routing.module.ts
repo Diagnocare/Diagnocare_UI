@@ -48,15 +48,18 @@ export const routes: Routes = [
       { path: 'access-denied', title: 'Access Denied',
         loadComponent: () => import('./component/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
 
-      // Pathology dashboard — Admin / User / Assistant only
+      // Pathology home — every staff role. It is the landing route for all of them
+      // (MODULE_ACCESS), so excluding Collection Boy / Doctor sent them straight to
+      // Access Denied after login. The page itself only shows each role the cards
+      // and dashboard figures it may open.
       { path: 'pathology', title: 'Pathology',
         loadComponent: () => import('./component/pathology/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id, Role.Collection_Boy.id, Role.Doctor.id)] },
 
       // Address Manager — Admin+
       { path: 'contacts', title: 'Address Manager',
         loadComponent: () => import('./component/addressManager/contact-list.component').then(m => m.ContactListComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id,Role.Collection_Boy.id,Role.Doctor.id)] },
       { path: 'contacts/add', title: 'Add Contact',
         loadComponent: () => import('./component/addressManager/contact-form.component').then(m => m.ContactFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -77,6 +80,21 @@ export const routes: Routes = [
       { path: 'users/edit/:id', title: 'Edit Staff',
         loadComponent: () => import('./component/staff/staff-unified-form.component').then(m => m.StaffUnifiedFormComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+
+      // Work — the worklist. The lab's outstanding tests, grouped into queues
+      // rather than reached by guessing which patient contains them. Every role
+      // that does clinical work lands here; which queue they land on comes from
+      // their role (see defaultQueueForRole in work-queue.util.ts).
+      { path: 'work', title: 'Work',
+        loadComponent: () => import('./component/work/worklist/worklist.component').then(m => m.WorklistComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Verification — the sign-off step. Restricted to the roles allowed to
+      // stand behind a clinical result; the API enforces the same list, because
+      // a guard the client owns is not a control.
+      { path: 'work/verify/:id', title: 'Verify results',
+        loadComponent: () => import('./component/work/verify/verify-results.component').then(m => m.VerifyResultsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Doctor.id, Role.Super_Admin.id)] },
 
       // Patients — all lab staff (not Doctor who just views reports)
       { path: 'patients', title: 'Patients',
@@ -115,6 +133,11 @@ export const routes: Routes = [
       { path: 'manage-tests/addTestParameter/:id', title: 'Add Test Parameter',
         loadComponent: () => import('./component/pathTest/add-test-parameter/add-test-parameter').then(m => m.AddTestParameter),
         canActivate: [roleGuard(Role.Admin.id, Role.Assistant.id, Role.Super_Admin.id)] },
+      // Bulk import is a structural write like Add/Edit — Admin and Super Admin only,
+      // mirroring the API's AdminOrSuperAdmin policy on TestImportController.
+      { path: 'manage-tests/import', title: 'Import Tests',
+        loadComponent: () => import('./component/pathTest/import-tests/import-tests.component').then(m => m.ImportTestsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'manage-tests/edit/:id', title: 'Edit Test',
         loadComponent: () => import('./component/pathTest/add-edit-modal/add-edit-modal.component').then(m => m.AddEditModalComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
@@ -163,8 +186,9 @@ export const routes: Routes = [
             loadComponent: () => import('./component/summary-report/reports/pndt-test-report.component').then(m => m.PndtTestReportComponent) },
           { path: 'master-test-list', title: 'Master Test List',
             loadComponent: () => import('./component/summary-report/reports/master-test-list.component').then(m => m.MasterTestListComponent) },
-          { path: 'rate-list', title: 'Rate List',
-            loadComponent: () => import('./component/summary-report/reports/rate-list.component').then(m => m.RateListComponent) },
+          // Rate List was folded into Master Test List, which lists every catalogue
+          // test with its rate at the Test level. Redirect kept for existing links.
+          { path: 'rate-list', redirectTo: 'master-test-list', pathMatch: 'full' },
           { path: 'address-manager', title: 'Address Manager Report',
             loadComponent: () => import('./component/summary-report/reports/address-manager-report.component').then(m => m.AddressManagerReportComponent) },
           { path: 'tpa-report', title: 'TPA Report',
@@ -176,15 +200,14 @@ export const routes: Routes = [
       { path: 'template', title: 'Report Templates',
         loadComponent: () => import('./component/template/template.component').then(m => m.TemplateComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
-      // Lab Setup & Profile — Admin may view, only Super Admin may save.
-      // The API enforces the write half (PathologyController writes are SuperAdminOnly);
-      // the components render read-only for Admin.
+      // Lab Setup & Profile — Super Admin ONLY, matching the API. No other role
+      // may open these pages; anyone else is sent to Access Denied.
       { path: 'lab-setup', title: 'Lab Setup',
         loadComponent: () => import('./component/lab-setup/lab-setup.component').then(m => m.LabSetupComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
       { path: 'lab-profile', title: 'Lab Profile',
         loadComponent: () => import('./component/lab-profile/lab-profile.component').then(m => m.LabProfileComponent),
-        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
 
       // Attendance / Salary / Holidays — Admin+
       // Attendance administration — Super Admin ONLY. An Admin records their own
@@ -207,6 +230,11 @@ export const routes: Routes = [
       { path: 'visit-schedule', title: 'Visit Schedule',
         loadComponent: () => import('./component/visit-schedule/visit-schedule.component').then(m => m.VisitScheduleComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+      // My Pickups — the collection boy's samples to collect and hand over.
+      // Collection Boy only, matching the API's CollectionBoyOnly policy.
+      { path: 'my-pickups', title: 'My Pickups',
+        loadComponent: () => import('./component/my-pickups/my-pickups.component').then(m => m.MyPickupsComponent),
+        canActivate: [roleGuard(Role.Collection_Boy.id)] },
       { path: 'my-visits', title: 'My Visits Today',
         loadComponent: () => import('./component/my-visits/my-visits.component').then(m => m.MyVisitsComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
@@ -240,6 +268,16 @@ export const routes: Routes = [
       { path: 'my-salary', title: 'My Salary',
         loadComponent: () => import('./component/my-salary/my-salary.component').then(m => m.MySalaryComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+
+      // Repeat-test reminders on WhatsApp — the Lab Operations roles (API: LabOperations policy).
+      { path: 'test-reminders', title: 'Test Reminders',
+        loadComponent: () => import('./component/test-reminders/test-reminders.component').then(m => m.TestRemindersComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id)] },
+
+      // Discount approvals — Super Admin only (the API enforces SuperAdminOnly too).
+      { path: 'discount-approvals', title: 'Discount Approvals',
+        loadComponent: () => import('./component/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),
+        canActivate: [roleGuard(Role.Super_Admin.id)] },
 
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
@@ -285,7 +323,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/receipt/bill-receipt').then(m => m.BillReceipt) },
     ]
   },
-
+  {
+    path: 'ui-kit', title: 'UI Kit',
+    loadComponent: () => import('./shared/simple/showcase/simple-ui-showcase.component')
+      .then(m => m.SimpleUiShowcaseComponent)
+  },
   // Fallback
   { path: '**', redirectTo: 'login' }
 ];
