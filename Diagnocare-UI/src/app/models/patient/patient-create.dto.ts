@@ -44,4 +44,6 @@ export interface PatientTestCreateDto {
   collected_By:      string;
   /** Maps to AddPatientTestDTO.Sampling_Done_At. Empty = no barcode until set later. */
   sampling_Done_At:  string;
+  /** User_Id of the collection boy who will collect the sample; null = drawn at the lab. */
+  collection_Assigned_To?: number | null;
 }

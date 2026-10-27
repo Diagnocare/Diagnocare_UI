@@ -24,9 +24,8 @@ interface TaskTile {
   tone: 'primary' | 'blue' | 'amber' | 'purple' | 'green';
 }
 
-/** One stage of the pipeline strip. */
+/** One stage of the pipeline strip — a read-out, so there is no route on it. */
 interface PipeStage {
-  queue: WorkQueue;
   label: string;
   hint: string;
   icon: string;
@@ -230,12 +229,20 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     return t;
   }
 
-  /** The flow, left to right. "Needs attention" is shown separately, not as a step. */
+  /**
+   * The flow, left to right. "Needs attention" is shown separately, not as a
+   * step.
+   *
+   * Display only: the steps say where today's samples are, and the one way
+   * into the work queue from this panel is the link in its heading. Each step
+   * used to be a link to its own filtered queue, which made a six-box strip of
+   * numbers into six navigation targets and meant a stray click on the
+   * dashboard took you off it.
+   */
   get pipeline(): PipeStage[] {
     return WORK_QUEUE_ORDER
       .filter(q => q !== 'needs-attention')
       .map(q => ({
-        queue: q,
         label: WORK_QUEUE_META[q].label,
         hint: WORK_QUEUE_META[q].hint,
         icon: WORK_QUEUE_META[q].icon,

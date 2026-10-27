@@ -3,13 +3,13 @@ import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
 import { PathologyProfileCacheService } from 'src/app/services/pathologyServices/pathology-profile-cache.service';
+import { PathologyRegistrationCacheService } from 'src/app/services/pathologyServices/pathology-registration-cache.service';
 import { TokenService }     from 'src/app/core/interceptors/token.service';
 
 /** How many days before expiry the "Extend Licence" button appears */
 const EXTEND_WINDOW_DAYS = 15;
 
 export type HomeNavState =
-  | 'loading'       // still fetching
   | 'unregistered'  // no pathology in DB → show Register
   | 'extend'        // registered, expiry ≤ 15 days → show Extend
   | 'registered';   // registered, expiry > 15 days → no CTA needed
@@ -24,7 +24,16 @@ export type HomeNavState =
 export class HomeComponent implements OnInit {
 
   currentYear = new Date().getFullYear();
-  navState: HomeNavState = 'loading';
+
+  /**
+   * Optimistic default: the navbar renders the Login link on the very first frame
+   * instead of withholding every CTA until GetPublicInfo answers. An install that
+   * turns out to be unregistered sees the link swap to "Register Pathology" once the
+   * response lands — strictly better than a navbar that shows only *Help* for a
+   * second or more and looks finished-but-broken. ngOnInit overrides this with the
+   * last known state when one is cached.
+   */
+  navState: HomeNavState = 'registered';
   daysLeft = 0;
   expiryDisplay = '';
 
@@ -44,14 +53,21 @@ export class HomeComponent implements OnInit {
   constructor(
     private _pathologyService: PathologyService,
     private _profileCache: PathologyProfileCacheService,
+    private _registrationCache: PathologyRegistrationCacheService,
     private _tokenService: TokenService,
   ) {}
 
   ngOnInit(): void {
-    // Always fetch the current registration state from the server so the home page
-    // reflects live data — registration and licence expiry can change over time.
-    // Normal loads read the server-side cache; only the explicit Refresh button
-    // hits the shared PathologyManager API.
+    // Paint from the last known registration state first, so nothing in the navbar
+    // waits on the network. Then revalidate: registration and licence expiry do change
+    // over time, so the server always gets the final say — it just no longer gates the
+    // first frame. Normal loads read the server-side cache; only the explicit Refresh
+    // button hits the shared PathologyManager API.
+    const cached = this._registrationCache.get();
+    if (cached) {
+      this.applyPublicInfo(cached);
+    }
+
     this.loadFromServer();
   }
 
@@ -59,9 +75,15 @@ export class HomeComponent implements OnInit {
     this._pathologyService.getPublicInfo().subscribe({
       next: (info) => {
         this.applyPublicInfo(info);
+        this._registrationCache.set(info);
       },
       error: () => {
-        this.navState = 'unregistered';
+        // Keep the cached/optimistic state when we have one. If the server is simply
+        // unreachable, a Login link that fails on click is more honest than offering
+        // to register a lab that is already registered.
+        if (!this._registrationCache.has()) {
+          this.navState = 'unregistered';
+        }
       },
     });
   }
@@ -86,6 +108,7 @@ export class HomeComponent implements OnInit {
       next: (info) => {
         this.refreshing = false;
         this.applyPublicInfo(info);
+        this._registrationCache.set(info);
 
         if (info?.rateLimited) {
           this.showRefreshMessage(

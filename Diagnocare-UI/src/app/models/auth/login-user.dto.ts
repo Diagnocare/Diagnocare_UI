@@ -28,6 +28,8 @@ export interface LoginUserResponse {
   passwordChangedAt?: string | null;
   /** True when an authenticator app is enrolled. */
   isMfaEnabled?: boolean;
+  /** Present only after the password checks out; sent back as X-Login-Ticket on every second-factor call. */
+  loginTicket?: string;
 
   // ── Account locked ────────────────────────────────────────────────────────
   accountLocked?: boolean;

@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
+import { LicenceService } from 'src/app/services/licenceServices/licence.service';
 import { DashboardService } from 'src/app/services/dashboardServices/dashboard.service';
 import { HomeSummary, HomeActivity, HomeWeekDay } from 'src/app/models/dashboard/home-summary';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -50,6 +50,8 @@ interface ActionCard {
   icon: string;
   route: string;
   color: string;
+  /** Roles that may open the route (mirrors its roleGuard). Omitted = every role. */
+  roles?: RoleId[];
 }
 
 interface CardGroup {
@@ -147,6 +149,11 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   /** Null for a role that may not see report data — the tile shows a dash. */
   revenueToday:     number | null = null;
 
+  /** Today's collection is shown to Admin / Super Admin only (mirrors the API). */
+  get showRevenue(): boolean {
+    return this.tokenService.isAdmin() || this.tokenService.isSuperAdmin();
+  }
+
   /** Today's most recent bookings, newest first. Max 3. */
   activityRows: ActivityRow[] = [];
 
@@ -158,7 +165,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   constructor(
-    private pathologyService: PathologyService,
+    private licenceService: LicenceService,
     private dashboardService: DashboardService,
     private router: Router,
     private tokenService: TokenService,
@@ -228,6 +235,13 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
    * which is the honest answer: nothing was read.
    */
   private loadDashboard(): void {
+    // The summary endpoint is LabOperations-only (Collection Boy / Doctor get 403),
+    // so don't call it for them — the tiles simply show a dash.
+    if (!this.access.labOps) {
+      this.isDashboardLoading = false;
+      return;
+    }
+
     this.dashboardService
       .getHomeSummary(this.toApiDate(new Date()))
       .pipe(takeUntil(this.destroy$))
@@ -333,6 +347,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   private buildCards(): void {
     const isAdmin      = this.tokenService.isAdmin();
+    const isSuperAdmin = this.tokenService.isSuperAdmin();
 
     const patientCards: ActionCard[] = [
       {
@@ -340,14 +355,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Register, search and manage patient records',
         icon: 'fa-users',
         route: '/patients',
-        color: 'indigo'
+        color: 'indigo',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
       },
       {
         title: 'Patient Tests',
         description: 'View and manage test requests and results',
         icon: 'fa-flask',
         route: '/patient-tests',
-        color: 'blue'
+        color: 'blue',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
       },
     ];
 
@@ -357,14 +374,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Configure lab tests, parameters and pricing',
         icon: 'fa-list-alt',
         route: '/manage-tests',
-        color: 'teal'
+        color: 'teal',
+        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id]
       },
       {
         title: 'Reports',
         description: 'Generate and export diagnostic reports',
         icon: 'fa-bar-chart',
         route: '/reports',
-        color: 'green'
+        color: 'green',
+        roles: [Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id]
       },
     ];
 
@@ -403,6 +422,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
     }
 
     const systemCards: ActionCard[] = [];
+    // Lab Profile and Lab Setup are Super Admin only (route guard + API).
+    if (isSuperAdmin) {
       systemCards.push(
         {
           title: 'Lab Profile',
@@ -418,14 +439,16 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
           route: '/lab-setup',
           color: 'slate'
         },
-        {
-          title: 'Report Templates',
-          description: 'Design and manage report templates',
-          icon: 'fa-file-text',
-          route: '/template',
-          color: 'violet'
-        },
       );
+    }
+    systemCards.push({
+      title: 'Report Templates',
+      description: 'Design and manage report templates',
+      icon: 'fa-file-text',
+      route: '/template',
+      color: 'violet',
+      roles: [Role.Admin.id, Role.Super_Admin.id]
+    });
 
     const accountCards: ActionCard[] = [
       {
@@ -433,7 +456,8 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         description: 'Track and manage staff attendance',
         icon: 'fa-calendar-check-o',
         route: '/attendance',
-        color: 'teal'
+        color: 'teal',
+        roles: [Role.Admin.id, Role.Super_Admin.id]
       },
       {
         title: 'Settings',
@@ -450,36 +474,37 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
       { label: 'Administration',     icon: 'fa-users',     cards: adminCards   },
       { label: 'System',             icon: 'fa-cog',       cards: systemCards  },
       { label: 'Account',            icon: 'fa-id-badge',  cards: accountCards },
-    ].filter(g => g.cards.length > 0);
+    ]
+      .map(g => ({
+        ...g,
+        cards: g.cards.filter(c => !c.roles || this.tokenService.hasRole(...c.roles)),
+      }))
+      .filter(g => g.cards.length > 0);
   }
 
   private checkPathologyExpiry(): void {
-    this.pathologyService.getPathologyExpiryDate()
+    // LicenceService owns the one expiry request per session (licenceGuard already
+    // triggers it). Calling the API here as well meant a second hit on every home visit.
+    // load() is a no-op once resolved, and shares the in-flight call while it is pending.
+    this.licenceService.load()
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          if (response?.pathologyExpiryDate) {
-            const expiryDate = new Date(response.pathologyExpiryDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            expiryDate.setHours(0, 0, 0, 0);
-            this.daysUntilExpiry = Math.ceil(
-              (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            );
-            const ed = expiryDate;
-            this.expiryDate =
-              `${ed.getDate().toString().padStart(2, '0')}-` +
-              `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
-              `${ed.getFullYear()}`;
+      .subscribe(() => {
+        const ed = this.licenceService.expiryDate;
+        const daysLeft = this.licenceService.daysLeft;
+        if (!ed || daysLeft === null) return;   // check failed or no licence: fail open, as before
 
-            if (this.daysUntilExpiry <= 0) {
-              this.isLicenseExpired = true;
-            } else if (this.daysUntilExpiry <= 15) {
-              this.showExpiryBanner = true;
-            }
-          }
-        },
-        error: () => {}
+        this.daysUntilExpiry = daysLeft;
+        this.expiryDate =
+          `${ed.getDate().toString().padStart(2, '0')}-` +
+          `${(ed.getMonth() + 1).toString().padStart(2, '0')}-` +
+          `${ed.getFullYear()}`;
+
+        if (this.daysUntilExpiry <= 0) {
+          this.isLicenseExpired = true;
+        } else if (this.daysUntilExpiry <= 15) {
+          this.showExpiryBanner = true;
+        }
+        this.cdr.markForCheck();
       });
   }
 

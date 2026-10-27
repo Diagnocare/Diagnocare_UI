@@ -16,6 +16,7 @@ import { PatientListDto } from 'src/app/models/patient/patient-list.dto';
 import { SortDirection, SortPatientField } from 'src/app/models/common/sort';
 import { buildPageSortRequest, PagedRequest } from 'src/app/models/common/page-sort-request';
 import { PatientSearchFilter } from 'src/app/models/patient/patient-search-filter';
+import { Role } from 'src/app/constant/enums';
 
 /**
  * Maps a sortable column to the API's sort key (see PatientRepository.PatientSortMap).
@@ -120,7 +121,40 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   selectedPatientId: string='';
   selectedPatientName: string='';
-  
+
+  /** Collection boys get a read-only list: the API rejects register/edit/deactivate for them. */
+  readonly isCollectionBoy = (() => {
+    try {
+      const raw = localStorage.getItem('typeUserId') ?? localStorage.getItem('roleId');
+      return Number(raw) === Role.Collection_Boy.id;
+    } catch {
+      return false;
+    }
+  })();
+
+  /** Patient shown in the details popup; null when closed. */
+  detailsPatient: PatientListDto | null = null;
+
+  openDetails(patient: PatientListDto): void {
+    this.detailsPatient = patient;
+  }
+
+  closeDetails(): void {
+    this.detailsPatient = null;
+  }
+
+  /** tel: link; null when the patient has no usable number. */
+  telHref(patient: PatientListDto): string | null {
+    const digits = (patient.patientDialingContact || '').replace(/[^\d+]/g, '');
+    return digits.length >= 6 ? `tel:${digits}` : null;
+  }
+
+  /** Opens the address in the phone's maps app. */
+  mapHref(patient: PatientListDto): string | null {
+    const where = (patient.patient_Address || '').trim();
+    return where ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(where)}` : null;
+  }
+
   constructor(private router: Router, private _patientService: PatientService,
     private toastr:ToastrService, private _commonService: CommonService, private route: ActivatedRoute,
     private cdr: ChangeDetectorRef, private confirmModal: ConfirmModalService) { }
@@ -495,9 +529,9 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     return 0;
   }
 
-  navigateToAddPatient() {
-    this.router.navigate(['/patients/add']);
-  }
+  // navigateToAddPatient() {
+  //   this.router.navigate(['/patients/add']);
+  // }
 
   refreshList() {
     this.loadPatients();

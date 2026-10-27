@@ -1,5 +1,5 @@
-<div class="ar-page">
-  <div class="ar-hero">
+<div class="ar-page" [class.embedded]="embedded">
+  <div *ngIf="!embedded" class="ar-hero">
     <button class="btn btn-back" (click)="back()"><i class="fa fa-arrow-left"></i> Back to requests</button>
     <div class="ar-hero-text">
       <h1><i class="fa fa-clipboard-list"></i> Request Details</h1>
@@ -7,6 +7,12 @@
   </div>
 
   <app-loading-spinner [isLoading]="isLoading" message="Loading…"></app-loading-spinner>
+
+  <div *ngIf="loadFailed" class="load-failed">
+    <i class="fa fa-triangle-exclamation"></i>
+    <p>Couldn't load this request.</p>
+    <button class="btn btn-primary btn-sm" (click)="retry()"><i class="fa fa-rotate"></i> Retry</button>
+  </div>
 
   <div *ngIf="!isLoading && request" class="detail-grid">
 

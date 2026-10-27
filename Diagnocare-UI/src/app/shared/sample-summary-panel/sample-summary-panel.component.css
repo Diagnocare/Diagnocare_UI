@@ -9,7 +9,7 @@
 
 .ssp {
   font-size: 0.86rem;
-  color: #1e293b;
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 
@@ -20,18 +20,18 @@
   align-items: center;
   gap: 0.55rem;
   padding: 0.9rem 1rem;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--color-border-strong);
   border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
   font-size: 0.84rem;
 }
 
 .ssp-state--error {
   border-style: solid;
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border-color: var(--color-error-border);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .ssp-empty {
@@ -39,7 +39,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.82rem;
 }
 
@@ -76,7 +76,7 @@
 
 .ssp-head-sub {
   font-size: 0.8rem;
-  color: #0d9488;
+  color: var(--color-success);
 }
 
 /* The tube count, sized to be read without leaning in. */
@@ -87,7 +87,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #0d9488;
+  background: var(--color-success);
   color: #ffffff;
   font-size: 1.05rem;
   font-weight: 700;
@@ -107,10 +107,10 @@
 }
 
 .ssp-item {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-left: 3px solid #14b8a6;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-surface);
   padding: 0.6rem 0.75rem;
 }
 
@@ -123,21 +123,21 @@
 
 .ssp-item-name {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .ssp-item-container,
 .ssp-item-qty {
   font-weight: 400;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
 }
 
 .ssp-count {
   flex-shrink: 0;
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
   border-radius: 999px;
   padding: 0.12rem 0.6rem;
   font-size: 0.78rem;
@@ -167,21 +167,21 @@
 }
 
 .ssp-tag--fasting {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning);
 }
 
 .ssp-tag--draws {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  color: var(--color-info);
 }
 
 .ssp-item-tests {
   margin-top: 0.35rem;
   font-size: 0.79rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 /* ── Tests with no recorded sample ──────────────────────────────────────── */
@@ -192,10 +192,10 @@
   gap: 0.55rem;
   margin-top: 0.7rem;
   padding: 0.65rem 0.8rem;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border: 1px solid var(--color-error-border);
+  background: var(--color-error-bg);
   border-radius: 8px;
-  color: #b91c1c;
+  color: var(--color-error);
   font-size: 0.8rem;
 }
 

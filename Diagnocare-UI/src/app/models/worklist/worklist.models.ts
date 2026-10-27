@@ -51,6 +51,13 @@ export interface WorklistItem {
 
   /** Unpaid | Part-paid | Paid. Never "Pending" — that word means results here. */
   paymentStatus?: string;
+
+  /** User_Id of the collection boy fetching the sample; null when drawn at the lab. */
+  collectionAssignedTo?: number | null;
+  collectionAssignedToName?: string | null;
+  sampleCollectedAt?: string | null;
+  sampleReceivedAt?: string | null;
+  sampleReceivedBy?: string | null;
 }
 
 /** How many items are in one queue. Drives the tiles. */

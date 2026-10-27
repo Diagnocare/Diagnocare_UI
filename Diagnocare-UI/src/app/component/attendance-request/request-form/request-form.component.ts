@@ -9,6 +9,8 @@ import { takeUntil } from 'rxjs/operators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 import { AttendanceService } from 'src/app/services/attendanceServices/attendance.service';
+import { LeaveService } from 'src/app/services/leaveServices/leave.service';
+import { LeaveBalanceDTO } from 'src/app/models/leave/leave-balance.dto';
 import { AttendanceStatus, mapBackendStatus } from 'src/app/models/attendance/attendance-record.dto';
 import {
   AttendanceRequestDTO,
@@ -29,11 +31,59 @@ import {
 })
 export class RequestFormComponent implements OnInit, OnDestroy {
 
-  readonly statuses = REQUESTABLE_STATUSES;
+  /**
+   * 'leave' applies for a day of leave (this week or next only); 'correction' marks a
+   * day Present or Half Day (today or earlier only). Staff can't pick anything else.
+   */
+  mode: 'correction' | 'leave' = 'correction';
+
+  get statuses() {
+    return REQUESTABLE_STATUSES.filter(s =>
+      this.mode === 'leave'
+        ? s.value === AttendanceStatusCode.Absent
+        : s.value !== AttendanceStatusCode.Absent);
+  }
+
+  /** Earliest date selectable: 7 days back for leave, no limit for corrections. */
+  get minDate(): string {
+    if (this.mode !== 'leave') return '';
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return this.localIso(d);
+  }
+
+  /** Latest date selectable for the current mode. */
+  get pickerMax(): string {
+    return this.mode === 'leave' ? this.maxDate : this.today;
+  }
+
+  private localIso(d: Date): string {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  setMode(mode: 'correction' | 'leave'): void {
+    if (this.isEdit || mode === this.mode) return;
+    this.mode = mode;
+    this.form.patchValue({
+      attendanceDate: '',
+      requestedStatus: mode === 'leave' ? AttendanceStatusCode.Absent : '',
+    });
+  }
   // LOCAL today in yyyy-MM-dd (NOT toISOString, which is UTC and can resolve to
   // yesterday late at night — that would disable the real today in the picker).
   readonly today = (() => {
     const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  })();
+
+  /** Latest date that can be requested: Sunday of next week (this week + next week only). */
+  readonly maxDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + (7 - ((d.getDay() + 6) % 7)) + 6);
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${d.getFullYear()}-${m}-${day}`;
@@ -75,11 +125,23 @@ export class RequestFormComponent implements OnInit, OnDestroy {
     return !this.isEdit && this.existingRequestId !== null;
   }
 
+  /**
+   * The caller's paid-leave position for the leave year of the date being requested,
+   * so they can see what they have before they commit to taking it. Null while loading,
+   * or when the lookup failed - the form still works without it.
+   */
+  leaveBalance: LeaveBalanceDTO | null = null;
+  leaveBalanceLoading = false;
+
+  /** Which year leaveBalance covers, so a date in another year triggers a refetch. */
+  private loadedBalanceYear: number | null = null;
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
     private service: AttendanceService,
+    private leaveService: LeaveService,
     private route: ActivatedRoute,
     private router: Router,
     private toastr: ToastrService,
@@ -92,6 +154,10 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       reason: ['', Validators.maxLength(500)],
     });
 
+    // The current leave year to begin with. Picking a date in another year refetches,
+    // because entitlement and carry-forward are per leave year.
+    this.loadLeaveBalance(new Date().getFullYear());
+
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.isEdit = true;
@@ -99,8 +165,12 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       this.loadForEdit(this.requestId);
     } else {
       // Prefill the date when opened from a My Attendance cell (?date=yyyy-MM-dd).
+      if (this.route.snapshot.queryParamMap.get('type') === 'leave') {
+        this.mode = 'leave';
+        this.form.patchValue({ requestedStatus: AttendanceStatusCode.Absent });
+      }
       const dateParam = this.route.snapshot.queryParamMap.get('date');
-      if (dateParam && dateParam <= this.today) {
+      if (dateParam && dateParam <= this.pickerMax && dateParam >= this.minDate) {
         this.form.patchValue({ attendanceDate: dateParam });
       }
 
@@ -109,7 +179,10 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       // changes so switching dates doesn't leave a stale status on screen.
       this.form.get('attendanceDate')?.valueChanges
         .pipe(takeUntil(this.destroy$))
-        .subscribe((dateStr: string) => this.loadCurrentStatus(dateStr));
+        .subscribe((dateStr: string) => {
+          this.loadCurrentStatus(dateStr);
+          this.loadBalanceForDate(dateStr);
+        });
 
       if (this.form.get('attendanceDate')?.value) {
         this.loadCurrentStatus(this.form.get('attendanceDate')?.value);
@@ -158,6 +231,71 @@ export class RequestFormComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Refetches the balance when the picked date falls in a different leave year.
+   * Leave years run January to December, so only the year matters here.
+   */
+  private loadBalanceForDate(dateStr: string): void {
+    if (!dateStr) return;
+    const year = Number(dateStr.slice(0, 4));
+    if (!year || year === this.loadedBalanceYear) return;
+    this.loadLeaveBalance(year);
+  }
+
+  private loadLeaveBalance(year: number): void {
+    this.leaveBalanceLoading = true;
+    this.leaveService.getMyBalance(year)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (b) => {
+          this.leaveBalance = b;
+          this.loadedBalanceYear = year;
+          this.leaveBalanceLoading = false;
+        },
+        // Non-fatal: the panel is guidance, not a gate. Submitting still works, and
+        // payroll settles the paid/unpaid split regardless of what was shown here.
+        error: () => {
+          this.leaveBalance = null;
+          this.leaveBalanceLoading = false;
+        },
+      });
+  }
+
+  /** Paid leave a status consumes for one day: Absent a full day, Half Day half of one. */
+  private leaveDaysFor(statusCode: number | null): number {
+    switch (statusCode) {
+      case AttendanceStatusCode.Absent:  return 1;
+      case AttendanceStatusCode.HalfDay: return 0.5;
+      default:                           return 0;
+    }
+  }
+
+  /**
+   * Paid leave this request would consume ON TOP of what the day already costs.
+   * Turning a recorded Absent into a Half Day gives half a day back, hence the
+   * subtraction and the possible negative result.
+   */
+  get leaveDaysRequested(): number {
+    const requested = this.form?.get('requestedStatus')?.value;
+    if (requested === '' || requested == null) return 0;
+    return this.leaveDaysFor(Number(requested)) - this.leaveDaysFor(this.currentStatusCode);
+  }
+
+  /** True when this request would take more paid leave than the employee has left. */
+  get exceedsAvailableLeave(): boolean {
+    return this.unpaidDaysIfSubmitted > 0;
+  }
+
+  /**
+   * How much of this request would go unpaid, i.e. attract a salary deduction.
+   * 0 when the balance covers it, or when no balance could be loaded.
+   */
+  get unpaidDaysIfSubmitted(): number {
+    if (!this.leaveBalance?.isConfigured) return 0;
+    const shortfall = this.leaveDaysRequested - this.leaveBalance.availableLeave;
+    return shortfall > 0 ? Math.round(shortfall * 100) / 100 : 0;
+  }
+
   private clearExistingRequest(): void {
     this.existingRequestId = null;
     this.existingRequestLabel = '';
@@ -200,7 +338,7 @@ export class RequestFormComponent implements OnInit, OnDestroy {
   private gridStatusLabel(status: AttendanceStatus): string {
     switch (status) {
       case AttendanceStatus.Present: return 'Present';
-      case AttendanceStatus.Absent:  return 'Absent';
+      case AttendanceStatus.Absent:  return 'Leave';
       case AttendanceStatus.HalfDay: return 'Half Day';
       case AttendanceStatus.WeekOff: return 'Week Off';
       case AttendanceStatus.Holiday: return 'Holiday';
@@ -231,6 +369,7 @@ export class RequestFormComponent implements OnInit, OnDestroy {
           this.router.navigate(['/attendance-requests', id]);
           return;
         }
+        this.mode = r.requestedStatus === AttendanceStatusCode.Absent ? 'leave' : 'correction';
         this.form.patchValue({
           attendanceDate: r.attendanceDate?.slice(0, 10),
           requestedStatus: r.requestedStatus,
@@ -238,6 +377,9 @@ export class RequestFormComponent implements OnInit, OnDestroy {
         });
         this.currentStatusLabel = r.currentStatusLabel;
         this.currentStatusCode  = r.currentStatus;
+        // The date is fixed on edit, so this is the one chance to line the balance up
+        // with the request's own leave year.
+        this.loadBalanceForDate(r.attendanceDate?.slice(0, 10) ?? '');
         // Date is immutable on edit.
         this.form.get('attendanceDate')?.disable();
         this.isLoading = false;

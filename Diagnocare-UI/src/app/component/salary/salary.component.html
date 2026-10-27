@@ -7,8 +7,8 @@
   ══════════════════════════════════════════════════════ -->
   <div class="page-header">
     <div class="header-left">
-      <h2 class="page-title"><i class="fa fa-money-bill-wave"></i> Salary Management</h2>
-      <p class="page-subtitle">Manage staff salaries, allowances, PF deductions and payment records</p>
+      <h1>Salary Management</h1>
+      <p class="subtitle">Manage staff salaries, allowances, PF deductions and payment records</p>
     </div>
     <div class="tab-switcher">
       <button class="tab-btn" [class.active]="activeTab === 'monthly'" (click)="switchTab('monthly')">
@@ -20,529 +20,532 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════
-       MONTHLY TAB
-  ══════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="activeTab === 'monthly'">
+  <div class="content-container">
 
-    <div class="month-nav-bar">
-      <button class="nav-btn" (click)="prevMonth()" [disabled]="isLoading">
-        <i class="fa fa-chevron-left"></i>
-      </button>
-      <span class="month-label">
-        <i class="fa fa-spinner fa-spin month-loading-spinner" *ngIf="isLoading"></i>
-        {{ monthLabel }}
-      </span>
-      <button class="nav-btn" (click)="nextMonth()" [disabled]="isLoading || isCurrentMonth">
-        <i class="fa fa-chevron-right"></i>
-      </button>
-      <div class="nav-spacer"></div>
+    <!-- ══════════════════════════════════════════════════════
+         MONTHLY TAB
+    ══════════════════════════════════════════════════════ -->
+    <ng-container *ngIf="activeTab === 'monthly'">
 
-      <!-- Inactive toggle -->
-      <button class="tab-btn inactive-toggle"
-              [class.active]="showInactive"
-              (click)="toggleInactive()"
-              [disabled]="isLoading"
-              title="Show / hide deactivated employees">
-        <i class="fa fa-user-slash"></i> Inactive
-      </button>
-
-      <!-- Role filter tabs -->
-      <div class="role-filter-tabs">
-        <button class="tab-btn" [class.active]="roleFilter === 'other'"
-                (click)="setRoleFilter('other')">Users</button>
-        <button class="tab-btn" [class.active]="roleFilter === 'doctor'"
-                (click)="setRoleFilter('doctor')">Doctor</button>
-        <button class="tab-btn" [class.active]="roleFilter === 'collection-boy'"
-                (click)="setRoleFilter('collection-boy')">Collection Boy</button>
-      </div>
-
-      <div class="search-box">
-        <i class="fa fa-search search-icon"></i>
-        <input type="text" class="search-input" placeholder="Search employee…" [(ngModel)]="searchTerm" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''">
-          <i class="fa fa-times"></i>
+      <div class="month-nav-bar">
+        <button class="nav-btn" (click)="prevMonth()" [disabled]="isLoading">
+          <i class="fa fa-chevron-left"></i>
         </button>
-      </div>
-      <!-- <button class="btn btn-primary" (click)="generateSalary()" [disabled]="isGenerating || isLoading">
-        <span *ngIf="isGenerating"><i class="fa fa-spinner fa-spin"></i> Generating…</span>
-        <span *ngIf="!isGenerating"><i class="fa fa-bolt"></i> Generate Salary</span>
-      </button> -->
-    </div>
+        <span class="month-label">
+          <i class="fa fa-spinner fa-spin month-loading-spinner" *ngIf="isLoading"></i>
+          {{ monthLabel }}
+        </span>
+        <button class="nav-btn" (click)="nextMonth()" [disabled]="isLoading || isCurrentMonth">
+          <i class="fa fa-chevron-right"></i>
+        </button>
+        <div class="nav-spacer"></div>
 
-    <!-- Stat cards -->
-    <div class="stat-cards" *ngIf="monthlyData && !isLoading">
-      <div class="stat-card card-payable">
-        <div class="stat-icon"><i class="fa fa-wallet"></i></div>
-        <div class="stat-body">
-          <div class="stat-value">{{ formatINR(displayTotals.payable) }}</div>
-          <div class="stat-label">Total Net Salary</div>
-        </div>
-      </div>
-      <div class="stat-card card-paid">
-        <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
-        <div class="stat-body">
-          <div class="stat-value">{{ formatINR(displayTotals.paid) }}</div>
-          <div class="stat-label">Total Paid</div>
-        </div>
-      </div>
-      <div class="stat-card card-pending">
-        <div class="stat-icon"><i class="fa fa-hourglass-half"></i></div>
-        <div class="stat-body">
-          <div class="stat-value">{{ formatINR(displayTotals.pending) }}</div>
-          <div class="stat-label">Pending</div>
-        </div>
-      </div>
-      <div class="stat-card card-count">
-        <div class="stat-icon"><i class="fa fa-users"></i></div>
-        <div class="stat-body">
-          <div class="stat-value">{{ filteredRecords.length }}</div>
-          <div class="stat-label">Employees</div>
-        </div>
-      </div>
-    </div>
+        <!-- Inactive toggle -->
+        <button class="tab-btn inactive-toggle"
+                [class.active]="showInactive"
+                (click)="toggleInactive()"
+                [disabled]="isLoading"
+                title="Show / hide deactivated employees">
+          <i class="fa fa-user-slash"></i> Inactive
+        </button>
 
-    <div class="table-wrapper" *ngIf="!isLoading">
-      <div class="empty-state" *ngIf="!monthlyData || monthlyData.employees.length === 0">
-        <div class="empty-icon"><i class="fa fa-file-invoice-dollar"></i></div>
-        <h3>No salary records for {{ monthLabel }}</h3>
-        <p>Click <strong>Generate Salary</strong> to create records for all configured employees.</p>
-      </div>
-      <div class="empty-state" *ngIf="monthlyData && monthlyData.employees.length > 0 && filteredRecords.length === 0">
-        <div class="empty-icon"><i class="fa fa-search"></i></div>
-        <h3>No results for "{{ searchTerm }}"</h3>
-        <p>Try a different name.</p>
-      </div>
-
-      <table class="salary-table" *ngIf="filteredRecords.length > 0">
-        <thead>
-          <tr class="table-header-row">
-            <th class="col-emp">Employee</th>
-            <th class="col-amt">Base Salary</th>
-            <th class="col-amt">Travel Allow.</th>
-            <th class="col-amt">Other Allow.</th>
-            <!-- <th class="col-amt">PF</th> -->
-            <th class="col-amt">Net Salary</th>
-            <th class="col-amt">Paid</th>
-            <!-- <th class="col-amt">Pending</th> -->
-            <th class="col-status">Status</th>
-            <th class="col-action">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            *ngFor="let rec of filteredRecords; let odd = odd"
-            class="salary-row"
-            [class.row-alt]="odd"
-            [class.row-active]="panelRecord?.userId === rec.userId"
-            [class.row-inactive]="isInactiveRecord(rec)"
-          >
-            <td class="col-emp">
-              <div class="emp-info">
-                <div class="emp-avatar" [class.avatar-inactive]="isInactiveRecord(rec)">{{ userInitial(rec.fullName) }}</div>
-                <div class="emp-details">
-                  <div class="emp-name">
-                    {{ rec.fullName }}
-                    <span class="badge-inactive" *ngIf="isInactiveRecord(rec)">Inactive</span>
-                  </div>
-                  <div class="emp-meta">@{{ rec.userName }}</div>
-                </div>
-              </div>
-            </td>
-            <td class="col-amt amt-basic">{{ formatINR(rec.baseSalary) }}</td>
-            <td class="col-amt">
-              <span *ngIf="(rec.travelAllowance ?? 0) > 0" class="allow-badge allow-travel">
-                {{ formatINR(rec.travelAllowance) }}
-              </span>
-              <span *ngIf="!(rec.travelAllowance ?? 0)" class="text-muted">—</span>
-            </td>
-            <td class="col-amt">
-              <span *ngIf="(rec.otherAllowance ?? 0) > 0" class="allow-badge allow-other">
-                {{ formatINR(rec.otherAllowance) }}
-              </span>
-              <span *ngIf="!(rec.otherAllowance ?? 0)" class="text-muted">—</span>
-            </td>
-            <!-- <td class="col-amt amt-pf">
-              <span class="pf-badge">{{ formatINR(rec.pfAmount) }}</span>
-            </td> -->
-            <td class="col-amt amt-net">{{ formatINR(rec.netSalary) }}</td>
-            <td class="col-amt amt-paid">{{ formatINR(rec.totalPaid) }}</td>
-            <!-- <td class="col-amt" [class.amt-pending]="(rec.pendingAmount ?? 0) > 0">
-              {{ formatINR(rec.pendingAmount) }}
-            </td> -->
-            <td class="col-status">
-              <span class="status-badge" [ngClass]="statusClass(rec.status)">
-                {{ statusLabel(rec.status) }}
-              </span>
-            </td>
-            <td class="col-action">
-              <div class="action-btns">
-                <button
-                  class="btn btn-sm btn-primary"
-                  (click)="openPanel(rec)"
-                  [disabled]="rec.salaryId === 0"
-                  [title]="rec.salaryId === 0 ? 'Generate salary first' : 'View payments'"
-                >
-                  <i class="fa fa-receipt"></i> Payments
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </ng-container>
-
-  <!-- ══════════════════════════════════════════════════════
-       CONFIG TAB
-  ══════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="activeTab === 'config'">
-
-    <div class="config-header">
-      <h3 class="config-title"><i class="fa fa-sliders-h"></i> Salary Configuration</h3>
-      <p class="config-subtitle">
-        Select an employee to view or configure their base salary, allowances and PF.
-      </p>
-    </div>
-
-    <app-loading-spinner
-      *ngIf="isLoadingConfigTab"
-      [isLoading]="true"
-      [message]="'Loading User details for configuration'"
-      class="center-spinner">
-    </app-loading-spinner>
-
-    <div class="config-workspace" *ngIf="!isLoadingConfigTab">
-
-      <!-- Employee picker -->
-      <div class="config-card picker-card">
-        <!-- User type — switches which role's members the picker lists -->
-        <div class="staff-type-row">
-          <div class="picker-label"><i class="fa fa-id-badge"></i> User Type</div>
-
-          <!-- Staff-type tabs — these drive the picker only. The monthly tab has
-               its own independent roleFilter; do NOT bind to that one here. -->
-          <div class="staff-type-tabs" role="tablist" aria-label="User type">
-            <button type="button" class="staff-type-tab" role="tab"
-                    [class.active]="configStaffType === 'user'"
-                    [attr.aria-selected]="configStaffType === 'user'"
-                    (click)="setConfigStaffType('user')">
-              <i class="fa fa-user"></i> Users
-            </button>
-            <button type="button" class="staff-type-tab" role="tab"
-                    [class.active]="configStaffType === 'doctor'"
-                    [attr.aria-selected]="configStaffType === 'doctor'"
-                    (click)="setConfigStaffType('doctor')">
-              <i class="fa fa-user-md"></i> Doctor
-            </button>
-            <button type="button" class="staff-type-tab" role="tab"
-                    [class.active]="configStaffType === 'collection-boy'"
-                    [attr.aria-selected]="configStaffType === 'collection-boy'"
-                    (click)="setConfigStaffType('collection-boy')">
-              <i class="fa fa-motorcycle"></i> Collection Boy
-            </button>
-          </div>
-
-          <span class="staff-type-count">
-            {{ staffTypeCount }} {{ staffTypeCount === 1 ? staffTypeSingular : staffTypeLabel }}
-          </span>
+        <!-- Role filter tabs -->
+        <div class="role-filter-tabs">
+          <button class="tab-btn" [class.active]="roleFilter === 'other'"
+                  (click)="setRoleFilter('other')">Users</button>
+          <button class="tab-btn" [class.active]="roleFilter === 'doctor'"
+                  (click)="setRoleFilter('doctor')">Doctor</button>
+          <button class="tab-btn" [class.active]="roleFilter === 'collection-boy'"
+                  (click)="setRoleFilter('collection-boy')">Collection Boy</button>
         </div>
 
-        <div class="picker-label"><i class="fa fa-user-circle"></i> Select Employee</div>
-
-        <div class="chosen-user" *ngIf="selectedConfigUserId; else showPicker">
-          <div class="chosen-avatar">{{ userInitial(selectedUserName) }}</div>
-          <div class="chosen-name">{{ selectedUserName }}</div>
-          <button class="chosen-clear" (click)="clearUserSelection()" title="Change employee">
-            <i class="fa fa-times-circle"></i>
+        <div class="search-box">
+          <i class="fa fa-search search-icon"></i>
+          <input type="text" class="search-input" placeholder="Search employee…" [(ngModel)]="searchTerm" />
+          <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''">
+            <i class="fa fa-times"></i>
           </button>
         </div>
-
-        <ng-template #showPicker>
-          <div class="dropdown-wrapper">
-            <div class="dropdown-trigger" (click)="openDropdown()" [class.open]="isDropdownOpen">
-              <i class="fa fa-search dropdown-trigger-icon"></i>
-              <input
-                *ngIf="isDropdownOpen"
-                class="dropdown-search"
-                type="text"
-                [placeholder]="'Type to search ' + staffTypeLabel.toLowerCase() + '…'"
-                [(ngModel)]="userSearchTerm"
-                (click)="$event.stopPropagation()"
-                autofocus
-              />
-              <span *ngIf="!isDropdownOpen" class="dropdown-placeholder">
-                Search and select a {{ staffTypeSingular.toLowerCase() }}…
-              </span>
-              <i class="fa fa-chevron-down dropdown-arrow" [class.rotated]="isDropdownOpen"></i>
-            </div>
-            <div class="dropdown-list" *ngIf="isDropdownOpen" (mouseleave)="closeDropdown()">
-              <div class="dropdown-empty" *ngIf="filteredUserList.length === 0">
-                <i class="fa fa-inbox"></i> No {{ staffTypeLabel }} found
-              </div>
-              <div class="dropdown-option" *ngFor="let u of filteredUserList" (click)="selectUser(u)">
-                <div class="opt-avatar">{{ userInitial(fullName(u)) }}</div>
-                <div class="opt-details">
-                  <div class="opt-name">{{ fullName(u) }}</div>
-                  <div class="opt-username" *ngIf="u.user_Name">@{{ u.user_Name }}</div>
-                  <div class="opt-username" *ngIf="!u.user_Name">{{ staffTypeLabel }}</div>
-                </div>
-                <span class="opt-config-badge" *ngIf="hasConfig(u.id)">Configured</span>
-              </div>
-            </div>
-          </div>
-        </ng-template>
+        <!-- <button class="btn btn-primary" (click)="generateSalary()" [disabled]="isGenerating || isLoading">
+          <span *ngIf="isGenerating"><i class="fa fa-spinner fa-spin"></i> Generating…</span>
+          <span *ngIf="!isGenerating"><i class="fa fa-bolt"></i> Generate Salary</span>
+        </button> -->
       </div>
 
-      <ng-container *ngIf="selectedConfigUserId">
+      <!-- Stat cards -->
+      <div class="stat-cards" *ngIf="monthlyData && !isLoading">
+        <div class="stat-card card-payable">
+          <div class="stat-icon"><i class="fa fa-wallet"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">{{ formatINR(displayTotals.payable) }}</div>
+            <div class="stat-label">Total Net Salary</div>
+          </div>
+        </div>
+        <div class="stat-card card-paid">
+          <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">{{ formatINR(displayTotals.paid) }}</div>
+            <div class="stat-label">Total Paid</div>
+          </div>
+        </div>
+        <div class="stat-card card-pending">
+          <div class="stat-icon"><i class="fa fa-hourglass-half"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">{{ formatINR(displayTotals.pending) }}</div>
+            <div class="stat-label">Pending</div>
+          </div>
+        </div>
+        <div class="stat-card card-count">
+          <div class="stat-icon"><i class="fa fa-users"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">{{ filteredRecords.length }}</div>
+            <div class="stat-label">Employees</div>
+          </div>
+        </div>
+      </div>
 
-        <!-- Existing config view -->
-        <div class="config-card config-view-card" *ngIf="selectedUserConfig && !isEditingConfig">
-          <div class="config-view-header">
-            <div class="config-view-title">
-              <i class="fa fa-check-circle cv-icon"></i> Salary Configuration
+      <div class="table-wrapper" *ngIf="!isLoading">
+        <div class="empty-state" *ngIf="!monthlyData || monthlyData.employees.length === 0">
+          <div class="empty-icon"><i class="fa fa-file-invoice-dollar"></i></div>
+          <h3>No salary records for {{ monthLabel }}</h3>
+          <p>Click <strong>Generate Salary</strong> to create records for all configured employees.</p>
+        </div>
+        <div class="empty-state" *ngIf="monthlyData && monthlyData.employees.length > 0 && filteredRecords.length === 0">
+          <div class="empty-icon"><i class="fa fa-search"></i></div>
+          <h3>No results for "{{ searchTerm }}"</h3>
+          <p>Try a different name.</p>
+        </div>
+
+        <table class="salary-table" *ngIf="filteredRecords.length > 0">
+          <thead>
+            <tr class="table-header-row">
+              <th class="col-emp">Employee</th>
+              <th class="col-amt">Base Salary</th>
+              <th class="col-amt">Travel Allow.</th>
+              <th class="col-amt">Other Allow.</th>
+              <!-- <th class="col-amt">PF</th> -->
+              <th class="col-amt">Net Salary</th>
+              <th class="col-amt">Paid</th>
+              <!-- <th class="col-amt">Pending</th> -->
+              <th class="col-status">Status</th>
+              <th class="col-action">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let rec of filteredRecords; let odd = odd; trackBy: trackBySalaryId"
+              class="salary-row"
+              [class.row-alt]="odd"
+              [class.row-active]="panelRecord?.userId === rec.userId"
+              [class.row-inactive]="isInactiveRecord(rec)"
+            >
+              <td class="col-emp">
+                <div class="emp-info">
+                  <div class="emp-avatar" [class.avatar-inactive]="isInactiveRecord(rec)">{{ userInitial(rec.fullName) }}</div>
+                  <div class="emp-details">
+                    <div class="emp-name">
+                      {{ rec.fullName }}
+                      <span class="badge-inactive" *ngIf="isInactiveRecord(rec)">Inactive</span>
+                    </div>
+                    <div class="emp-meta">@{{ rec.userName }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="col-amt amt-basic">{{ formatINR(rec.baseSalary) }}</td>
+              <td class="col-amt">
+                <span *ngIf="(rec.travelAllowance ?? 0) > 0" class="allow-badge allow-travel">
+                  {{ formatINR(rec.travelAllowance) }}
+                </span>
+                <span *ngIf="!(rec.travelAllowance ?? 0)" class="text-muted">—</span>
+              </td>
+              <td class="col-amt">
+                <span *ngIf="(rec.otherAllowance ?? 0) > 0" class="allow-badge allow-other">
+                  {{ formatINR(rec.otherAllowance) }}
+                </span>
+                <span *ngIf="!(rec.otherAllowance ?? 0)" class="text-muted">—</span>
+              </td>
+              <!-- <td class="col-amt amt-pf">
+                <span class="pf-badge">{{ formatINR(rec.pfAmount) }}</span>
+              </td> -->
+              <td class="col-amt amt-net">{{ formatINR(rec.netSalary) }}</td>
+              <td class="col-amt amt-paid">{{ formatINR(rec.totalPaid) }}</td>
+              <!-- <td class="col-amt" [class.amt-pending]="(rec.pendingAmount ?? 0) > 0">
+                {{ formatINR(rec.pendingAmount) }}
+              </td> -->
+              <td class="col-status">
+                <span class="status-badge" [ngClass]="statusClass(rec.status)">
+                  {{ statusLabel(rec.status) }}
+                </span>
+              </td>
+              <td class="col-action">
+                <div class="action-btns">
+                  <button
+                    class="btn btn-sm btn-primary"
+                    (click)="openPanel(rec)"
+                    [disabled]="rec.salaryId === 0"
+                    [title]="rec.salaryId === 0 ? 'Generate salary first' : 'View payments'"
+                  >
+                    <i class="fa fa-receipt"></i> Payments
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+
+    <!-- ══════════════════════════════════════════════════════
+         CONFIG TAB
+    ══════════════════════════════════════════════════════ -->
+    <ng-container *ngIf="activeTab === 'config'">
+
+      <div class="config-header">
+        <h3 class="config-title"><i class="fa fa-sliders-h"></i> Salary Configuration</h3>
+        <p class="config-subtitle">
+          Select an employee to view or configure their base salary, allowances and PF.
+        </p>
+      </div>
+
+      <app-loading-spinner
+        *ngIf="isLoadingConfigTab"
+        [isLoading]="true"
+        [message]="'Loading User details for configuration'"
+        class="center-spinner">
+      </app-loading-spinner>
+
+      <div class="config-workspace" *ngIf="!isLoadingConfigTab">
+
+        <!-- Employee picker -->
+        <div class="config-card picker-card">
+          <!-- User type — switches which role's members the picker lists -->
+          <div class="staff-type-row">
+            <div class="picker-label"><i class="fa fa-id-badge"></i> User Type</div>
+
+            <!-- Staff-type tabs — these drive the picker only. The monthly tab has
+                 its own independent roleFilter; do NOT bind to that one here. -->
+            <div class="staff-type-tabs" role="tablist" aria-label="User type">
+              <button type="button" class="staff-type-tab" role="tab"
+                      [class.active]="configStaffType === 'user'"
+                      [attr.aria-selected]="configStaffType === 'user'"
+                      (click)="setConfigStaffType('user')">
+                <i class="fa fa-user"></i> Users
+              </button>
+              <button type="button" class="staff-type-tab" role="tab"
+                      [class.active]="configStaffType === 'doctor'"
+                      [attr.aria-selected]="configStaffType === 'doctor'"
+                      (click)="setConfigStaffType('doctor')">
+                <i class="fa fa-user-md"></i> Doctor
+              </button>
+              <button type="button" class="staff-type-tab" role="tab"
+                      [class.active]="configStaffType === 'collection-boy'"
+                      [attr.aria-selected]="configStaffType === 'collection-boy'"
+                      (click)="setConfigStaffType('collection-boy')">
+                <i class="fa fa-motorcycle"></i> Collection Boy
+              </button>
             </div>
-            <button class="btn btn-sm btn-primary" (click)="startEditConfig()">
-              <i class="fa fa-edit"></i> Edit
+
+            <span class="staff-type-count">
+              {{ staffTypeCount }} {{ staffTypeCount === 1 ? staffTypeSingular : staffTypeLabel }}
+            </span>
+          </div>
+
+          <div class="picker-label"><i class="fa fa-user-circle"></i> Select Employee</div>
+
+          <div class="chosen-user" *ngIf="selectedConfigUserId; else showPicker">
+            <div class="chosen-avatar">{{ userInitial(selectedUserName) }}</div>
+            <div class="chosen-name">{{ selectedUserName }}</div>
+            <button class="chosen-clear" (click)="clearUserSelection()" title="Change employee">
+              <i class="fa fa-times-circle"></i>
             </button>
           </div>
 
-          <div class="config-fields-grid">
-            <div class="cfg-field">
-              <div class="cfg-field-label">Base Salary</div>
-              <div class="cfg-field-value amt-net">{{ formatINR(selectedUserConfig.baseSalary) }}</div>
-            </div>
-            <div class="cfg-field">
-              <div class="cfg-field-label">Travel Allowance</div>
-              <div class="cfg-field-value">
-                <span class="allow-badge allow-travel" *ngIf="(selectedUserConfig.travelAllowance ?? 0) > 0">
-                  {{ formatINR(selectedUserConfig.travelAllowance) }}
+          <ng-template #showPicker>
+            <div class="dropdown-wrapper">
+              <div class="dropdown-trigger" (click)="openDropdown()" [class.open]="isDropdownOpen">
+                <i class="fa fa-search dropdown-trigger-icon"></i>
+                <input
+                  *ngIf="isDropdownOpen"
+                  class="dropdown-search"
+                  type="text"
+                  [placeholder]="'Type to search ' + staffTypeLabel.toLowerCase() + '…'"
+                  [(ngModel)]="userSearchTerm"
+                  (click)="$event.stopPropagation()"
+                  autofocus
+                />
+                <span *ngIf="!isDropdownOpen" class="dropdown-placeholder">
+                  Search and select a {{ staffTypeSingular.toLowerCase() }}…
                 </span>
-                <span class="text-muted" *ngIf="!(selectedUserConfig.travelAllowance ?? 0)">Not set</span>
+                <i class="fa fa-chevron-down dropdown-arrow" [class.rotated]="isDropdownOpen"></i>
+              </div>
+              <div class="dropdown-list" *ngIf="isDropdownOpen" (mouseleave)="closeDropdown()">
+                <div class="dropdown-empty" *ngIf="filteredUserList.length === 0">
+                  <i class="fa fa-inbox"></i> No {{ staffTypeLabel }} found
+                </div>
+                <div class="dropdown-option" *ngFor="let u of filteredUserList; trackBy: trackByMemberId" (click)="selectUser(u)">
+                  <div class="opt-avatar">{{ userInitial(fullName(u)) }}</div>
+                  <div class="opt-details">
+                    <div class="opt-name">{{ fullName(u) }}</div>
+                    <div class="opt-username" *ngIf="u.user_Name">@{{ u.user_Name }}</div>
+                    <div class="opt-username" *ngIf="!u.user_Name">{{ staffTypeLabel }}</div>
+                  </div>
+                  <span class="opt-config-badge" *ngIf="hasConfig(u.id)">Configured</span>
+                </div>
               </div>
             </div>
-            <div class="cfg-field">
-              <div class="cfg-field-label">Other Allowance</div>
-              <div class="cfg-field-value">
-                <span class="allow-badge allow-other" *ngIf="(selectedUserConfig.otherAllowance ?? 0) > 0">
-                  {{ formatINR(selectedUserConfig.otherAllowance) }}
-                </span>
-                <span class="text-muted" *ngIf="!(selectedUserConfig.otherAllowance ?? 0)">Not set</span>
-              </div>
-            </div>
-            <div class="cfg-field">
-              <div class="cfg-field-label">PF Percentage</div>
-              <div class="cfg-field-value">{{ selectedUserConfig.pfPercentage }}%</div>
-            </div>
-            <div class="cfg-field">
-              <div class="cfg-field-label">PF Deduction</div>
-              <div class="cfg-field-value">
-                <span class="pf-badge">{{ formatINR(selectedUserConfig.pfAmount) }}</span>
-              </div>
-            </div>
-            <div class="cfg-field">
-              <div class="cfg-field-label">Net Salary</div>
-              <div class="cfg-field-value amt-net">
-                {{ formatINR(configNetSalary(selectedUserConfig)) }}
-              </div>
-            </div>
-            <div class="cfg-field cfg-field-leaves">
-              <div class="cfg-field-label">
-                <i class="fa fa-umbrella-beach cfg-leaves-icon"></i>
-                Allowed Leaves / Month
-              </div>
-              <div class="cfg-field-value">
-                <span class="leaves-badge">
-                  <i class="fa fa-calendar-check"></i>
-                  {{ selectedUserConfig.allowedLeavesPerMonth ?? 1 }}
-                  day{{ (selectedUserConfig.allowedLeavesPerMonth ?? 1) !== 1 ? 's' : '' }}
-                </span>
-                <span class="leaves-note">per month, paid &amp; without deduction</span>
-              </div>
-            </div>
-          </div>
+          </ng-template>
         </div>
 
-        <!-- No config yet -->
-        <div class="config-card no-config-banner" *ngIf="isNewConfig && !isEditingConfig">
-          <div class="no-config-icon"><i class="fa fa-info-circle"></i></div>
-          <div class="no-config-body">
-            <strong>No salary config found</strong> for {{ selectedUserName }}.
-            <span>Fill in the form below to set it up.</span>
-          </div>
-        </div>
+        <ng-container *ngIf="selectedConfigUserId">
 
-        <!-- Add / Edit form -->
-        <div class="config-card config-form-card" *ngIf="isEditingConfig">
-          <div class="config-form-header">
-            <h4 class="config-form-title">
-              <i class="fa" [class.fa-plus-circle]="isNewConfig" [class.fa-edit]="!isNewConfig"></i>
-              {{ isNewConfig ? 'Add Salary Configuration' : 'Edit Salary Configuration' }}
-            </h4>
-          </div>
-
-          <!-- Live preview strip -->
-          <div class="preview-strip" *ngIf="configDraft.baseSalary > 0">
-            <div class="preview-item">
-              <div class="preview-val">{{ formatINR(configDraft.baseSalary) }}</div>
-              <div class="preview-lbl">Base</div>
+          <!-- Existing config view -->
+          <div class="config-card config-view-card" *ngIf="selectedUserConfig && !isEditingConfig">
+            <div class="config-view-header">
+              <div class="config-view-title">
+                <i class="fa fa-check-circle cv-icon"></i> Salary Configuration
+              </div>
+              <button class="btn btn-sm btn-primary" (click)="startEditConfig()">
+                <i class="fa fa-edit"></i> Edit
+              </button>
             </div>
-            <ng-container *ngIf="(configDraft.travelAllowance ?? 0) > 0">
-              <div class="preview-sep">+</div>
+
+            <div class="config-fields-grid">
+              <div class="cfg-field">
+                <div class="cfg-field-label">Base Salary</div>
+                <div class="cfg-field-value amt-net">{{ formatINR(selectedUserConfig.baseSalary) }}</div>
+              </div>
+              <div class="cfg-field">
+                <div class="cfg-field-label">Travel Allowance</div>
+                <div class="cfg-field-value">
+                  <span class="allow-badge allow-travel" *ngIf="(selectedUserConfig.travelAllowance ?? 0) > 0">
+                    {{ formatINR(selectedUserConfig.travelAllowance) }}
+                  </span>
+                  <span class="text-muted" *ngIf="!(selectedUserConfig.travelAllowance ?? 0)">Not set</span>
+                </div>
+              </div>
+              <div class="cfg-field">
+                <div class="cfg-field-label">Other Allowance</div>
+                <div class="cfg-field-value">
+                  <span class="allow-badge allow-other" *ngIf="(selectedUserConfig.otherAllowance ?? 0) > 0">
+                    {{ formatINR(selectedUserConfig.otherAllowance) }}
+                  </span>
+                  <span class="text-muted" *ngIf="!(selectedUserConfig.otherAllowance ?? 0)">Not set</span>
+                </div>
+              </div>
+              <div class="cfg-field">
+                <div class="cfg-field-label">PF Percentage</div>
+                <div class="cfg-field-value">{{ selectedUserConfig.pfPercentage }}%</div>
+              </div>
+              <div class="cfg-field">
+                <div class="cfg-field-label">PF Deduction</div>
+                <div class="cfg-field-value">
+                  <span class="pf-badge">{{ formatINR(selectedUserConfig.pfAmount) }}</span>
+                </div>
+              </div>
+              <div class="cfg-field">
+                <div class="cfg-field-label">Net Salary</div>
+                <div class="cfg-field-value amt-net">
+                  {{ formatINR(configNetSalary(selectedUserConfig)) }}
+                </div>
+              </div>
+              <div class="cfg-field cfg-field-leaves">
+                <div class="cfg-field-label">
+                  <i class="fa fa-umbrella-beach cfg-leaves-icon"></i>
+                  Allowed Leaves / Month
+                </div>
+                <div class="cfg-field-value">
+                  <span class="leaves-badge">
+                    <i class="fa fa-calendar-check"></i>
+                    {{ selectedUserConfig.allowedLeavesPerMonth ?? 1 }}
+                    day{{ (selectedUserConfig.allowedLeavesPerMonth ?? 1) !== 1 ? 's' : '' }}
+                  </span>
+                  <span class="leaves-note">per month, paid &amp; without deduction</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- No config yet -->
+          <div class="config-card no-config-banner" *ngIf="isNewConfig && !isEditingConfig">
+            <div class="no-config-icon"><i class="fa fa-info-circle"></i></div>
+            <div class="no-config-body">
+              <strong>No salary config found</strong> for {{ selectedUserName }}.
+              <span>Fill in the form below to set it up.</span>
+            </div>
+          </div>
+
+          <!-- Add / Edit form -->
+          <div class="config-card config-form-card" *ngIf="isEditingConfig">
+            <div class="config-form-header">
+              <h4 class="config-form-title">
+                <i class="fa" [class.fa-plus-circle]="isNewConfig" [class.fa-edit]="!isNewConfig"></i>
+                {{ isNewConfig ? 'Add Salary Configuration' : 'Edit Salary Configuration' }}
+              </h4>
+            </div>
+
+            <!-- Live preview strip -->
+            <div class="preview-strip" *ngIf="configDraft.baseSalary > 0">
               <div class="preview-item">
-                <div class="preview-val allow-travel-color">{{ formatINR(configDraft.travelAllowance) }}</div>
-                <div class="preview-lbl">Travel Allow.</div>
+                <div class="preview-val">{{ formatINR(configDraft.baseSalary) }}</div>
+                <div class="preview-lbl">Base</div>
               </div>
-            </ng-container>
-            <ng-container *ngIf="(configDraft.otherAllowance ?? 0) > 0">
-              <div class="preview-sep">+</div>
+              <ng-container *ngIf="(configDraft.travelAllowance ?? 0) > 0">
+                <div class="preview-sep">+</div>
+                <div class="preview-item">
+                  <div class="preview-val allow-travel-color">{{ formatINR(configDraft.travelAllowance) }}</div>
+                  <div class="preview-lbl">Travel Allow.</div>
+                </div>
+              </ng-container>
+              <ng-container *ngIf="(configDraft.otherAllowance ?? 0) > 0">
+                <div class="preview-sep">+</div>
+                <div class="preview-item">
+                  <div class="preview-val allow-other-color">{{ formatINR(configDraft.otherAllowance) }}</div>
+                  <div class="preview-lbl">Other Allow.</div>
+                </div>
+              </ng-container>
+              <div class="preview-sep">−</div>
               <div class="preview-item">
-                <div class="preview-val allow-other-color">{{ formatINR(configDraft.otherAllowance) }}</div>
-                <div class="preview-lbl">Other Allow.</div>
+                <div class="preview-val pf-color">{{ formatINR(draftPfAmount) }}</div>
+                <div class="preview-lbl">PF ({{ configDraft.pfPercentage }}%)</div>
               </div>
-            </ng-container>
-            <div class="preview-sep">−</div>
-            <div class="preview-item">
-              <div class="preview-val pf-color">{{ formatINR(draftPfAmount) }}</div>
-              <div class="preview-lbl">PF ({{ configDraft.pfPercentage }}%)</div>
+              <div class="preview-sep">=</div>
+              <div class="preview-item">
+                <div class="preview-val net-color">{{ formatINR(draftNetPayable) }}</div>
+                <div class="preview-lbl">Net Salary</div>
+              </div>
             </div>
-            <div class="preview-sep">=</div>
-            <div class="preview-item">
-              <div class="preview-val net-color">{{ formatINR(draftNetPayable) }}</div>
-              <div class="preview-lbl">Net Salary</div>
-            </div>
-          </div>
 
-          <!-- Salary component panels -->
-          <div class="salary-component-panels">
+            <!-- Salary component panels -->
+            <div class="salary-component-panels">
 
-            <!-- Fixed component -->
-            <div class="salary-component-card" [class.active]="hasFixedComponent">
-              <div class="scc-header">
-                <span class="scc-icon fixed-icon"><i class="fa fa-money-bill-wave"></i></span>
-                <div>
-                  <div class="scc-title">Fixed Salary</div>
-                  <div class="scc-subtitle">Flat monthly base — PF deducted from this</div>
+              <!-- Fixed component -->
+              <div class="salary-component-card" [class.active]="hasFixedComponent">
+                <div class="scc-header">
+                  <span class="scc-icon fixed-icon"><i class="fa fa-money-bill-wave"></i></span>
+                  <div>
+                    <div class="scc-title">Fixed Salary</div>
+                    <div class="scc-subtitle">Flat monthly base — PF deducted from this</div>
+                  </div>
+                  <span class="scc-active-badge" *ngIf="hasFixedComponent">Active</span>
                 </div>
-                <span class="scc-active-badge" *ngIf="hasFixedComponent">Active</span>
+                <div class="scc-body">
+                  <label class="form-label">Base Salary (₹)</label>
+                  <div class="input-with-suffix">
+                    <input type="number" class="form-input" [(ngModel)]="configDraft.baseSalary"
+                      min="0" placeholder="e.g. 25000" />
+                    <span class="input-suffix">₹</span>
+                  </div>
+                  <div class="field-hint">Leave at 0 if this employee has no fixed component</div>
+                </div>
               </div>
-              <div class="scc-body">
-                <label class="form-label">Base Salary (₹)</label>
+
+              <!-- Revenue % component — hidden until phase 2.
+                   Deliberately *ngIf rather than deleted: an employee already
+                   configured on a revenue % keeps the value, which round-trips
+                   untouched on save. Flip revenuePercentEnabled to restore. -->
+              <div class="salary-component-card"
+                   *ngIf="revenuePercentEnabled"
+                   [class.active]="hasPercentComponent">
+                <div class="scc-header">
+                  <span class="scc-icon pct-icon"><i class="fa fa-percent"></i></span>
+                  <div>
+                    <div class="scc-title">% of Revenue</div>
+                    <div class="scc-subtitle">Salary = monthly revenue × percentage</div>
+                  </div>
+                  <span class="scc-active-badge" *ngIf="hasPercentComponent">Active</span>
+                </div>
+                <div class="scc-body">
+                  <label class="form-label">Revenue Percentage</label>
+                  <div class="input-with-suffix">
+                    <input type="number" class="form-input" [(ngModel)]="configDraft.revenuePercentage"
+                      min="0" max="100" step="0.1" placeholder="e.g. 10" />
+                    <span class="input-suffix">%</span>
+                  </div>
+                  <div class="field-hint">Leave at 0 if this employee has no revenue % component</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Form fields -->
+            <div class="config-form-grid">
+
+              <div class="form-group">
+                <label class="form-label">Travel Allowance (₹)</label>
+                <input type="number" class="form-input" [(ngModel)]="configDraft.travelAllowance"
+                  min="0" placeholder="0" />
+                <div class="field-hint">Monthly travel reimbursement (PF-exempt)</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Other Allowance (₹)</label>
+                <input type="number" class="form-input" [(ngModel)]="configDraft.otherAllowance"
+                  min="0" placeholder="0" />
+                <div class="field-hint">Any additional recurring allowance (PF-exempt)</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">PF Percentage <span class="req">*</span></label>
                 <div class="input-with-suffix">
-                  <input type="number" class="form-input" [(ngModel)]="configDraft.baseSalary"
-                    min="0" placeholder="e.g. 25000" />
-                  <span class="input-suffix">₹</span>
-                </div>
-                <div class="field-hint">Leave at 0 if this employee has no fixed component</div>
-              </div>
-            </div>
-
-            <!-- Revenue % component — hidden until phase 2.
-                 Deliberately *ngIf rather than deleted: an employee already
-                 configured on a revenue % keeps the value, which round-trips
-                 untouched on save. Flip revenuePercentEnabled to restore. -->
-            <div class="salary-component-card"
-                 *ngIf="revenuePercentEnabled"
-                 [class.active]="hasPercentComponent">
-              <div class="scc-header">
-                <span class="scc-icon pct-icon"><i class="fa fa-percent"></i></span>
-                <div>
-                  <div class="scc-title">% of Revenue</div>
-                  <div class="scc-subtitle">Salary = monthly revenue × percentage</div>
-                </div>
-                <span class="scc-active-badge" *ngIf="hasPercentComponent">Active</span>
-              </div>
-              <div class="scc-body">
-                <label class="form-label">Revenue Percentage</label>
-                <div class="input-with-suffix">
-                  <input type="number" class="form-input" [(ngModel)]="configDraft.revenuePercentage"
-                    min="0" max="100" step="0.1" placeholder="e.g. 10" />
+                  <input type="number" class="form-input" [(ngModel)]="configDraft.pfPercentage"
+                    min="0" max="100" step="0.5" placeholder="12" />
                   <span class="input-suffix">%</span>
                 </div>
-                <div class="field-hint">Leave at 0 if this employee has no revenue % component</div>
+                <div class="field-hint">Applied to base salary only (standard: 12%)</div>
               </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fa fa-umbrella-beach form-label-icon"></i>
+                  Allowed Leaves / Month
+                </label>
+                <div class="input-with-suffix">
+                  <input
+                    type="number"
+                    class="form-input"
+                    [(ngModel)]="configDraft.allowedLeavesPerMonth"
+                    min="0"
+                    max="31"
+                    step="1"
+                    placeholder="1"
+                  />
+                  <span class="input-suffix">days</span>
+                </div>
+                <div class="field-hint">Paid leaves per month that do <strong>not</strong> trigger a salary deduction (0 = none allowed)</div>
+              </div>
+
+
             </div>
 
+            <div class="config-form-actions">
+              <button
+                class="btn btn-primary"
+                (click)="saveConfig()"
+                [disabled]="isSavingConfig || (!hasFixedComponent && !hasPercentComponent)"
+              >
+                <span *ngIf="isSavingConfig"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
+                <span *ngIf="!isSavingConfig">
+                  <i class="fa fa-save"></i>
+                  {{ isNewConfig ? 'Add Configuration' : 'Save Changes' }}
+                </span>
+              </button>
+              <button class="btn btn-cancel" (click)="cancelEditConfig()" [disabled]="isSavingConfig">
+                Cancel
+              </button>
+            </div>
           </div>
 
-          <!-- Form fields -->
-          <div class="config-form-grid">
+        </ng-container>
 
-            <div class="form-group">
-              <label class="form-label">Travel Allowance (₹)</label>
-              <input type="number" class="form-input" [(ngModel)]="configDraft.travelAllowance"
-                min="0" placeholder="0" />
-              <div class="field-hint">Monthly travel reimbursement (PF-exempt)</div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Other Allowance (₹)</label>
-              <input type="number" class="form-input" [(ngModel)]="configDraft.otherAllowance"
-                min="0" placeholder="0" />
-              <div class="field-hint">Any additional recurring allowance (PF-exempt)</div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">PF Percentage <span class="req">*</span></label>
-              <div class="input-with-suffix">
-                <input type="number" class="form-input" [(ngModel)]="configDraft.pfPercentage"
-                  min="0" max="100" step="0.5" placeholder="12" />
-                <span class="input-suffix">%</span>
-              </div>
-              <div class="field-hint">Applied to base salary only (standard: 12%)</div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">
-                <i class="fa fa-umbrella-beach form-label-icon"></i>
-                Allowed Leaves / Month
-              </label>
-              <div class="input-with-suffix">
-                <input
-                  type="number"
-                  class="form-input"
-                  [(ngModel)]="configDraft.allowedLeavesPerMonth"
-                  min="0"
-                  max="31"
-                  step="1"
-                  placeholder="1"
-                />
-                <span class="input-suffix">days</span>
-              </div>
-              <div class="field-hint">Paid leaves per month that do <strong>not</strong> trigger a salary deduction (0 = none allowed)</div>
-            </div>
-
-
-          </div>
-
-          <div class="config-form-actions">
-            <button
-              class="btn btn-primary"
-              (click)="saveConfig()"
-              [disabled]="isSavingConfig || (!hasFixedComponent && !hasPercentComponent)"
-            >
-              <span *ngIf="isSavingConfig"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
-              <span *ngIf="!isSavingConfig">
-                <i class="fa fa-save"></i>
-                {{ isNewConfig ? 'Add Configuration' : 'Save Changes' }}
-              </span>
-            </button>
-            <button class="btn btn-cancel" (click)="cancelEditConfig()" [disabled]="isSavingConfig">
-              Cancel
-            </button>
-          </div>
+        <div class="config-placeholder" *ngIf="!selectedConfigUserId">
+          <div class="cp-icon"><i class="fa fa-user-cog"></i></div>
+          <p class="cp-text">Select an employee above to view or configure their salary details.</p>
         </div>
 
-      </ng-container>
-
-      <div class="config-placeholder" *ngIf="!selectedConfigUserId">
-        <div class="cp-icon"><i class="fa fa-user-cog"></i></div>
-        <p class="cp-text">Select an employee above to view or configure their salary details.</p>
       </div>
+    </ng-container>
 
-    </div>
-  </ng-container>
-
+  </div>
 </div><!-- /page-container -->
 
 
@@ -622,6 +625,15 @@
 
       <div class="psh-title-row">
         <h4 class="panel-section-title"><i class="fa fa-history"></i> Payment History</h4>
+        <!-- The list below is scoped to the month on screen; this opens every month. -->
+        <button
+          class="psh-history-btn"
+          (click)="openHistoryModal(panelRecord)"
+          [disabled]="panelRecord.salaryId === 0"
+          title="View all payments across every month"
+        >
+          <i class="fa fa-list-ul"></i> Full History
+        </button>
       </div>
 
       <div class="panel-section-actions" *ngIf="!isAddingPayment">
@@ -679,7 +691,7 @@
 
     <!-- Payment list -->
     <ul class="payment-list" *ngIf="panelRecord.payments.length > 0">
-      <li class="payment-item" *ngFor="let pay of panelRecord.payments">
+      <li class="payment-item" *ngFor="let pay of panelRecord.payments; trackBy: trackByPaymentId">
         <div class="pay-top">
           <span class="pay-amount">{{ formatINR(pay.paymentAmount) }}</span>
           <div class="pay-badges">
@@ -697,11 +709,49 @@
             <span class="pay-for-badge" [ngClass]="paymentRowClass(pay)">
               {{ paymentRowLabel(pay) }}
             </span>
+            <!-- How it was paid -->
+            <span class="pay-mode-badge" [ngClass]="paymentModeClass(pay.paymentMode)">
+              <i class="fa" [ngClass]="paymentModeIcon(pay.paymentMode)"></i>
+              {{ pay.paymentModeName || paymentModeLabel(pay.paymentMode) }}
+            </span>
+            <!-- Clearing state — only worth saying when it is not the plain case -->
+            <span
+              *ngIf="(pay.paymentStatus ?? 1) !== 1"
+              class="pay-status-badge"
+              [ngClass]="paymentStatusClass(pay.paymentStatus)"
+            >
+              {{ pay.paymentStatusName || paymentStatusLabel(pay.paymentStatus) }}
+            </span>
           </div>
         </div>
         <div class="pay-meta">
           <span><i class="fa fa-calendar"></i> {{ formatPaymentDate(pay.paymentDate) }}</span>
-          <span *ngIf="pay.reference" class="pay-remarks">· {{ pay.reference }}</span>
+          <span *ngIf="pay.transactionReference" class="pay-txn">
+            <i class="fa fa-hashtag"></i> {{ pay.transactionReference }}
+          </span>
+          <span *ngIf="pay.remarks" class="pay-remarks">· {{ pay.remarks }}</span>
+        </div>
+
+        <!-- Payment proof -->
+        <div class="pay-proof" *ngIf="pay.hasPaymentProof">
+          <button type="button" class="pay-proof-btn"
+                  (click)="viewPaymentProof(pay)"
+                  [disabled]="proofLoadingId === pay.paymentId"
+                  [title]="pay.proofFileName || 'View payment proof'">
+            <i class="fa"
+               [class.fa-spinner]="proofLoadingId === pay.paymentId"
+               [class.fa-spin]="proofLoadingId === pay.paymentId"
+               [class.fa-image]="proofLoadingId !== pay.paymentId"></i>
+            View Proof
+            <span class="pay-proof-size" *ngIf="pay.proofFileSize">
+              {{ formatFileSize(pay.proofFileSize) }}
+            </span>
+          </button>
+          <button type="button" class="pay-proof-remove"
+                  (click)="removePaymentProof(pay)"
+                  title="Remove this proof">
+            <i class="fa fa-trash"></i>
+          </button>
         </div>
       </li>
     </ul>
@@ -846,15 +896,126 @@
         <app-date-picker [(ngModel)]="paymentForm.paymentDate" inputClass="pm-input"></app-date-picker>
       </div>
 
+      <!-- Payment Mode — how the money actually moved -->
       <div class="pm-field pm-field-full">
-        <label class="pm-label">Reference <span class="pm-optional">(optional)</span></label>
+        <label class="pm-label">Payment Mode <span class="req">*</span></label>
+        <div class="pm-radio-group pm-mode-group">
+          <label
+            *ngFor="let opt of paymentModeOptions"
+            class="pm-radio-card"
+            [class.pm-radio-active]="paymentForm.paymentMode === opt.value"
+            [title]="opt.label"
+          >
+            <input
+              type="radio"
+              [(ngModel)]="paymentForm.paymentMode"
+              [value]="opt.value"
+              (change)="onPaymentModeChange()"
+              hidden
+            />
+            <i class="fa pm-radio-icon" [ngClass]="opt.icon"></i>
+            <span class="pm-radio-label">{{ opt.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Transaction reference — required for every traceable mode -->
+      <div class="pm-field">
+        <label class="pm-label">
+          Reference / Transaction No.
+          <span class="req" *ngIf="isReferenceRequired">*</span>
+          <span class="pm-optional" *ngIf="!isReferenceRequired">(optional)</span>
+        </label>
         <input
           type="text"
           class="pm-input"
-          [(ngModel)]="paymentForm.reference"
-          placeholder="e.g. cheque no., UPI ref…"
-          maxlength="200"
+          [class.pm-input-error]="transactionRefError"
+          [(ngModel)]="paymentForm.transactionReference"
+          (input)="validateTransactionRef()"
+          (blur)="validateTransactionRef()"
+          placeholder="e.g. UPI ref, UTR no., cheque no."
+          maxlength="100"
         />
+        <div class="pm-hint" *ngIf="!transactionRefError && isReferenceRequired">
+          <i class="fa fa-info-circle"></i>
+          Needed to trace this {{ paymentModeLabel(paymentForm.paymentMode) }} payment in the bank statement.
+        </div>
+        <div class="pm-error" *ngIf="transactionRefError">{{ transactionRefError }}</div>
+      </div>
+
+      <!-- Payment status — bookkeeping only, never changes the amounts -->
+      <div class="pm-field">
+        <label class="pm-label">Payment Status</label>
+        <select class="pm-input" [(ngModel)]="paymentForm.paymentStatus">
+          <option *ngFor="let opt of paymentStatusOptions" [ngValue]="opt.value">{{ opt.label }}</option>
+        </select>
+        <div class="pm-hint">
+          <i class="fa fa-info-circle"></i>
+          The amount counts as paid either way — this only records whether it has cleared.
+        </div>
+      </div>
+
+      <!-- Payment proof — screenshot / receipt -->
+      <div class="pm-field pm-field-full">
+        <label class="pm-label">
+          Payment Proof <span class="pm-optional">(optional)</span>
+        </label>
+
+        <input
+          #proofInputRef
+          type="file"
+          [accept]="proofAccept"
+          (change)="onProofFileChange($event)"
+          hidden
+        />
+
+        <div
+          class="pm-upload-zone"
+          [class.has-file]="selectedProofFile"
+          [class.is-invalid]="proofError"
+          role="button"
+          tabindex="0"
+          (click)="proofInputRef.click()"
+          (keyup.enter)="proofInputRef.click()"
+        >
+          <ng-container *ngIf="!selectedProofFile">
+            <div class="pm-upload-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+            <span class="pm-upload-label">Click to upload a screenshot or receipt</span>
+            <span class="pm-upload-hint">JPG, PNG, WEBP or PDF &bull; Max 5 MB</span>
+          </ng-container>
+
+          <ng-container *ngIf="selectedProofFile">
+            <img *ngIf="isProofImage" [src]="proofPreviewUrl" alt="Payment proof preview"
+                 class="pm-upload-preview" />
+            <div *ngIf="!isProofImage" class="pm-upload-icon"><i class="fa fa-file-pdf"></i></div>
+            <span class="pm-upload-filename">
+              <i class="fa fa-paperclip"></i> {{ selectedProofFile.name }}
+              <span class="pm-upload-size">({{ formatFileSize(selectedProofFile.size) }})</span>
+            </span>
+            <span class="pm-upload-hint">Click to choose a different file</span>
+          </ng-container>
+        </div>
+
+        <div class="pm-upload-actions" *ngIf="selectedProofFile">
+          <button type="button" class="dc-btn dc-btn--sm dc-btn--remove"
+                  (click)="clearProofSelection(); proofInputRef.value = ''">
+            <i class="fa fa-times"></i> Remove file
+          </button>
+        </div>
+
+        <div class="pm-error" *ngIf="proofError">{{ proofError }}</div>
+      </div>
+
+      <!-- Remarks -->
+      <div class="pm-field pm-field-full">
+        <label class="pm-label">Remarks <span class="pm-optional">(optional)</span></label>
+        <textarea
+          class="pm-input pm-textarea"
+          [(ngModel)]="paymentForm.remarks"
+          rows="2"
+          placeholder="Any note about this payment…"
+          maxlength="500"
+        ></textarea>
       </div>
 
     </div>
@@ -870,10 +1031,14 @@
       [class.pm-submit-full]="paymentForm.paymentType === PaymentType.Full"
       [class.pm-submit-partial]="paymentForm.paymentType === PaymentType.Partial"
       (click)="submitPayment()"
-      [disabled]="!paymentFormValid"
+      [disabled]="!paymentFormValid || isUploadingProof"
     >
-      <i class="fa fa-save"></i>
-      {{ paymentForm.paymentType === PaymentType.Full ? 'Record Full Payment' : 'Record Partial Payment' }}
+      <i class="fa" [class.fa-spinner]="isUploadingProof" [class.fa-spin]="isUploadingProof"
+                    [class.fa-save]="!isUploadingProof"></i>
+      <ng-container *ngIf="isUploadingProof">Uploading proof…</ng-container>
+      <ng-container *ngIf="!isUploadingProof">
+        {{ paymentForm.paymentType === PaymentType.Full ? 'Record Full Payment' : 'Record Partial Payment' }}
+      </ng-container>
     </button>
   </div>
 
@@ -953,7 +1118,7 @@
         </div>
 
         <div class="calc-row">
-          <span class="calc-key"><span class="calc-key-label">Absent Days</span></span>
+          <span class="calc-key"><span class="calc-key-label">Leave Days</span></span>
           <span class="calc-val calc-val-warn">
             {{ calcResult.absentDays }} day{{ calcResult.absentDays !== 1 ? 's' : '' }}
           </span>
@@ -968,22 +1133,22 @@
 
         <div class="calc-row calc-row-sub">
           <span class="calc-key">
-            <span class="calc-key-label">Effective Absent Days</span>
-            <span class="calc-formula">Absent + Half Days × 0.5</span>
+            <span class="calc-key-label">Effective Leave Days</span>
+            <span class="calc-formula">Leave + Half Days × 0.5</span>
           </span>
           <span class="calc-val calc-val-warn">{{ calcResult.effectiveAbsentDays | number:'1.1-1' }} days</span>
         </div>
 
         <div class="calc-row calc-row-highlight-warn" *ngIf="calcResult.extraAbsentDays > 0">
           <span class="calc-key">
-            <span class="calc-key-label">Extra Absent Days</span>
+            <span class="calc-key-label">Extra Leave Days</span>
             <span class="calc-formula">Effective absent − allowed leaves</span>
           </span>
           <span class="calc-val calc-val-bad">{{ calcResult.extraAbsentDays | number:'1.1-1' }} days</span>
         </div>
 
         <div class="calc-row" *ngIf="calcResult.extraAbsentDays === 0">
-          <span class="calc-key"><span class="calc-key-label">Extra Absent Days</span></span>
+          <span class="calc-key"><span class="calc-key-label">Extra Leave Days</span></span>
           <span class="calc-val calc-val-ok"><i class="fa fa-check-circle"></i> None — within allowed leaves</span>
         </div>
 
@@ -1054,6 +1219,162 @@
 
   <div class="calc-footer">
     <button class="btn btn-outline-secondary" (click)="closeCalcModal()">
+      <i class="fa fa-times"></i> Close
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     PAYMENT HISTORY MODAL (all months)
+     Answers "when, how and how much was this person paid" —
+     every transaction with its date, mode, reference and proof.
+══════════════════════════════════════════════════════ -->
+<div class="ph-overlay" [class.ph-overlay-open]="isHistoryModalOpen" (click)="closeHistoryModal()"></div>
+
+<div class="ph-modal" [class.ph-modal-open]="isHistoryModalOpen" *ngIf="isHistoryModalOpen"
+     role="dialog" aria-modal="true" aria-label="Salary payment history">
+
+  <!-- ── Header ── -->
+  <div class="ph-header">
+    <div class="ph-header-left">
+      <div class="ph-header-icon"><i class="fa fa-history"></i></div>
+      <div>
+        <div class="ph-header-title">Payment History</div>
+        <div class="ph-header-sub">
+          {{ historyData?.fullName || historyRecord?.fullName }}
+          <span *ngIf="historyData"> · {{ historyData.paymentCount }} payment(s)</span>
+        </div>
+      </div>
+    </div>
+    <button class="ph-close" (click)="closeHistoryModal()" aria-label="Close">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+
+  <!-- ── Totals strip ── -->
+  <div class="ph-stats" *ngIf="historyData">
+    <div class="ph-stat">
+      <div class="ph-stat-val ph-stat-paid">{{ formatINR(historyData.totalPaidAllTime) }}</div>
+      <div class="ph-stat-lbl">Total Paid (All Time)</div>
+    </div>
+    <div class="ph-stat-sep"></div>
+    <div class="ph-stat">
+      <div class="ph-stat-val">{{ historyData.months.length }}</div>
+      <div class="ph-stat-lbl">Salary Periods</div>
+    </div>
+    <div class="ph-stat-sep"></div>
+    <div class="ph-stat">
+      <div class="ph-stat-val">{{ historyData.paymentCount }}</div>
+      <div class="ph-stat-lbl">Transactions</div>
+    </div>
+  </div>
+
+  <!-- ── Body ── -->
+  <div class="ph-body">
+
+    <div class="ph-loading" *ngIf="isLoadingHistory">
+      <i class="fa fa-spinner fa-spin"></i> Loading payment history…
+    </div>
+
+    <div class="no-data" *ngIf="!isLoadingHistory && (!historyData || historyData.months.length === 0)">
+      <i class="fa fa-inbox"></i>
+      <p>No salary payments recorded for this employee yet.</p>
+    </div>
+
+    <!-- One block per salary period, newest first -->
+    <div class="ph-month" *ngFor="let m of historyData?.months; trackBy: trackByMonth">
+
+      <button class="ph-month-header" (click)="toggleMonth(m.month)"
+              [attr.aria-expanded]="!isMonthCollapsed(m.month)">
+        <span class="ph-month-left">
+          <i class="fa ph-month-caret"
+             [class.fa-chevron-down]="!isMonthCollapsed(m.month)"
+             [class.fa-chevron-right]="isMonthCollapsed(m.month)"></i>
+          <span class="ph-month-label">{{ m.monthLabel }}</span>
+          <span class="badge" [class.badge-success]="m.isFullyPaid" [class.badge-warning]="!m.isFullyPaid">
+            {{ m.isFullyPaid ? 'Paid' : 'Pending' }}
+          </span>
+        </span>
+        <span class="ph-month-right">
+          <span class="ph-month-figure">
+            <span class="ph-month-figure-lbl">Payable</span>
+            <span class="ph-month-figure-val">{{ formatINR(m.netPayableSalary) }}</span>
+          </span>
+          <span class="ph-month-figure">
+            <span class="ph-month-figure-lbl">Paid</span>
+            <span class="ph-month-figure-val ph-paid">{{ formatINR(m.totalPaid) }}</span>
+          </span>
+          <span class="ph-month-figure" *ngIf="m.pendingAmount > 0">
+            <span class="ph-month-figure-lbl">Pending</span>
+            <span class="ph-month-figure-val ph-pending">{{ formatINR(m.pendingAmount) }}</span>
+          </span>
+        </span>
+      </button>
+
+      <div class="table-container ph-table-wrap" *ngIf="!isMonthCollapsed(m.month)">
+        <div class="table-responsive">
+          <table class="data-table ph-table">
+            <thead>
+              <tr>
+                <th>Payment Date</th>
+                <th>Component</th>
+                <th class="ph-num">Amount</th>
+                <th>Mode</th>
+                <th>Reference No.</th>
+                <th>Status</th>
+                <th>Proof</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let pay of m.payments; trackBy: trackByPaymentId">
+                <td>{{ formatPaymentDate(pay.paymentDate) }}</td>
+                <td>
+                  <span class="pay-for-badge" [ngClass]="paymentForClass(pay.paymentSource)">
+                    {{ paymentForLabel(pay.paymentSource) }}
+                  </span>
+                </td>
+                <td class="ph-num ph-amount">{{ formatINR(pay.paymentAmount) }}</td>
+                <td>
+                  <span class="pay-mode-badge" [ngClass]="paymentModeClass(pay.paymentMode)">
+                    <i class="fa" [ngClass]="paymentModeIcon(pay.paymentMode)"></i>
+                    {{ pay.paymentModeName || paymentModeLabel(pay.paymentMode) }}
+                  </span>
+                </td>
+                <td class="ph-ref">{{ pay.transactionReference || '—' }}</td>
+                <td>
+                  <span class="pay-status-badge" [ngClass]="paymentStatusClass(pay.paymentStatus)">
+                    {{ pay.paymentStatusName || paymentStatusLabel(pay.paymentStatus) }}
+                  </span>
+                </td>
+                <td>
+                  <button *ngIf="pay.hasPaymentProof"
+                          type="button"
+                          class="btn-action btn-view"
+                          (click)="viewPaymentProof(pay)"
+                          [disabled]="proofLoadingId === pay.paymentId"
+                          [title]="pay.proofFileName || 'View payment proof'">
+                    <i class="fa"
+                       [class.fa-spinner]="proofLoadingId === pay.paymentId"
+                       [class.fa-spin]="proofLoadingId === pay.paymentId"
+                       [class.fa-image]="proofLoadingId !== pay.paymentId"></i>
+                  </button>
+                  <span class="ph-no-proof" *ngIf="!pay.hasPaymentProof">—</span>
+                </td>
+                <td class="ph-remarks">{{ pay.remarks || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="ph-footer">
+    <button class="btn btn-outline-secondary" (click)="closeHistoryModal()">
       <i class="fa fa-times"></i> Close
     </button>
   </div>

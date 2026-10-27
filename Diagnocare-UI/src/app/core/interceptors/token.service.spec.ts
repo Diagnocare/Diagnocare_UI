@@ -99,13 +99,48 @@ describe('TokenService', () => {
   // ── Pathology policy cache ──────────────────────────────────────────────────
 
   describe('hasCachedPolicies', () => {
+    // beforeEach clears sessionStorage only; these three live in localStorage.
+    beforeEach(() => service.clearCachedPolicies());
+    afterEach(() => service.clearCachedPolicies());
+
     it('returns false when nothing has been cached yet', () => {
       expect(service.hasCachedPolicies()).toBeFalse();
     });
 
-    it('returns true once the grace buffer has been cached', () => {
+    it('returns true once all three policies have been cached', () => {
       service.setGraceBufferMinutes(10);
+      service.setMaxDiscountPercent(30);
+      service.setSessionLockoutMinutes(15);
       expect(service.hasCachedPolicies()).toBeTrue();
+    });
+
+    // A half-warm cache must not close the gate: AppComponent would skip the
+    // refetch and leave the missing setting on its default for the whole
+    // session — the add-patient screen validating against 50% instead of the
+    // lab's real limit.
+    it('returns false when only the grace buffer has been cached', () => {
+      service.setGraceBufferMinutes(10);
+      expect(service.hasCachedPolicies()).toBeFalse();
+    });
+
+    it('returns false when max discount is missing', () => {
+      service.setGraceBufferMinutes(10);
+      service.setSessionLockoutMinutes(15);
+      expect(service.hasCachedPolicies()).toBeFalse();
+    });
+
+    it('returns false when session lockout is missing', () => {
+      service.setGraceBufferMinutes(10);
+      service.setMaxDiscountPercent(30);
+      expect(service.hasCachedPolicies()).toBeFalse();
+    });
+
+    it('caches a 0 max discount as a real value, not a missing one', () => {
+      service.setGraceBufferMinutes(10);
+      service.setMaxDiscountPercent(0);
+      service.setSessionLockoutMinutes(15);
+      expect(service.hasCachedPolicies()).toBeTrue();
+      expect(service.getMaxDiscountPercent()).toBe(0);
     });
 
     it('clearCachedPolicies resets all three cached values', () => {

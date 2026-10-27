@@ -5,11 +5,11 @@
             <h2>Patient Management System</h2>
             <p class="subtitle">Manage patient records and reports</p>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-primary" (click)="navigateToAddPatient()">
+        <!-- <div class="header-actions">
+            <button class="btn btn-primary" *ngIf="!isCollectionBoy" (click)="navigateToAddPatient()">
                 <i class="fa fa-plus"></i> Add New Patient
             </button>
-        </div>
+        </div> -->
     </div>
     <div class="content-container">
 
@@ -152,7 +152,10 @@
             </td>
             <td data-label="Patient">
                 <div class="patient-info">
-                    <strong>{{patient.patient_Name}}</strong>
+                    <strong>
+                        <a href="javascript:void(0)" class="patient-name-link" title="View patient details"
+                           (click)="openDetails(patient); $event.preventDefault()">{{patient.patient_Name}}</a>
+                    </strong>
                     <small>{{patient.relative_Name}}</small>
                 </div>
             </td>
@@ -202,8 +205,10 @@
             <div class="action-buttons">
                 <ng-container *ngIf="!isDeactivatedView(); else deactivatedActions">
                     <app-action-btn type="view"   title="View Tests"    (clicked)="viewPatientTest(patient.patient_Id)"></app-action-btn>
-                    <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
-                    <app-action-btn type="delete" title="Deactivate Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
+                    <ng-container *ngIf="!isCollectionBoy">
+                        <app-action-btn type="edit"   title="Edit Patient"  (clicked)="editPatient(patient.patient_Id)"></app-action-btn>
+                        <app-action-btn type="delete" title="Deactivate Patient" (clicked)="confirmDelete(patient.patient_Id)"></app-action-btn>
+                    </ng-container>
                 </ng-container>
                 <ng-template #deactivatedActions>
                     <app-action-btn type="reactivate"  title="Reactivate Patient"      (clicked)="confirmReactivate(patient.patient_Id)"></app-action-btn>
@@ -250,6 +255,40 @@
             <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">Last</button>
         </div>
     </div>
+    </div>
+</div>
+
+<!-- Patient details popup — opened by clicking a patient's name. Read-only. -->
+<div class="pd-backdrop" *ngIf="detailsPatient as p" (click)="closeDetails()">
+    <div class="pd-dialog" role="dialog" aria-modal="true" aria-label="Patient details" (click)="$event.stopPropagation()">
+        <div class="pd-head">
+            <div>
+                <h3>{{ p.patient_Name }}</h3>
+                <span class="pd-sub">{{ p.patient_Id }} · {{ getDisplayAge(p.patient_Age) }} / {{ p.patient_Gender }}</span>
+            </div>
+            <button type="button" class="pd-close" aria-label="Close" (click)="closeDetails()">&times;</button>
+        </div>
+        <dl class="pd-body">
+            <dt><i class="fa fa-phone"></i> Phone</dt>
+            <dd>
+                <ng-container *ngIf="p.patientDialingContact; else pdNone">
+                    {{ p.patientDialingContact }}
+                    <a *ngIf="telHref(p) as tel" class="pd-action" [href]="tel"><i class="fa fa-phone"></i> Call</a>
+                </ng-container>
+            </dd>
+            <dt><i class="fa fa-map-marker-alt"></i> Address</dt>
+            <dd>
+                <ng-container *ngIf="p.patient_Address; else pdNone">
+                    {{ p.patient_Address }}
+                    <a *ngIf="mapHref(p) as map" class="pd-action" [href]="map" target="_blank" rel="noopener"><i class="fa fa-directions"></i> Directions</a>
+                </ng-container>
+            </dd>
+            <dt>Relative</dt>
+            <dd><ng-container *ngIf="p.relative_Name; else pdNone">{{ p.relative_Name }}<ng-container *ngIf="p.relation"> ({{ p.relation }})</ng-container></ng-container></dd>
+            <dt>Date of birth</dt>
+            <dd><ng-container *ngIf="p.patient_DOB; else pdNone">{{ p.patient_DOB }}</ng-container></dd>
+        </dl>
+        <ng-template #pdNone><span class="text-muted">—</span></ng-template>
     </div>
 </div>
 

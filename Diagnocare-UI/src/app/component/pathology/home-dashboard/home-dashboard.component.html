@@ -23,7 +23,7 @@
 
   <ng-container *ngIf="!isLicenceExpired">
 
-    <!-- ── 1. What do you want to do? ─────────────────────────────────────── -->
+    <!-- ── 1. What do you want to do? ───────────────────────────────────────
     <section aria-labelledby="hdTasks">
       <h3 class="hd-section" id="hdTasks">What do you want to do?</h3>
       <div class="hd-tasks">
@@ -43,7 +43,7 @@
           <span class="hd-task-hint">{{ t.hint }}</span>
         </a>
       </div>
-    </section>
+    </section> -->
 
     <!-- ── 2. Today in numbers ────────────────────────────────────────────── -->
     <section class="hd-kpis" aria-label="Today in numbers">
@@ -101,19 +101,19 @@
       <div class="hd-panel-head">
         <div>
           <h3>Where the work is</h3>
-          <p>Every sample moves left to right. Tap a step to see who is in it.</p>
+          <p>Every sample moves left to right. A count of what is in each step right now.</p>
         </div>
         <a routerLink="/work" class="hd-link">Open work queue <i class="fa fa-arrow-right" aria-hidden="true"></i></a>
       </div>
 
       <ol class="hd-pipe">
         <li *ngFor="let s of pipeline; let last = last">
-          <a class="hd-stage hd-stage--{{ s.tone }}" [routerLink]="'/work'" [queryParams]="{ queue: s.queue }">
+          <div class="hd-stage hd-stage--{{ s.tone }}">
             <i class="fa {{ s.icon }}" aria-hidden="true"></i>
             <span class="hd-stage-num">{{ s.count ?? '—' }}</span>
             <span class="hd-stage-label">{{ s.label }}</span>
             <span class="hd-stage-hint">{{ s.hint }}</span>
-          </a>
+          </div>
           <i *ngIf="!last" class="fa fa-chevron-right hd-pipe-arrow" aria-hidden="true"></i>
         </li>
       </ol>
@@ -147,7 +147,6 @@
         <div class="hd-empty" *ngIf="!summaryLoading && bookings.length === 0">
           <i class="fa fa-calendar-day" aria-hidden="true"></i>
           <p><strong>No bookings yet today.</strong> They appear here as soon as the first patient is registered.</p>
-          <a *ngIf="access.labOps" routerLink="/patients/add" class="hd-btn">Register a patient</a>
         </div>
         <div class="hd-empty" *ngIf="summaryLoading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading…</div>
       </section>

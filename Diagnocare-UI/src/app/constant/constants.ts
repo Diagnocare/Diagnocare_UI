@@ -1,5 +1,4 @@
-import { get } from "@okta/okta-auth-js";
-import { ReportConfig } from "../models/summaryReport/summaryReportModel";
+import { ReportConfig, ReportLevelOption } from "../models/summaryReport/summaryReportModel";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
 export const DEFAULT_DIALING_CODE = '+91';
@@ -29,6 +28,11 @@ export const controllerEndpoints = {
   template:   'api/template/',
   attendance: 'api/attendance/',
   salary:     'api/salary/',
+  /**
+   * Paid leave: accumulated balances and the year-end carry-forward. Its own controller
+   * because a leave balance spans the whole year, while Attendance is per day.
+   */
+  leave:      'api/Leave/',
   holiday:       'api/holiday/',
   visitSchedule: 'api/visitSchedule/',
   feedback:      'api/feedback/',
@@ -42,6 +46,12 @@ export const controllerEndpoints = {
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
   sampleRejection: 'api/SampleRejection/',
+  /**
+   * The sample breakdown — how a booking's tests distribute across the tubes that have to
+   * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
+   * this one answers how many tubes there are.
+   */
+  sample: 'api/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
@@ -72,7 +82,7 @@ export const apiEndpoints = {
   fpAssertComplete:  "assert/complete",  // POST api/Fingerprint/assert/complete?userName=
   fpDisable:         "disable",          // POST api/Fingerprint/disable?userName=
   resetPassword: 'ForgotPassword',
-  validateOldPassword:"ValidateOldPassword",
+  changePassword:"ChangePassword",
   getPathologyExpiryDate:"GetPathologyExpiryDate",
   getSerialNPatientId:"GetSerialNPatientId",
   searchPatients:"SearchPatients",
@@ -94,8 +104,6 @@ export const apiEndpoints = {
   sendProfileOtp:"SendProfileOtp",
   verifyProfileOtp:"VerifyProfileOtp",
   refreshToken:"RefreshToken",
-  generateJWTToken: "GenerateJWTToken",
-  authCredentialsEndpoint: 'GetBasicAuthCredentials',
   getAllList: 'GetAllList',
 
   // ── Worklist ──
@@ -143,6 +151,14 @@ export const apiEndpoints = {
   getTestProtocols:"GetTestProtocols",
   /** Protocols for a whole basket of tests, by test code. POST — the code list can be long. */
   getTestProtocolsByCodes:"GetTestProtocolsByCodes",
+  /**
+   * The tube count for an existing booking. Attribute-routed on the API
+   * (api/Sample/booking/{testRegId}), so the id is appended to this path by the caller
+   * rather than passed as a query string.
+   */
+  getSampleBreakdownForBooking:"booking/",
+  /** The tube count for a basket of test codes, before a booking exists. POST. */
+  getSampleBreakdownByCodes:"by-codes",
   /** Which library protocol a test's name suggests. Admin / Super Admin only. */
   suggestTestProtocol:"SuggestTestProtocol",
   /** Creates or updates a lab-authored protocol. Admin / Super Admin only. */
@@ -230,12 +246,33 @@ export const apiEndpoints = {
   getMyPayments:            'GetMyPayments',
   /** Self-service — returns a PDF receipt for a single salary payment (ownership-validated) */
   generateMyPaymentReceipt: 'GenerateMyPaymentReceipt',
+  /** Full salary payment history for one employee, grouped by salary period */
+  getPaymentHistory:        'GetPaymentHistory',
+  /** Attaches a payment screenshot / receipt to an existing payment (multipart) */
+  uploadPaymentProof:       'UploadPaymentProof',
+  /** Downloads the proof attached to a payment */
+  getPaymentProof:          'GetPaymentProof',
+  /** Removes the proof attached to a payment, leaving the payment itself */
+  deletePaymentProof:       'DeletePaymentProof',
+  /** Self-service — downloads the proof for one of the caller's own payments */
+  getMyPaymentProof:        'GetMyPaymentProof',
   /** Maps to DB column token_expiry_in_minutes — stores the PIN grace buffer duration */
   updateGraceBuffer:        'UpdateGraceBuffer',
   /** Admin-only — updates the max discount percentage (0–99) any user may apply */
   updateMaxDiscount:        'UpdateMaxDiscount',
   /** Admin-only — updates how many minutes hidden before screen-lock fires (0 = disabled) */
   updateSessionLockout:     'UpdateSessionLockout',
+  /** Super Admin only - share of the annual paid-leave entitlement that may carry over (0-100) */
+  updatePaidLeaveCarryForward: 'UpdatePaidLeaveCarryForward',
+  // Paid leave (LeaveController)
+  /** The caller's own accumulated paid-leave balance for a leave year */
+  myLeaveBalance:        'MyBalance',
+  /** Super Admin - one employee's paid-leave balance */
+  leaveBalance:          'Balance',
+  /** Super Admin - what the year-end carry-forward would do, without writing */
+  leaveYearEndPreview:   'YearEndPreview',
+  /** Super Admin - commits the year-end carry-forward (idempotent per employee and year) */
+  runLeaveYearEnd:       'RunYearEnd',
   getMFAStatus:             'status',          // GET  api/Mfa/status
   setupMFA:                 'setup',           // POST api/Mfa/setup
   confirmMfaSetup:          'confirm-setup',   // POST api/Mfa/confirm-setup
@@ -358,7 +395,7 @@ export const profileMenu = {
   settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
   changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
   // Authenticator App is now a section inside Settings (see settings page).
-  help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
+  // help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
 };
 
 export const labOperationMenu = {
@@ -425,6 +462,13 @@ export const userOptions: Record<string, {
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {
   patientRegister:        { id: 'patient-register',        label: 'Patient Register',               icon: 'fa-users'        },
   referrerCollection:     { id: 'referrer-collection',     label: 'Referrer Collection',            icon: 'fa-users-cog'    },
+  // Collection grouped by the doctor who REPORTED the test, as opposed to the
+  // doctor who referred the patient (that is Referrer Collection, above).
+  // The route and the component for this have existed all along; the menu
+  // entry and the two config entries below had not, so the page was reachable
+  // only by typing the URL — and then it threw, because table-report looks its
+  // reportId up in reportConfigs and found nothing.
+  reportingDoctorWise:    { id: 'reporting-doctor-wise',   label: 'Reporting Doctor Wise',          icon: 'fa-user-doctor'  },
   discountAuthorityWise:  { id: 'discount-authority-wise', label: 'Discount Authority Wise',        icon: 'fa-percent'      },
   patientHistoryWise:     { id: 'patient-history-wise',    label: 'Patient History Wise',           icon: 'fa-history'      },
   worksheetReport:        { id: 'worksheet',               label: 'Worksheet Report',               icon: 'fa-tasks'        },
@@ -432,19 +476,23 @@ export const summaryReportMenu: { [key: string]: { id: string; label: string; ic
   patientDiagnosisReport: { id: 'patient-diagnosis',       label: 'Patient Diagnosis Report',       icon: 'fa-heartbeat'    },
   pndtTestReport:         { id: 'pndt-test',               label: 'PNDT Test Report',               icon: 'fa-flask'        },
   masterTestList:         { id: 'master-test-list',        label: 'Master Test List',               icon: 'fa-database'     },
-  rateList:               { id: 'rate-list',               label: 'Rate List',                      icon: 'fa-tag'          },
   addressManagerReport:   { id: 'address-manager',         label: 'Address Manager Report',         icon: 'fa-map-marker'   },
   tpaReport:              { id: 'tpa-report',              label: 'TPA Report',                     icon: 'fa-link'         },
 };
 
 export const summaryReportApiEndpoints: { [key: string]: string } = {
   patientRegister:      'patient-registrations',
-  // Legacy individual endpoints (kept for backward compatibility / output-to-file)
+  // Legacy individual endpoints. The Reports pages that called these were
+  // merged into referrer-collection and register-reports, but the API still
+  // serves them and table-report still resolves them by name, so they stay.
   doctorWiseCollection: 'doctor-wise-collection',
   panelCompanyWise:     'panel-company-wise',
   collectionBoysWise:   'collection-boys-wise',
   // Merged referrer report
   referrerCollection:   'referrer-collection',
+  // Served by SummaryReportController.GetReportingDoctorWise, which groups
+  // collection by the "ReportingDoctor" referrer type.
+  reportingDoctorWise:  'reporting-doctor-wise',
   discountAuthorityWise: 'discount-authority-wise',
   patientHistoryWise:   'patient-history-wise',
   worksheetReport:      'worksheet-report',
@@ -456,17 +504,36 @@ export const summaryReportApiEndpoints: { [key: string]: string } = {
   billRegister:         'bill-register',
   patientDiagnosisReport: 'patient-diagnosis-report',
   pndtTestReport:       'pndt-test-report',
-  masterTestList:       'master-test-list',
-  rateList:             'rate-list',
+  // The Master Test List report shows collection summarised by catalogue level
+  // (group / sub-group / test), so it calls the hierarchy endpoint. The flat
+  // 'master-test-list' catalogue endpoint is still served and still backs the
+  // CSV export from the report filter bar.
+  masterTestList:       'master-test-collection',
   addressManagerReport: 'address-manager-report',
   tpaReport:            'tpa-report',
 };
+
+/**
+ * Levels the test catalogue can be summarised at, widest first.
+ *
+ * Drives the "View by" selector on the Master Test List report: the value is sent
+ * to the API as GroupBy and the whole report — table, totals and chart — comes
+ * back rolled up to that level.
+ */
+export const testHierarchyLevels: ReportLevelOption[] = [
+  { value: 'group',    label: 'Group',     icon: 'fa-layer-group' },
+  { value: 'subgroup', label: 'Sub Group', icon: 'fa-sitemap'     },
+  { value: 'test',     label: 'Test',      icon: 'fa-vial'        },
+];
 
 // All reports return { currentYear: [{period, count}], previousYear: [{period, count}] }
 // so configs are simplified — no per-report columns needed.
 export const reportConfigs: { [key: string]: ReportConfig } = {
   patientRegister:        { id: 'patientRegister',        label: 'Patient Register',               icon: 'fa-users',        endpoint: summaryReportApiEndpoints['patientRegister'],        defaultChartType: 'bar', digitInfo: '1.0-0' },
   referrerCollection:     { id: 'referrerCollection',     label: 'Referrer Collection',            icon: 'fa-users-cog',    endpoint: summaryReportApiEndpoints['referrerCollection'],     defaultChartType: 'bar', digitInfo: '1.2-2' },
+  // Same response envelope as tpaReport (CollectionSummaryReportDto), so it
+  // takes the same chart type and money formatting.
+  reportingDoctorWise:    { id: 'reportingDoctorWise',    label: 'Reporting Doctor Wise',          icon: 'fa-user-doctor',  endpoint: summaryReportApiEndpoints['reportingDoctorWise'],    defaultChartType: 'bar', digitInfo: '1.2-2' },
   discountAuthorityWise:  { id: 'discountAuthorityWise',  label: 'Discount Authority Wise report', icon: 'fa-percent',      endpoint: summaryReportApiEndpoints['discountAuthorityWise'],  defaultChartType: 'doughnut', digitInfo: '1.2-2' },
   patientHistoryWise:     { id: 'patientHistoryWise',     label: 'Patient history wise',           icon: 'fa-history',      endpoint: summaryReportApiEndpoints['patientHistoryWise'],     defaultChartType: 'line', digitInfo: '1.2-2' },
   worksheetReport:        { id: 'worksheetReport',        label: 'Worksheet report',               icon: 'fa-tasks',        endpoint: summaryReportApiEndpoints['worksheetReport'],        defaultChartType: 'bar', digitInfo: '1.2-2' },
@@ -477,9 +544,15 @@ export const reportConfigs: { [key: string]: ReportConfig } = {
   refundRegister:         { id: 'refundRegister',         label: 'Refund Register',                icon: 'fa-undo',         endpoint: summaryReportApiEndpoints['refundRegister'],         defaultChartType: 'bar',      digitInfo: '1.0-0' },
   patientDiagnosisReport: { id: 'patientDiagnosisReport', label: 'Patient Diagnosis Report',       icon: 'fa-heartbeat',    endpoint: summaryReportApiEndpoints['patientDiagnosisReport'], defaultChartType: 'pie', digitInfo: '1.2-2' },
   pndtTestReport:         { id: 'pndtTestReport',         label: 'PNDT Test Report',               icon: 'fa-flask-empty',  endpoint: summaryReportApiEndpoints['pndtTestReport'],         defaultChartType: 'bar', digitInfo: '1.2-2' },
-  masterTestList:         { id: 'masterTestList',         label: 'Master Test List',               icon: 'fa-database',     endpoint: summaryReportApiEndpoints['masterTestList'],         defaultChartType: 'bar', digitInfo: '1.2-2', noDateFilter: true, noChart: true },
-  rateList:               { id: 'rateList',               label: 'Rate List',                      icon: 'fa-tag',          endpoint: summaryReportApiEndpoints['rateList'],               defaultChartType: 'bar', digitInfo: '1.2-2', noDateFilter: true, noChart: true },
-  addressManagerReport:   { id: 'addressManagerReport',   label: 'Address Manager Report',         icon: 'fa-map-marker',   endpoint: summaryReportApiEndpoints['addressManagerReport'],   defaultChartType: 'bar', digitInfo: '1.2-2', noDateFilter: true },
+  // Collection by catalogue level, not a flat catalogue: "View by" picks the level
+  // (group → sub-group → test) and the date filters scope the collection period.
+  // hiddenCols keeps the report to what a campaign decision needs — what each level
+  // collected and how often it sold. Billing detail (gross, discount, paid) lives on
+  // the collection and register reports; the API still returns it.
+  // At the Test level the rows also carry the catalogue code and rate, which is what
+  // the retired Rate List report showed, so they are left visible here.
+  masterTestList:         { id: 'masterTestList',         label: 'Master Test List',               icon: 'fa-database',     endpoint: summaryReportApiEndpoints['masterTestList'],         defaultChartType: 'bar', digitInfo: '1.2-2', levelOptions: testHierarchyLevels, defaultChartCol: 'totalNetCollection', hiddenCols: ['totalTestAmount', 'totalDiscount', 'totalAmountPaid'] },
+  addressManagerReport:   { id: 'addressManagerReport',   label: 'Address Manager Report',         icon: 'fa-map-marker',   endpoint: summaryReportApiEndpoints['addressManagerReport'],   defaultChartType: 'bar', digitInfo: '1.2-2' },
   tpaReport:              { id: 'tpaReport',              label: 'TPA report',                     icon: 'fa-link',         endpoint: summaryReportApiEndpoints['tpaReport'],              defaultChartType: 'bar', digitInfo: '1.2-2' },
 };
 

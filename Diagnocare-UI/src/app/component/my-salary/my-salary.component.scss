@@ -43,11 +43,11 @@
   gap: 0.9em;
   padding: 1em 1.15em;
   margin-bottom: 0;
-  border-left: 4px solid var(--primary-color, #1e5ba8);
+  border-left: 4px solid var(--primary-color, var(--color-primary-ink));
 
-  &--paid    { border-left-color: #16a34a; .ms-sum-icon { color: #16a34a; } }
-  &--balance { border-left-color: #f59e0b; .ms-sum-icon { color: #d97706; } }
-  &--status  { border-left-color: #6366f1; .ms-sum-icon { color: #6366f1; } }
+  &--paid    { border-left-color: var(--color-success); .ms-sum-icon { color: var(--color-success); } }
+  &--balance { border-left-color: var(--color-warning); .ms-sum-icon { color: var(--color-warning); } }
+  &--status  { border-left-color: var(--color-primary); .ms-sum-icon { color: var(--color-primary); } }
 }
 
 .ms-sum-icon { font-size: 1.5em; flex-shrink: 0; line-height: 1; }
@@ -57,7 +57,7 @@
   font-size: 1.25em;
   font-weight: 800;
   line-height: 1.15;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
 }
 
 .ms-sum-label {
@@ -66,7 +66,7 @@
   margin-top: 0.25em;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 }
 
 .ms-status-badge {
@@ -77,9 +77,9 @@
   font-weight: 700;
   width: fit-content;
 
-  &.status-settled { background: #dcfce7; color: #166534; }
-  &.status-partial { background: #fef3c7; color: #92400e; }
-  &.status-unpaid  { background: #fee2e2; color: #991b1b; }
+  &.status-settled { background: var(--color-success-bg); color: var(--color-success); }
+  &.status-partial { background: var(--color-warning-bg); color: var(--color-warning); }
+  &.status-unpaid  { background: var(--color-error-bg); color: var(--color-error); }
 }
 
 // ── Full / Partial type badge (table) ───────────────────────────────
@@ -90,8 +90,8 @@
   font-size: 0.78em;
   font-weight: 700;
 
-  &.full    { background: #dcfce7; color: #166534; }
-  &.partial { background: #fef3c7; color: #92400e; }
+  &.full    { background: var(--color-success-bg); color: var(--color-success); }
+  &.partial { background: var(--color-warning-bg); color: var(--color-warning); }
 }
 
 // ── Payment Mode / Type cell (badge + receipt icon) ─────────────────
@@ -107,7 +107,7 @@
   padding: 0.15em 0.55em;
   border-radius: 6px;
   background: rgba(102, 126, 234, 0.1);
-  color: var(--primary-color, #1e5ba8);
+  color: var(--primary-color, var(--color-primary-ink));
   font-weight: 600;
   font-size: 0.85em;
   white-space: nowrap;
@@ -145,7 +145,7 @@
   border-radius: 8px;
   border: 1.5px solid rgba(255, 255, 255, 0.45);
   background-color: rgba(255, 255, 255, 0.95);
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   font-size: 0.9em;
   font-weight: 600;
   cursor: pointer;
@@ -175,7 +175,7 @@
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.9);
-    color: var(--primary-color, #1e5ba8);
+    color: var(--primary-color, var(--color-primary-ink));
     transform: scale(1.08);
   }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -208,11 +208,11 @@
   margin-bottom: 1em;
   border-radius: var(--radius-md, 0.5em);
   background: rgba(255, 255, 255, 0.9);
-  border-left: 4px solid var(--primary-color, #1e5ba8);
+  border-left: 4px solid var(--primary-color, var(--color-primary-ink));
   color: var(--text-primary, #334155);
   font-size: 0.9em;
 
-  i { color: var(--primary-color, #1e5ba8); }
+  i { color: var(--primary-color, var(--color-primary-ink)); }
 }
 
 // ── Simple figures block (plain "User" role) ───────────────────────
@@ -227,12 +227,12 @@
   gap: 0.5em;
   font-size: 1.05em;
   font-weight: 700;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary, var(--color-text-primary));
   margin-bottom: 0.9em;
   padding-bottom: 0.7em;
-  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-bottom: 1px solid var(--border-color, var(--color-border));
 
-  i { color: var(--primary-color, #1e5ba8); }
+  i { color: var(--primary-color, var(--color-primary-ink)); }
 }
 
 .ms-simple-row {
@@ -246,19 +246,19 @@
 
 .ms-simple-label {
   font-size: 0.9em;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
   font-weight: 500;
 }
 
 .ms-simple-value {
   font-size: 1em;
   font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   font-variant-numeric: tabular-nums;
 
   &.strong  { font-size: 1.15em; }
-  &.paid    { color: #16a34a; }
-  &.pending { color: #d97706; }
+  &.paid    { color: var(--color-success); }
+  &.pending { color: var(--color-warning); }
 }
 
 // ── Summary tiles ───────────────────────────────────────────────────
@@ -279,15 +279,15 @@
   gap: 1em;
   padding: 1.1em 1.25em;
   margin-bottom: 0;
-  border-left: 4px solid var(--primary-color, #1e5ba8);
+  border-left: 4px solid var(--primary-color, var(--color-primary-ink));
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
   &:hover { transform: translateY(-2px); box-shadow: var(--shadow-medium); }
 
-  &--base    { border-left-color: #3b82f6; .ms-tile-icon { color: #2563eb; } }
-  &--net     { border-left-color: #8b5cf6; .ms-tile-icon { color: #7c3aed; } }
-  &--paid    { border-left-color: #16a34a; .ms-tile-icon { color: #16a34a; } }
-  &--pending { border-left-color: #f59e0b; .ms-tile-icon { color: #d97706; } }
+  &--base    { border-left-color: var(--color-info); .ms-tile-icon { color: var(--color-info); } }
+  &--net     { border-left-color: var(--color-accent); .ms-tile-icon { color: var(--color-accent); } }
+  &--paid    { border-left-color: var(--color-success); .ms-tile-icon { color: var(--color-success); } }
+  &--pending { border-left-color: var(--color-warning); .ms-tile-icon { color: var(--color-warning); } }
 }
 
 .ms-tile-icon {
@@ -303,7 +303,7 @@
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.01em;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
 }
 
 .ms-tile-label {
@@ -312,11 +312,11 @@
   margin-top: 0.25em;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 }
 
 // ── History card header ─────────────────────────────────────────────
-.card-header h3 i { margin-right: 0.4em; color: var(--primary-color, #1e5ba8); }
+.card-header h3 i { margin-right: 0.4em; color: var(--primary-color, var(--color-primary-ink)); }
 
 // ── Table cell accents (data-table handles base styling globally) ───
 .data-table {
@@ -325,10 +325,10 @@
 
   td.num          { font-variant-numeric: tabular-nums; }
   td.strong       { font-weight: 700; }
-  td.muted        { color: var(--text-secondary, #9ca3af); }
-  td.deduction:not(.muted)   { color: #dc2626; }
-  td.paid-amt                { color: #16a34a; font-weight: 600; }
-  td.pending-amt:not(.muted) { color: #d97706; font-weight: 600; }
+  td.muted        { color: var(--text-secondary, var(--color-text-muted)); }
+  td.deduction:not(.muted)   { color: var(--color-error); }
+  td.paid-amt                { color: var(--color-success); font-weight: 600; }
+  td.pending-amt:not(.muted) { color: var(--color-warning); font-weight: 600; }
 }
 
 .month-badge {
@@ -336,7 +336,7 @@
   padding: 0.2em 0.6em;
   border-radius: 6px;
   background: rgba(102, 126, 234, 0.12);
-  color: var(--primary-color, #1e5ba8);
+  color: var(--primary-color, var(--color-primary-ink));
   font-weight: 600;
   font-size: 0.9em;
   white-space: nowrap;
@@ -347,18 +347,18 @@
 .data-table tbody tr.ms-row-active:hover {
   background-color: rgba(102, 126, 234, 0.14) !important;
 
-  td:first-child { box-shadow: inset 3px 0 0 var(--primary-color, #1e5ba8); }
+  td:first-child { box-shadow: inset 3px 0 0 var(--primary-color, var(--color-primary-ink)); }
 }
 
 // Clickable history rows (download receipt)
 .data-table tbody tr.ms-row-clickable {
   cursor: pointer;
 
-  &:hover .ms-receipt-icon { color: #b91c1c; transform: scale(1.15); }
+  &:hover .ms-receipt-icon { color: var(--color-error); transform: scale(1.15); }
 }
 
 .ms-receipt-icon {
-  color: #dc2626;
+  color: var(--color-error);
   font-size: 1.05em;
   transition: transform 0.12s ease, color 0.12s ease;
 }
@@ -367,9 +367,9 @@
 .card-header .ms-hint {
   font-size: 0.78em;
   font-weight: 500;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 
-  i { color: #dc2626; margin-right: 0.3em; }
+  i { color: var(--color-error); margin-right: 0.3em; }
 }
 
 // ── Status badges ───────────────────────────────────────────────────
@@ -380,9 +380,9 @@
   font-size: 0.78em;
   font-weight: 600;
 
-  &.badge-paid    { background: #dcfce7; color: #166534; }
-  &.badge-partial { background: #dbeafe; color: #1e40af; }
-  &.badge-pending { background: #fef3c7; color: #92400e; }
+  &.badge-paid    { background: var(--color-success-bg); color: var(--color-success); }
+  &.badge-partial { background: var(--color-info-bg); color: var(--color-info); }
+  &.badge-pending { background: var(--color-warning-bg); color: var(--color-warning); }
 }
 
 // ── Empty / error states ────────────────────────────────────────────
@@ -392,21 +392,21 @@
 
   .empty-icon {
     font-size: 2.75em;
-    color: var(--text-secondary, #9ca3af);
+    color: var(--text-secondary, var(--color-text-muted));
     margin-bottom: 0.6em;
     opacity: 0.85;
 
-    &.error { color: #dc2626; opacity: 1; }
+    &.error { color: var(--color-error); opacity: 1; }
   }
 
-  h3 { margin: 0 0 0.4em; font-size: 1.15em; color: var(--text-primary, #374151); }
-  p  { margin: 0 0 1em;   color: var(--text-secondary, #6b7280); }
+  h3 { margin: 0 0 0.4em; font-size: 1.15em; color: var(--text-primary, var(--color-text-primary)); }
+  p  { margin: 0 0 1em;   color: var(--text-secondary, var(--color-text-secondary)); }
 }
 
 .empty-inline {
   padding: 2.5em 1em;
   text-align: center;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, var(--color-text-muted));
 
   i { margin-right: 0.4em; }
 }

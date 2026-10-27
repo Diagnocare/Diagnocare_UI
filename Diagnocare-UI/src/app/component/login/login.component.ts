@@ -19,7 +19,6 @@ import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
-import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -331,13 +330,6 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Use the user's preferred channel (loginType) to auto-select and send OTP
         const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-        // Local development only — skip the code entirely. Guards live in
-        // isLocalSecondFactorSkip; a deployed build never satisfies them.
-        if (this.isLocalSecondFactorSkip) {
-          this.skipSecondFactorForLocalDev(raw.userId);
-          return;
-        }
-
         if (response?.loginType === 4) {
           // Fingerprint (WebAuthn) — no code to type; run the browser ceremony directly.
           this.loginWithFingerprint(raw.userId);
@@ -352,7 +344,6 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.selectedMethod = method as OtpChannel;
           this.showOtpInput   = true;
           this._otpManager.generateOtp({
-            id: this.id,
             userId: raw.userId,
             channel: method as OtpChannel,
           }).subscribe({
@@ -436,7 +427,7 @@ export class LoginComponent implements OnInit, OnDestroy {
    * Called by OtpMfaDialogComponent when the user submits their 6-digit code.
    * Always calls the unified Verify endpoint with the active AuthType.
    *   authType 1 = Mobile, 2 = Email, 3 = AuthenticationApp, 4 = Other
-   *   id = 0 for TOTP (backend loads user by userId); numeric user-id for OTP flows.
+   *   The account is identified server-side from the code itself; no numeric id is sent.
    */
   onOtpVerify(event: { code: string; authType: number }): void {
     const userId = this.loginForm.get('userId')?.value.trim() as string;
@@ -461,7 +452,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     this._loginService.verifyAuth({
       authType: event.authType,
       userId,
-      id:   event.authType === 3 ? 0 : this.id,   // 0 for TOTP; numeric id for OTP
       code: event.code,
     }).subscribe({
       next: (resp) => {
@@ -496,52 +486,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       error: () => {
         this.isVerifyingOtp = false;
         this.toastr.error('Invalid code. Please try again.');
-      },
-    });
-  }
-
-  /**
-   * True only when this build runs on a developer's own machine AND the
-   * environment opts in. Three independent conditions, all required:
-   *
-   *   1. `!environment.production` — a production build can never qualify.
-   *   2. `environment.devSkipSecondFactor` — explicit opt-in; false in the
-   *      production / qa / uat environment files.
-   *   3. The page is served from localhost — so the DEPLOYED dev server, which
-   *      uses the same environment.development.ts, still demands the code.
-   *
-   * Credentials are still validated by the server exactly as normal; only the
-   * OTP / TOTP / fingerprint step is skipped, and only here.
-   */
-  private get isLocalSecondFactorSkip(): boolean {
-    if (environment.production) return false;
-    if (!environment.devSkipSecondFactor) return false;
-
-    const host = window.location.hostname;
-    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
-  }
-
-  /**
-   * Local-dev shortcut: credentials are already validated, so mint the JWT
-   * directly instead of sending a code.
-   */
-  private skipSecondFactorForLocalDev(userId: string): void {
-    console.warn(
-      '[dev] Second factor skipped — local development only. ' +
-      'A deployed build cannot reach this path (see isLocalSecondFactorSkip).');
-
-    this._loginService.generateJwtToken(userId).subscribe({
-      next: (resp: any) => {
-        this.isSubmitting = false;
-        if (resp?.token) {
-          this.handleSuccessfulLogin(resp);
-        } else {
-          this.toastr.error('Local dev sign-in failed — could not issue a token.');
-        }
-      },
-      error: () => {
-        this.isSubmitting = false;
-        this.toastr.error('Local dev sign-in failed — could not issue a token.');
       },
     });
   }
@@ -809,7 +753,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.selectedMethod = method as OtpChannel;
       this.showOtpInput   = true;
       this._otpManager.generateOtp({
-        id:      this.id,
         userId:  this.pendingUserId,
         channel: method as OtpChannel,
       }).subscribe({

@@ -115,15 +115,72 @@ export class BillReceipt implements OnInit {
   get groupNetAmount(): number { return this.activeGroup?.netAmount ?? 0; }
   get groupPrefillAmount(): number { return this.activeGroup?.remaining ?? 0; }
 
-  // ── Card Stack helpers ────────────────────────────────────────────────
+  // ── Booking tabs — only the selected booking's card is rendered ──────
 
   selectCard(i: number): void { this.activeCardIndex = i; }
 
-  isActiveCard(i: number): boolean { return this.activeCardIndex === i; }
+  /** Falls back to the first booking if the index is out of range (e.g. after a reload
+   *  returns fewer bookings), so a card is always shown. */
+  isActiveCard(i: number): boolean {
+    const active = this.activeCardIndex < this.groupCount ? this.activeCardIndex : 0;
+    return active === i;
+  }
 
-  getCardZIndex(i: number): number {
-    if (i === this.activeCardIndex) return this.groupedReceipts.length + 1;
-    return this.groupedReceipts.length - Math.abs(i - this.activeCardIndex);
+  // ── Receipt list: sort + filter (display only) ───────────────────────
+
+  /** Show the filter box only when a booking has enough receipts to need it. */
+  readonly receiptFilterThreshold = 5;
+  newestFirst = true;
+  receiptFilter: Record<number, string> = {};
+
+  toggleSortOrder(event: Event): void {
+    event.stopPropagation();
+    this.newestFirst = !this.newestFirst;
+  }
+
+  /** Receipts of a group as shown in the table — filtered by the search box and sorted by date. */
+  visibleReceipts(group: ReceiptGroup): Receipt[] {
+    const q = (this.receiptFilter[group.patientTestId] || '').trim().toLowerCase();
+    const list = q
+      ? group.receipts.filter(r => [
+          String(r.receiptId),
+          r.paymentMode || '',
+          (r.amountPaid ?? 0).toFixed(2),
+          this.formatDate(r.createdDate),
+          r.isRefunded ? 'refund ' + this.formatDate(r.refundedAt || '') : ''
+        ].join(' ').toLowerCase().includes(q))
+      : [...group.receipts];
+    const time = (r: Receipt) => new Date(r.createdDate).getTime() || 0;
+    return list.sort((a, b) => {
+      const diff = (time(a) - time(b)) || (a.receiptId - b.receiptId);
+      return this.newestFirst ? -diff : diff;
+    });
+  }
+
+  /** Most recent receipt date in a group — shown in the booking navigator. */
+  latestReceiptDate(group: ReceiptGroup): string {
+    const latest = group.receipts.reduce<Receipt | null>((best, r) =>
+      !best || new Date(r.createdDate) > new Date(best.createdDate) ? r : best, null);
+    return latest ? this.formatDate(latest.createdDate).split(' ')[0] : '';
+  }
+
+  // groupedReceipts rebuilds group objects on every check — track by id so cards/rows
+  // (and keyboard focus inside them) are kept instead of being re-rendered.
+  trackGroup = (_: number, g: ReceiptGroup) => g.patientTestId;
+  trackReceipt = (_: number, r: Receipt) => r.receiptId;
+
+  clearReceiptFilter(group: ReceiptGroup, event: Event): void {
+    event.stopPropagation();
+    this.receiptFilter[group.patientTestId] = '';
+  }
+
+  /** Enter / Space on a focused receipt row opens its PDF — same as a click.
+   *  Keys pressed on nested controls (e.g. TPA Details) are left to those controls. */
+  onReceiptRowKeydown(receipt: Receipt, event: Event, kind: 'payment' | 'refund'): void {
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    if (kind === 'refund') this.onRefundRowClick(receipt, event);
+    else this.onReceiptClick(receipt, event);
   }
 
   constructor(
@@ -157,13 +214,20 @@ export class BillReceipt implements OnInit {
     }
   }
 
-  loadReceipts(): void {
+  /** @param keepSelection stay on the currently selected booking tab — used when
+   *  reloading after an action (payment, refund, TPA edit) on that booking. */
+  loadReceipts(keepSelection = false): void {
+    const selectedTestId = keepSelection
+      ? this.groupedReceipts.find((_, i) => this.isActiveCard(i))?.patientTestId
+      : undefined;
+
     this.loadingMessage = 'Loading receipts for: ' + this.inputSearchValue + '…';
     this.isLoading = true;
     this.notFound  = false;
     this.errorMessage = '';
     this.receipts = [];
     this.activeCardIndex = 0;
+    this.receiptFilter = {};
 
     this.receiptService.getReceiptList(this.inputSearchValue).subscribe({
       next: (data) => {
@@ -171,6 +235,9 @@ export class BillReceipt implements OnInit {
         this.showSearchInput = false;
         this.notFound = !this.receipts.length;
         this.isLoading = false;
+        if (selectedTestId != null) {
+          this.activeCardIndex = Math.max(0, this.groupedReceipts.findIndex(g => g.patientTestId === selectedTestId));
+        }
       },
       error: (err) => {
         this.isLoading = false;
@@ -236,7 +303,7 @@ export class BillReceipt implements OnInit {
   onPaymentSaved(): void {
     this.showPaymentModal = false;
     this.activeGroup = null;
-    this.loadReceipts();
+    this.loadReceipts(true);
   }
 
   onPaymentCancelled(): void {
@@ -284,7 +351,7 @@ export class BillReceipt implements OnInit {
       next: () => {
         this.showRefundModal = false;
         this.refundTargetReceipt = null;
-        this.loadReceipts();
+        this.loadReceipts(true);
       },
       error: (err: Error) => {
         this.refundModalRef?.setError(err.message || 'Failed to process refund. Please try again.');
@@ -329,7 +396,7 @@ export class BillReceipt implements OnInit {
         this.tpaSaving    = false;
         this.showTpaModal = false;
         this.tpaModalDetails = null;
-        this.loadReceipts();
+        this.loadReceipts(true);
       },
       error: (err: Error) => {
         this.tpaSaving    = false;

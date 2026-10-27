@@ -33,6 +33,7 @@ import { resolveFirstError } from '../validators/validation-messages';
       font-size: 0.78rem;
       margin-top: 0.2rem;
       line-height: 1.3;
+      text-align: center;
     }
   `]
 })

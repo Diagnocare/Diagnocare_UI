@@ -16,7 +16,6 @@ import { of, throwError } from 'rxjs';
 import { AuthInterceptor } from './auth.interceptor';
 import { TokenService } from './token.service';
 import { LoginService } from 'src/app/services/loginServices/login.service';
-import { AuthConfigService } from 'src/app/services/auth-config.service';
 import { controllerEndpoints } from 'src/app/constant/constants';
 
 describe('AuthInterceptor', () => {
@@ -24,17 +23,13 @@ describe('AuthInterceptor', () => {
   let httpMock: HttpTestingController;
   let tokenService: TokenService;
   let loginService: jasmine.SpyObj<LoginService>;
-  let authConfig: jasmine.SpyObj<AuthConfigService>;
   let router: jasmine.SpyObj<Router>;
 
   const VALID_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwiZXhwIjo5OTk5OTk5OTk5fQ.fakesig';
 
   beforeEach(() => {
     const loginSpy   = jasmine.createSpyObj('LoginService',   ['refreshToken']);
-    const configSpy  = jasmine.createSpyObj('AuthConfigService', ['getBasicAuthHeader']);
     const routerSpy  = jasmine.createSpyObj('Router', ['navigate'], { url: '/dashboard' });
-
-    configSpy.getBasicAuthHeader.and.returnValue('Basic dXNlcjpwYXNz');
 
     TestBed.configureTestingModule({
       providers: [
@@ -42,7 +37,6 @@ describe('AuthInterceptor', () => {
         provideHttpClientTesting(),
         TokenService,
         { provide: LoginService,     useValue: loginSpy  },
-        { provide: AuthConfigService, useValue: configSpy },
         { provide: Router,           useValue: routerSpy },
       ]
     });
@@ -51,7 +45,6 @@ describe('AuthInterceptor', () => {
     httpMock     = TestBed.inject(HttpTestingController);
     tokenService = TestBed.inject(TokenService);
     loginService = TestBed.inject(LoginService) as jasmine.SpyObj<LoginService>;
-    authConfig   = TestBed.inject(AuthConfigService) as jasmine.SpyObj<AuthConfigService>;
     router       = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
     sessionStorage.clear();
@@ -85,15 +78,15 @@ describe('AuthInterceptor', () => {
     req.flush([]);
   });
 
-  // ── Basic Auth for login endpoint ────────────────────────────────────────
+  // ── Pre-login endpoints carry no shared credential (SEC-001) ─────────────
 
-  it('uses Basic Auth header for login endpoint', () => {
+  it('sends no Authorization header to the login endpoint', () => {
     const loginUrl = `/api/${controllerEndpoints.login}/GetUserDetails`;
 
     httpClient.post(loginUrl, {}).subscribe();
 
     const req = httpMock.expectOne(loginUrl);
-    expect(req.request.headers.get('Authorization')).toBe('Basic dXNlcjpwYXNz');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
     req.flush({ token: 'abc' });
   });
 
@@ -104,7 +97,7 @@ describe('AuthInterceptor', () => {
     httpClient.post(loginUrl, {}).subscribe();
 
     const req = httpMock.expectOne(loginUrl);
-    expect(req.request.headers.get('Authorization')).not.toContain('Bearer');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
     req.flush({ token: 'abc' });
   });
 

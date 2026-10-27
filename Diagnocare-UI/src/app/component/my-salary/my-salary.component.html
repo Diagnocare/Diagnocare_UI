@@ -110,6 +110,10 @@
                 <th>Payment Date</th>
                 <th>Component</th>
                 <th class="num">Amount</th>
+                <th>Mode</th>
+                <th>Reference No.</th>
+                <th>Status</th>
+                <th>Proof</th>
                 <th>Type</th>
               </tr>
             </thead>
@@ -119,8 +123,35 @@
                   (click)="openReceipt(p)"
                   title="Open payment slip (PDF)">
                 <td>{{ formatDate(p.paymentDate) }}</td>
-                <td><span class="mode-text">{{ paymentModeLabel(p.paymentSourceName) }}</span></td>
+                <td><span class="mode-text">{{ componentLabel(p.paymentSourceName) }}</span></td>
                 <td class="num paid-amt">{{ formatINR(p.paymentAmount) }}</td>
+                <td>
+                  <span class="pay-mode-badge" [ngClass]="paymentModeClass(p)">
+                    <i class="fa" [ngClass]="paymentModeIcon(p)"></i>
+                    {{ paymentModeLabel(p) }}
+                  </span>
+                </td>
+                <td class="ms-ref">{{ p.transactionReference || '—' }}</td>
+                <td>
+                  <span class="pay-status-badge" [ngClass]="paymentStatusClass(p)">
+                    {{ paymentStatusLabel(p) }}
+                  </span>
+                </td>
+                <td>
+                  <!-- Opens the screenshot, not the slip — hence the stopPropagation. -->
+                  <button *ngIf="p.hasPaymentProof"
+                          type="button"
+                          class="ms-proof-btn"
+                          (click)="openProof(p, $event)"
+                          [disabled]="proofLoadingId === p.paymentId"
+                          [title]="p.proofFileName || 'View payment proof'">
+                    <i class="fa"
+                       [class.fa-image]="proofLoadingId !== p.paymentId"
+                       [class.fa-spinner]="proofLoadingId === p.paymentId"
+                       [class.fa-spin]="proofLoadingId === p.paymentId"></i>
+                  </button>
+                  <span class="ms-no-proof" *ngIf="!p.hasPaymentProof">—</span>
+                </td>
                 <td class="mode-cell">
                   <span class="type-badge" [class.partial]="isPartial(p)" [class.full]="!isPartial(p)">
                     {{ isPartial(p) ? 'Partial' : 'Full' }}

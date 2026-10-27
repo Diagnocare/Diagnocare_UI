@@ -52,7 +52,9 @@ export class LoginService {
     return this.httpClient.post<LoginUserResponse>(endpoint, {
       userId:   login.userId,
       password: login.password,
-    });
+    }).pipe(
+      tap((res: any) => { if (res?.loginTicket) this.tokenService.setLoginTicket(res.loginTicket); }),
+    );
   }
 
   // ── TOTP — stateless, no DB storage ────────────────────────────────────────
@@ -67,23 +69,14 @@ export class LoginService {
    *
    * @param userId   The user's login ID.
    * @param channel  Delivery channel: 'phone' | 'email' | 'other'.
-   * @param email    Recovery flow only — explicit email (overrides profile).
-   * @param contactPhone Recovery flow only — explicit phone (overrides profile).
+   * @param purpose  'login' or 'reset'. The code is always sent to the address on file.
    */
   generateOtp(
-    id: number,
-    userId:        string,
-    channel:       OtpChannel | string,
-    email?:        string,
-    contactPhone?: string,
+    userId:  string,
+    channel: OtpChannel | string,
+    purpose: 'login' | 'reset' = 'login',
   ): Observable<response> {
-    const body: SendOtpRequest = {
-      id,
-      userId,
-      channel: channel as OtpChannel,
-      ...(email        ? { email }        : {}),
-      ...(contactPhone ? { contactPhone } : {}),
-    };
+    const body: SendOtpRequest = { userId, channel: channel as OtpChannel, purpose };
     return this.httpClient
       .post<response>(`${this.otpUrl}${apiEndpoints.generateOTP}`, body)
       .pipe(catchError(this.errorHandler));
@@ -164,28 +157,9 @@ export class LoginService {
       .post<response>(`${this.otpUrl}${apiEndpoints.verify}`, request)
       .pipe(
         tap((res: any) => {
-          if (res?.token) {
-            this.tokenService.setToken(res.token);
-          }
-        }),
-        catchError(this.errorHandler),
-      );
-  }
-
-  /**
-   * Issues a JWT for an already credential-validated user, skipping the second
-   * factor. Backed by the existing GET login/GenerateJWTToken endpoint.
-   *
-   * Used ONLY by the local-development second-factor skip in LoginComponent —
-   * see `isLocalSecondFactorSkip` there for the guards. Nothing else may call
-   * this: every normal login must go through verifyAuth / verifyTotpLogin.
-   */
-  generateJwtToken(userId: string): Observable<response> {
-    return this.httpClient
-      .get<response>(`${this.url}${apiEndpoints.generateJWTToken}?userId=${encodeURIComponent(userId)}`)
-      .pipe(
-        tap((res: any) => {
-          if (res?.token) {
+          // A 'reset' verification returns a single-use reset token in the same field.
+          // It must never be stored as the session token.
+          if (res?.token && request.purpose !== 'reset') {
             this.tokenService.setToken(res.token);
           }
         }),
@@ -212,9 +186,10 @@ export class LoginService {
       );
   }
 
-  forgotPassword(userId: string, newPassword: string): Observable<response> {
+  /** `resetToken` is the single-use token returned by a successful 'reset' verification. */
+  forgotPassword(userId: string, newPassword: string, resetToken: string): Observable<response> {
     return this.httpClient
-      .post<response>(`${this.url}${apiEndpoints.resetPassword}`, { userId, newPassword })
+      .post<response>(`${this.url}${apiEndpoints.resetPassword}`, { userId, newPassword, resetToken })
       .pipe(catchError(this.errorHandler));
   }
 

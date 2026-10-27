@@ -131,12 +131,32 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
    * form would only end in the server's duplicate-request error.
    */
   requestCorrection(cell: AttendanceCell): void {
-    if (!cell || cell.isFuture || cell.isHoliday) return;
+    if (!this.isActionable(cell)) return;
     if (cell.requestId) {
       this.router.navigate(['/attendance-requests', cell.requestId]);
       return;
     }
-    this.router.navigate(['/attendance-requests/new'], { queryParams: { date: cell.dateStr } });
+    // Future days can only be leave; today and earlier are Present / Half Day corrections.
+    const queryParams: { date: string; type?: string } = { date: cell.dateStr };
+    if (cell.isFuture) queryParams.type = 'leave';
+    this.router.navigate(['/attendance-requests/new'], { queryParams });
+  }
+
+  /** Sunday of next week (yyyy-MM-dd) — the last day leave can be applied for. */
+  private get leaveWindowEnd(): string {
+    const d = new Date(this.today);
+    d.setDate(d.getDate() + (7 - ((d.getDay() + 6) % 7)) + 6);
+    return this.toIso(d);
+  }
+
+  /**
+   * Past/today cells open a correction; future cells open a leave application, but only
+   * inside this week and next week. An open request makes any cell open that request.
+   */
+  isActionable(cell: AttendanceCell): boolean {
+    if (cell.isHoliday) return false;
+    if (cell.requestId) return true;
+    return !cell.isFuture || cell.dateStr <= this.leaveWindowEnd;
   }
 
   /** True when this day already has a request awaiting a decision. */
@@ -369,8 +389,8 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   // ── Cell display helpers ───────────────────────────────────────────────────
 
   cellClass(cell: AttendanceCell): string {
-    if (cell.isFuture)  return 'cell-future';
     if (cell.isHoliday) return 'cell-holiday';
+    if (cell.isFuture)  return cell.requestId ? 'cell-future cell-requested' : 'cell-future';
     const base = this.statusMap[cell.status]?.cssClass ?? 'cell-unmarked';
     // cell-requested repaints the tile entirely — the R has to be unmistakable,
     // and a purple outline over a green "P" read as neither one thing nor the other.
@@ -378,8 +398,8 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   }
 
   cellLabel(cell: AttendanceCell): string {
-    if (cell.isFuture)  return '—';
     if (cell.isHoliday) return 'H';
+    if (cell.isFuture && !cell.requestId) return '—';
     // A day awaiting a decision reads as R, not as the status it currently holds.
     // What it currently holds is in the tooltip; what the employee needs to see at
     // a glance is that they have already asked about this day.
@@ -388,7 +408,7 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
   }
 
   cellTitle(cell: AttendanceCell): string {
-    if (cell.isFuture)  return 'Future date';
+    if (cell.isFuture && !cell.requestId) return 'Future date';
     if (cell.isHoliday) {
       const name = cell.holidayName || this.holidayNames.get(cell.dateStr);
       return name ? `${name} — Holiday` : 'Holiday';
@@ -404,9 +424,11 @@ export class MyAttendanceComponent implements OnInit, OnDestroy {
 
   /** Tooltip for a clickable cell — the template used to build this inline. */
   cellActionTitle(cell: AttendanceCell): string {
-    if (cell.isFuture || cell.isHoliday) return this.cellTitle(cell);
-    if (cell.requestId) return this.cellTitle(cell);
-    return 'Click to request a correction for this day';
+    if (cell.isHoliday || cell.requestId) return this.cellTitle(cell);
+    if (cell.isFuture) {
+      return cell.dateStr <= this.leaveWindowEnd ? 'Click to apply leave for this day' : this.cellTitle(cell);
+    }
+    return 'Click to request a correction (Present / Half Day) for this day';
   }
 
   // ── Row summary ────────────────────────────────────────────────────────────

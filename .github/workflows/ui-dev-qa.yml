@@ -59,6 +59,93 @@ jobs:
         shell: powershell
 
     steps:
+      # ── Disk space, before anything writes to it ─────────────────────────────
+      # Runs ahead of checkout because a full drive breaks checkout and npm ci too,
+      # and does so unreadably: an out-of-space `npm ci` buries the real cause under
+      # a thousand "TAR_ENTRY_ERROR ENOSPC" warnings and then fails somewhere else
+      # entirely (esbuild's install script spawning its binary), which reads like a
+      # dependency problem rather than a full disk.
+      #
+      # Measured footprint of this build: node_modules 294 MB for the app plus 125 MB
+      # for the tests, dist 31 MB, and the Angular cache 3.4 GB — hence a 6 GB floor
+      # rather than a round guess. Override with the repo variable
+      # UI_RUNNER_MIN_FREE_GB (set it to 1 to let builds attempt regardless).
+      #
+      # Both runner listeners share the C: drive on this box, so this deliberately
+      # stays inside this runner's own _work tree (derived from RUNNER_WORKSPACE,
+      # never hardcoded) and leaves the API runner's workspaces alone. Space held
+      # outside that tree is reported by the 'Clean Runner Disks' workflow in the API
+      # repo, which this step points at when it cannot free enough itself.
+      - name: Check and reclaim runner disk space
+        working-directory: .
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $minFreeGb = [double]'${{ vars.UI_RUNNER_MIN_FREE_GB || '0.2' }}'
+
+          $qualifier = Split-Path -Qualifier $env:GITHUB_WORKSPACE
+          function Get-FreeGb {
+            $d = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$qualifier'"
+            [math]::Round($d.FreeSpace / 1GB, 2)
+          }
+
+          $before = Get-FreeGb
+          Write-Host "[disk] $qualifier has $before GB free (need $minFreeGb GB)"
+          if ($before -ge $minFreeGb) { exit 0 }
+
+          Write-Host "::warning::Only $before GB free on $qualifier - reclaiming before the build."
+
+          # 1. Everything under this runner's _work that the build regenerates anyway:
+          #    node_modules (npm ci wipes and reinstalls it regardless), dist, and the
+          #    Angular build cache — the cache being the one actually worth hunting
+          #    for, and the one a cancelled run leaves behind because the end-of-job
+          #    cleanup never got to run.
+          #
+          #    The current workspace is included on purpose. This step runs before
+          #    checkout, so nothing here belongs to this job yet; losing the cache only
+          #    costs a slower first build, which beats failing for want of 3 GB.
+          #
+          # RUNNER_WORKSPACE is _work\<repo>, so one step up is _work and two is the
+          # runner root (C:\actions-runner-ui).
+          $work = Split-Path $env:RUNNER_WORKSPACE -Parent
+          if (Test-Path $work) {
+            foreach ($name in @('node_modules', '.angular', 'dist')) {
+              Get-ChildItem $work -Directory -Recurse -Depth 4 -Filter $name -ErrorAction SilentlyContinue |
+                ForEach-Object {
+                  Write-Host "[disk] removing $($_.FullName)"
+                  Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
+                }
+            }
+          }
+
+          # 2. Runner diagnostic logs older than a week, and anything left in _temp by
+          #    an earlier job. The runner never trims either, so both grow forever.
+          $runnerRoot = Split-Path $work -Parent
+          Get-ChildItem (Join-Path $runnerRoot '_diag') -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+          Get-ChildItem (Join-Path $work '_temp') -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+          # 3. Garbage-collect the npm cache. `verify` drops unreferenced entries and
+          #    keeps the rest, so --prefer-offline still has something to work with;
+          #    `clean --force` would empty it and make every later build re-download.
+          npm cache verify 2>&1 | Write-Host
+
+          $after = Get-FreeGb
+          Write-Host "[disk] $after GB free after reclaiming (was $before GB)"
+
+          if ($after -lt $minFreeGb) {
+            throw ("Not enough disk on the UI runner: $after GB free on $qualifier, " +
+                   "$minFreeGb GB needed. Reclaiming inside the workspace was not enough, " +
+                   "so something outside it is holding the space - run the 'Clean Runner Disks' " +
+                   "workflow in the API repo (dry_run first) to see the largest consumers.")
+          }
+
+          # Explicit, because Actions ends a powershell step with $LASTEXITCODE and
+          # `npm cache verify` above is a native command.
+          exit 0
+
       - name: Checkout UI and its unit tests
         uses: actions/checkout@v4
         with:
@@ -141,172 +228,179 @@ jobs:
           if (Test-Path $testModules) { Remove-Item -Recurse -Force $testModules }
           Write-Host '[OK] node_modules/dist/.angular removed (DEV)'
 
-  # ============================================================
-  # JOB 2: Approval gate (custom, runs on the self-hosted runner)
-  # Opens a GitHub issue after DEV and waits for "/approve" from an
-  # authorized user before allowing QA. "/deny" or timeout fails the gate,
-  # which skips QA. No hosted-runner minutes are used.
-  # ============================================================
-  approve-qa:
-    name: Await QA approval
-    needs: deploy-dev
-    runs-on: [self-hosted, windows-ui-builder]
+          # Logged every run so the trend is on the run page: if this number walks
+          # downwards run after run, something outside the workspace is growing and
+          # the pre-flight check above is going to start failing builds.
+          $qualifier = Split-Path -Qualifier $env:GITHUB_WORKSPACE
+          $free = (Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$qualifier'").FreeSpace
+          Write-Host ("[disk] {0} has {1} GB free after cleanup" -f $qualifier, [math]::Round($free / 1GB, 2))
 
-    steps:
-      - name: Wait for /approve on a GitHub issue
-        shell: powershell
-        env:
-          GH_TOKEN: ${{ github.token }}
-          APPROVAL_TIMEOUT_MINUTES: '120'   # gate fails (QA skipped) after this
-          POLL_SECONDS: '20'
-          UNIT_TESTS: ${{ needs.deploy-dev.outputs.unit_tests }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $repo    = '${{ github.repository }}'
-          $apiBase = "${{ github.api_url }}/repos/$repo"
-          $headers = @{
-            Authorization = "token $env:GH_TOKEN"
-            Accept        = 'application/vnd.github+json'
-            'User-Agent'  = 'diagnocare-approval-gate'
-          }
+  # # ============================================================
+  # # JOB 2: Approval gate (custom, runs on the self-hosted runner)
+  # # Opens a GitHub issue after DEV and waits for "/approve" from an
+  # # authorized user before allowing QA. "/deny" or timeout fails the gate,
+  # # which skips QA. No hosted-runner minutes are used.
+  # # ============================================================
+  # approve-qa:
+    # name: Await QA approval
+    # needs: deploy-dev
+    # runs-on: [self-hosted, windows-ui-builder]
 
-          # Parse optional allow-list of approver logins (case-insensitive).
-          $allowList = @()
-          if (-not [string]::IsNullOrWhiteSpace($env:QA_APPROVERS)) {
-            $allowList = $env:QA_APPROVERS.Split(',') | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ }
-          }
-          # Anyone in these repo roles may approve when no allow-list is set.
-          $allowedRoles = @('OWNER','MEMBER','COLLABORATOR')
+    # steps:
+      # - name: Wait for /approve on a GitHub issue
+        # shell: powershell
+        # env:
+          # GH_TOKEN: ${{ github.token }}
+          # APPROVAL_TIMEOUT_MINUTES: '120'   # gate fails (QA skipped) after this
+          # POLL_SECONDS: '20'
+          # UNIT_TESTS: ${{ needs.deploy-dev.outputs.unit_tests }}
+        # run: |
+          # $ErrorActionPreference = 'Stop'
+          # $repo    = '${{ github.repository }}'
+          # $apiBase = "${{ github.api_url }}/repos/$repo"
+          # $headers = @{
+            # Authorization = "token $env:GH_TOKEN"
+            # Accept        = 'application/vnd.github+json'
+            # 'User-Agent'  = 'diagnocare-approval-gate'
+          # }
 
-          $runUrl = "${{ github.server_url }}/$repo/actions/runs/${{ github.run_id }}"
-          $sha    = '${{ github.sha }}'.Substring(0,7)
-          $title  = "Deploy UI to QA approval - run ${{ github.run_id }} ($sha)"
-          $body   = @"
-          DEV deployment succeeded for commit $sha.
+          # # Parse optional allow-list of approver logins (case-insensitive).
+          # $allowList = @()
+          # if (-not [string]::IsNullOrWhiteSpace($env:QA_APPROVERS)) {
+            # $allowList = $env:QA_APPROVERS.Split(',') | ForEach-Object { $_.Trim().ToLower() } | Where-Object { $_ }
+          # }
+          # # Anyone in these repo roles may approve when no allow-list is set.
+          # $allowedRoles = @('OWNER','MEMBER','COLLABORATOR')
 
-          Unit tests: $env:UNIT_TESTS
+          # $runUrl = "${{ github.server_url }}/$repo/actions/runs/${{ github.run_id }}"
+          # $sha    = '${{ github.sha }}'.Substring(0,7)
+          # $title  = "Deploy UI to QA approval - run ${{ github.run_id }} ($sha)"
+          # $body   = @"
+          # DEV deployment succeeded for commit $sha.
 
-          Comment '/approve' on this issue to deploy the UI to QA, or '/deny' to cancel.
-          This gate times out in $env:APPROVAL_TIMEOUT_MINUTES minutes.
+          # Unit tests: $env:UNIT_TESTS
 
-          Workflow run: $runUrl
-          "@
+          # Comment '/approve' on this issue to deploy the UI to QA, or '/deny' to cancel.
+          # This gate times out in $env:APPROVAL_TIMEOUT_MINUTES minutes.
 
-          # Create the approval issue.
-          $issue = Invoke-RestMethod -Method Post -Uri "$apiBase/issues" -Headers $headers -Body (
-            @{ title = $title; body = $body } | ConvertTo-Json)
-          $issueNumber = $issue.number
-          Write-Host "Approval issue #$issueNumber opened: $($issue.html_url)"
+          # Workflow run: $runUrl
+          # "@
 
-          $deadline   = (Get-Date).AddMinutes([int]$env:APPROVAL_TIMEOUT_MINUTES)
-          $decision   = $null
-          $decidedBy  = $null
+          # # Create the approval issue.
+          # $issue = Invoke-RestMethod -Method Post -Uri "$apiBase/issues" -Headers $headers -Body (
+            # @{ title = $title; body = $body } | ConvertTo-Json)
+          # $issueNumber = $issue.number
+          # Write-Host "Approval issue #$issueNumber opened: $($issue.html_url)"
 
-          while ((Get-Date) -lt $deadline) {
-            Start-Sleep -Seconds ([int]$env:POLL_SECONDS)
-            try {
-              $comments = Invoke-RestMethod -Method Get -Headers $headers `
-                -Uri "$apiBase/issues/$issueNumber/comments?per_page=100"
-            } catch {
-              Write-Warning "Comment poll failed: $($_.Exception.Message)"; continue
-            }
+          # $deadline   = (Get-Date).AddMinutes([int]$env:APPROVAL_TIMEOUT_MINUTES)
+          # $decision   = $null
+          # $decidedBy  = $null
 
-            foreach ($c in $comments) {
-              $text  = ($c.body).Trim().ToLower()
-              $login = ($c.user.login).ToLower()
-              $assoc = $c.author_association
+          # while ((Get-Date) -lt $deadline) {
+            # Start-Sleep -Seconds ([int]$env:POLL_SECONDS)
+            # try {
+              # $comments = Invoke-RestMethod -Method Get -Headers $headers `
+                # -Uri "$apiBase/issues/$issueNumber/comments?per_page=100"
+            # } catch {
+              # Write-Warning "Comment poll failed: $($_.Exception.Message)"; continue
+            # }
 
-              $authorized = $false
-              if ($allowList.Count -gt 0) {
-                $authorized = $allowList -contains $login
-              } else {
-                $authorized = $allowedRoles -contains $assoc
-              }
+            # foreach ($c in $comments) {
+              # $text  = ($c.body).Trim().ToLower()
+              # $login = ($c.user.login).ToLower()
+              # $assoc = $c.author_association
 
-              if (-not $authorized) { continue }
-              if ($text -match '^/approve\b') { $decision = 'approved'; $decidedBy = $login; break }
-              if ($text -match '^/deny\b')    { $decision = 'denied';   $decidedBy = $login; break }
-            }
-            if ($decision) { break }
-          }
+              # $authorized = $false
+              # if ($allowList.Count -gt 0) {
+                # $authorized = $allowList -contains $login
+              # } else {
+                # $authorized = $allowedRoles -contains $assoc
+              # }
 
-          # Close the issue and record the outcome.
-          if (-not $decision) { $decision = 'timeout' }
-          $note = switch ($decision) {
-            'approved' { "Approved by @$decidedBy - proceeding to QA." }
-            'denied'   { "Denied by @$decidedBy - QA deployment cancelled." }
-            default    { "No approval within $env:APPROVAL_TIMEOUT_MINUTES minutes - QA deployment cancelled." }
-          }
-          Invoke-RestMethod -Method Post -Headers $headers `
-            -Uri "$apiBase/issues/$issueNumber/comments" -Body (@{ body = $note } | ConvertTo-Json) | Out-Null
-          Invoke-RestMethod -Method Patch -Headers $headers `
-            -Uri "$apiBase/issues/$issueNumber" -Body (@{ state = 'closed' } | ConvertTo-Json) | Out-Null
+              # if (-not $authorized) { continue }
+              # if ($text -match '^/approve\b') { $decision = 'approved'; $decidedBy = $login; break }
+              # if ($text -match '^/deny\b')    { $decision = 'denied';   $decidedBy = $login; break }
+            # }
+            # if ($decision) { break }
+          # }
 
-          Write-Host $note
-          if ($decision -ne 'approved') { exit 1 }
-          Write-Host "[OK] QA approved"
+          # # Close the issue and record the outcome.
+          # if (-not $decision) { $decision = 'timeout' }
+          # $note = switch ($decision) {
+            # 'approved' { "Approved by @$decidedBy - proceeding to QA." }
+            # 'denied'   { "Denied by @$decidedBy - QA deployment cancelled." }
+            # default    { "No approval within $env:APPROVAL_TIMEOUT_MINUTES minutes - QA deployment cancelled." }
+          # }
+          # Invoke-RestMethod -Method Post -Headers $headers `
+            # -Uri "$apiBase/issues/$issueNumber/comments" -Body (@{ body = $note } | ConvertTo-Json) | Out-Null
+          # Invoke-RestMethod -Method Patch -Headers $headers `
+            # -Uri "$apiBase/issues/$issueNumber" -Body (@{ state = 'closed' } | ConvertTo-Json) | Out-Null
 
-  # ============================================================
-  # JOB 3: Build & Deploy QA (runs only after the approval gate passes)
-  # ============================================================
-  deploy-qa:
-    name: Build & Deploy QA
-    needs: approve-qa
-    runs-on: [self-hosted, windows-ui-builder]
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: Diagnocare-UI
-        shell: powershell
+          # Write-Host $note
+          # if ($decision -ne 'approved') { exit 1 }
+          # Write-Host "[OK] QA approved"
 
-    steps:
-      - name: Checkout UI only
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            Diagnocare-UI
-          sparse-checkout-cone-mode: true
-          fetch-depth: 1
+  # # ============================================================
+  # # JOB 3: Build & Deploy QA (runs only after the approval gate passes)
+  # # ============================================================
+  # deploy-qa:
+    # name: Build & Deploy QA
+    # needs: approve-qa
+    # runs-on: [self-hosted, windows-ui-builder]
+    # timeout-minutes: 15
+    # defaults:
+      # run:
+        # working-directory: Diagnocare-UI
+        # shell: powershell
 
-      - name: Verify Node
-        working-directory: .
-        run: |
-          node -v
-          npm -v
+    # steps:
+      # - name: Checkout UI only
+        # uses: actions/checkout@v4
+        # with:
+          # sparse-checkout: |
+            # Diagnocare-UI
+          # sparse-checkout-cone-mode: true
+          # fetch-depth: 1
 
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund --prefer-offline
+      # - name: Verify Node
+        # working-directory: .
+        # run: |
+          # node -v
+          # npm -v
 
-      - name: Build QA
-        run: npx --yes ng build --configuration qa --progress=false
+      # - name: Install dependencies
+        # run: npm ci --no-audit --no-fund --prefer-offline
 
-      - name: Deploy QA to IIS
-        working-directory: .
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Import-Module WebAdministration
-          $site = '${{ vars.QA_IIS_SITE_NAME }}'
-          $target = '${{ vars.QA_UI_TARGET_PATH }}'
-          $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
-          if (-not (Test-Path $source)) { throw "Build output missing: $source" }
-          if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
-          if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
-          Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-          cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
-          if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
-          Write-Host '[OK] QA UI deployed'
+      # - name: Build QA
+        # run: npx --yes ng build --configuration qa --progress=false
 
-      - name: Free disk space on runner (node_modules + build output)
-        if: always()
-        working-directory: .
-        run: |
-          # node_modules, dist and the Angular cache are only needed during the build
-          # (npm ci reinstalls node_modules on every run anyway). Remove them so the
-          # runner doesn't hold hundreds of MB per checkout between runs.
-          $ErrorActionPreference = 'SilentlyContinue'
-          $ui = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI'
-          foreach ($d in @('node_modules','dist','.angular')) {
-            $p = Join-Path $ui $d
-            if (Test-Path $p) { Remove-Item -Recurse -Force $p }
-          }
-          Write-Host '[OK] node_modules/dist/.angular removed (QA)'
+      # - name: Deploy QA to IIS
+        # working-directory: .
+        # run: |
+          # $ErrorActionPreference = 'Stop'
+          # Import-Module WebAdministration
+          # $site = '${{ vars.QA_IIS_SITE_NAME }}'
+          # $target = '${{ vars.QA_UI_TARGET_PATH }}'
+          # $source = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI\dist\diagnocareUI-app'
+          # if (-not (Test-Path $source)) { throw "Build output missing: $source" }
+          # if ((Get-Website -Name $site).State -eq 'Started') { Stop-Website -Name $site }
+          # if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target | Out-Null }
+          # Get-ChildItem -Path $target -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          # cmd /c "robocopy `"$source`" `"$target`" /E /NFL /NDL /NJH /NJS /nc /ns /np & exit /b 0"
+          # if ((Get-Website -Name $site).State -ne 'Started') { Start-Website -Name $site }
+          # Write-Host '[OK] QA UI deployed'
+
+      # - name: Free disk space on runner (node_modules + build output)
+        # if: always()
+        # working-directory: .
+        # run: |
+          # # node_modules, dist and the Angular cache are only needed during the build
+          # # (npm ci reinstalls node_modules on every run anyway). Remove them so the
+          # # runner doesn't hold hundreds of MB per checkout between runs.
+          # $ErrorActionPreference = 'SilentlyContinue'
+          # $ui = Join-Path $env:GITHUB_WORKSPACE 'Diagnocare-UI'
+          # foreach ($d in @('node_modules','dist','.angular')) {
+            # $p = Join-Path $ui $d
+            # if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+          # }
+          # Write-Host '[OK] node_modules/dist/.angular removed (QA)'

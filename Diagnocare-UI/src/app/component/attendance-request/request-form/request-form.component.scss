@@ -21,28 +21,18 @@
   display: flex;
   align-items: center;
   gap: 1.1rem;
-  background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 55%, #9d28d4 100%);
+  background: linear-gradient(120deg, var(--color-primary-hover) 0%, var(--color-accent) 55%, #9d28d4 100%);
   color: #fff;
   border-radius: 1.25rem 1.25rem 0 0;
   padding: 1.6rem 1.9rem 2.4rem;
   box-shadow: 0 12px 30px rgba(79, 70, 229, 0.28);
 }
 
+// Appearance comes from the shared .btn .btn-back in styles.css — this used to
+// be a white glass pill of its own, which is one of the four different-looking
+// back buttons the app had. Only the layout the hero row needs stays here.
 .hero-back {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  color: #fff;
-  border-radius: 999px;
-  padding: 0.5rem 1.1rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
-  &:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-1px); }
 }
 
 .hero-text {
@@ -83,8 +73,8 @@
   margin-bottom: 0.5rem;
   color: #2b3350;
 }
-.req { color: #e11d48; }
-.optional { color: #94a3b8; font-weight: 500; }
+.req { color: var(--color-error); }
+.optional { color: var(--color-text-muted); font-weight: 500; }
 
 // Icon-in-field wrapper
 .input-icon {
@@ -99,7 +89,7 @@
   .lead-icon {
     position: absolute;
     left: 0.95rem;
-    color: #7c3aed;
+    color: var(--color-accent);
     font-size: 0.95rem;
     z-index: 2;
     pointer-events: none;
@@ -108,7 +98,7 @@
   .trail-icon {
     position: absolute;
     right: 1rem;
-    color: #94a3b8;
+    color: var(--color-text-muted);
     font-size: 0.8rem;
     pointer-events: none;
   }
@@ -119,7 +109,7 @@
   width: 100%;
   border: 1.5px solid #e6e2f3;
   border-radius: 0.85rem;
-  background: #fff;
+  background: var(--color-surface);
   color: #1f2740;
   font-size: 0.95rem;
   min-height: 50px;
@@ -133,7 +123,7 @@
   appearance: none;
   &:focus {
     outline: none;
-    border-color: #7c3aed;
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14);
   }
 }
@@ -157,21 +147,21 @@ select.form-control.has-icon { cursor: pointer; }
   min-height: 50px !important;
   box-shadow: 0 2px 6px rgba(79, 70, 229, 0.05) !important;
   padding: 0.7rem 1rem 0.7rem 2.6rem !important;
-  &:hover, &:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14) !important; }
+  &:hover, &:focus { border-color: var(--color-accent) !important; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14) !important; }
 }
-.ar-datefield.invalid ::ng-deep .dp-trigger { border-color: #e11d48 !important; }
-.input-icon.invalid .form-control.has-icon { border-color: #e11d48; }
+.ar-datefield.invalid ::ng-deep .dp-trigger { border-color: var(--color-error) !important; }
+.input-icon.invalid .form-control.has-icon { border-color: var(--color-error); }
 
 .textarea-wrap .char-count {
   position: absolute;
   right: 0.9rem;
   bottom: 0.6rem;
   font-size: 0.72rem;
-  color: #adb5bd;
+  color: var(--color-border-strong);
 }
 
-.field-hint { color: #94a3b8; font-size: 0.78rem; margin-top: 0.4rem; }
-.field-error { color: #e11d48; font-size: 0.78rem; margin-top: 0.4rem; }
+.field-hint { color: var(--color-text-muted); font-size: 0.78rem; margin-top: 0.4rem; }
+.field-error { color: var(--color-error); font-size: 0.78rem; margin-top: 0.4rem; }
 
 .current-note {
   display: flex;
@@ -184,13 +174,13 @@ select.form-control.has-icon { cursor: pointer; }
   font-size: 0.85rem;
   color: #4c3a72;
   margin-bottom: 1.4rem;
-  i { color: #7c3aed; }
+  i { color: var(--color-accent); }
 
   &--loading, &--muted {
     background: rgba(100, 116, 139, 0.07);
     border-color: rgba(100, 116, 139, 0.18);
-    color: var(--text-secondary, #64748b);
-    i { color: var(--text-secondary, #64748b); }
+    color: var(--text-secondary, var(--color-text-secondary));
+    i { color: var(--text-secondary, var(--color-text-secondary)); }
   }
 
   // This date already has a request awaiting a decision — submitting is off.
@@ -199,7 +189,7 @@ select.form-control.has-icon { cursor: pointer; }
     background: rgba(245, 158, 11, 0.1);
     border-color: rgba(245, 158, 11, 0.35);
     color: #7c4a03;
-    i { color: #b45309; margin-top: 0.15rem; }
+    i { color: var(--color-warning); margin-top: 0.15rem; }
     span { flex: 1; }
   }
 }
@@ -212,13 +202,13 @@ select.form-control.has-icon { cursor: pointer; }
   padding: 0;
   font: inherit;
   font-weight: 700;
-  color: #b45309;
+  color: var(--color-warning);
   cursor: pointer;
   text-decoration: underline;
   white-space: nowrap;
 
   i { color: inherit; margin-left: 0.25rem; }
-  &:hover { color: #92400e; }
+  &:hover { color: var(--color-warning); }
 }
 
 // Sits under the Requested Status field — flags that this pick differs from
@@ -234,8 +224,121 @@ select.form-control.has-icon { cursor: pointer; }
   margin-top: 0.6rem;
   font-size: 0.82rem;
   line-height: 1.45;
-  color: #92400e;
-  i { color: #b45309; margin-top: 0.15rem; }
+  color: var(--color-warning);
+  i { color: var(--color-warning); margin-top: 0.15rem; }
+}
+
+// Same shape as .approval-note, red rather than amber: this one is about a salary
+// deduction, not about who signs the request off.
+.approval-note--leave {
+  background: rgba(220, 38, 38, 0.07);
+  border-color: rgba(220, 38, 38, 0.28);
+  color: var(--color-error);
+  i { color: var(--color-error); }
+  strong { color: #7f1d1d; }
+}
+
+// ── Paid leave balance ────────────────────────────────────────────
+// Sits above the form card. Overrides .ar-card's negative top margin, which exists
+// to tuck the form under the hero - only the first card should do that.
+.leave-balance {
+  margin-top: -1.35rem;
+  margin-bottom: 1rem;
+  padding: 1.35rem 1.6rem 1.15rem;
+
+  & + .ar-card { margin-top: 0; }
+}
+
+.leave-balance-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+
+.leave-balance-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+
+  > i {
+    font-size: 1.1rem;
+    color: var(--color-accent);
+    margin-top: 0.2rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+  }
+}
+
+.leave-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.lb-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.85rem;
+
+  // The number the employee actually came for.
+  &--total {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.09) 0%, rgba(124, 58, 237, 0.12) 100%);
+    border-color: rgba(124, 58, 237, 0.32);
+
+    .lb-value { color: #5b21b6; font-size: 1.25rem; }
+    .lb-label { color: #5b21b6; }
+  }
+}
+
+.lb-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+}
+
+.lb-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.lb-note {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.leave-balance-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.85rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+
+  i { color: var(--color-accent); margin-top: 0.2rem; }
 }
 
 // ── Actions ───────────────────────────────────────────────────────
@@ -248,16 +351,16 @@ select.form-control.has-icon { cursor: pointer; }
 }
 
 .btn-ghost {
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   border-radius: 999px;
   padding: 0.65rem 1.6rem;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
-  &:hover { background: #f8fafc; border-color: #cbd5e1; }
+  &:hover { background: var(--color-surface-sunken); border-color: var(--color-border-strong); }
 }
 
 .btn-gradient {
@@ -265,7 +368,7 @@ select.form-control.has-icon { cursor: pointer; }
   align-items: center;
   gap: 0.5rem;
   border: none;
-  background: linear-gradient(120deg, #2563eb 0%, #7c3aed 100%);
+  background: linear-gradient(120deg, var(--color-info) 0%, var(--color-accent) 100%);
   color: #fff;
   border-radius: 999px;
   padding: 0.65rem 1.8rem;
@@ -281,6 +384,8 @@ select.form-control.has-icon { cursor: pointer; }
 @media (max-width: 560px) {
   .ar-hero { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
   .ar-card { margin-left: 0; margin-right: 0; padding: 1.5rem 1.25rem; }
+  .leave-balance { padding: 1.15rem 1.25rem 1rem; }
+  .leave-balance-grid { grid-template-columns: 1fr; }
   .form-actions { flex-direction: column-reverse; }
   .btn-ghost, .btn-gradient { width: 100%; justify-content: center; }
 }

@@ -57,70 +57,61 @@
   --dc-radius-lg: 0.875rem;
   --dc-border:    2px;       /* thick enough to see on a cheap monitor          */
 
-  /* ── Surfaces (mapped onto the existing theme variables) ──────────────────── */
-  --dc-surface:        var(--bg-white, #ffffff);
-  --dc-surface-muted:  var(--bg-light, #f8f9fa);
-  --dc-line:           var(--border-color, #e1e8ed);
-  --dc-ink:            var(--text-primary, #2c3e50);
-  --dc-ink-soft:       var(--text-secondary, #666666);
-  --dc-brand:          var(--primary-color, #1e5ba8);
+  /* ── Surfaces ───────────────────────────────────────────────────────────────
+     Aliases over the canonical --color-* layer (app/shared/design-tokens.css),
+     which is where these colours are actually chosen. The second argument to
+     each var() is a last-resort fallback for the case where design-tokens.css
+     is somehow not loaded; it should never be the value you see. */
+  --dc-surface:        var(--color-surface,        #ffffff);
+  --dc-surface-muted:  var(--color-surface-sunken, #fafaf6);
+  --dc-line:           var(--color-border,         #dee0d4);
+  --dc-ink:            var(--color-text-primary,   #152420);
+  --dc-ink-soft:       var(--color-text-secondary, #5b655f);
+  --dc-brand:          var(--color-primary,        #0f7a6e);
 
   /* Aliases for the names the components were written against. They are kept
      because the alternative is every one of those usages silently falling back
      to a light-mode hex, which is what made the /work screens unreadable in the
      dark themes. --ink-2 and --ink-3 are the two steps below the body ink;
      --surface-2 is the raised/zebra surface; --link is a text link. */
-  --dc-ink-2:          var(--text-primary, #2c3e50);
-  --dc-ink-3:          var(--text-secondary, #666666);
-  --dc-surface-2:      var(--bg-light, #f8f9fa);
-  --dc-link:           var(--primary-color, #1e5ba8);
+  --dc-ink-2:          var(--color-text-primary,   #152420);
+  --dc-ink-3:          var(--color-text-secondary, #5b655f);
+  --dc-surface-2:      var(--color-surface-sunken, #fafaf6);
+  --dc-link:           var(--color-text-link,      #0b5a52);
 
   /* ── Meaning colours ────────────────────────────────────────────────────────
      One colour per meaning, used identically everywhere. Each pairs a strong
      ink with a soft background so a pill is readable in every theme, and each
-     is always accompanied by an icon and a word — never colour alone. */
-  --dc-ok-ink:      #15803d;  --dc-ok-bg:      #dcfce7;  --dc-ok-line:      #86efac;
-  --dc-wait-ink:    #b45309;  --dc-wait-bg:    #fef3c7;  --dc-wait-line:    #fcd34d;
-  --dc-info-ink:    #1d4ed8;  --dc-info-bg:    #dbeafe;  --dc-info-line:    #93c5fd;
-  --dc-danger-ink:  #b91c1c;  --dc-danger-bg:  #fee2e2;  --dc-danger-line:  #fca5a5;
-  --dc-idle-ink:    #475569;  --dc-idle-bg:    #f1f5f9;  --dc-idle-line:    #cbd5e1;
+     is always accompanied by an icon and a word — never colour alone.
+
+     These now alias the canonical status tokens, so a status pill in the kit,
+     a banner in the shell and a legacy .badge-success are the same green. */
+  --dc-ok-ink:     var(--color-success);  --dc-ok-bg:     var(--color-success-bg);  --dc-ok-line:     var(--color-success-border);
+  --dc-wait-ink:   var(--color-warning);  --dc-wait-bg:   var(--color-warning-bg);  --dc-wait-line:   var(--color-warning-border);
+  --dc-info-ink:   var(--color-info);     --dc-info-bg:   var(--color-info-bg);     --dc-info-line:   var(--color-info-border);
+  --dc-danger-ink: var(--color-error);    --dc-danger-bg: var(--color-error-bg);    --dc-danger-line: var(--color-error-border);
+  --dc-idle-ink:   var(--color-idle);     --dc-idle-bg:   var(--color-idle-bg);     --dc-idle-line:   var(--color-idle-border);
 
   /* ── Focus ──────────────────────────────────────────────────────────────────
      A keyboard user must always be able to see where they are. This ring is
-     deliberately loud. */
-  --dc-focus: 0 0 0 3px rgba(30, 91, 168, 0.35);
+     deliberately loud.
 
-  /* --dc-focus is a box-shadow value. Several components want a focus ring as an
+     --dc-focus is a box-shadow value. Several components want a focus ring as an
      outline instead, and `outline: 3px solid <box-shadow>` is invalid CSS — the
      whole declaration is dropped and the keyboard ring disappears. So the colour
      has a token of its own; use this one with `outline`, --dc-focus with
      `box-shadow`. */
-  --dc-focus-color: var(--primary-color, #1e5ba8);
+  --dc-focus:       var(--focus-ring);
+  --dc-focus-color: var(--color-focus, #0f7a6e);
 }
 
-/* Dark-family themes: soften the meaning backgrounds so pills do not glow. */
-html[data-theme="dark"],
-html[data-theme="midnight"] {
-  --dc-ok-ink:      #4ade80;  --dc-ok-bg:      rgba(22, 101, 52, 0.28);  --dc-ok-line:      #166534;
-  --dc-wait-ink:    #fbbf24;  --dc-wait-bg:    rgba(180, 83, 9, 0.28);   --dc-wait-line:    #92400e;
-  --dc-info-ink:    #60a5fa;  --dc-info-bg:    rgba(29, 78, 216, 0.28);  --dc-info-line:    #1e40af;
-  --dc-danger-ink:  #f87171;  --dc-danger-bg:  rgba(185, 28, 28, 0.28);  --dc-danger-line:  #7f1d1d;
-  --dc-idle-ink:    #cbd5e1;  --dc-idle-bg:    rgba(71, 85, 105, 0.28);  --dc-idle-line:    #334155;
-  --dc-focus: 0 0 0 3px rgba(96, 165, 250, 0.45);
-  --dc-focus-color: #60a5fa;
-}
+/* The dark-family block that used to sit here restated every meaning colour.
+   It is no longer needed: --color-success and friends are already redefined
+   per theme in design-tokens.css, and the aliases above follow them. */
 
-@media (prefers-color-scheme: dark) {
-  html[data-theme="system"] {
-    --dc-ok-ink:      #4ade80;  --dc-ok-bg:      rgba(22, 101, 52, 0.28);  --dc-ok-line:      #166534;
-    --dc-wait-ink:    #fbbf24;  --dc-wait-bg:    rgba(180, 83, 9, 0.28);   --dc-wait-line:    #92400e;
-    --dc-info-ink:    #60a5fa;  --dc-info-bg:    rgba(29, 78, 216, 0.28);  --dc-info-line:    #1e40af;
-    --dc-danger-ink:  #f87171;  --dc-danger-bg:  rgba(185, 28, 28, 0.28);  --dc-danger-line:  #7f1d1d;
-    --dc-idle-ink:    #cbd5e1;  --dc-idle-bg:    rgba(71, 85, 105, 0.28);  --dc-idle-line:    #334155;
-    --dc-focus: 0 0 0 3px rgba(96, 165, 250, 0.45);
-    --dc-focus-color: #60a5fa;
-  }
-}
+/* The system-dark block that used to sit here is gone for the same reason:
+   design-tokens.css defines --color-* for html[data-theme="system"] inside
+   this same media query, and the --dc-* aliases above follow it. */
 
 /* ──────────────────────────────────────────────────────────────────────────────
    OPTIONAL: "Large text" accessibility mode.

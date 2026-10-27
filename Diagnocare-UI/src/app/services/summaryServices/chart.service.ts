@@ -6,6 +6,23 @@ import { ChartType, PeriodCount } from 'src/app/models/summaryReport/summaryRepo
 
 Chart.register(...registerables);
 
+/**
+ * Labelling and formatting for one chart. Everything is optional; the defaults are
+ * the time-series wording the summary dashboard has always used ('Period' / 'Count'
+ * / 'Current Year'). Reports that plot something else — collection per test group,
+ * say — pass their own, so the axes name what is actually on them.
+ */
+export interface ChartLabelOptions {
+  /** X-axis title. Default 'Period'. */
+  xTitle?: string;
+  /** Y-axis title. Default 'Count'. */
+  yTitle?: string;
+  /** Legend / tooltip name of the plotted series. Default 'Current Year'. */
+  seriesLabel?: string;
+  /** Format values as rupees on the axis and in tooltips, and drop integer ticks. */
+  currency?: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -19,8 +36,24 @@ export class ChartService {
     currentOrSeries: PeriodCount[] | Array<{ year: number, label: string, periods: PeriodCount[] }>,
     labelsOrPrevious?: string[] | PeriodCount[],
     title?: string,
-    digitInfo?: string
+    digitInfo?: string,
+    labelOptions?: ChartLabelOptions
   ): Chart {
+    const opts = labelOptions ?? {};
+    const xTitle = opts.xTitle ?? 'Period';
+    const yTitle = opts.yTitle ?? 'Count';
+    const seriesLabel = opts.seriesLabel ?? 'Current Year';
+
+    // Counts step by 1 and hide fractional ticks; money does neither — a ₹ axis
+    // stepping in ones would render one label per rupee and draw nothing.
+    const valueTicks = opts.currency
+      ? { callback: (v: any) => '₹' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }) }
+      : {
+          stepSize: 1,
+          precision: 0,
+          callback: (v: any) => Number.isInteger(Number(v)) ? String(Number(v)) : '',
+        };
+
     this.destroyChart();
 
     // Detect multi-year series format: array of { year, label, periods }
@@ -86,7 +119,7 @@ export class ChartService {
       if (isScatter || isBubble) {
         const currentPoints = currentYear.map((d, i) => ({ x: i, y: d.count, ...(isBubble ? { r: Math.max(4, Math.sqrt(d.count) * 2) } : {}) }));
         datasets.push({
-          label: 'Current Year',
+          label: seriesLabel,
           data: currentPoints,
           backgroundColor: CHART_COLORS[0],
           borderColor: CHART_COLORS[0],
@@ -106,7 +139,7 @@ export class ChartService {
         }
       } else {
         datasets = [{
-          label: 'Current Year',
+          label: seriesLabel,
           data: currentData,
           backgroundColor: isPieType
             ? labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length])
@@ -144,11 +177,6 @@ export class ChartService {
         return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
       };
 
-      const formatAxisIntegerTick = (value: any) => {
-        const n = Number(value);
-        return Number.isInteger(n) ? n.toString() : '';
-      };
-
       const configLegacy: ChartConfiguration<keyof import('chart.js').ChartTypeRegistry, any, any> = {
         type: jsType,
         data: { labels, datasets },
@@ -171,35 +199,23 @@ export class ChartService {
                   return labels[idx] !== undefined ? labels[idx] : '';
                 }
               },
-              title: { display: true, text: 'Period' },
+              title: { display: true, text: xTitle },
               grid: { display: false }
             },
             y: {
               beginAtZero: true,
               grid: { color: 'rgba(0,0,0,0.05)' },
-              title: { display: true, text: 'Count' },
-              ticks: {
-                stepSize: 1,
-                precision: 0,
-                callback: function(value: any) {
-                  return formatAxisIntegerTick(value);
-                }
-              }
+              title: { display: true, text: yTitle },
+              ticks: valueTicks
             }
           } : {
             y: {
               beginAtZero: true,
               grid: { color: 'rgba(0,0,0,0.05)' },
-              title: { display: true, text: 'Count' },
-              ticks: {
-                stepSize: 1,
-                precision: 0,
-                callback: function(value: any) {
-                  return formatAxisIntegerTick(value);
-                }
-              }
+              title: { display: true, text: yTitle },
+              ticks: valueTicks
             },
-            x: { grid: { display: false }, title: { display: true, text: 'Period' } }
+            x: { grid: { display: false }, title: { display: true, text: xTitle } }
           })
         }
       };
@@ -210,7 +226,7 @@ export class ChartService {
       (configLegacy.options!.plugins as any).tooltip.callbacks = (configLegacy.options!.plugins as any).tooltip.callbacks || {};
       (configLegacy.options!.plugins as any).tooltip.callbacks.label = function(context: any) {
         const v = context.raw && (typeof context.raw === 'number' ? context.raw : (context.raw.y ?? context.raw));
-        return `${context.dataset.label || ''}: ${formatNumber(v)}`;
+        return `${context.dataset.label || ''}: ${opts.currency ? '₹' : ''}${formatNumber(v)}`;
       };
 
       this.activeChart = new Chart(canvas, configLegacy);
@@ -229,11 +245,6 @@ export class ChartService {
       const formatNumber = (v: number | string) => {
         const n = Number(v) || 0;
         return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-      };
-
-      const formatAxisIntegerTick = (value: any) => {
-        const n = Number(value);
-        return Number.isInteger(n) ? n.toString() : '';
       };
 
       const isPieType = chartType === 'pie' || chartType === 'doughnut';
@@ -261,16 +272,10 @@ export class ChartService {
             y: {
               beginAtZero: true,
               grid: { color: 'rgba(0,0,0,0.05)' },
-              title: { display: true, text: 'Count' },
-              ticks: {
-                stepSize: 1,
-                precision: 0,
-                callback: function(value: any) {
-                  return formatAxisIntegerTick(value);
-                }
-              }
+              title: { display: true, text: yTitle },
+              ticks: valueTicks
             },
-            x: { grid: { display: false }, title: { display: true, text: 'Period' } }
+            x: { grid: { display: false }, title: { display: true, text: xTitle } }
           }
         }
       };
@@ -281,7 +286,7 @@ export class ChartService {
       (config.options!.plugins as any).tooltip.callbacks = (config.options!.plugins as any).tooltip.callbacks || {};
       (config.options!.plugins as any).tooltip.callbacks.label = function(context: any) {
         const v = context.raw && (typeof context.raw === 'number' ? context.raw : (context.raw.y ?? context.raw));
-        return `${context.dataset.label || ''}: ${formatNumber(v)}`;
+        return `${context.dataset.label || ''}: ${opts.currency ? '₹' : ''}${formatNumber(v)}`;
       };
 
       this.activeChart = new Chart(canvas, config);

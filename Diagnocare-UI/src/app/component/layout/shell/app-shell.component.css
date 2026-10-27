@@ -26,12 +26,21 @@
 .sh-sidebar::-webkit-scrollbar { width: 6px; }
 .sh-sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 6px; }
 
+/* Brand and the rail toggle share a row, so narrowing the sidebar does not
+   cost a whole row of height. */
+.sh-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px 12px 18px;
+  border-bottom: 1px solid var(--sh-sidebar-line);
+}
 .sh-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 18px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 0;
+  flex: 1;
   text-decoration: none;
 }
 .sh-brand-logo {
@@ -39,37 +48,89 @@
   height: 38px;
   border-radius: 10px;
   background: var(--sh-primary);
-  color: #fff;
+  color: var(--sh-sidebar-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   flex-shrink: 0;
 }
-.sh-brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-.sh-brand-name { font-weight: 700; font-size: 17px; color: #fff; letter-spacing: 0.01em; }
+.sh-brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.sh-brand-name {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--sh-sidebar-ink);
+  letter-spacing: 0.01em;
+}
 .sh-brand-sub  { font-size: 12.5px; color: var(--sh-sidebar-text); }
 
+.sh-rail-btn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sh-sidebar-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.sh-rail-btn:hover { background: var(--sh-sidebar-hover); color: var(--sh-sidebar-ink); }
+.sh-rail-btn:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
+
 .sh-expired {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 12px 12px 0;
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(180, 64, 47, 0.25);
-  color: #ffd9d2;
+  background: var(--sh-sidebar-danger-bg);
+  color: var(--sh-sidebar-danger-ink);
   font-size: 13px;
   font-weight: 600;
 }
 
 .sh-nav { padding: 8px 10px 16px; flex: 1; }
 
+/* The section heading is the fold control, so it is a real <button>: focusable,
+   Enter/Space activated, and announced with its expanded state. Reset the
+   browser's button chrome and lay it out like the old heading. */
 .sh-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 700;
   color: var(--sh-sidebar-muted);
+  text-align: left;
   padding: 16px 12px 6px;
+  cursor: pointer;
+  border-radius: 6px;
 }
+.sh-nav-title:hover { color: var(--sh-sidebar-text); }
+.sh-nav-title:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
+.sh-nav-title-text { flex: 1; min-width: 0; }
+.sh-nav-title-caret { font-size: 9px; opacity: 0.8; flex-shrink: 0; }
+/* Sized to line up with the 18px item icons below it, so the section icon and
+   its links share one optical column. */
+.sh-nav-title-icon { width: 18px; text-align: center; font-size: 12px; flex-shrink: 0; }
+
+.sh-nav-body { display: flex; flex-direction: column; }
+
+/* The positioning context for the rail flyout. */
+.sh-section { position: relative; }
 
 /* 44px rows: comfortably above the touch floor without making the list so tall
    that the Team section falls off a laptop screen. */
@@ -93,9 +154,13 @@
   transition: background 0.12s ease, color 0.12s ease;
 }
 .sh-nav-item > .fa:first-child { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
-.sh-nav-item:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
-.sh-nav-item:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
-.sh-nav-item.is-active { background: var(--sh-primary); color: #fff; font-weight: 600; }
+.sh-nav-item:hover { background: var(--sh-sidebar-hover); color: var(--sh-sidebar-ink); }
+.sh-nav-item:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
+.sh-nav-item.is-active {
+  background: var(--sh-primary);
+  color: var(--sh-sidebar-ink);
+  font-weight: 600;
+}
 .sh-nav-item.is-locked { opacity: 0.55; }
 .sh-nav-label { flex: 1; min-width: 0; }
 
@@ -106,25 +171,45 @@
   padding: 1px 7px;
   border-radius: 20px;
   text-align: center;
-  background: #e0a33a;
-  color: #2b1a00;
+  background: var(--sh-sidebar-badge);
+  color: var(--sh-sidebar-badge-ink);
+  flex-shrink: 0;
 }
-.sh-nav-lock, .sh-nav-caret { font-size: 11px; opacity: 0.7; }
+.sh-nav-lock, .sh-nav-caret { font-size: 11px; opacity: 0.7; flex-shrink: 0; }
 
-.sh-subnav { padding: 2px 0 6px 42px; display: flex; flex-direction: column; }
+/* The indent is the only thing saying "this belongs to the row above", so it
+   also carries a hairline rule — indentation alone disappears at small sizes. */
+.sh-subnav {
+  padding: 2px 0 6px 0;
+  margin: 0 0 2px 22px;
+  border-left: 1px solid var(--sh-sidebar-line);
+  display: flex;
+  flex-direction: column;
+}
 .sh-subnav-item {
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px 0 14px;
   border-radius: 6px;
   font-size: 13.5px;
   color: var(--sh-sidebar-text);
   text-decoration: none;
 }
-.sh-subnav-item:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
-.sh-subnav-item.is-active { color: #fff; background: rgba(255, 255, 255, 0.12); font-weight: 600; }
+.sh-subnav-icon { width: 15px; text-align: center; font-size: 12.5px; flex-shrink: 0; opacity: 0.75; }
+.sh-subnav-item:hover { color: var(--sh-sidebar-ink); background: var(--sh-sidebar-hover); }
+.sh-subnav-item.is-active {
+  color: var(--sh-sidebar-ink);
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 600;
+}
+.sh-subnav-item.is-active .sh-subnav-icon { opacity: 1; }
+.sh-subnav-item.is-locked { opacity: 0.55; }
 
 .sh-sidebar-foot {
   padding: 12px 14px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--sh-sidebar-line);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -135,17 +220,144 @@
   gap: 10px;
   min-height: 40px;
   padding: 0 10px;
+  border: 0;
   border-radius: 8px;
-  color: #fff;
+  color: var(--sh-sidebar-ink);
   background: rgba(255, 255, 255, 0.06);
   text-decoration: none;
+  font: inherit;
   font-size: 13.5px;
   font-weight: 600;
+  text-align: left;
+  cursor: pointer;
 }
-.sh-help:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.sh-help:hover { background: rgba(255, 255, 255, 0.12); color: var(--sh-sidebar-ink); }
+.sh-help:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
+.sh-help > .fa { width: 16px; text-align: center; flex-shrink: 0; }
 .sh-lab-id { font-size: 12px; color: var(--sh-sidebar-muted); padding: 0 10px; }
 
 .sh-scrim { display: none; }
+
+/* ── Rail mode ────────────────────────────────────────────────────────────────
+   The sidebar narrows to one icon per section and nothing else. Each icon
+   keeps its title= attribute, so hovering names it, and clicking it opens
+   that section's links as a flyout (.sh-flyout below) — names and all. The
+   rail compacts the menu into its headings rather than taking it away.
+
+   Neither the items nor the submenus are rendered here (see the template):
+   a column of unlabelled icons does not say what any of them belongs to, and
+   at 72px there is no room to label them.
+
+   WHAT THE RAIL SHOWS DOES NOT DEPEND ON THE ROUTE. It is built from
+   `sections` alone — never from the fold state, which the router writes to on
+   every navigation (revealActive). Reading that state here is what used to
+   make the icon column grow a section's items the moment you opened a page
+   inside it. The route moves the highlight inside the flyout; it never
+   changes what is in the rail.
+   ──────────────────────────────────────────────────────────────────────────── */
+.sh-sidebar.is-railed { width: var(--sh-rail-w); }
+.sh-sidebar.is-railed .sh-brand-row { padding: 14px 8px 12px; flex-direction: column; gap: 10px; }
+.sh-sidebar.is-railed .sh-brand { flex: none; justify-content: center; }
+.sh-sidebar.is-railed .sh-brand-text,
+.sh-sidebar.is-railed .sh-nav-label,
+.sh-sidebar.is-railed .sh-nav-title-text,
+.sh-sidebar.is-railed .sh-nav-title-caret,
+.sh-sidebar.is-railed .sh-nav-caret,
+.sh-sidebar.is-railed .sh-lab-id { display: none; }
+
+.sh-sidebar.is-railed .sh-nav { padding: 8px 8px 16px; }
+
+/* The section icon, and the whole of the rail's menu: a real 44px target,
+   evenly spaced. The separator rule this used to carry went with the items —
+   with one row per section there are no groups left for it to divide, only
+   icons it would put a line between. */
+.sh-sidebar.is-railed .sh-nav-title {
+  justify-content: center;
+  min-height: 44px;
+  margin: 2px 4px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--sh-sidebar-text);
+}
+.sh-sidebar.is-railed .sh-nav-title-icon { font-size: 15px; width: auto; }
+.sh-sidebar.is-railed .sh-nav-title:hover {
+  background: var(--sh-sidebar-hover);
+  color: var(--sh-sidebar-ink);
+}
+/* While its flyout is open the icon stays lit, so it is obvious which section
+   the panel belongs to. */
+.sh-sidebar.is-railed .sh-section.has-flyout .sh-nav-title {
+  background: var(--sh-primary);
+  color: var(--sh-sidebar-ink);
+}
+
+.sh-sidebar.is-railed .sh-help { justify-content: center; padding: 0; gap: 0; }
+.sh-sidebar.is-railed .sh-expired { margin: 8px; padding: 8px; justify-content: center; }
+
+/* ── Rail flyout ──────────────────────────────────────────────────────────────
+   Fixed, not absolute: .sh-sidebar scrolls, and an absolutely positioned panel
+   would be clipped by that scroll container. `top` is set inline from the
+   section button's own position — see flyoutTop in the component.
+   ──────────────────────────────────────────────────────────────────────────── */
+.sh-flyout {
+  position: fixed;
+  left: var(--sh-rail-w);
+  z-index: 90;
+  width: 250px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  margin-left: 6px;
+  padding: 6px;
+  background: var(--sh-sidebar);
+  border: 1px solid var(--sh-sidebar-line);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+.sh-flyout-head {
+  padding: 8px 10px 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--sh-sidebar-line);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sh-sidebar-muted);
+}
+/* A group's heading inside the flyout. The group does not fold here — a
+   disclosure inside a popover that is itself a disclosure is one layer too
+   many — so this is a label, not a button. */
+.sh-flyout-sub {
+  padding: 10px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sh-sidebar-muted);
+}
+.sh-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 7px;
+  color: var(--sh-sidebar-text);
+  text-decoration: none;
+  font-size: 13.5px;
+}
+.sh-flyout-item > .fa { width: 16px; text-align: center; font-size: 13px; flex-shrink: 0; }
+.sh-flyout-item:hover { background: var(--sh-sidebar-hover); color: var(--sh-sidebar-ink); }
+.sh-flyout-item:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
+.sh-flyout-item.is-active {
+  background: var(--sh-primary);
+  color: var(--sh-sidebar-ink);
+  font-weight: 600;
+}
+.sh-flyout-item.is-locked { opacity: 0.55; }
+/* The flyout is a DOM descendant of the sidebar, so the blanket "no labels in
+   the rail" rule above reaches into it unless it is stopped here — and a
+   panel of unnamed icons is exactly what the flyout exists to avoid. */
+.sh-sidebar.is-railed .sh-flyout .sh-nav-label { display: block; flex: 1; min-width: 0; }
 
 /* ── Main column ─────────────────────────────────────────────────────────── */
 .sh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -178,6 +390,7 @@
   z-index: 40;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 14px;
   min-height: var(--sh-topbar-h);
   padding: 10px 28px;
@@ -187,6 +400,7 @@
 
 .sh-menu-btn {
   display: none;
+  margin-right: auto;
   align-items: center;
   gap: 8px;
   min-height: 44px;
@@ -199,10 +413,6 @@
   font-weight: 600;
   cursor: pointer;
 }
-
-.sh-title { min-width: 0; }
-.sh-title h1 { margin: 0; font-size: 20px; font-weight: 700; color: var(--sh-ink); line-height: 1.25; }
-.sh-title p  { margin: 2px 0 0; font-size: 13px; color: var(--sh-ink-faint); }
 
 .sh-find {
   margin-left: auto;
@@ -374,6 +584,35 @@
     transition: left 0.18s ease;
   }
   .sh-sidebar.is-open { left: 0; box-shadow: 8px 0 28px rgba(0, 0, 0, 0.3); }
+
+  /* The drawer is already an overlay that costs the page nothing, so a rail
+     here would only make the menu harder to read for no gain. Cancel it —
+     including every is-railed rule above — and hide its button. The stored
+     preference is untouched, so it comes back on a wide screen. */
+  .sh-rail-btn { display: none; }
+  /* No rail here, so no flyout either — onSectionClick folds instead, and the
+     links are on screen in the drawer already. */
+  .sh-flyout { display: none; }
+  .sh-sidebar.is-railed { width: var(--sh-sidebar-w); }
+  .sh-sidebar.is-railed .sh-brand-row { padding: 14px 10px 12px 18px; flex-direction: row; gap: 4px; }
+  .sh-sidebar.is-railed .sh-brand { flex: 1; justify-content: flex-start; }
+  .sh-sidebar.is-railed .sh-brand-text,
+  .sh-sidebar.is-railed .sh-nav-label,
+  .sh-sidebar.is-railed .sh-nav-title-text,
+  .sh-sidebar.is-railed .sh-nav-title-caret,
+  .sh-sidebar.is-railed .sh-nav-caret,
+  .sh-sidebar.is-railed .sh-lab-id { display: initial; }
+  .sh-sidebar.is-railed .sh-brand-text { display: flex; }
+  .sh-sidebar.is-railed .sh-nav { padding: 8px 10px 16px; }
+  .sh-sidebar.is-railed .sh-nav-title {
+    min-height: 0;
+    padding: 16px 12px 6px;
+    margin: 0;
+    border-radius: 6px;
+    pointer-events: auto;
+  }
+  .sh-sidebar.is-railed .sh-help { justify-content: flex-start; padding: 0 10px; gap: 10px; }
+  .sh-sidebar.is-railed .sh-expired { margin: 12px 12px 0; padding: 10px 12px; justify-content: flex-start; }
   .sh-scrim { display: block; position: fixed; inset: 0; background: rgba(10, 20, 18, 0.45); z-index: 55; }
   .sh-menu-btn { display: inline-flex; }
   .sh-topbar { padding: 10px 16px; flex-wrap: wrap; }
@@ -383,7 +622,6 @@
 }
 
 @media (max-width: 560px) {
-  .sh-title p { display: none; }
   .sh-btn--primary span { display: none; }
   .sh-btn--primary { padding: 0 14px; }
   .sh-pop--bell { width: min(360px, calc(100vw - 32px)); }

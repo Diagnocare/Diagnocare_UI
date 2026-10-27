@@ -15,7 +15,7 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -26,16 +26,16 @@
   width: 2rem;
   height: 2rem;
   border-radius: 8px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--color-info-bg);
+  color: var(--color-info);
   font-size: 0.95rem;
   flex-shrink: 0;
 }
 
 // ── Filter bar ────────────────────────────────────────────────────────────────
 .rfb-filters {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 0.85rem 1.1rem;
   margin-bottom: 1rem;
@@ -65,26 +65,78 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
-// ── Year select ───────────────────────────────────────────────────────────────
+// ── Year dropdown ─────────────────────────────────────────────────────────────
+// Rendered in-page instead of a native <select>, whose OS popup flashes black
+// on Windows before its options paint.
+.rfb-dropdown {
+  position: relative;
+}
+
 .rfb-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   height: 2.1rem;
   min-width: 6rem;
   padding: 0 0.65rem;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid var(--color-border-strong);
   border-radius: 8px;
   font-size: 0.82rem;
-  color: #1e293b;
-  background: #fff;
-  appearance: auto;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
   transition: border-color 0.15s;
   cursor: pointer;
 
-  &:focus { outline: none; border-color: #0284c7; }
+  &:focus { outline: none; border-color: var(--color-info); }
   &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.rfb-caret {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  transition: transform 0.15s;
+
+  &--open { transform: rotate(180deg); }
+}
+
+.rfb-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1000;
+  min-width: 100%;
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.rfb-menu__item {
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover { background: var(--color-surface-sunken); }
+
+  &--active,
+  &--active:hover {
+    background: var(--color-info);
+    color: #fff;
+    font-weight: 600;
+  }
 }
 
 // ── Button row ────────────────────────────────────────────────────────────────
@@ -101,12 +153,12 @@
   gap: 0.3rem;
   height: 2.1rem;
   padding: 0 0.75rem;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid var(--color-border-strong);
   border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #475569;
-  background: #fff;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
@@ -114,19 +166,19 @@
   i { font-size: 0.75rem; }
 
   &:hover:not(:disabled) {
-    background: #f1f5f9;
-    border-color: #94a3b8;
-    color: #1e293b;
+    background: var(--color-surface-sunken);
+    border-color: var(--color-text-muted);
+    color: var(--color-text-primary);
   }
 
   &--active {
-    background: #0284c7;
-    border-color: #0284c7;
+    background: var(--color-info);
+    border-color: var(--color-info);
     color: #fff;
 
     &:hover:not(:disabled) {
-      background: #0369a1;
-      border-color: #0369a1;
+      background: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
     }
   }
 
@@ -152,25 +204,25 @@
 
   // Chart toggle
   &--chart {
-    background: #ede9fe;
+    background: var(--color-accent-bg);
     border-color: #c4b5fd;
     color: #5b21b6;
 
     &:hover:not(:disabled) { background: #ddd6fe; }
     &.rfb-action-btn--active {
-      background: #7c3aed;
-      border-color: #7c3aed;
+      background: var(--color-accent);
+      border-color: var(--color-accent);
       color: #fff;
     }
   }
 
   // CSV download
   &--csv {
-    background: #ecfdf5;
-    border-color: #6ee7b7;
-    color: #047857;
+    background: var(--color-success-bg);
+    border-color: var(--color-success-border);
+    color: var(--color-success);
 
-    &:hover:not(:disabled) { background: #d1fae5; }
+    &:hover:not(:disabled) { background: var(--color-success-bg); }
   }
 }
 

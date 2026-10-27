@@ -40,7 +40,7 @@ export enum AttendanceStatusCode {
 /** The only statuses an employee may request. WeekOff is admin-managed. */
 export const REQUESTABLE_STATUSES: { value: number; label: string }[] = [
   { value: AttendanceStatusCode.Present, label: 'Present' },
-  { value: AttendanceStatusCode.Absent, label: 'Absent' },
+  { value: AttendanceStatusCode.Absent, label: 'Leave' },
   { value: AttendanceStatusCode.HalfDay, label: 'Half Day' },
 ];
 

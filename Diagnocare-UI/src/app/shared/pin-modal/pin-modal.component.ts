@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import Modal from 'bootstrap/js/dist/modal';
 
 import { PinModalService, PinModalMode } from './pin-modal.service';
 import { PinService }      from 'src/app/services/pinServices/pin.service';
@@ -90,7 +91,7 @@ export class PinModalComponent implements OnInit, OnDestroy {
   private openModal(): void {
     const el = document.getElementById('pinAuthModal');
     if (!el) return;
-    this.modal = new (window as any).bootstrap.Modal(el, { backdrop: 'static', keyboard: false });
+    this.modal = new Modal(el, { backdrop: 'static', keyboard: false });
     this.modal.show();
     // Suppress the loading spinner while the PIN modal is active.
     // Class is removed in closeModal() regardless of resolution path.

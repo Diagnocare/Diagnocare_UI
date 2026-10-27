@@ -23,14 +23,11 @@ export const OtpChannelLabels: Record<OtpChannel, string> = {
  *  3. Returns success — nothing is persisted
  */
 export interface SendOtpRequest {
-  id: number; // Added ID field for OTP requests
-  userId:        string;
-  /** Target channel. Backend CommunicationController routes accordingly. */
-  channel:       OtpChannel;
-  /** Recovery flow only: explicit email to send to (overrides the profile email). */
-  email?:        string;
-  /** Recovery flow only: explicit phone number to send to (overrides profile phone). */
-  contactPhone?: string;
+  userId:   string;
+  /** Target channel. The code is always delivered to the address on file. */
+  channel:  OtpChannel;
+  /** What the code will be redeemed for. Defaults to a login on the server. */
+  purpose?: 'login' | 'reset';
 }
 
 // ── Verify OTP ─────────────────────────────────────────────────────────────────
@@ -61,11 +58,8 @@ export interface VerifyAuthRequest {
   authType: number;
   /** Username for MFA; Redis string key for OTP. */
   userId:   string;
-  /**
-   * Numeric user ID — used to load the User entity for token generation in the
-   * OTP flow.  Pass 0 for MFA (AuthenticationApp).
-   */
-  id:       number;
+  /** 'login' (default) returns a session token; 'reset' returns a single-use password-reset token. */
+  purpose?: 'login' | 'reset';
   /** Six-digit TOTP string (MFA) or numeric OTP as string (Email / Phone). */
   code:     string;
 }

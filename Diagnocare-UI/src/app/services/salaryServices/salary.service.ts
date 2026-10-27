@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
-import {MonthlySalaryResponseDTO, GenerateSalaryDTO, AddPaymentDTO, UserSalaryConfigDTO, SaveSalaryConfigDTO, CalculatePayableSalaryDTO, UserSalarySummaryDTO, SalaryPaymentDTO, PayAllComponentsDTO} from 'src/app/models/salary/salary.dto';
+import {MonthlySalaryResponseDTO, GenerateSalaryDTO, AddPaymentDTO, UserSalaryConfigDTO, SaveSalaryConfigDTO, CalculatePayableSalaryDTO, UserSalarySummaryDTO, SalaryPaymentDTO, PayAllComponentsDTO, PaymentHistoryDTO} from 'src/app/models/salary/salary.dto';
 
 @Injectable({ providedIn: 'root' })
 export class SalaryService {
@@ -129,6 +129,69 @@ export class SalaryService {
       .get(`${this.baseUrl}${apiEndpoints.generateMyPaymentReceipt}?paymentId=${paymentId}`, {
         responseType: 'blob',
       });
+  }
+
+  // ── Payment history ────────────────────────────────────────────────────────
+
+  /**
+   * GET api/salary/GetPaymentHistory?userId=X
+   * One employee's complete payment history, grouped by salary period, newest
+   * month first. Every payment carries when, how and how much was paid — date,
+   * amount, mode, transaction reference, status and whether proof is attached.
+   */
+  getPaymentHistory(userId: number): Observable<PaymentHistoryDTO> {
+    return this.http
+      .get<PaymentHistoryDTO>(`${this.baseUrl}${apiEndpoints.getPaymentHistory}?userId=${userId}`);
+  }
+
+  // ── Payment proof (screenshot / receipt) ───────────────────────────────────
+
+  /**
+   * POST api/salary/UploadPaymentProof (multipart/form-data)
+   * Attaches a screenshot or receipt to an existing payment; re-uploading replaces it.
+   *
+   * Separate from addPayment on purpose — the payment is recorded first and the
+   * file attached after, so a rejected upload never loses the payment itself.
+   * Content-Type is deliberately left unset: the browser must add the multipart
+   * boundary, and naming it here would produce a request the API cannot parse.
+   */
+  uploadPaymentProof(paymentId: number, file: File): Observable<any> {
+    const form = new FormData();
+    form.append('paymentId', String(paymentId));
+    form.append('file', file, file.name);
+    return this.http.post(`${this.baseUrl}${apiEndpoints.uploadPaymentProof}`, form);
+  }
+
+  /**
+   * GET api/salary/GetPaymentProof?paymentId=X
+   * Admin — downloads the proof attached to any payment.
+   */
+  getPaymentProof(paymentId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.baseUrl}${apiEndpoints.getPaymentProof}?paymentId=${paymentId}`, {
+        responseType: 'blob',
+      });
+  }
+
+  /**
+   * GET api/salary/GetMyPaymentProof?paymentId=X
+   * Self-service — downloads the proof for one of the caller's own payments
+   * (ownership-validated server-side).
+   */
+  getMyPaymentProof(paymentId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.baseUrl}${apiEndpoints.getMyPaymentProof}?paymentId=${paymentId}`, {
+        responseType: 'blob',
+      });
+  }
+
+  /**
+   * DELETE api/salary/DeletePaymentProof/{paymentId}
+   * Removes the attached proof, leaving the payment record itself untouched.
+   */
+  deletePaymentProof(paymentId: number): Observable<any> {
+    return this.http
+      .delete(`${this.baseUrl}${apiEndpoints.deletePaymentProof}/${paymentId}`);
   }
 
 }

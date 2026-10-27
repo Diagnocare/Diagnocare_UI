@@ -3,61 +3,168 @@
   <!-- ══ Sidebar ══════════════════════════════════════════════════════════════
        Every place this person may go, always visible, grouped by job. No hover
        menus: nothing disappears when the mouse drifts. -->
-  <aside class="sh-sidebar" [class.is-open]="drawerOpen" aria-label="Main menu">
-    <a class="sh-brand" routerLink="/pathology" title="Go to Home">
-      <span class="sh-brand-logo"><i class="fa fa-heart-pulse" aria-hidden="true"></i></span>
-      <span class="sh-brand-text">
-        <span class="sh-brand-name">Diagnocare</span>
-        <span class="sh-brand-sub" *ngIf="roleLabel">{{ roleLabel }}</span>
-      </span>
-    </a>
+  <aside class="sh-sidebar" [class.is-open]="drawerOpen" [class.is-railed]="railed"
+         aria-label="Main menu">
+    <div class="sh-brand-row">
+      <a class="sh-brand" routerLink="/pathology" title="Go to Home">
+        <span class="sh-brand-logo"><i class="fa fa-heart-pulse" aria-hidden="true"></i></span>
+        <span class="sh-brand-text">
+          <span class="sh-brand-name">Diagnocare</span>
+          <span class="sh-brand-sub" *ngIf="roleLabel">{{ roleLabel }}</span>
+        </span>
+      </a>
+
+      <!-- Rail toggle. Narrows the sidebar to its icons; the page keeps the
+           width. Hidden in the mobile drawer, where the sidebar is already an
+           overlay and a rail would mean nothing. -->
+      <button type="button" class="sh-rail-btn" (click)="toggleRail()"
+              [attr.aria-pressed]="railed"
+              [attr.aria-label]="railed ? 'Widen the menu' : 'Narrow the menu to icons'"
+              [title]="railed ? 'Widen the menu' : 'Narrow the menu to icons'">
+        <i class="fa" [ngClass]="railed ? 'fa-angles-right' : 'fa-angles-left'" aria-hidden="true"></i>
+      </button>
+    </div>
 
     <div class="sh-expired" *ngIf="isLicenceExpired">
       <i class="fa fa-lock" aria-hidden="true"></i>
-      Licence expired — screens are locked
+      <span class="sh-nav-label">Licence expired — screens are locked</span>
     </div>
 
     <nav class="sh-nav">
-      <ng-container *ngFor="let section of sections">
-        <div class="sh-nav-title">{{ section.title }}</div>
-        <a *ngFor="let item of section.items"
-           class="sh-nav-item"
-           [class.is-locked]="isLicenceExpired"
-           [routerLink]="routeFor(item)"
-           [queryParams]="item.query"
-           routerLinkActive="is-active"
-           [routerLinkActiveOptions]="{ exact: !!item.query || item.route === 'pathology' }">
-          <i class="fa {{ item.icon }}" aria-hidden="true"></i>
-          <span class="sh-nav-label">{{ item.label }}</span>
-          <span class="sh-nav-count" *ngIf="liveBadge(item) > 0">{{ badgeText(liveBadge(item)) }}</span>
-          <i class="fa fa-lock sh-nav-lock" *ngIf="isLicenceExpired" aria-hidden="true"></i>
-        </a>
+      <div class="sh-section" *ngFor="let section of sections"
+           [class.has-flyout]="flyoutId === section.id">
 
-        <!-- Business reports fold: twelve entries would push everything else
-             off the screen. Click to open — it never opens or closes by itself. -->
-        <ng-container *ngIf="section.title === 'Reports'">
-          <button type="button" class="sh-nav-item sh-nav-group"
-                  [class.is-locked]="isLicenceExpired"
-                  [attr.aria-expanded]="reportsOpen"
-                  (click)="reportsOpen = !reportsOpen">
-            <i class="fa fa-chart-column" aria-hidden="true"></i>
-            <span class="sh-nav-label">Business reports</span>
-            <i class="fa sh-nav-caret" [ngClass]="reportsOpen ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i>
-          </button>
-          <div class="sh-subnav" *ngIf="reportsOpen">
-            <a *ngFor="let r of summaryReportMenu"
-               class="sh-subnav-item"
-               [routerLink]="reportRoute(r.id)"
-               routerLinkActive="is-active">{{ r.label }}</a>
-          </div>
-        </ng-container>
-      </ng-container>
+        <!-- ── Level 1: the section heading, itself a control ───────────────
+             A heading that does nothing is a wasted row, so the heading IS the
+             button. What it does depends on the mode: in the full sidebar it
+             folds the section; in rail mode it opens the section as a flyout
+             (see onSectionClick). The icon is what is left of the section in
+             rail mode, so it carries the section's meaning on its own. -->
+        <button type="button" class="sh-nav-title"
+                [attr.aria-expanded]="railActive ? (flyoutId === section.id) : isOpen(section.id)"
+                [attr.aria-controls]="railActive ? ('sh-fly-' + section.id) : ('sh-sec-' + section.id)"
+                [attr.aria-haspopup]="railActive ? 'menu' : null"
+                [title]="section.title"
+                (click)="onSectionClick(section, $event)">
+          <i class="fa sh-nav-title-icon {{ section.icon }}" aria-hidden="true"></i>
+          <span class="sh-nav-title-text">{{ section.title }}</span>
+          <i class="fa sh-nav-title-caret"
+             [ngClass]="isOpen(section.id) ? 'fa-chevron-up' : 'fa-chevron-down'"
+             aria-hidden="true"></i>
+        </button>
+
+        <!-- ── Rail flyout ──────────────────────────────────────────────────
+             The section's links, beside the rail. Rendered only in rail mode
+             and only for the open section. Groups are flattened into it: a
+             fold inside a popover that is itself a disclosure is one layer
+             too many, and the whole list fits once it is out of the rail. -->
+        <div class="sh-flyout" [id]="'sh-fly-' + section.id" role="menu"
+             *ngIf="railActive && flyoutId === section.id"
+             [style.top.px]="flyoutTop"
+             (click)="$event.stopPropagation()">
+          <div class="sh-flyout-head">{{ section.title }}</div>
+
+          <a *ngFor="let item of section.items"
+             class="sh-flyout-item" role="menuitem"
+             [class.is-locked]="isLicenceExpired"
+             [routerLink]="routeFor(item)"
+             [queryParams]="item.query"
+             routerLinkActive="is-active"
+             [routerLinkActiveOptions]="{ exact: !!item.query || item.route === 'pathology' }">
+            <i class="fa {{ item.icon }}" aria-hidden="true"></i>
+            <span class="sh-nav-label">{{ item.label }}</span>
+            <span class="sh-nav-count" *ngIf="liveBadge(item) > 0">{{ badgeText(liveBadge(item)) }}</span>
+          </a>
+
+          <ng-container *ngFor="let group of section.groups">
+            <div class="sh-flyout-sub">{{ group.label }}</div>
+            <a *ngFor="let item of group.items"
+               class="sh-flyout-item" role="menuitem"
+               [class.is-locked]="isLicenceExpired"
+               [routerLink]="routeFor(item)"
+               routerLinkActive="is-active">
+              <i class="fa {{ item.icon }}" aria-hidden="true"></i>
+              <span class="sh-nav-label">{{ item.label }}</span>
+            </a>
+          </ng-container>
+        </div>
+
+        <!-- Not rendered in the rail at all.
+             ────────────────────────────────────────────────────────────────
+             The rail is one icon per section and nothing else, so what it
+             shows cannot depend on the route. Gating this on isOpen() alone
+             did depend on it: revealActive() un-folds the section you
+             navigate into, so opening a page from the flyout made that
+             section's items appear in the icon column — the menu
+             restructuring itself as a side effect of being used. The links
+             are in the flyout, named; the fold state is a full-width-sidebar
+             concern and is honoured again the moment the sidebar is widened. -->
+        <div class="sh-nav-body" [id]="'sh-sec-' + section.id"
+             *ngIf="!railActive && isOpen(section.id)">
+
+          <!-- Direct links. title= gives the label back as a tooltip in rail
+               mode, where the text is clipped away. -->
+          <a *ngFor="let item of section.items"
+             class="sh-nav-item"
+             [class.is-locked]="isLicenceExpired"
+             [routerLink]="routeFor(item)"
+             [queryParams]="item.query"
+             [title]="item.label"
+             routerLinkActive="is-active"
+             [routerLinkActiveOptions]="{ exact: !!item.query || item.route === 'pathology' }">
+            <i class="fa {{ item.icon }}" aria-hidden="true"></i>
+            <span class="sh-nav-label">{{ item.label }}</span>
+            <span class="sh-nav-count" *ngIf="liveBadge(item) > 0">{{ badgeText(liveBadge(item)) }}</span>
+            <i class="fa fa-lock sh-nav-lock" *ngIf="isLicenceExpired" aria-hidden="true"></i>
+          </a>
+
+          <!-- ── Level 2: a submenu, folding independently of its section ──── -->
+          <ng-container *ngFor="let group of section.groups">
+            <button type="button" class="sh-nav-item sh-nav-group"
+                    [class.is-locked]="isLicenceExpired"
+                    [attr.aria-expanded]="isOpen(group.id)"
+                    [attr.aria-controls]="'sh-grp-' + group.id"
+                    [title]="group.label"
+                    (click)="toggle(group.id)">
+              <i class="fa {{ group.icon }}" aria-hidden="true"></i>
+              <span class="sh-nav-label">{{ group.label }}</span>
+              <i class="fa sh-nav-caret"
+                 [ngClass]="isOpen(group.id) ? 'fa-chevron-up' : 'fa-chevron-down'"
+                 aria-hidden="true"></i>
+            </button>
+
+            <div class="sh-subnav" [id]="'sh-grp-' + group.id" *ngIf="isOpen(group.id)">
+              <a *ngFor="let item of group.items"
+                 class="sh-subnav-item"
+                 [class.is-locked]="isLicenceExpired"
+                 [routerLink]="routeFor(item)"
+                 [title]="item.label"
+                 routerLinkActive="is-active">
+                <i class="fa {{ item.icon }} sh-subnav-icon" aria-hidden="true"></i>
+                <span class="sh-nav-label">{{ item.label }}</span>
+              </a>
+            </div>
+          </ng-container>
+        </div>
+      </div>
     </nav>
 
     <div class="sh-sidebar-foot">
-      <a routerLink="/help" class="sh-help">
+      <!-- Only offered once something is actually folded, so it is not a
+           permanent button that usually does nothing — and never in the rail,
+           where it would undo a fold state the rail does not render anyway.
+           Leaving it there would also put a route-dependent row back in the
+           collapsed sidebar: revealActive() clears folds as you navigate, so
+           the button would vanish from the footer the moment you opened a
+           page in the last folded section. -->
+      <button type="button" class="sh-help sh-expand-all" *ngIf="hasCollapsed && !railActive"
+              (click)="expandAll()" title="Show every menu section">
+        <i class="fa fa-list" aria-hidden="true"></i>
+        <span class="sh-nav-label">Show all sections</span>
+      </button>
+      <a routerLink="/help" class="sh-help" title="Help &amp; support">
         <i class="fa fa-life-ring" aria-hidden="true"></i>
-        <span>Help &amp; support</span>
+        <span class="sh-nav-label">Help &amp; support</span>
       </a>
       <span class="sh-lab-id" *ngIf="pathologyId">Lab ID · {{ pathologyId }}</span>
     </div>
@@ -90,10 +197,10 @@
         <span>Menu</span>
       </button>
 
-      <div class="sh-title">
-        <h1>{{ pageTitle }}</h1>
-        <p *ngIf="pageHint">{{ pageHint }}</p>
-      </div>
+      <!-- No page title here. Every screen already heads itself, and a second
+           title a few pixels above the first said the same thing twice in two
+           different wordings ("Receipt" over "Payment Receipts"). The topbar
+           is the actions only; the page names itself. -->
 
       <form class="sh-find" *ngIf="canFind && !isLicenceExpired" (ngSubmit)="findPatient()" role="search">
         <label for="shFind" class="visually-hidden">Find a patient</label>
