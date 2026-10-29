@@ -18,13 +18,12 @@
  * Whitespace is preserved rather than trimmed so this is safe to run on every keystroke:
  * trimming mid-typing would swallow the space between "john" and "smith".
  */
-export function capitalizeFirstLetter(value: string | null | undefined): string {
+export function capitalizeWords(value: string | null | undefined): string {
   const raw = value ?? '';
-  const firstVisible = raw.search(/\S/);
-  if (firstVisible === -1) return raw;
-  return raw.slice(0, firstVisible)
-    + raw.charAt(firstVisible).toUpperCase()
-    + raw.slice(firstVisible + 1);
+
+  return raw
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 /**
@@ -34,5 +33,5 @@ export function capitalizeFirstLetter(value: string | null | undefined): string 
  * backend receives matches what the user was shown.
  */
 export function formatPersonName(value: string | null | undefined): string {
-  return capitalizeFirstLetter((value ?? '').trim());
+  return capitalizeWords((value ?? '').trim());
 }
