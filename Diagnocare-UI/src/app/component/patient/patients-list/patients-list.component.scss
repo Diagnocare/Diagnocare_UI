@@ -1,7 +1,7 @@
 /* Patient List Component Styles */
 .patient-list-container {
   padding: 20px;
-  background-color: #f8f9fa;
+  background-color: var(--color-surface-sunken);
   min-height: 100vh;
 }
 
@@ -18,7 +18,7 @@
 }
 
 .header h2 {
-  color: #2c3e50;
+  color: var(--color-text-primary);
   margin: 0;
   font-size: 28px;
   font-weight: 600;
@@ -48,178 +48,21 @@
    buttons did not match the rest of the app. Do not restyle it locally. */
 
 .btn-secondary {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
+  background: linear-gradient(135deg, var(--color-info), #1976D2);
   color: white;
 }
 
 .btn-secondary:hover {
-  background: linear-gradient(135deg, #1976D2, #2196F3);
+  background: linear-gradient(135deg, #1976D2, var(--color-info));
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
 }
 
-/* ── Search / filter bar ──────────────────────────────────────────── */
-.search-section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 1.1rem 1.25rem 1rem;
-  margin-bottom: 1.1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
-  border-left: 4px solid #2196f3;
-}
-
-.search-row {
-  display: grid;
-  grid-template-columns: 1.7fr 2.4fr 1.4fr auto;
-  gap: 1rem;
-  align-items: end;
-}
-
-/* Each filter cell: label stacked above the control */
-.search-group,
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0;
-  width: 100%;
-}
-
-/* Compact uppercase label with icon */
-.filter-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  white-space: nowrap;
-  min-height: 1.2rem;
-  user-select: none;
-}
-
-.filter-label .fa {
-  font-size: 10px;
-  opacity: 0.8;
-}
-
-/* ── Icon-prefixed search input ─────────────────────────────────── */
-.input-icon-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 0.75rem;
-  color: #94a3b8;
-  font-size: 0.8rem;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.input-icon-wrap .form-control {
-  padding-left: 2.1rem;
-}
-
-/* ── Date range ─────────────────────────────────────────────────── */
-.filter-group.date-range {
-  flex-direction: column;
-}
-
-.date-inputs {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.date-inputs app-date-picker {
-  flex: 1;
-  min-width: 0;
-}
-
-.date-sep {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 1.5rem;
-  color: #94a3b8;
-  font-size: 0.9rem;
-}
-
-/* ── Search button ──────────────────────────────────────────────── */
-.filter-group.search-btn-group {
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-/* Colour, radius, weight and hover come from the app-wide button style in
-   styles.css → "UNIFIED PRIMARY BUTTON". Only the layout that is specific to
-   this filter bar belongs here. */
-.btn-search {
-  width: 100%;
-}
-
-/* ── Form controls inside the bar ───────────────────────────────── */
-.search-section .form-control,
-.search-section .form-select {
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 13px;
-  padding: 0.5rem 0.75rem;
-  color: #1e293b;
-  background-color: #f8fafc;
-  transition: border-color 0.2s, box-shadow 0.2s;
-
-  &:focus {
-    border-color: #2196f3;
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.12);
-    background-color: #fff;
-    outline: none;
-  }
-}
-
-.search-section .form-select {
-  cursor: pointer;
-}
-
-/* ── Responsive ─────────────────────────────────────────────────── */
-@media (max-width: 1100px) {
-  .search-row {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .filter-group.search-btn-group {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
-  .filter-group.search-btn-group .btn-search {
-    width: auto;
-    min-width: 120px;
-  }
-}
-
-@media (max-width: 640px) {
-  .search-row {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-group.search-btn-group {
-    grid-column: unset;
-  }
-
-  .filter-group.search-btn-group .btn-search {
-    width: 100%;
-  }
-}
-
+/* The search bar is .search-section / .search-row / .filter-group /
+   .filter-label / .search-btn-group from styles.css. The whole of it used to
+   be restated here — this screen had the only complete version — which meant
+   every other screen's bar was the thinner global one. Promoted; nothing
+   page-specific is left. */
 
 input[type="radio"] {
   margin-left: 2%;
@@ -234,7 +77,7 @@ input[type="radio"] {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
   padding: 0.5em;
   border-radius: 1em;
@@ -274,7 +117,7 @@ input[type="radio"] {
 }
 
 .patients-table th {
-  background: linear-gradient(135deg, #2c3e50, #34495e);
+  background: linear-gradient(135deg, var(--color-text-primary), #34495e);
   color: white;
   padding: 15px 10px;
   text-align: center;
@@ -291,7 +134,7 @@ input[type="radio"] {
 }
 
 .patients-table th.sortable:hover {
-  background: linear-gradient(135deg, #34495e, #2c3e50);
+  background: linear-gradient(135deg, #34495e, var(--color-text-primary));
 }
 
 .sort-icon {
@@ -302,12 +145,12 @@ input[type="radio"] {
 
 .patients-table td {
   padding: 12px 10px;
-  border-bottom: 1px solid #e1e8ed;
+  border-bottom: 1px solid var(--color-border);
   vertical-align: top;
 }
 
 .patients-table tr:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-surface-sunken);
 }
 
 /* ── Urgent badge ────────────────────────────────────────────────── */
@@ -336,11 +179,11 @@ input[type="radio"] {
 /* Urgent = Yes — red/orange */
 .urgent-yes {
   background: #fff1f0;
-  color: #c0392b;
+  color: var(--color-error);
   border-color: #f5a29a;
 
   .urgent-dot {
-    background: #e74c3c;
+    background: var(--color-error);
     box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.25);
     animation: pulse-dot 1.2s ease-in-out infinite;
   }
@@ -348,45 +191,45 @@ input[type="radio"] {
 
 /* Urgent = No — neutral grey */
 .urgent-no {
-  background: #f1f5f9;
-  color: #64748b;
-  border-color: #cbd5e1;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-strong);
 
   .urgent-dot {
-    background: #94a3b8;
+    background: var(--color-text-muted);
   }
 }
 
 /* ── Row tinting by status (urgent always wins) ─────────────────── */
 .urgent-row {
   background-color: #fff1f0 !important;
-  border-left: 4px solid #e74c3c;
+  border-left: 4px solid var(--color-error);
 }
 
 .completed-row {
-  background-color: #f0fdf4 !important;
-  border-left: 4px solid #22c55e;
+  background-color: var(--color-success-bg) !important;
+  border-left: 4px solid var(--color-success);
 }
 
 .partial-row {
-  background-color: #eff6ff !important;
-  border-left: 4px solid #3b82f6;
+  background-color: var(--color-info-bg) !important;
+  border-left: 4px solid var(--color-info);
 }
 
 .pending-row {
-  background-color: #fffbeb !important;
-  border-left: 4px solid #f59e0b;
+  background-color: var(--color-warning-bg) !important;
+  border-left: 4px solid var(--color-warning);
 }
 
 /* Patient Info Styles */
 .patient-info strong {
   display: block;
-  color: #2c3e50;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
 .patient-info small {
-  color: #6c757d;
+  color: var(--color-text-secondary);
   font-size: 11px;
 }
 
@@ -395,14 +238,14 @@ input[type="radio"] {
 }
 
 .ref-info small {
-  color: #6c757d;
+  color: var(--color-text-secondary);
   font-size: 11px;
 }
 
 .amount {
   text-align: right;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text-primary);
 }
 
 /* Badge Styles */
@@ -420,12 +263,12 @@ input[type="radio"] {
 }
 
 .badge-normal {
-  background: #e1e8ed;
-  color: #6c757d;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .badge-success {
-  background: #4CAF50;
+  background: var(--color-success);
   color: white;
 }
 
@@ -460,24 +303,24 @@ input[type="radio"] {
 
 /* Completed — green */
 .status-completed {
-  background: #dcfce7;
-  color: #15803d;
-  border-color: #86efac;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
 
   .status-dot {
-    background: #22c55e;
+    background: var(--color-success);
     box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
   }
 }
 
 /* Partial — blue */
 .status-partial {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #93c5fd;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info-border);
 
   .status-dot {
-    background: #3b82f6;
+    background: var(--color-info);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
   }
 }
@@ -485,11 +328,11 @@ input[type="radio"] {
 /* Pending — amber */
 .status-pending {
   background: #fef9c3;
-  color: #a16207;
+  color: var(--color-warning);
   border-color: #fde047;
 
   .status-dot {
-    background: #f59e0b;
+    background: var(--color-warning);
     box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
     animation: pulse-dot 1.6s ease-in-out infinite;
   }
@@ -497,11 +340,11 @@ input[type="radio"] {
 
 /* Unknown / empty */
 .status-unknown {
-  background: #f1f5f9;
-  color: #64748b;
-  border-color: #cbd5e1;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-strong);
 
-  .status-dot { background: #94a3b8; }
+  .status-dot { background: var(--color-text-muted); }
 }
 
 @keyframes pulse-dot {
@@ -533,16 +376,16 @@ input[type="radio"] {
 
 .page-size-select {
   padding: 8px 12px;
-  border: 2px solid #e1e8ed;
+  border: 2px solid var(--color-border);
   border-radius: 6px;
   margin-right: 15px;
 }
 
 .btn-page {
   padding: 8px 12px;
-  border: 2px solid #e1e8ed;
+  border: 2px solid var(--color-border);
   background: white;
-  color: #2c3e50;
+  color: var(--color-text-primary);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -550,21 +393,21 @@ input[type="radio"] {
 }
 
 .btn-page:hover:not(:disabled) {
-  background: #4CAF50;
+  background: var(--color-success);
   color: white;
-  border-color: #4CAF50;
+  border-color: var(--color-success);
 }
 
 .btn-page:disabled {
-  background: #f8f9fa;
-  color: #6c757d;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
 }
 
 .btn-page.active {
-  background: #4CAF50;
+  background: var(--color-success);
   color: white;
-  border-color: #4CAF50;
+  border-color: var(--color-success);
 }
 
 .page-numbers {
@@ -669,7 +512,7 @@ input[type="radio"] {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #4CAF50;
+  border-top: 4px solid var(--color-success);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -691,7 +534,7 @@ input[type="radio"] {
 .select-input:focus,
 .btn-action:focus,
 .btn-page:focus {
-  outline: 2px solid #4CAF50;
+  outline: 2px solid var(--color-success);
   outline-offset: 2px;
 }
 
@@ -701,13 +544,11 @@ input[type="radio"] {
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-/* Enhanced visual hierarchy */
-.search-section {
-  border-left: 4px solid #4CAF50;
-}
-
+/* Enhanced visual hierarchy. The search bar's accent is the global one — a
+   green edge here and a blue one everywhere else is the sort of drift this
+   is meant to stop. */
 .table-container {
-  border-left: 4px solid #2c3e50;
+  border-left: 4px solid var(--color-text-primary);
 }
 
 /* Custom scrollbar for table */
@@ -748,141 +589,13 @@ input[type="radio"] {
 //  THEME OVERRIDES
 // ══════════════════════════════════════════════════════════════════
 
-:host-context(html[data-theme="dark"]) {
-  .patient-list-container { background-color: #0f172a !important; }
-  .header                 { background: #1e293b !important; border-bottom-color: #334155 !important; }
-  .header h2              { color: #e2e8f0 !important; }
-  .search-section         { background: #1e293b !important; border-left-color: #334155 !important; }
-  .table-container        { background: #1e293b !important; border-left-color: #334155 !important; }
-  .search-section .form-control,
-  .search-section .form-select {
-    background-color: #0f172a !important;
-    color: #e2e8f0 !important;
-    border-color: #334155 !important;
-    &:focus { background-color: #0f172a !important; border-color: #5b9cf6 !important; }
-  }
-  .filter-label           { color: #94a3b8 !important; }
-  // Default table rows (no status class) — must be explicit to beat white inheritance
-  .patients-table tbody tr { background-color: #1e293b !important; }
-  .patients-table td      { border-bottom-color: #334155 !important; color: #cbd5e1 !important; }
-  .patients-table tr:hover { background-color: #273548 !important; }
-  .patient-info strong    { color: #e2e8f0 !important; }
-  .patient-info small     { color: #94a3b8 !important; }
-  .ref-info small         { color: #94a3b8 !important; }
-  .amount                 { color: #e2e8f0 !important; }
-  .pagination-container   { background: #1e293b !important; border-color: #334155 !important; }
-  .pagination-info        { color: #94a3b8 !important; }
-  .btn-page               { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
-  .urgent-row             { background-color: #450a0a !important; }
-  .completed-row          { background-color: #052e16 !important; }
-  .partial-row            { background-color: #1e3a5f !important; }
-  .pending-row            { background-color: #431407 !important; }
-  .status-completed       { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
-  .status-partial         { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
-  .status-pending         { background: #431407 !important; color: #fde68a !important; border-color: #92400e !important; }
-  .status-unknown         { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
-  .urgent-yes             { background: #450a0a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
-  .urgent-no              { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
-}
 
-:host-context(html[data-theme="midnight"]) {
-  .patient-list-container { background-color: #020408 !important; }
-  .header                 { background: #0d1117 !important; border-bottom-color: #21262d !important; }
-  .header h2              { color: #cdd6f4 !important; }
-  .search-section         { background: #0d1117 !important; border-left-color: #21262d !important; }
-  .table-container        { background: #0d1117 !important; }
-  .search-section .form-control,
-  .search-section .form-select {
-    background-color: #020408 !important;
-    color: #cdd6f4 !important;
-    border-color: #21262d !important;
-  }
-  .filter-label           { color: #8b949e !important; }
-  .patients-table tbody tr { background-color: #0d1117 !important; }
-  .patients-table td      { border-bottom-color: #21262d !important; color: #a6adc8 !important; }
-  .patients-table tr:hover { background-color: #161b22 !important; }
-  .patient-info strong    { color: #cdd6f4 !important; }
-  .patient-info small     { color: #8b949e !important; }
-  .ref-info small         { color: #8b949e !important; }
-  .amount                 { color: #cdd6f4 !important; }
-  .pagination-container   { background: #0d1117 !important; }
-  .btn-page               { background: #020408 !important; color: #cdd6f4 !important; border-color: #21262d !important; }
-  .urgent-row             { background-color: #2d0a0a !important; }
-  .completed-row          { background-color: #031a0e !important; }
-  .partial-row            { background-color: #11162a !important; }
-  .pending-row            { background-color: #2d0f04 !important; }
-  .status-completed       { background: #031a0e !important; color: #56d364 !important; border-color: #238636 !important; }
-  .status-partial         { background: #11162a !important; color: #79b8ff !important; border-color: #1158c7 !important; }
-  .status-pending         { background: #2d0f04 !important; color: #fbbf24 !important; border-color: #78350f !important; }
-  .status-unknown         { background: #161b22 !important; color: #8b949e !important; border-color: #21262d !important; }
-  .urgent-yes             { background: #2d0a0a !important; color: #f97583 !important; border-color: #531c07 !important; }
-  .urgent-no              { background: #161b22 !important; color: #8b949e !important; border-color: #21262d !important; }
-}
 
-:host-context(html[data-theme="warm"]) {
-  .patient-list-container { background-color: #fef9f0 !important; }
-  .header                 { background: #fffdf7 !important; border-bottom-color: #ddc9a8 !important; }
-  .header h2              { color: #3d2b1f !important; }
-  .search-section         { background: #fffdf7 !important; border-left-color: #c4985a !important; }
-  .table-container        { background: #fffdf7 !important; border-left-color: #ddc9a8 !important; }
-  .search-section .form-control,
-  .search-section .form-select {
-    background-color: #fef9f0 !important;
-    color: #3d2b1f !important;
-    border-color: #ddc9a8 !important;
-    &:focus { background-color: #fffdf7 !important; border-color: #c4985a !important; }
-  }
-  .filter-label           { color: #9e8272 !important; }
-  .patients-table tbody tr { background-color: #fffdf7 !important; }
-  .patients-table td      { border-bottom-color: #e8d9c0 !important; color: #3d2b1f !important; }
-  .patients-table tr:hover { background-color: #fef3e3 !important; }
-  .patient-info strong    { color: #3d2b1f !important; }
-  .patient-info small     { color: #9e8272 !important; }
-  .amount                 { color: #3d2b1f !important; }
-  .pagination-container   { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
-  .btn-page               { background: #fef9f0 !important; color: #3d2b1f !important; border-color: #ddc9a8 !important; }
-  .urgent-row             { background-color: #fef2f2 !important; }
-  .completed-row          { background-color: #f0fdf4 !important; }
-  .partial-row            { background-color: #eff6ff !important; }
-  .pending-row            { background-color: #fef9e7 !important; }
-  .status-completed       { background: #dcfce7 !important; color: #15803d !important; border-color: #86efac !important; }
-  .status-partial         { background: #dbeafe !important; color: #1d4ed8 !important; border-color: #93c5fd !important; }
-  .status-pending         { background: #fef9c3 !important; color: #854d0e !important; border-color: #fde047 !important; }
-  .status-unknown         { background: #f0e6d6 !important; color: #5c4636 !important; border-color: #d8c4a0 !important; }
-  .urgent-yes             { background: #fef2f2 !important; color: #b91c1c !important; border-color: #f5a29a !important; }
-  .urgent-no              { background: #f0e6d6 !important; color: #4a3728 !important; border-color: #d8c4a0 !important; }
-}
 
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .patient-list-container { background-color: #0f172a !important; }
-    .header                 { background: #1e293b !important; }
-    .header h2              { color: #e2e8f0 !important; }
-    .search-section         { background: #1e293b !important; }
-    .table-container        { background: #1e293b !important; }
-    .search-section .form-control,
-    .search-section .form-select {
-      background-color: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important;
-    }
-    .patients-table tbody tr { background-color: #1e293b !important; }
-    .patients-table td      { border-bottom-color: #334155 !important; color: #cbd5e1 !important; }
-    .patients-table tr:hover { background-color: #273548 !important; }
-    .patient-info strong    { color: #e2e8f0 !important; }
-    .patient-info small     { color: #94a3b8 !important; }
-    .amount                 { color: #e2e8f0 !important; }
-    .pagination-container   { background: #1e293b !important; }
-    .btn-page               { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
-    .urgent-row   { background-color: #450a0a !important; }
-    .completed-row{ background-color: #052e16 !important; }
-    .partial-row  { background-color: #1e3a5f !important; }
-    .pending-row  { background-color: #431407 !important; }
-    .status-completed { background: #052e16 !important; color: #86efac !important; border-color: #166534 !important; }
-    .status-partial   { background: #1e3a5f !important; color: #93c5fd !important; border-color: #1d4ed8 !important; }
-    .status-pending   { background: #431407 !important; color: #fde68a !important; border-color: #92400e !important; }
-    .urgent-yes       { background: #450a0a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
-    .urgent-no        { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
-  }
-}
+
+
+
+
 
 
 /* ── Patient ID column ───────────────────────────────────────────── */
@@ -897,9 +610,9 @@ input[type="radio"] {
   max-width: 100%;
   padding: 3px 4px 3px 9px;
   border-radius: 6px;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  color: #3730a3;
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary-hover);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 600;
@@ -925,14 +638,14 @@ input[type="radio"] {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #6366f1;
+  color: var(--color-primary);
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 
-  &:hover { background: #e0e7ff; color: #3730a3; }
-  &:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
-  &.copied { color: #16a34a; }
+  &:hover { background: var(--color-primary-subtle); color: var(--color-primary-hover); }
+  &:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+  &.copied { color: var(--color-success); }
 }
 
 /* ── Tablet: tighter table, horizontal scroll kept as safety net ─── */
@@ -971,7 +684,7 @@ input[type="radio"] {
     margin-bottom: 12px;
     padding: 10px 14px;
     border-radius: 10px;
-    background: #fff;
+    background: var(--color-surface);
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   }
 
@@ -982,7 +695,7 @@ input[type="radio"] {
     gap: 12px;
     padding: 7px 0 !important;
     text-align: right;
-    border-bottom: 1px dashed #e5e7eb;
+    border-bottom: 1px dashed var(--color-border);
 
     &::before {
       content: attr(data-label);
@@ -991,7 +704,7 @@ input[type="radio"] {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.4px;
-      color: #64748b;
+      color: var(--color-text-secondary);
       text-align: left;
     }
 
@@ -1047,24 +760,24 @@ input[type="radio"] {
   padding: 16px;
 }
 .pd-dialog {
-  background: #fff; color: #2c3e50;
+  background: var(--color-surface); color: var(--color-text-primary);
   width: 100%; max-width: 440px; border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .25); overflow: hidden;
 }
 .pd-head {
   display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 14px 16px; border-bottom: 1px solid #e5e7eb;
+  padding: 14px 16px; border-bottom: 1px solid var(--color-border);
 }
 .pd-head h3 { margin: 0; font-size: 18px; }
-.pd-sub { color: #6c757d; font-size: 12px; }
+.pd-sub { color: var(--color-text-secondary); font-size: 12px; }
 .pd-close { background: none; border: 0; font-size: 26px; line-height: 1; cursor: pointer; color: inherit; }
 .pd-body { margin: 0; padding: 14px 16px; display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; }
-.pd-body dt { font-weight: 600; font-size: 13px; color: #6c757d; }
+.pd-body dt { font-weight: 600; font-size: 13px; color: var(--color-text-secondary); }
 .pd-body dd { margin: 0; word-break: break-word; }
 .pd-action { display: inline-block; margin-left: 8px; font-size: 13px; }
 
 @media (prefers-color-scheme: dark) {
-  .pd-dialog { background: #1e293b; color: #e2e8f0; }
-  .pd-head { border-color: #334155; }
-  .pd-sub, .pd-body dt { color: #94a3b8; }
+  .pd-dialog { background: var(--color-text-primary); color: var(--color-border); }
+  .pd-head { border-color: var(--color-text-primary); }
+  .pd-sub, .pd-body dt { color: var(--color-text-muted); }
 }

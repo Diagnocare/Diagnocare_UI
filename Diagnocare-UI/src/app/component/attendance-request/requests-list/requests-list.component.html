@@ -1,257 +1,269 @@
-<div class="ar-page">
+<div class="page-container">
   <!-- Hero header -->
-  <div class="ar-hero">
-    <div class="ar-hero-text">
-      <h1><i class="fa fa-clipboard-check"></i> Attendance Requests</h1>
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Attendance Requests</h1>
       <p class="subtitle">
         {{ isReviewer ? 'Review and process employee attendance correction requests.'
                    : 'Request a correction to your attendance — an admin will review it.' }}
       </p>
     </div>
-    <button *ngIf="!isReviewer" class="btn btn-light-primary" (click)="newRequest()">
-      <i class="fa fa-plus"></i> New Request
-    </button>
+    <div class="header-actions" *ngIf="!isReviewer">
+      <button class="btn btn-light-primary" (click)="newRequest()">
+        <i class="fa fa-plus"></i> New Request
+      </button>
+    </div>
   </div>
 
-  <!-- User: status chips -->
-  <div *ngIf="!isReviewer" class="chip-bar">
-    <button *ngFor="let f of userStatusOptions" class="chip"
-            [class.active]="filter.status === f.value" (click)="setStatus(f.value)">
-      {{ f.label }}
-    </button>
-  </div>
+  <div class="content-container">
+    <!-- User: status chips -->
+    <div *ngIf="!isReviewer" class="chip-bar">
+      <button *ngFor="let f of userStatusOptions" class="chip"
+              [class.active]="filter.status === f.value" (click)="setStatus(f.value)">
+        {{ f.label }}
+      </button>
+    </div>
 
-  <!-- Admin: the three views. Sticky so the worklist's tabs (and the badges that say
-       where the work is) stay in reach while a long list scrolls. -->
-  <div *ngIf="isReviewer" class="bucket-tabs" role="tablist">
-    <button *ngFor="let b of buckets" class="bucket-tab" role="tab"
-            [class.active]="filter.bucket === b.value"
-            [attr.aria-selected]="filter.bucket === b.value"
-            [title]="b.hint" (click)="setBucket(b.value)">
-      {{ b.label }}
-      <span *ngIf="bucketCount(b.countKey) !== null" class="tab-count"
-            [class.zero]="bucketCount(b.countKey) === 0">{{ bucketCount(b.countKey) }}</span>
-    </button>
-  </div>
+    <!-- Admin: the three views. Sticky so the worklist's tabs (and the badges that say
+         where the work is) stay in reach while a long list scrolls. -->
+    <div *ngIf="isReviewer" class="bucket-tabs" role="tablist">
+      <button *ngFor="let b of buckets" class="bucket-tab" role="tab"
+              [class.active]="filter.bucket === b.value"
+              [attr.aria-selected]="filter.bucket === b.value"
+              [title]="b.hint" (click)="setBucket(b.value)">
+        {{ b.label }}
+        <span *ngIf="bucketCount(b.countKey) !== null" class="tab-count"
+              [class.zero]="bucketCount(b.countKey) === 0">{{ bucketCount(b.countKey) }}</span>
+      </button>
+    </div>
 
-  <!-- Admin: filter bar — Employee | From | To | Apply Reset -->
-  <form *ngIf="isReviewer" class="card filter-panel" (ngSubmit)="applyFilters()">
-    <div class="filter-field emp-field">
-      <label id="emp-label">Employee</label>
-      <div class="emp-select" [class.open]="employeeMenuOpen">
-        <button type="button" class="emp-trigger form-control" aria-haspopup="listbox"
-                aria-labelledby="emp-label" [attr.aria-expanded]="employeeMenuOpen"
-                (click)="toggleEmployeeMenu()">
-          <span class="emp-value" [class.placeholder]="!selectedEmployee">
-            {{ selectedEmployee ? selectedEmployee.name : 'All Employees' }}
-          </span>
-          <i *ngIf="employeesLoading" class="fa fa-spinner fa-spin emp-caret"></i>
-          <i *ngIf="!employeesLoading" class="fa fa-chevron-down emp-caret"></i>
-        </button>
+    <!-- Admin: filter bar — Employee | From | To | Apply Reset -->
+    <form *ngIf="isReviewer" class="search-section" (ngSubmit)="applyFilters()">
+      <div class="search-row">
+      <div class="filter-group emp-field">
+        <label class="filter-label" id="emp-label"><i class="fa fa-user"></i> Employee</label>
+        <div class="emp-select" [class.open]="employeeMenuOpen">
+          <button type="button" class="emp-trigger form-control" aria-haspopup="listbox"
+                  aria-labelledby="emp-label" [attr.aria-expanded]="employeeMenuOpen"
+                  (click)="toggleEmployeeMenu()">
+            <span class="emp-value" [class.placeholder]="!selectedEmployee">
+              {{ selectedEmployee ? selectedEmployee.name : 'All Employees' }}
+            </span>
+            <i *ngIf="employeesLoading" class="fa fa-spinner fa-spin emp-caret"></i>
+            <i *ngIf="!employeesLoading" class="fa fa-chevron-down emp-caret"></i>
+          </button>
 
-        <div *ngIf="employeeMenuOpen" class="emp-menu">
-          <input #employeeSearch type="text" class="emp-search" placeholder="Search employee…"
-                 [(ngModel)]="employeeQuery" name="employeeQuery" autocomplete="off"
-                 (keydown.enter)="$event.preventDefault()" />
-          <ul role="listbox" class="emp-options">
-            <li role="option" class="emp-option" [class.selected]="!filter.userId"
-                (click)="pickEmployee(null)">All Employees</li>
+          <div *ngIf="employeeMenuOpen" class="emp-menu">
+            <input #employeeSearch type="text" class="emp-search" placeholder="Search employee…"
+                   [(ngModel)]="employeeQuery" name="employeeQuery" autocomplete="off"
+                   (keydown.enter)="$event.preventDefault()" />
+            <ul role="listbox" class="emp-options">
+              <li role="option" class="emp-option" [class.selected]="!filter.userId"
+                  (click)="pickEmployee(null)">All Employees</li>
 
-            <li *ngIf="employeesLoading" class="emp-note"><i class="fa fa-spinner fa-spin"></i> Loading employees…</li>
-            <li *ngIf="employeesError" class="emp-note error">
-              Couldn't load employees.
-              <button type="button" class="link-btn" (click)="loadEmployees()">Retry</button>
-            </li>
-            <li *ngIf="!employeesLoading && !employeesError && employees.length === 0" class="emp-note">
-              No active employees found.
-            </li>
-            <li *ngIf="!employeesLoading && employees.length > 0 && filteredEmployees.length === 0" class="emp-note">
-              No employee matches “{{ employeeQuery }}”.
-            </li>
+              <li *ngIf="employeesLoading" class="emp-note"><i class="fa fa-spinner fa-spin"></i> Loading employees…</li>
+              <li *ngIf="employeesError" class="emp-note error">
+                Couldn't load employees.
+                <button type="button" class="link-btn" (click)="loadEmployees()">Retry</button>
+              </li>
+              <li *ngIf="!employeesLoading && !employeesError && employees.length === 0" class="emp-note">
+                No active employees found.
+              </li>
+              <li *ngIf="!employeesLoading && employees.length > 0 && filteredEmployees.length === 0" class="emp-note">
+                No employee matches “{{ employeeQuery }}”.
+              </li>
 
-            <li *ngFor="let e of filteredEmployees" role="option" class="emp-option"
-                [class.selected]="e.id === filter.userId" (click)="pickEmployee(e.id)">
-              <span class="emp-name">{{ e.name }}</span>
-              <span *ngIf="e.detail" class="emp-detail">{{ e.detail }}</span>
-            </li>
-          </ul>
+              <li *ngFor="let e of filteredEmployees" role="option" class="emp-option"
+                  [class.selected]="e.id === filter.userId" (click)="pickEmployee(e.id)">
+                <span class="emp-name">{{ e.name }}</span>
+                <span *ngIf="e.detail" class="emp-detail">{{ e.detail }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
+      </div>
+
+      <div class="filter-group date-range">
+        <label class="filter-label"><i class="fa fa-calendar-alt"></i> Date Range</label>
+        <div class="date-inputs">
+          <app-date-picker [(ngModel)]="filter.fromDate" name="fromDate" inputClass="form-control" placeholder="From"></app-date-picker>
+          <span class="date-sep"><i class="fa fa-long-arrow-alt-right"></i></span>
+          <app-date-picker [(ngModel)]="filter.toDate" name="toDate" inputClass="form-control" placeholder="To"></app-date-picker>
+        </div>
+      </div>
+
+      <div class="filter-group search-btn-group">
+        <label class="filter-label">&nbsp;</label>
+        <div class="search-actions">
+          <button type="submit" class="dc-btn dc-btn--search"><i class="fa fa-search"></i> Search</button>
+          <button type="button" class="btn btn-cancel" (click)="resetFilters()">Reset</button>
+        </div>
+      </div>
+      </div>
+    </form>
+
+    <!-- Employee view keeps the spinner; the reviewer queue gets a table-shaped skeleton
+         so the page never looks frozen and the layout doesn't jump when rows arrive. -->
+    <app-loading-spinner *ngIf="!isReviewer" [isLoading]="isLoading" message="Loading requests…"></app-loading-spinner>
+
+    <div *ngIf="isReviewer && isLoading" class="card skeleton-card" aria-busy="true" aria-label="Loading requests">
+      <div class="skeleton-row" *ngFor="let _ of [1,2,3,4,5]">
+        <span class="sk sk-avatar"></span>
+        <span class="sk sk-wide"></span>
+        <span class="sk sk-mid"></span>
+        <span class="sk sk-wide"></span>
+        <span class="sk sk-pill"></span>
       </div>
     </div>
 
-    <div class="filter-field"><label>From</label>
-      <app-date-picker [(ngModel)]="filter.fromDate" name="fromDate" inputClass="form-control" placeholder="From"></app-date-picker>
-    </div>
-    <div class="filter-field"><label>To</label>
-      <app-date-picker [(ngModel)]="filter.toDate" name="toDate" inputClass="form-control" placeholder="To"></app-date-picker>
-    </div>
-    <div class="filter-actions">
-      <button type="submit" class="btn btn-primary"><i class="fa fa-magnifying-glass"></i> Apply</button>
-      <button type="button" class="btn btn-cancel" (click)="resetFilters()">Reset</button>
-    </div>
-  </form>
+    <ng-container *ngIf="!isLoading">
+      <!-- API error -->
+      <div *ngIf="loadError" class="empty-state card error-state" role="alert">
+        <div class="empty-icon">⚠️</div>
+        <h3>Couldn't load requests</h3>
+        <p>{{ loadError }}</p>
+        <button class="btn btn-primary" (click)="load()"><i class="fa fa-rotate"></i> Retry</button>
+      </div>
 
-  <!-- Employee view keeps the spinner; the reviewer queue gets a table-shaped skeleton
-       so the page never looks frozen and the layout doesn't jump when rows arrive. -->
-  <app-loading-spinner *ngIf="!isReviewer" [isLoading]="isLoading" message="Loading requests…"></app-loading-spinner>
+      <div *ngIf="!loadError && rows.length === 0" class="empty-state card">
+        <div class="empty-icon">{{ hasActiveFilters ? '🔍' : (isReviewer && filter.bucket === 'needsaction' ? '🎉' : '🗓️') }}</div>
+        <ng-container *ngIf="hasActiveFilters; else noneAtAll">
+          <h3>{{ isReviewer ? 'No attendance requests found' : 'Nothing matches these filters' }}</h3>
+          <p>{{ isReviewer ? 'Try changing the employee or date filters.' : 'Try a different status.' }}</p>
+          <button class="btn btn-primary" (click)="resetFilters()">
+            <i class="fa fa-rotate-left"></i> Clear filters
+          </button>
+        </ng-container>
+        <ng-template #noneAtAll>
+          <h3>{{ isReviewer ? emptyBucketMessage : 'No requests to show' }}</h3>
+          <p *ngIf="!isReviewer">Raise a correction request and it will appear here.</p>
+          <p *ngIf="isReviewer && filter.bucket === 'needsaction'">There are no pending attendance requests requiring action.</p>
+          <p *ngIf="isReviewer && filter.bucket === 'decided'">Requests you approve, reject or revert will be listed here.</p>
+          <p *ngIf="isReviewer && filter.bucket === 'all'">No employee has raised a correction request yet.</p>
+          <button *ngIf="!isReviewer" class="btn btn-primary" (click)="newRequest()">
+            <i class="fa fa-plus"></i> Create your first request
+          </button>
+        </ng-template>
+      </div>
 
-  <div *ngIf="isReviewer && isLoading" class="card skeleton-card" aria-busy="true" aria-label="Loading requests">
-    <div class="skeleton-row" *ngFor="let _ of [1,2,3,4,5]">
-      <span class="sk sk-avatar"></span>
-      <span class="sk sk-wide"></span>
-      <span class="sk sk-mid"></span>
-      <span class="sk sk-wide"></span>
-      <span class="sk sk-pill"></span>
-    </div>
-  </div>
-
-  <ng-container *ngIf="!isLoading">
-    <!-- API error -->
-    <div *ngIf="loadError" class="empty-state card error-state" role="alert">
-      <div class="empty-icon">⚠️</div>
-      <h3>Couldn't load requests</h3>
-      <p>{{ loadError }}</p>
-      <button class="btn btn-primary" (click)="load()"><i class="fa fa-rotate"></i> Retry</button>
-    </div>
-
-    <div *ngIf="!loadError && rows.length === 0" class="empty-state card">
-      <div class="empty-icon">{{ hasActiveFilters ? '🔍' : (isReviewer && filter.bucket === 'needsaction' ? '🎉' : '🗓️') }}</div>
-      <ng-container *ngIf="hasActiveFilters; else noneAtAll">
-        <h3>{{ isReviewer ? 'No attendance requests found' : 'Nothing matches these filters' }}</h3>
-        <p>{{ isReviewer ? 'Try changing the employee or date filters.' : 'Try a different status.' }}</p>
-        <button class="btn btn-primary" (click)="resetFilters()">
-          <i class="fa fa-rotate-left"></i> Clear filters
-        </button>
-      </ng-container>
-      <ng-template #noneAtAll>
-        <h3>{{ isReviewer ? emptyBucketMessage : 'No requests to show' }}</h3>
-        <p *ngIf="!isReviewer">Raise a correction request and it will appear here.</p>
-        <p *ngIf="isReviewer && filter.bucket === 'needsaction'">There are no pending attendance requests requiring action.</p>
-        <p *ngIf="isReviewer && filter.bucket === 'decided'">Requests you approve, reject or revert will be listed here.</p>
-        <p *ngIf="isReviewer && filter.bucket === 'all'">No employee has raised a correction request yet.</p>
-        <button *ngIf="!isReviewer" class="btn btn-primary" (click)="newRequest()">
-          <i class="fa fa-plus"></i> Create your first request
-        </button>
-      </ng-template>
-    </div>
-
-    <div *ngIf="!loadError && rows.length > 0" class="card table-card">
-      <table class="ar-table" [class.reviewer]="isReviewer">
-        <thead>
-          <tr>
-            <th *ngIf="isReviewer">Employee</th>
-            <th [class.sortable]="isReviewer" (click)="toggleDateSort()">
-              Date
-              <i *ngIf="isReviewer && filter.sortBy === 'date'" class="fa dc-sort-icon"
-                 [ngClass]="filter.sortDir === 'asc' ? 'fa-arrow-up-long' : 'fa-arrow-down-long'"></i>
-            </th>
-            <th>{{ isReviewer ? 'Change' : 'Current → Requested' }}</th>
-            <th *ngIf="isReviewer">Reason</th>
-            <th>{{ isReviewer ? 'Applied On' : 'Applied' }}</th>
-            <th>Status</th>
-            <th *ngIf="!isReviewer">Reason</th>
-            <th class="actions-col">{{ isReviewer ? 'Action' : '' }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <ng-container *ngFor="let r of rows">
-          <tr class="clickable" [class.row-awaiting]="isAwaitingRow(r)" [class.row-active]="r.requestId === selectedRequestId"
-              (click)="open(r)">
-            <td *ngIf="isReviewer" class="emp-cell" data-label="Employee">
-              <span class="avatar">{{ (r.employeeName || '?').charAt(0).toUpperCase() }}</span>
-              {{ r.employeeName }}
-            </td>
-            <td data-label="Date">
-              <div class="date-cell">
-                <span class="date">{{ r.attendanceDate | date:'dd MMM yyyy' }}</span>
-                <span class="day">{{ r.dayName }}</span>
-                <!-- This date was asked about more than once. The row is the latest
-                     attempt; the ones it replaced open underneath it on demand. -->
-                <button *ngIf="earlierCount(r) > 0" type="button" class="history-chip"
-                        [class.open]="isExpanded(r)"
-                        (click)="toggleHistory(r, $event)"
-                        [title]="isExpanded(r) ? 'Hide earlier requests for this date'
-                                               : 'Show earlier requests for this date'">
-                  <i class="fa" [ngClass]="isExpanded(r) ? 'fa-chevron-up' : 'fa-clock-rotate-left'"></i>
-                  {{ earlierCount(r) }} earlier
+      <div *ngIf="!loadError && rows.length > 0" class="card table-card">
+        <table class="ar-table" [class.reviewer]="isReviewer">
+          <thead>
+            <tr>
+              <th *ngIf="isReviewer">Employee</th>
+              <th [class.sortable]="isReviewer" (click)="toggleDateSort()">
+                Date
+                <i *ngIf="isReviewer && filter.sortBy === 'date'" class="fa dc-sort-icon"
+                   [ngClass]="filter.sortDir === 'asc' ? 'fa-arrow-up-long' : 'fa-arrow-down-long'"></i>
+              </th>
+              <th>{{ isReviewer ? 'Change' : 'Current → Requested' }}</th>
+              <th *ngIf="isReviewer">Reason</th>
+              <th>{{ isReviewer ? 'Applied On' : 'Applied' }}</th>
+              <th>Status</th>
+              <th *ngIf="!isReviewer">Reason</th>
+              <th class="actions-col">{{ isReviewer ? 'Action' : '' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let r of rows">
+            <tr class="clickable" [class.row-awaiting]="isAwaitingRow(r)" [class.row-active]="r.requestId === selectedRequestId"
+                (click)="open(r)">
+              <td *ngIf="isReviewer" class="emp-cell" data-label="Employee">
+                <span class="avatar">{{ (r.employeeName || '?').charAt(0).toUpperCase() }}</span>
+                {{ r.employeeName }}
+              </td>
+              <td data-label="Date">
+                <div class="date-cell">
+                  <span class="date">{{ r.attendanceDate | date:'dd MMM yyyy' }}</span>
+                  <span class="day">{{ r.dayName }}</span>
+                  <!-- This date was asked about more than once. The row is the latest
+                       attempt; the ones it replaced open underneath it on demand. -->
+                  <button *ngIf="earlierCount(r) > 0" type="button" class="history-chip"
+                          [class.open]="isExpanded(r)"
+                          (click)="toggleHistory(r, $event)"
+                          [title]="isExpanded(r) ? 'Hide earlier requests for this date'
+                                                 : 'Show earlier requests for this date'">
+                    <i class="fa" [ngClass]="isExpanded(r) ? 'fa-chevron-up' : 'fa-clock-rotate-left'"></i>
+                    {{ earlierCount(r) }} earlier
+                  </button>
+                </div>
+              </td>
+              <td class="transition" data-label="Change">
+                <span class="from">{{ r.currentStatusLabel || 'Unmarked' }}</span>
+                <i class="fa fa-arrow-right-long arrow"></i>
+                <span class="to">{{ r.requestedStatusLabel }}</span>
+                <!-- Reviewer: say so when the admin applied something other than what was asked -->
+                <span *ngIf="isReviewer && r.approvedStatusLabel && r.approvedStatus !== r.requestedStatus"
+                      class="changed applied-note">applied: {{ r.approvedStatusLabel }}</span>
+              </td>
+              <td *ngIf="isReviewer" class="reason-cell" data-label="Reason" [title]="r.reason || ''">{{ r.reason || '—' }}</td>
+              <td *ngIf="isReviewer" data-label="Applied On">
+                <span *ngIf="r.created; else dashOn" class="applied-on">{{ r.created | date:'dd MMM, h:mm a' }}</span>
+                <ng-template #dashOn><span class="muted">—</span></ng-template>
+              </td>
+              <td *ngIf="!isReviewer" data-label="Applied">
+                <span *ngIf="r.approvedStatusLabel; else dash"
+                      [class.changed]="r.approvedStatus !== r.requestedStatus">{{ r.approvedStatusLabel }}</span>
+                <ng-template #dash><span class="muted">—</span></ng-template>
+              </td>
+              <td data-label="Status"><app-request-status-badge [status]="r.requestStatus"></app-request-status-badge></td>
+              <td *ngIf="!isReviewer" class="reason-cell" data-label="Reason">{{ r.reason || '—' }}</td>
+              <td class="actions-col">
+                <!-- The click bubbles to the row; the button is the keyboard-reachable target -->
+                <button *ngIf="isReviewer" type="button" class="review-btn" [class.primary]="isAwaitingRow(r)">
+                  {{ isAwaitingRow(r) ? 'Review' : 'View' }}
                 </button>
-              </div>
-            </td>
-            <td class="transition" data-label="Change">
-              <span class="from">{{ r.currentStatusLabel || 'Unmarked' }}</span>
-              <i class="fa fa-arrow-right-long arrow"></i>
-              <span class="to">{{ r.requestedStatusLabel }}</span>
-              <!-- Reviewer: say so when the admin applied something other than what was asked -->
-              <span *ngIf="isReviewer && r.approvedStatusLabel && r.approvedStatus !== r.requestedStatus"
-                    class="changed applied-note">applied: {{ r.approvedStatusLabel }}</span>
-            </td>
-            <td *ngIf="isReviewer" class="reason-cell" data-label="Reason" [title]="r.reason || ''">{{ r.reason || '—' }}</td>
-            <td *ngIf="isReviewer" data-label="Applied On">
-              <span *ngIf="r.created; else dashOn" class="applied-on">{{ r.created | date:'dd MMM, h:mm a' }}</span>
-              <ng-template #dashOn><span class="muted">—</span></ng-template>
-            </td>
-            <td *ngIf="!isReviewer" data-label="Applied">
-              <span *ngIf="r.approvedStatusLabel; else dash"
-                    [class.changed]="r.approvedStatus !== r.requestedStatus">{{ r.approvedStatusLabel }}</span>
-              <ng-template #dash><span class="muted">—</span></ng-template>
-            </td>
-            <td data-label="Status"><app-request-status-badge [status]="r.requestStatus"></app-request-status-badge></td>
-            <td *ngIf="!isReviewer" class="reason-cell" data-label="Reason">{{ r.reason || '—' }}</td>
-            <td class="actions-col">
-              <!-- The click bubbles to the row; the button is the keyboard-reachable target -->
-              <button *ngIf="isReviewer" type="button" class="review-btn" [class.primary]="isAwaitingRow(r)">
-                {{ isAwaitingRow(r) ? 'Review' : 'View' }}
-              </button>
-              <button *ngIf="r.canEdit" class="icon-btn" title="Edit" (click)="edit(r, $event)"><i class="fa fa-pen"></i></button>
-              <!-- One withdraw affordance. An unreviewed request goes in a click; an
-                   approved one needs a reason, so that case opens the detail view where
-                   the reason can be typed rather than faking a one-click version of it. -->
-              <button *ngIf="!isReviewer && r.canWithdraw" class="icon-btn danger"
-                      [title]="r.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw'"
-                      (click)="withdraw(r, $event)">
-                <i class="fa fa-rotate-left"></i>
-              </button>
-              <i *ngIf="!isReviewer" class="fa fa-chevron-right chevron"></i>
-            </td>
-          </tr>
+                <button *ngIf="r.canEdit" class="icon-btn" title="Edit" (click)="edit(r, $event)"><i class="fa fa-pen"></i></button>
+                <!-- One withdraw affordance. An unreviewed request goes in a click; an
+                     approved one needs a reason, so that case opens the detail view where
+                     the reason can be typed rather than faking a one-click version of it. -->
+                <button *ngIf="!isReviewer && r.canWithdraw" class="icon-btn danger"
+                        [title]="r.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw'"
+                        (click)="withdraw(r, $event)">
+                  <i class="fa fa-rotate-left"></i>
+                </button>
+                <i *ngIf="!isReviewer" class="fa fa-chevron-right chevron"></i>
+              </td>
+            </tr>
 
-          <!-- Superseded requests for the same date. Each still opens on its own
-               detail page — they are real records, just no longer the live one. -->
-          <tr *ngFor="let h of historyRows(r)"
-              class="clickable history-row" (click)="open(h)">
-            <td *ngIf="isReviewer" class="emp-cell"></td>
-            <td data-label="Date">
-              <span class="history-marker"><i class="fa fa-turn-up fa-rotate-180"></i> superseded</span>
-            </td>
-            <td class="transition" data-label="Current → Requested">
-              <span class="from">{{ h.currentStatusLabel || 'Unmarked' }}</span>
-              <i class="fa fa-arrow-right-long arrow"></i>
-              <span class="to">{{ h.requestedStatusLabel }}</span>
-            </td>
-            <td data-label="Applied">
-              <span *ngIf="h.approvedStatusLabel; else hDash">{{ h.approvedStatusLabel }}</span>
-              <ng-template #hDash><span class="muted">—</span></ng-template>
-            </td>
-            <td data-label="Status"><app-request-status-badge [status]="h.requestStatus"></app-request-status-badge></td>
-            <td *ngIf="!isReviewer" class="reason-cell" data-label="Reason">{{ h.reason || '—' }}</td>
-            <td class="actions-col"><i class="fa fa-chevron-right chevron"></i></td>
-          </tr>
-          </ng-container>
-        </tbody>
-      </table>
-    </div>
+            <!-- Superseded requests for the same date. Each still opens on its own
+                 detail page — they are real records, just no longer the live one. -->
+            <tr *ngFor="let h of historyRows(r)"
+                class="clickable history-row" (click)="open(h)">
+              <td *ngIf="isReviewer" class="emp-cell"></td>
+              <td data-label="Date">
+                <span class="history-marker"><i class="fa fa-turn-up fa-rotate-180"></i> superseded</span>
+              </td>
+              <td class="transition" data-label="Current → Requested">
+                <span class="from">{{ h.currentStatusLabel || 'Unmarked' }}</span>
+                <i class="fa fa-arrow-right-long arrow"></i>
+                <span class="to">{{ h.requestedStatusLabel }}</span>
+              </td>
+              <td data-label="Applied">
+                <span *ngIf="h.approvedStatusLabel; else hDash">{{ h.approvedStatusLabel }}</span>
+                <ng-template #hDash><span class="muted">—</span></ng-template>
+              </td>
+              <td data-label="Status"><app-request-status-badge [status]="h.requestStatus"></app-request-status-badge></td>
+              <td *ngIf="!isReviewer" class="reason-cell" data-label="Reason">{{ h.reason || '—' }}</td>
+              <td class="actions-col"><i class="fa fa-chevron-right chevron"></i></td>
+            </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
 
-    <!-- Admin paging -->
-    <div *ngIf="isReviewer && !loadError && rows.length > 0" class="pager">
-      <button class="btn btn-cancel btn-sm" [disabled]="filter.page <= 1" (click)="changePage(-1)">
-        <i class="fa fa-chevron-left"></i> Prev
-      </button>
-      <span class="page-info">Page {{ filter.page }} of {{ totalPages }} · {{ total }} total</span>
-      <button class="btn btn-cancel btn-sm" [disabled]="filter.page >= totalPages" (click)="changePage(1)">
-        Next <i class="fa fa-chevron-right"></i>
-      </button>
-    </div>
-  </ng-container>
+      <!-- Admin paging -->
+      <div *ngIf="isReviewer && !loadError && rows.length > 0" class="pager">
+        <button class="btn btn-cancel btn-sm" [disabled]="filter.page <= 1" (click)="changePage(-1)">
+          <i class="fa fa-chevron-left"></i> Prev
+        </button>
+        <span class="page-info">Page {{ filter.page }} of {{ totalPages }} · {{ total }} total</span>
+        <button class="btn btn-cancel btn-sm" [disabled]="filter.page >= totalPages" (click)="changePage(1)">
+          Next <i class="fa fa-chevron-right"></i>
+        </button>
+      </div>
+    </ng-container>
+  </div>
 </div>
 
 <!-- Reviewer: request details and the decision, on the same page. Full-screen on phones. -->

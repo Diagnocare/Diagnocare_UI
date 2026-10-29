@@ -3,50 +3,43 @@
    ══════════════════════════════════════════════════════════════════ */
 
 // ── Palette tokens (all in one place for easy tuning) ─────────────
-$clr-present-bg   : #16a34a;   // rich green
-$clr-present-bdr  : #166534;
-$clr-present-light: #dcfce7;
-$clr-present-dark : #14532d;
+$clr-present-bg   : var(--color-success);   // rich green
+$clr-present-bdr  : var(--color-success);
+$clr-present-light: var(--color-success-bg);
+$clr-present-dark : var(--color-success);
 
-$clr-absent-bg    : #dc2626;   // strong red
-$clr-absent-bdr   : #991b1b;
-$clr-absent-light : #fee2e2;
+$clr-absent-bg    : var(--color-error);   // strong red
+$clr-absent-bdr   : var(--color-error);
+$clr-absent-light : var(--color-error-bg);
 $clr-absent-dark  : #7f1d1d;
 
-$clr-hd-bg        : #ea580c;   // vivid orange — half day
+$clr-hd-bg        : var(--color-warning);   // vivid orange — half day
 $clr-hd-bdr       : #9a3412;
-$clr-hd-light     : #ffedd5;
-$clr-hd-dark      : #7c2d12;
+$clr-hd-light     : var(--color-warning-bg);
+$clr-hd-dark      : var(--color-warning);
 
-$clr-wo-bg        : #2563eb;   // solid blue — week off (read-only, admin-assigned)
-$clr-wo-bdr       : #1e40af;
-$clr-wo-light     : #dbeafe;
-$clr-wo-dark      : #1e3a8a;
+$clr-wo-bg        : var(--color-info);   // solid blue — week off (read-only, admin-assigned)
+$clr-wo-bdr       : var(--color-info);
+$clr-wo-light     : var(--color-info-bg);
+$clr-wo-dark      : var(--color-info);
 
-$clr-holiday-bg   : #d97706;   // amber
-$clr-holiday-bdr  : #92400e;
-$clr-holiday-light: #fef3c7;
+$clr-holiday-bg   : var(--color-warning);   // amber
+$clr-holiday-bdr  : var(--color-warning);
+$clr-holiday-light: var(--color-warning-bg);
 
 // ── Status gradients ─────────────────────────────────────────────
 // Same hue family as the flat tokens above, just given a little depth so the
 // solid status tiles read as pressed keys rather than flat colour blocks.
 // Shared by the grid cells and the legend chips so both stay in step.
-$grad-present : linear-gradient(160deg, #22c55e 0%, #16a34a 58%, #15803d 100%);
-$grad-absent  : linear-gradient(160deg, #ef4444 0%, #dc2626 58%, #b91c1c 100%);
-$grad-hd      : linear-gradient(160deg, #fb923c 0%, #ea580c 58%, #c2410c 100%);
-$grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
+$grad-present : linear-gradient(160deg, var(--color-success) 0%, var(--color-success) 58%, var(--color-success) 100%);
+$grad-absent  : linear-gradient(160deg, var(--color-error) 0%, var(--color-error) 58%, var(--color-error) 100%);
+$grad-hd      : linear-gradient(160deg, #fb923c 0%, var(--color-warning) 58%, var(--color-warning) 100%);
+$grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-warning) 58%, var(--color-warning) 100%);
 
-// ── Page subtitle ────────────────────────────────────────────────
-// This header sits on the dark primary-gradient, so its text must be light —
-// NOT --text-secondary (a dark grey intended for white cards), which was the
-// cause of the washed-out subtitle/legend. Mirrors the my-attendance treatment.
-.subtitle {
-  font-size: 0.88em;
-  margin: 0.25em 0 0.55em;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: rgba(255, 255, 255, 0.82);
-}
+// .subtitle used to be restated here at 0.88em with its own colour and
+// margins. The global .page-header .subtitle already sets light text on the
+// gradient, so the local copy only made this page's subtitle a different size
+// from every other page's.
 
 // ── Legend bar ───────────────────────────────────────────────────
 // Presented as one subtle "glass" panel over the gradient — same language used
@@ -113,10 +106,10 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   &.chip-p  { background: $grad-present; }
   &.chip-a  { background: $grad-absent; }
   &.chip-hd { background: $grad-hd; }
-  &.chip-wo { background: linear-gradient(160deg, #3b82f6 0%, #2563eb 58%, #1d4ed8 100%); }
+  &.chip-wo { background: linear-gradient(160deg, var(--color-info) 0%, var(--color-info) 58%, var(--color-info) 100%); }
   &.chip-h  { background: $grad-holiday; }
   // Correction request awaiting a decision — matches the R tile in the grid.
-  &.chip-req { background: linear-gradient(160deg, #a78bfa 0%, #7c3aed 58%, #6d28d9 100%); }
+  &.chip-req { background: linear-gradient(160deg, var(--color-on-brand-accent) 0%, var(--color-accent) 58%, var(--color-accent) 100%); }
 }
 
 // ── Header actions ───────────────────────────────────────────────
@@ -133,9 +126,9 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 .dirty-badge {
   display: inline-block;
   padding: 0.3em 0.75em;
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fcd34d;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
   border-radius: 1em;
   font-size: 0.78em;
   font-weight: 600;
@@ -175,19 +168,19 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   font-weight: 600;
   border: none;
   background: var(--bg-white, #fff);
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 
   & + & { border-left: 1px solid rgba(0, 0, 0, 0.12); }
 
   &:hover:not(:disabled):not(.active) {
-    background: #f1f5f9;
-    color: var(--text-primary, #1e293b);
+    background: var(--color-surface-sunken);
+    color: var(--text-primary, var(--color-text-primary));
   }
 
   &.active {
-    background: var(--primary-color, #1e5ba8);
+    background: var(--primary-color, var(--color-primary-ink));
     color: #fff;
     font-weight: 700;
   }
@@ -207,7 +200,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 .period-label {
   font-size: 0.97em;
   font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   min-width: 18em;
   text-align: center;
 }
@@ -220,22 +213,22 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   gap: 0.4em;
   flex-shrink: 0;
 
-  .filter-icon { color: var(--text-secondary, #64748b); font-size: 0.85em; }
+  .filter-icon { color: var(--text-secondary, var(--color-text-secondary)); font-size: 0.85em; }
 }
 
 .user-select {
   padding: 0.42em 2em 0.42em 0.7em;
   font-size: 0.85em;
   font-weight: 500;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-border-strong);
   border-radius: 0.4em;
   background: var(--bg-white, #fff);
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   cursor: pointer;
   appearance: auto;
   min-width: 12em;
 
-  &:focus { outline: 2px solid var(--primary-color, #1e5ba8); outline-offset: 1px; }
+  &:focus { outline: 2px solid var(--primary-color, var(--color-primary-ink)); outline-offset: 1px; }
 }
 
 .nav-btn {
@@ -245,15 +238,15 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   width: 2.25em;
   height: 2.25em;
   border-radius: 50%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-border-strong);
   background: var(--bg-white, #fff);
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   font-size: 0.85em;
 
   &:hover:not(:disabled) {
-    background: var(--primary-color, #1e5ba8);
+    background: var(--primary-color, var(--color-primary-ink));
     color: #fff;
     border-color: transparent;
   }
@@ -266,7 +259,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   overflow-x: auto;
   border-radius: var(--radius-lg, 0.75em);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 }
 
 // ── Table ────────────────────────────────────────────────────────
@@ -287,7 +280,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #fff;
+  background: var(--color-surface);
 
   thead &, tfoot & { z-index: 3; }
 }
@@ -295,7 +288,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 // ── Header row ───────────────────────────────────────────────────
 .header-row {
   th {
-    background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+    background: linear-gradient(135deg, var(--primary-color, var(--color-primary-ink)) 0%, var(--secondary-color, var(--color-primary)) 100%);
     border-bottom: none;
     padding: 0.65em 0.4em 0.45em;
     font-weight: 700;
@@ -306,7 +299,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 
     &.sticky-col {
       z-index: 4;
-      background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+      background: linear-gradient(135deg, var(--primary-color, var(--color-primary-ink)) 0%, var(--secondary-color, var(--color-primary)) 100%);
     }
   }
 }
@@ -357,7 +350,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 
 .col-lock-icon {
   font-size: 0.7em;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin-top: 0.15em;
 }
 
@@ -429,46 +422,46 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   &.col-btn-p {
     background: $clr-present-light;
     color: $clr-present-dark;
-    border-color: #86efac;
+    border-color: var(--color-success-border);
   }
 
   // Red — dark text on light red
   &.col-btn-a {
     background: $clr-absent-light;
     color: $clr-absent-dark;
-    border-color: #fca5a5;
+    border-color: var(--color-error-border);
   }
 
   // Orange — dark text on light orange
   &.col-btn-hd {
     background: $clr-hd-light;
     color: $clr-hd-dark;
-    border-color: #fdba74;
+    border-color: var(--color-warning-border);
   }
 
   // Clear
   &.col-btn-clr {
-    background: #f1f5f9;
-    color: #475569;
-    border-color: #94a3b8;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-secondary);
+    border-color: var(--color-text-muted);
   }
 }
 
 // ── User rows ─────────────────────────────────────────────────────
 .user-row {
-  border-bottom: 1px solid #e8edf5;
+  border-bottom: 1px solid var(--color-border);
 
   // Even rows: white
-  td { background: #ffffff; }
-  .sticky-col { background: #ffffff; }
+  td { background: var(--color-surface); }
+  .sticky-col { background: var(--color-surface); }
 
   // Odd rows: clear indigo tint
-  &.row-alt td { background: #eef2ff; }
-  &.row-alt .sticky-col { background: #eef2ff; }
+  &.row-alt td { background: var(--color-primary-subtle); }
+  &.row-alt .sticky-col { background: var(--color-primary-subtle); }
 
   // Hover — deeper blue on any row
-  &:hover td { background: #dbeafe !important; transition: background 0.12s; }
-  &:hover .sticky-col { background: #dbeafe !important; }
+  &:hover td { background: var(--color-info-bg) !important; transition: background 0.12s; }
+  &:hover .sticky-col { background: var(--color-info-bg) !important; }
 
   td {
     padding: 0.45em 0.4em;
@@ -489,7 +482,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   width: 2.1em;
   height: 2.1em;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--primary-color, var(--color-primary-ink)) 0%, var(--color-info) 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -508,7 +501,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 .user-name {
   font-size: 0.88em;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -516,7 +509,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 
 .user-role {
   font-size: 0.72em;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 }
 
 // ── Attendance cells ──────────────────────────────────────────────
@@ -589,23 +582,23 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   &.cell-weekoff {
     background: $clr-wo-light;
     color: $clr-wo-dark;
-    border-color: #93c5fd;
+    border-color: var(--color-info-border);
     font-weight: 800;
   }
 
   // Unmarked — clearly visible dash, better contrast than before
   &.cell-unmarked {
-    background: #f1f5f9;
-    color: #475569;          // was #94a3b8 — too light to read
-    border-color: #cbd5e1;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-secondary);          // was var(--color-text-muted) — too light to read
+    border-color: var(--color-border-strong);
     cursor: pointer;
   }
 
   // Future — desaturated, not-allowed
   &.cell-future {
-    background: #f1f5f9;
-    color: #b0bec5;
-    border-color: #e2e8f0;
+    background: var(--color-surface-sunken);
+    color: var(--color-border-strong);
+    border-color: var(--color-border);
     cursor: not-allowed;
   }
 
@@ -613,7 +606,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   &.cell-holiday {
     background: $clr-holiday-light;
     color: $clr-holiday-bdr;
-    border-color: #fcd34d;
+    border-color: var(--color-warning-border);
     cursor: not-allowed;
     font-weight: 800;
     pointer-events: none;
@@ -630,22 +623,22 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 
   // Dirty — amber ring to flag unsaved (keeps the inner highlight)
   &.cell-dirty {
-    box-shadow: 0 0 0 2.5px #f59e0b, inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    box-shadow: 0 0 0 2.5px var(--color-warning), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   }
 
   // The employee has a correction request awaiting a decision on this day: the
   // tile reads "R". Only applied while the cell is clean — .cell-dirty wins once
   // the admin has cycled it, so an unsaved edit is never hidden behind the R.
   &.cell-requested {
-    background: #7c3aed;
+    background: var(--color-accent);
     color: #fff;
-    border-color: #6d28d9;
+    border-color: var(--color-accent);
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
   }
 
   // Today glow
   &.today-glow:not(.cell-future) {
-    outline: 2.5px solid var(--primary-color, #1e5ba8);
+    outline: 2.5px solid var(--primary-color, var(--color-primary-ink));
     outline-offset: 2px;
   }
 }
@@ -676,21 +669,21 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
     font-weight: 600;
   }
 
-  &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
-  &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
-  &.rs-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid #fdba74; }
+  &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid var(--color-success-border); }
+  &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid var(--color-error-border); }
+  &.rs-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid var(--color-warning-border); }
 }
 
 // ── Totals footer ─────────────────────────────────────────────────
 .totals-row {
   td {
-    background: linear-gradient(135deg, #1e40af 0%, #3b5fd4 100%);
+    background: linear-gradient(135deg, var(--color-info) 0%, #3b5fd4 100%);
     border-top: none;
     padding: 0.55em 0.4em;
   }
 
   .sticky-col {
-    background: linear-gradient(135deg, #1e40af 0%, #3b5fd4 100%);
+    background: linear-gradient(135deg, var(--color-info) 0%, #3b5fd4 100%);
   }
 }
 
@@ -717,10 +710,10 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   white-space: nowrap;
   line-height: 1.2;
 
-  &.tot-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
-  &.tot-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
-  &.tot-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid #fdba74; }
-  &.tot-u  { background: #f1f5f9;            color: #475569;             border: 1px solid #cbd5e1; }
+  &.tot-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid var(--color-success-border); }
+  &.tot-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid var(--color-error-border); }
+  &.tot-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid var(--color-warning-border); }
+  &.tot-u  { background: var(--color-surface-sunken);            color: var(--color-text-secondary);             border: 1px solid var(--color-border-strong); }
 }
 
 // ── Empty state ───────────────────────────────────────────────────
@@ -735,7 +728,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   text-align: center;
   padding: 4em 2em 4.3em;
   border-radius: var(--radius-lg, 0.75em);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   background:
     radial-gradient(120% 85% at 50% 0%, #f3f7ff 0%, rgba(255, 255, 255, 0) 68%),
     #ffffff;
@@ -754,7 +747,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(30, 91, 168, 0.10) 0%, rgba(102, 126, 234, 0.18) 100%);
   border: 1px solid rgba(30, 91, 168, 0.16);
-  color: var(--primary-color, #1e5ba8);
+  color: var(--primary-color, var(--color-primary-ink));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
   i { font-size: 1.6em; opacity: 0.9; }
@@ -773,7 +766,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   font-size: 1.1em;
   font-weight: 700;
   letter-spacing: 0.005em;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
 }
 
 .empty-message {
@@ -781,7 +774,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   max-width: 30em;
   font-size: 0.88em;
   line-height: 1.6;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 }
 
 .empty-btn {
@@ -795,14 +788,14 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   border-radius: 0.55em;
   border: 1px solid rgba(30, 91, 168, 0.32);
   background: var(--bg-white, #fff);
-  color: var(--primary-color, #1e5ba8);
+  color: var(--primary-color, var(--color-primary-ink));
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 
   i { font-size: 0.92em; }
 
   &:hover {
-    background: var(--primary-color, #1e5ba8);
+    background: var(--primary-color, var(--color-primary-ink));
     color: #fff;
     border-color: transparent;
     box-shadow: 0 4px 12px rgba(30, 91, 168, 0.28);
@@ -860,7 +853,7 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
     letter-spacing: 0.01em;
 
     &.active {
-      background: #0e7490;   // teal — distinct from primary blue
+      background: var(--color-primary-hover);   // teal — distinct from primary blue
       color: #fff;
     }
   }
@@ -880,18 +873,18 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
   margin-bottom: 0.6em;
   font-size: 0.9em;
   font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  background: #eff6ff;
-  border-left: 4px solid var(--primary-color, #1e5ba8);
+  color: var(--text-primary, var(--color-text-primary));
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--primary-color, var(--color-primary-ink));
   border-radius: 0 0.45em 0.45em 0;
 
-  i { color: var(--primary-color, #1e5ba8); font-size: 0.92em; }
+  i { color: var(--primary-color, var(--color-primary-ink)); font-size: 0.92em; }
 
   .fn-range {
     margin-left: auto;
     font-size: 0.85em;
     font-weight: 600;
-    color: var(--primary-color, #1e5ba8);
+    color: var(--primary-color, var(--color-primary-ink));
     letter-spacing: 0.02em;
   }
 }
@@ -917,143 +910,13 @@ $grad-holiday : linear-gradient(160deg, #f59e0b 0%, #d97706 58%, #b45309 100%);
 // ══════════════════════════════════════════════════════════════════════════════
 
 // ── dark ──────────────────────────────────────────────────────────────────────
-:host-context(html[data-theme="dark"]) {
-  .grid-wrapper        { border-color: #334155 !important; }
-  .sticky-col          { background: #1e293b !important; }
-  .user-row            { border-bottom-color: #273548 !important;
-                         td { background: #1e293b !important; }
-                         .sticky-col { background: #1e293b !important; }
-                         &.row-alt td { background: #1a2538 !important; }
-                         &.row-alt .sticky-col { background: #1a2538 !important; }
-                         &:hover td { background: #0c2340 !important; }
-                         &:hover .sticky-col { background: #0c2340 !important; } }
-  .att-cell.cell-unmarked { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
-  .att-cell.cell-future   { background: #1e293b !important; color: #475569 !important; border-color: #273548 !important; }
-  .col-btn-clr         { background: #273548 !important; color: #94a3b8 !important; border-color: #475569 !important; }
-  .dirty-badge         { background: #451a03 !important; color: #fcd34d !important; border-color: #92400e !important; }
-  .view-toggle         { border-color: #334155 !important; }
-  .toggle-btn          { background: #1e293b !important; color: #94a3b8 !important;
-                         & + & { border-left-color: #334155 !important; }
-                         &:hover:not(:disabled):not(.active) { background: #273548 !important; color: #e2e8f0 !important; } }
-  .nav-btn             { border-color: #334155 !important; background: #1e293b !important; color: #94a3b8 !important; }
-  .fortnight-title     { background: #0f172a !important; }
-  .tot.tot-u           { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
-  .rs.rs-p             { color: #14532d !important; }
-  .rs.rs-a             { color: #7f1d1d !important; }
-  .empty-state-card    { background: #1e293b !important; border-color: #334155 !important;
-                         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35) !important; }
-  .empty-visual        { background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(102, 126, 234, 0.22) 100%) !important;
-                         border-color: rgba(96, 165, 250, 0.28) !important;
-                         color: #93c5fd !important;
-                         box-shadow: none !important;
-                         &::after { border-color: rgba(96, 165, 250, 0.20) !important; } }
-  .empty-title         { color: #e2e8f0 !important; }
-  .empty-message       { color: #94a3b8 !important; }
-  .empty-btn           { background: #273548 !important; color: #93c5fd !important;
-                         border-color: rgba(96, 165, 250, 0.35) !important;
-                         &:hover { background: #3b82f6 !important; color: #fff !important; } }
-}
+
 
 // ── midnight ───────────────────────────────────────────────────────────────────
-:host-context(html[data-theme="midnight"]) {
-  .grid-wrapper        { border-color: #21262d !important; }
-  .sticky-col          { background: #0d1117 !important; }
-  .user-row            { border-bottom-color: #161b22 !important;
-                         td { background: #0d1117 !important; }
-                         .sticky-col { background: #0d1117 !important; }
-                         &.row-alt td { background: #0a0e14 !important; }
-                         &.row-alt .sticky-col { background: #0a0e14 !important; }
-                         &:hover td { background: #041f30 !important; }
-                         &:hover .sticky-col { background: #041f30 !important; } }
-  .att-cell.cell-unmarked { background: #161b22 !important; color: #a6adc8 !important; border-color: #21262d !important; }
-  .att-cell.cell-future   { background: #0d1117 !important; color: #30363d !important; border-color: #161b22 !important; }
-  .col-btn-clr         { background: #161b22 !important; color: #a6adc8 !important; border-color: #30363d !important; }
-  .dirty-badge         { background: #1c0a00 !important; color: #fcd34d !important; border-color: #6b3000 !important; }
-  .view-toggle         { border-color: #21262d !important; }
-  .toggle-btn          { background: #0d1117 !important; color: #a6adc8 !important;
-                         & + & { border-left-color: #21262d !important; }
-                         &:hover:not(:disabled):not(.active) { background: #161b22 !important; color: #cdd6f4 !important; } }
-  .nav-btn             { border-color: #21262d !important; background: #0d1117 !important; color: #a6adc8 !important; }
-  .fortnight-title     { background: #020408 !important; }
-  .tot.tot-u           { background: #161b22 !important; color: #a6adc8 !important; border-color: #21262d !important; }
-  .empty-state-card    { background: #0d1117 !important; border-color: #21262d !important;
-                         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important; }
-  .empty-visual        { background: linear-gradient(135deg, rgba(56, 139, 253, 0.14) 0%, rgba(88, 166, 255, 0.20) 100%) !important;
-                         border-color: rgba(56, 139, 253, 0.28) !important;
-                         color: #58a6ff !important;
-                         box-shadow: none !important;
-                         &::after { border-color: rgba(56, 139, 253, 0.20) !important; } }
-  .empty-title         { color: #cdd6f4 !important; }
-  .empty-message       { color: #a6adc8 !important; }
-  .empty-btn           { background: #161b22 !important; color: #58a6ff !important;
-                         border-color: rgba(56, 139, 253, 0.35) !important;
-                         &:hover { background: #1f6feb !important; color: #fff !important; } }
-}
+
 
 // ── warm ──────────────────────────────────────────────────────────────────────
-:host-context(html[data-theme="warm"]) {
-  .grid-wrapper        { border-color: #ddc9a8 !important; }
-  .sticky-col          { background: #fffdf7 !important; }
-  .user-row            { border-bottom-color: #e8d9c0 !important;
-                         td { background: #fffdf7 !important; }
-                         .sticky-col { background: #fffdf7 !important; }
-                         &.row-alt td { background: #fdf6ea !important; }
-                         &.row-alt .sticky-col { background: #fdf6ea !important; }
-                         &:hover td { background: #fbefd8 !important; }
-                         &:hover .sticky-col { background: #fbefd8 !important; } }
-  .att-cell.cell-unmarked { background: #f5ede0 !important; color: #7a5c4e !important; border-color: #ddc9a8 !important; }
-  .att-cell.cell-future   { background: #fef9f0 !important; color: #c4a882 !important; border-color: #e8d9c0 !important; }
-  .col-btn-clr         { background: #f5ede0 !important; color: #7a5c4e !important; border-color: #c4a882 !important; }
-  .dirty-badge         { background: #fef3c7 !important; color: #7c3a00 !important; border-color: #d4900a !important; }
-  .view-toggle         { border-color: #ddc9a8 !important; }
-  .toggle-btn          { background: #fffdf7 !important; color: #7a5c4e !important;
-                         & + & { border-left-color: #ddc9a8 !important; }
-                         &:hover:not(:disabled):not(.active) { background: #fef9f0 !important; color: #3d2b1f !important; } }
-  .nav-btn             { border-color: #ddc9a8 !important; background: #fffdf7 !important; color: #7a5c4e !important; }
-  .fortnight-title     { background: #fdf3e3 !important; }
-  .tot.tot-u           { background: #f5ede0 !important; color: #7a5c4e !important; border-color: #ddc9a8 !important; }
-  .empty-state-card    { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
-  .empty-visual        { background: linear-gradient(135deg, rgba(180, 83, 9, 0.10) 0%, rgba(217, 119, 6, 0.16) 100%) !important;
-                         border-color: rgba(180, 83, 9, 0.20) !important;
-                         color: #9a5b12 !important;
-                         &::after { border-color: rgba(180, 83, 9, 0.22) !important; } }
-  .empty-title         { color: #3d2b1f !important; }
-  .empty-message       { color: #7a5c4e !important; }
-  .empty-btn           { background: #fffdf7 !important; color: #9a5b12 !important;
-                         border-color: rgba(180, 83, 9, 0.28) !important;
-                         &:hover { background: #b45309 !important; color: #fff !important; } }
-}
+
 
 // ── system (OS dark) — mirrors dark ───────────────────────────────────────────
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .grid-wrapper      { border-color: #334155 !important; }
-    .sticky-col        { background: #1e293b !important; }
-    .user-row          { border-bottom-color: #273548 !important;
-                         td { background: #1e293b !important; }
-                         .sticky-col { background: #1e293b !important; }
-                         &.row-alt td { background: #1a2538 !important; }
-                         &:hover td { background: #0c2340 !important; }
-                         &:hover .sticky-col { background: #0c2340 !important; } }
-    .att-cell.cell-unmarked { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
-    .att-cell.cell-future   { background: #1e293b !important; color: #475569 !important; }
-    .dirty-badge       { background: #451a03 !important; color: #fcd34d !important; border-color: #92400e !important; }
-    .view-toggle       { border-color: #334155 !important; }
-    .toggle-btn        { background: #1e293b !important; color: #94a3b8 !important;
-                         &:hover:not(:disabled):not(.active) { background: #273548 !important; } }
-    .nav-btn           { border-color: #334155 !important; background: #1e293b !important; }
-    .fortnight-title   { background: #0f172a !important; }
-    .empty-state-card  { background: #1e293b !important; border-color: #334155 !important;
-                         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35) !important; }
-    .empty-visual      { background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(102, 126, 234, 0.22) 100%) !important;
-                         border-color: rgba(96, 165, 250, 0.28) !important;
-                         color: #93c5fd !important;
-                         box-shadow: none !important;
-                         &::after { border-color: rgba(96, 165, 250, 0.20) !important; } }
-    .empty-title       { color: #e2e8f0 !important; }
-    .empty-message     { color: #94a3b8 !important; }
-    .empty-btn         { background: #273548 !important; color: #93c5fd !important;
-                         border-color: rgba(96, 165, 250, 0.35) !important;
-                         &:hover { background: #3b82f6 !important; color: #fff !important; } }
-  }
-}
+

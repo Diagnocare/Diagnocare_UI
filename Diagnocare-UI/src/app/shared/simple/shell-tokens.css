@@ -1,0 +1,114 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — SIDEBAR SHELL  ·  design tokens
+   ──────────────────────────────────────────────────────────────────────────────
+   The colours, surfaces and shapes used by the sidebar shell
+   (component/layout/shell) and the task-first home dashboard
+   (component/pathology/home-dashboard).
+
+   The palette is a calm clinical teal on a warm off-white page, with one dark
+   sidebar. Warm grey instead of pure white is easier on the eyes for people who
+   look at this screen eight hours a day, and a single strong accent means the
+   one thing that is coloured is the thing to press.
+
+   That teal is no longer chosen here. It is now the application's canonical
+   palette, defined for every theme in app/shared/design-tokens.css, and this
+   file is the thin --sh-* alias over it that the shell's stylesheets read.
+   To change a shell colour, edit design-tokens.css.
+
+   Imported once from src/styles.css, after simple-ui.css.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Every colour below is an alias over the canonical --color-* layer in
+   app/shared/design-tokens.css. That layer is already defined for all five
+   themes, which is why this file no longer carries a dark, midnight, warm or
+   system block of its own — the aliases follow the theme automatically.
+
+   The shapes (--sh-radius, --sh-sidebar-w, --sh-topbar-h) are not colour and
+   stay literal here. */
+:root {
+  --sh-bg:            var(--color-background);
+  --sh-surface:       var(--color-surface);
+  --sh-surface-soft:  var(--color-surface-sunken);
+  --sh-ink:           var(--color-text-primary);
+  --sh-ink-soft:      var(--color-text-secondary);
+  --sh-ink-faint:     var(--color-text-muted);
+  --sh-line:          var(--color-border);
+
+  --sh-sidebar:       var(--color-sidebar);
+  --sh-sidebar-text:  var(--color-sidebar-text);
+  --sh-sidebar-muted: var(--color-sidebar-muted);
+  /* The sidebar is a dark surface in every theme, so its own hover, divider
+     and selected-text colours are white-alpha rather than theme colours.
+     Tokenised anyway, so the shell's stylesheet carries no bare rgba(255…). */
+  --sh-sidebar-hover: var(--color-sidebar-hover);
+  --sh-sidebar-line:  var(--color-sidebar-line);
+  --sh-sidebar-ink:   var(--color-sidebar-ink);
+  --sh-sidebar-badge:     var(--color-sidebar-badge);
+  --sh-sidebar-badge-ink: var(--color-sidebar-badge-ink);
+  --sh-sidebar-danger-bg:  var(--color-sidebar-danger-bg);
+  --sh-sidebar-danger-ink: var(--color-sidebar-danger-ink);
+
+  --sh-primary:       var(--color-primary);
+  --sh-primary-dark:  var(--color-primary-hover);
+  --sh-primary-tint:  var(--color-primary-subtle);
+  /* Teal used as text (links, active labels) — separate from the fill so a
+     dark theme can lighten the text without washing out white-on-teal buttons. */
+  --sh-primary-ink:   var(--color-primary-ink);
+
+  --sh-amber:  var(--color-warning);  --sh-amber-tint:  var(--color-warning-bg);
+  --sh-blue:   var(--color-info);     --sh-blue-tint:   var(--color-info-bg);
+  --sh-red:    var(--color-error);    --sh-red-tint:    var(--color-error-bg);
+  --sh-green:  var(--color-success);  --sh-green-tint:  var(--color-success-bg);
+  --sh-purple: var(--color-accent);   --sh-purple-tint: var(--color-accent-bg);
+
+  --sh-radius:     10px;
+  --sh-radius-lg:  14px;
+  --sh-sidebar-w:  248px;
+  /* Width of the sidebar in rail mode. The flyout anchors to this, so the two
+     must agree — hence a token rather than the number in two stylesheets. */
+  --sh-rail-w:     72px;
+  --sh-topbar-h:   68px;
+}
+
+/* Large-text mode (Settings) grows the shell with the rest of the kit. */
+html[data-dc-size="large"] {
+  --sh-sidebar-w: 280px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXISTING PAGES INSIDE THE SHELL
+   ──────────────────────────────────────────────────────────────────────────────
+   Every older screen paints a full-height purple gradient (.page-container)
+   with a translucent white-text header (.page-header). Inside the shell that
+   reads as a second app inside the first. These rules calm it down to the
+   shell's page colour and a plain dark heading, without editing 28 templates.
+   Scoped to .sh-content, so the classic frame (USE_SIDEBAR_SHELL = false) is
+   untouched. A page with its own component-scoped gradient keeps it until that
+   page is migrated.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.sh-content {
+  --primary-gradient: var(--sh-bg);
+}
+.sh-content .page-container {
+  min-height: 0;
+  background: var(--sh-bg);
+}
+.sh-content .page-header {
+  background: transparent;
+  color: var(--sh-ink);
+  border-bottom: 0;
+  padding: 18px 28px 6px;
+}
+.sh-content .page-header h1,
+.sh-content .page-header h2 {
+  color: var(--sh-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.sh-content .page-header .subtitle { color: var(--sh-ink-soft); }
+.sh-content .content-container { padding: 12px 28px 40px; }
+
+@media (max-width: 980px) {
+  .sh-content .page-header { padding: 14px 16px 4px; }
+  .sh-content .content-container { padding: 10px 16px 32px; }
+}

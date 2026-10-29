@@ -86,11 +86,11 @@
   display: flex;
   align-items: center;
   gap: 0.6em;
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
   border-radius: 8px;
   padding: 0.75em 1em;
-  color: #b91c1c;
+  color: var(--color-error);
   font-size: 0.83em;
   margin-top: 1em;
 }
@@ -107,8 +107,8 @@
   align-items: center;
   gap: 0.75em;
   padding: 0.9em 1.75em;
-  border-bottom: 1px solid var(--border-color, #eef1f8);
-  color: #9aa8be;
+  border-bottom: 1px solid var(--border-color, var(--color-surface-sunken));
+  color: var(--color-text-muted);
   font-size: 0.95em;
 }
 /* The search field is the row — no second border inside a bordered strip. */
@@ -150,10 +150,10 @@
   align-items: center;
   padding: 0.6em 0.85em;
   font-weight: 700;
-  color: #234a57;
+  color: var(--color-primary-hover);
   font-size: 0.85em;
-  border-bottom: 1px solid var(--border-color, #eef1f8);
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-color, var(--color-surface-sunken));
+  background: var(--color-surface-sunken);
   flex-shrink: 0;
 }
 
@@ -183,9 +183,9 @@
   background: hsl(185, 84%, 90%);
 }
 .list-item .left       { width: 56%; }
-.list-item .right      { width: 24%; font-weight: 700; color: #234a57; min-width: 50px; text-align: right; }
+.list-item .right      { width: 24%; font-weight: 700; color: var(--color-primary-hover); min-width: 50px; text-align: right; }
 .list-item .left .code { font-weight: 700; color: #146c98; margin-bottom: 4px; font-size: 0.85em; }
-.list-item .left .name { color: #234a57; font-size: 0.78em; opacity: 0.85; }
+.list-item .left .name { color: var(--color-primary-hover); font-size: 0.78em; opacity: 0.85; }
 
 .list-item.active {
   background: hsl(201, 97%, 36%);
@@ -197,17 +197,17 @@
 .list-item.active .right { color: #fff; opacity: 1; }
 
 .list-item.test-selected {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border: 1.5px solid #4ade80;
+  background: linear-gradient(135deg, var(--color-success-bg), var(--color-success-bg));
+  border: 1.5px solid var(--color-success);
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
 }
-.list-item.test-selected .left .code  { color: #15803d; }
-.list-item.test-selected .left .name  { color: #166534; opacity: 1; }
-.list-item.test-selected .right.price { color: #15803d; }
-.list-item.test-selected:hover { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+.list-item.test-selected .left .code  { color: var(--color-success); }
+.list-item.test-selected .left .name  { color: var(--color-success); opacity: 1; }
+.list-item.test-selected .right.price { color: var(--color-success); }
+.list-item.test-selected:hover { background: linear-gradient(135deg, var(--color-success-bg), var(--color-success-border)); }
 .list-item.test-selected.active {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  border-color: #15803d;
+  background: linear-gradient(135deg, var(--color-success), var(--color-success));
+  border-color: var(--color-success);
 }
 .list-item.test-selected.active .left .code,
 .list-item.test-selected.active .left .name,
@@ -217,7 +217,7 @@
    Still rendered, and still clickable so a stale selection can be removed —
    just visibly inert so nobody tries to book it. */
 .list-item.test-unavailable {
-  background: #fafafa;
+  background: var(--color-surface-sunken);
   border: 1.5px dashed #e2e2e2;
   cursor: not-allowed;
   opacity: 0.72;
@@ -231,7 +231,7 @@
   margin-top: 2px;
   font-size: 11px;
   font-weight: 600;
-  color: #c2410c;
+  color: var(--color-warning);
 }
 
 .test-item { display: flex; align-items: center; }
@@ -251,7 +251,7 @@
 }
 .selected-item .left  { display: flex; flex-direction: column; gap: 3px; }
 .selected-item .code  { font-weight: 700; color: #146c98; font-size: 0.85em; }
-.selected-item .name  { font-size: 0.78em; color: #234a57; opacity: 0.9; }
+.selected-item .name  { font-size: 0.78em; color: var(--color-primary-hover); opacity: 0.9; }
 .selected-item .right { display: flex; align-items: center; gap: 8px; }
 .selected-item .price { font-weight: 700; color: #0c83b7; min-width: 56px; text-align: right; font-size: 0.85em; }
 
@@ -271,7 +271,7 @@
   padding: 0.7em 1em;
   background: linear-gradient(135deg, #eef4ff, #f5f0ff);
   font-weight: 700;
-  color: #1a2e4a;
+  color: var(--color-text-primary);
   font-size: 0.88em;
   border: 1px solid #d5e2fb;
   flex-shrink: 0;
@@ -285,7 +285,7 @@
 .atm-cat-col .no-data {
   text-align: center;
   padding: 2em 1em;
-  color: #9aa8be;
+  color: var(--color-text-muted);
   font-size: 0.85em;
 }
 
