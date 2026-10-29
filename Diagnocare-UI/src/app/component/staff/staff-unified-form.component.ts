@@ -60,7 +60,7 @@ export class StaffUnifiedFormComponent implements OnInit {
 
   /** Role options shown in the User type selector */
   userRoleOptions = [
-    { id: Role.User.id,       label: Role.User.label       },
+    { id: Role.Receptionist.id,       label: Role.Receptionist.label       },
     { id: Role.Assistant.id,  label: Role.Assistant.label  },
     { id: Role.Admin.id,      label: Role.Admin.label      },
   ];
@@ -259,7 +259,7 @@ export class StaffUnifiedFormComponent implements OnInit {
 
   private saveMember(): void {
     const v = this.form.getRawValue();
-    const typeUserId = this.formType === 'user'           ? (v.typeUserId || Role.User.id)
+    const typeUserId = this.formType === 'user'           ? (v.typeUserId || Role.Receptionist.id)
                      : this.formType === 'collection-boy' ? Role.Collection_Boy.id
                      :                                      Role.Doctor.id;
 
