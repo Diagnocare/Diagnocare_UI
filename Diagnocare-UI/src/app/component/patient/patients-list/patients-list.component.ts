@@ -269,6 +269,37 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     return urgent === 'Yes' ? 'urgent-badge urgent-yes' : 'urgent-badge urgent-no';
   }
 
+  /**
+   * Shared post-processing for a page of patients: settle the urgent flag, then float the
+   * urgent rows to the top of the table.
+   *
+   * Array.prototype.sort is stable, so patients within a bucket keep the order the server
+   * returned them in — whichever column the user is sorting by stays in force as the
+   * secondary order, which is what "latest urgent patient first" relies on.
+   *
+   * Scope: this reorders the page the server returned. Holding it across the whole result
+   * set would need the API to accept a secondary sort key, and PageSortRequest carries a
+   * single sortBy, so an urgent patient on a later page still appears on that page.
+   *
+   * Skipped while the user is explicitly sorting by the Urgent column, so that header keeps
+   * working in both directions instead of becoming a no-op.
+   */
+  private applyUrgentFirst(): void {
+    // isUrgent is normalised in mapPatient(); lstPatientTests overrides it when it carries
+    // a positive flag of its own.
+    this.filteredPatients.forEach(patient => {
+      if (patient.lstPatientTests?.urgent_Report === true) {
+        patient.isUrgent = 'Yes';
+      }
+    });
+
+    if (this.currentSortField === 'isUrgent') return;
+
+    this.filteredPatients.sort(
+      (a, b) => (a.isUrgent === 'Yes' ? 0 : 1) - (b.isUrgent === 'Yes' ? 0 : 1)
+    );
+  }
+
   loadPatients() {
     this.isLoading = true;
     this.cdr.detectChanges();
@@ -283,13 +314,7 @@ export class PatientsListComponent implements OnInit, OnDestroy {
         this.totalItems = response.item1;
         this.totalPages = Math.ceil(this.totalItems / this.pageSize);
 
-        // isUrgent is already normalised in mapPatient(); override only if
-        // lstPatientTests carries a positive urgent_Report flag.
-        this.filteredPatients.forEach((patient) => {
-          if (patient.lstPatientTests?.urgent_Report === true) {
-            patient.isUrgent = 'Yes';
-          }
-        });
+        this.applyUrgentFirst();
         this.isLoading = false;
         this.updatePagination();
         this.cdr.detectChanges();
@@ -700,6 +725,7 @@ searchInputPatients() {
           this.filteredPatients = (response.item2 as any[]).map(p => this.mapPatient(p));
           this.totalItems = response.item1;
           this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+          this.applyUrgentFirst();
           this.updatePagination();
           this.isLoading = false;
           this.cdr.detectChanges();

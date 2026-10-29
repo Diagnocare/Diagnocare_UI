@@ -39,7 +39,9 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
         this.message = options.message;
         this.confirmText = options.confirmText ?? 'Confirm';
         this.cancelText = options.cancelText ?? 'Cancel';
-        this.hideCancelButton = options.hideCancelButton ?? false;
+        // A blank cancelText is how callers ask for a single-button alert. '' is not nullish, so
+        // it survives the ?? above and would otherwise render an unlabelled button next to Confirm.
+        this.hideCancelButton = options.hideCancelButton ?? !this.cancelText.trim();
         this.showLoadingOnConfirm = options.showLoadingOnConfirm ?? false;
         this.showReasonInput = options.showReasonInput ?? false;
         this.reasonLabel = options.reasonLabel ?? 'Reason';

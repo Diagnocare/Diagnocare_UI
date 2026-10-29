@@ -15,6 +15,8 @@ import { tabOrderEdit, DEFAULT_DIALING_CODE } from 'src/app/constant/constants';
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
+import { CapitalizedNameDirective } from 'src/app/shared/directives/capitalized-name.directive';
+import { formatPersonName } from 'src/app/utilities/person-name.util';
 import { DatePickerComponent } from '../../../shared/date-picker/date-picker.component';
 
 @Component({
@@ -22,7 +24,7 @@ import { DatePickerComponent } from '../../../shared/date-picker/date-picker.com
   templateUrl: './edit-patient.component.html',
   styleUrls: ['./edit-patient.component.scss'],
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective, DatePickerComponent]
+  imports: [ReactiveFormsModule, FormsModule, CommonModule, LoadingSpinnerComponent, FieldErrorComponent, FormKeyboardDirective, NumericOnlyDirective, CapitalizedNameDirective, DatePickerComponent]
 })
 export class EditPatientComponent implements OnInit, OnDestroy {
   
@@ -314,6 +316,17 @@ export class EditPatientComponent implements OnInit, OnDestroy {
     }
     SubmitForm(form: FormGroup) {
       this.formSubmitted = true;
+
+      // Re-assert the name formatting here as well as in the field: autofill, and the
+      // patchValue that loads the existing patient, both bypass the directive's events.
+      const nameControl = form.get('patient_Name');
+      if (nameControl) {
+        const formatted = formatPersonName(nameControl.value);
+        if (nameControl.value !== formatted) {
+          nameControl.setValue(formatted, { emitEvent: false });
+        }
+      }
+
       if (!form.valid) {
         form.markAllAsTouched();
         return;

@@ -1,0 +1,16 @@
+{
+  "name": "diagnocare-tutorial",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Automated product tutorial recording for the DiagnoCare UI.",
+  "scripts": {
+    "mock": "node mock-api/server.js",
+    "record": "node scripts/run.js",
+    "record:only": "node scripts/run.js",
+    "storyboard": "node post/make-storyboard.js",
+    "subtitles": "node post/make-subtitles.js",
+    "voiceover": "bash post/make-voiceover.sh",
+    "build:video": "bash post/build-video.sh",
+    "all": "npm run record && npm run build:video"
+  }
+}
