@@ -1,0 +1,4 @@
+# Recording artifacts. The video and its sidecars are rebuilt by `npm run all`, and the
+# raw capture alone is ~60 MB — too big to belong in the repository.
+out/
+node_modules/
