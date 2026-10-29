@@ -12,7 +12,7 @@
 
 .vs-calendar-panel,
 .vs-detail-panel {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(30,91,168,.08);
   padding: 1.25rem;
@@ -30,7 +30,7 @@
 
 .empty-state {
   text-align: center;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   i { font-size: 3rem; margin-bottom: .75rem; }
   p { font-size: .9rem; }
 }
@@ -41,7 +41,7 @@
   justify-content: space-between;
   margin-bottom: 1rem;
   padding-bottom: .75rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
 }
 .detail-title {
   display: flex;
@@ -49,8 +49,8 @@
   gap: .5rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #1e293b;
-  i { color: #0891b2; }
+  color: var(--color-text-primary);
+  i { color: var(--color-primary); }
 }
 
 // Holiday pill next to the date — same violet used by the calendar chip.
@@ -61,7 +61,7 @@
   font-size: .7rem;
   font-weight: 700;
   color: #fff;
-  background: #7c3aed;
+  background: var(--color-accent);
   border-radius: 999px;
   padding: 2px 9px;
   i { color: #fff !important; }
@@ -69,10 +69,10 @@
 
 // Refresh button in the detail header
 .btn-outline {
-  background: #fff;
-  color: #0891b2;
-  border: 1.5px solid #0891b2;
-  &:hover { background: #e0f2fe; }
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  &:hover { background: var(--color-info-bg); }
 }
 
 // ── Status filter chips ───────────────────────────────────────────────────────
@@ -89,28 +89,28 @@
   gap: .35rem;
   padding: .28rem .7rem;
   border-radius: 20px;
-  border: 1.5px solid #e2e8f0;
-  background: #f8fafc;
-  color: #64748b;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
   font-size: .75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all .15s;
 
-  &:hover { border-color: #0891b2; color: #0891b2; }
+  &:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
   &.active {
-    background: #0891b2; border-color: #0891b2; color: #fff;
+    background: var(--color-primary); border-color: var(--color-primary); color: #fff;
     .vc-filter-count { background: rgba(255,255,255,.25); color: #fff; }
   }
 
-  &--pending.active { background: #f59e0b; border-color: #f59e0b; }
-  &--done.active    { background: #16a34a; border-color: #16a34a; }
+  &--pending.active { background: var(--color-warning); border-color: var(--color-warning); }
+  &--done.active    { background: var(--color-success); border-color: var(--color-success); }
 }
 
 .vc-filter-count {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
   border-radius: 10px;
   padding: 0 6px;
   font-size: .7rem;
@@ -121,7 +121,7 @@
 
 .no-visits {
   text-align: center;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   padding: 2rem 0;
   i { font-size: 2.5rem; margin-bottom: .5rem; }
   p { margin-bottom: .75rem; }
@@ -160,41 +160,7 @@
 }
 
 // ── Theme overrides (panels + chips) ──────────────────────────────────────────
-:host-context(html[data-theme="dark"]) {
-  .vs-calendar-panel, .vs-detail-panel { background: #1e293b !important; }
-  .detail-header  { border-bottom-color: #334155 !important; }
-  .detail-title   { color: #e2e8f0 !important; }
-  .empty-state    { color: #475569 !important; }
-  .btn-outline    { background: #0f172a !important; border-color: #0891b2 !important; color: #38bdf8 !important;
-                    &:hover { background: #082f49 !important; } }
-  .vc-filter-chip { background: #0f172a !important; border-color: #334155 !important; color: #64748b !important; }
-  .vc-filter-count{ background: #273548 !important; color: #94a3b8 !important; }
-}
-:host-context(html[data-theme="midnight"]) {
-  .vs-calendar-panel, .vs-detail-panel { background: #0d1117 !important; }
-  .detail-header  { border-bottom-color: #21262d !important; }
-  .detail-title   { color: #cdd6f4 !important; }
-  .empty-state    { color: #30363d !important; }
-  .btn-outline    { background: #020408 !important; border-color: #0891b2 !important; color: #38bdf8 !important;
-                    &:hover { background: #041f30 !important; } }
-  .vc-filter-chip { background: #020408 !important; border-color: #21262d !important; color: #6e7681 !important; }
-  .vc-filter-count{ background: #161b22 !important; color: #a6adc8 !important; }
-}
-:host-context(html[data-theme="warm"]) {
-  .vs-calendar-panel, .vs-detail-panel { background: #fffdf7 !important; }
-  .detail-header  { border-bottom-color: #ddc9a8 !important; }
-  .detail-title   { color: #3d2b1f !important; }
-  .empty-state    { color: #9e8272 !important; }
-  .btn-outline    { background: #fffdf7 !important; border-color: #c47028 !important; color: #9c5a28 !important;
-                    &:hover { background: #fdf3e3 !important; } }
-  .vc-filter-chip { background: #fef9f0 !important; border-color: #ddc9a8 !important; color: #7a5c4e !important; }
-  .vc-filter-count{ background: #ddc9a8 !important; color: #5c3d2a !important; }
-}
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .vs-calendar-panel, .vs-detail-panel { background: #1e293b !important; }
-    .detail-header { border-bottom-color: #334155 !important; }
-    .detail-title  { color: #e2e8f0 !important; }
-    .vc-filter-chip{ background: #0f172a !important; border-color: #334155 !important; color: #64748b !important; }
-  }
-}
+
+
+
+

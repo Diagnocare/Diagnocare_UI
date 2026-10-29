@@ -10,6 +10,7 @@ import { licenceGuard } from './core/guards/licence.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { pinExpiryGuard } from './core/guards/pin-expiry.guard';
 import { Role } from './constant/enums';
+import { USE_SIDEBAR_SHELL } from './shared/simple/simple-ui.flags';
 
 export const routes: Routes = [
   // Public (no header)
@@ -53,7 +54,10 @@ export const routes: Routes = [
       // Access Denied after login. The page itself only shows each role the cards
       // and dashboard figures it may open.
       { path: 'pathology', title: 'Pathology',
-        loadComponent: () => import('./component/pathology/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
+        // The sidebar shell ships its own task-first home; the classic frame keeps the hero page.
+        loadComponent: () => USE_SIDEBAR_SHELL
+          ? import('./component/pathology/home-dashboard/home-dashboard.component').then(m => m.HomeDashboardComponent)
+          : import('./component/pathology/pathology-home/pathology-home.component').then(m => m.PathologyHomeComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id, Role.Collection_Boy.id, Role.Doctor.id)] },
 
       // Address Manager — Admin+

@@ -13,19 +13,22 @@
 
     <div class="search-section page-margin">
       <div class="search-row">
-        <div class="form-group">
-          <label class="form-label">Search</label>
-          <input placeholder="Search by name or city" class="search-input form-control" (input)="onSearch($event.target.value)" />
+        <div class="filter-group">
+          <label class="filter-label"><i class="fa fa-address-book"></i> Search</label>
+          <div class="input-icon-wrap">
+            <i class="fa fa-search input-icon" aria-hidden="true"></i>
+            <input placeholder="Name or city…" class="form-control" (input)="onSearch($event.target.value)" />
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Type</label>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fa fa-filter"></i> Type</label>
           <select class="form-select" (change)="onFilterChange($any($event.target).value)">
             <option value="">All Types</option>
             <option *ngFor="let t of contactTypes" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Page Size</label>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fa fa-list-ol"></i> Page Size</label>
           <select class="form-select" (change)="changePageSize(+$any($event.target).value)">
             <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }} / page</option>
           </select>

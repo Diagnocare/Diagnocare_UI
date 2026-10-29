@@ -3,29 +3,29 @@
    ══════════════════════════════════════════════════════════════════ */
 
 // ── Palette tokens ────────────────────────────────────────────────
-$clr-present-bg   : #16a34a;
-$clr-present-bdr  : #166534;
-$clr-present-light: #dcfce7;
-$clr-present-dark : #14532d;
+$clr-present-bg   : var(--color-success);
+$clr-present-bdr  : var(--color-success);
+$clr-present-light: var(--color-success-bg);
+$clr-present-dark : var(--color-success);
 
-$clr-absent-bg    : #dc2626;
-$clr-absent-bdr   : #991b1b;
-$clr-absent-light : #fee2e2;
+$clr-absent-bg    : var(--color-error);
+$clr-absent-bdr   : var(--color-error);
+$clr-absent-light : var(--color-error-bg);
 $clr-absent-dark  : #7f1d1d;
 
-$clr-hd-bg        : #ea580c;   // half day
+$clr-hd-bg        : var(--color-warning);   // half day
 $clr-hd-bdr       : #9a3412;
-$clr-hd-light     : #ffedd5;
-$clr-hd-dark      : #7c2d12;
+$clr-hd-light     : var(--color-warning-bg);
+$clr-hd-dark      : var(--color-warning);
 
-$clr-wo-bg        : #2563eb;   // week off (read-only, admin-assigned)
-$clr-wo-bdr       : #1e40af;
-$clr-wo-light     : #dbeafe;
-$clr-wo-dark      : #1e3a8a;
+$clr-wo-bg        : var(--color-info);   // week off (read-only, admin-assigned)
+$clr-wo-bdr       : var(--color-info);
+$clr-wo-light     : var(--color-info-bg);
+$clr-wo-dark      : var(--color-info);
 
-$clr-holiday-bg   : #d97706;
-$clr-holiday-bdr  : #92400e;
-$clr-holiday-light: #fef3c7;
+$clr-holiday-bg   : var(--color-warning);
+$clr-holiday-bdr  : var(--color-warning);
+$clr-holiday-light: var(--color-warning-bg);
 
 // ── Page header layout ───────────────────────────────────────────
 .page-header {
@@ -118,7 +118,7 @@ $clr-holiday-light: #fef3c7;
   &.chip-wo { background: $clr-wo-bg; }
   &.chip-h  { background: $clr-holiday-bg; }
   // Days with a correction request awaiting a decision.
-  &.chip-req { background: #7c3aed; }
+  &.chip-req { background: var(--color-accent); }
 }
 
 // ── Controls bar ─────────────────────────────────────────────────
@@ -149,19 +149,19 @@ $clr-holiday-light: #fef3c7;
   font-weight: 600;
   border: none;
   background: var(--bg-white, #fff);
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 
   & + & { border-left: 1px solid rgba(0, 0, 0, 0.12); }
 
   &:hover:not(:disabled):not(.active) {
-    background: #f1f5f9;
-    color: var(--text-primary, #1e293b);
+    background: var(--color-surface-sunken);
+    color: var(--text-primary, var(--color-text-primary));
   }
 
   &.active {
-    background: var(--primary-color, #1e5ba8);
+    background: var(--primary-color, var(--color-primary-ink));
     color: #fff;
     font-weight: 700;
   }
@@ -171,7 +171,7 @@ $clr-holiday-light: #fef3c7;
 
 // ── Fortnight toggle ──────────────────────────────────────────────
 .fn-toggle .toggle-btn.active {
-  background: #0e7490;
+  background: var(--color-primary-hover);
 }
 
 // ── Period navigator ──────────────────────────────────────────────
@@ -186,7 +186,7 @@ $clr-holiday-light: #fef3c7;
 .period-label {
   font-size: 0.97em;
   font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   min-width: 18em;
   text-align: center;
 }
@@ -198,15 +198,15 @@ $clr-holiday-light: #fef3c7;
   width: 2.25em;
   height: 2.25em;
   border-radius: 50%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-border-strong);
   background: var(--bg-white, #fff);
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   font-size: 0.85em;
 
   &:hover:not(:disabled) {
-    background: var(--primary-color, #1e5ba8);
+    background: var(--primary-color, var(--color-primary-ink));
     color: #fff;
     border-color: transparent;
   }
@@ -219,7 +219,7 @@ $clr-holiday-light: #fef3c7;
   overflow-x: auto;
   border-radius: var(--radius-lg, 0.75em);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 }
 
 // ── Table ────────────────────────────────────────────────────────
@@ -238,7 +238,7 @@ $clr-holiday-light: #fef3c7;
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #fff;
+  background: var(--color-surface);
 
   thead &, tfoot & { z-index: 3; }
 }
@@ -246,7 +246,7 @@ $clr-holiday-light: #fef3c7;
 // ── Header row ───────────────────────────────────────────────────
 .header-row {
   th {
-    background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+    background: linear-gradient(135deg, var(--primary-color, var(--color-primary-ink)) 0%, var(--secondary-color, var(--color-primary)) 100%);
     border-bottom: none;
     padding: 0.65em 0.4em 0.45em;
     font-weight: 700;
@@ -257,7 +257,7 @@ $clr-holiday-light: #fef3c7;
 
     &.sticky-col {
       z-index: 4;
-      background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, var(--secondary-color, #667eea) 100%);
+      background: linear-gradient(135deg, var(--primary-color, var(--color-primary-ink)) 0%, var(--secondary-color, var(--color-primary)) 100%);
     }
   }
 }
@@ -328,10 +328,10 @@ $clr-holiday-light: #fef3c7;
 
 // ── User row ─────────────────────────────────────────────────────
 .user-row {
-  border-bottom: 1px solid #e8edf5;
+  border-bottom: 1px solid var(--color-border);
 
-  td { background: #ffffff; padding: 0.55em 0.4em; vertical-align: middle; }
-  .sticky-col { background: #ffffff; }
+  td { background: var(--color-surface); padding: 0.55em 0.4em; vertical-align: middle; }
+  .sticky-col { background: var(--color-surface); }
 }
 
 .user-info {
@@ -346,7 +346,7 @@ $clr-holiday-light: #fef3c7;
   width: 2.1em;
   height: 2.1em;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color, #1e5ba8) 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--primary-color, var(--color-primary-ink)) 0%, var(--color-info) 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -358,7 +358,7 @@ $clr-holiday-light: #fef3c7;
 .user-name {
   font-size: 0.88em;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -400,7 +400,7 @@ $clr-holiday-light: #fef3c7;
     top: -0.35em;
     right: -0.35em;
     font-size: 0.55em;
-    background: var(--primary-color, #2563eb);
+    background: var(--primary-color, var(--color-info));
     color: #fff;
     width: 1.5em;
     height: 1.5em;
@@ -417,24 +417,24 @@ $clr-holiday-light: #fef3c7;
   &.cell-present    { background: $clr-present-bg; color: #fff; border-color: $clr-present-bdr; }
   &.cell-absent     { background: $clr-absent-bg;  color: #fff; border-color: $clr-absent-bdr;  }
   &.cell-halfday    { background: $clr-hd-bg;      color: #fff; border-color: $clr-hd-bdr;      }
-  &.cell-weekoff    { background: $clr-wo-light;   color: $clr-wo-dark; border-color: #93c5fd; font-weight: 800; }
+  &.cell-weekoff    { background: $clr-wo-light;   color: $clr-wo-dark; border-color: var(--color-info-border); font-weight: 800; }
 
   &.cell-unmarked {
-    background: #f1f5f9;
-    color: #475569;
-    border-color: #cbd5e1;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border-strong);
   }
 
   &.cell-future {
-    background: #f1f5f9;
-    color: #b0bec5;
-    border-color: #e2e8f0;
+    background: var(--color-surface-sunken);
+    color: var(--color-border-strong);
+    border-color: var(--color-border);
   }
 
   &.cell-holiday {
     background: $clr-holiday-light;
     color: $clr-holiday-bdr;
-    border-color: #fcd34d;
+    border-color: var(--color-warning-border);
     font-weight: 800;
   }
 
@@ -442,14 +442,14 @@ $clr-holiday-light: #fef3c7;
   // Declared after the status colours so it wins over them — a half-signalled cell
   // (green fill, purple ring) was the confusing part.
   &.cell-requested {
-    background: #7c3aed;
+    background: var(--color-accent);
     color: #fff;
-    border-color: #6d28d9;
+    border-color: var(--color-accent);
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
   }
 
   &.today-glow {
-    outline: 2.5px solid var(--primary-color, #1e5ba8);
+    outline: 2.5px solid var(--primary-color, var(--color-primary-ink));
     outline-offset: 2px;
   }
 }
@@ -476,9 +476,9 @@ $clr-holiday-light: #fef3c7;
 
   small { font-size: 0.82em; font-weight: 600; }
 
-  &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid #86efac; }
-  &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid #fca5a5; }
-  &.rs-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid #fdba74; }
+  &.rs-p  { background: $clr-present-light; color: $clr-present-dark;  border: 1px solid var(--color-success-border); }
+  &.rs-a  { background: $clr-absent-light;  color: $clr-absent-dark;   border: 1px solid var(--color-error-border); }
+  &.rs-hd { background: $clr-hd-light;      color: $clr-hd-dark;       border: 1px solid var(--color-warning-border); }
 }
 
 // ── Empty state ───────────────────────────────────────────────────
@@ -489,10 +489,10 @@ $clr-holiday-light: #fef3c7;
   justify-content: center;
   padding: 5em 2em;
   text-align: center;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 
   .empty-icon { font-size: 3.5em; margin-bottom: 0.5em; opacity: 0.5; }
-  h3 { font-size: 1.2em; font-weight: 700; color: var(--text-primary, #1e293b); margin: 0 0 0.5em; }
+  h3 { font-size: 1.2em; font-weight: 700; color: var(--text-primary, var(--color-text-primary)); margin: 0 0 0.5em; }
   p  { font-size: 0.9em; max-width: 28em; }
 }
 
@@ -533,18 +533,18 @@ $clr-holiday-light: #fef3c7;
   margin-bottom: 0.6em;
   font-size: 0.9em;
   font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  background: #eff6ff;
-  border-left: 4px solid var(--primary-color, #1e5ba8);
+  color: var(--text-primary, var(--color-text-primary));
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--primary-color, var(--color-primary-ink));
   border-radius: 0 0.45em 0.45em 0;
 
-  i { color: var(--primary-color, #1e5ba8); font-size: 0.92em; }
+  i { color: var(--primary-color, var(--color-primary-ink)); font-size: 0.92em; }
 
   .fn-range {
     margin-left: auto;
     font-size: 0.85em;
     font-weight: 600;
-    color: var(--primary-color, #1e5ba8);
+    color: var(--primary-color, var(--color-primary-ink));
     letter-spacing: 0.02em;
   }
 }
@@ -564,70 +564,10 @@ $clr-holiday-light: #fef3c7;
 //  THEME OVERRIDES
 // ══════════════════════════════════════════════════════════════════════════════
 
-:host-context(html[data-theme="dark"]) {
-  .grid-wrapper    { border-color: #334155 !important; }
-  .sticky-col      { background: #1e293b !important; }
-  .user-row        { border-bottom-color: #273548 !important;
-                     td { background: #1e293b !important; }
-                     .sticky-col { background: #1e293b !important; } }
-  .att-cell.cell-unmarked { background: #273548 !important; color: #94a3b8 !important; border-color: #334155 !important; }
-  .att-cell.cell-future   { background: #1e293b !important; color: #475569 !important; border-color: #273548 !important; }
-  .view-toggle     { border-color: #334155 !important; }
-  .toggle-btn      { background: #1e293b !important; color: #94a3b8 !important;
-                     & + & { border-left-color: #334155 !important; }
-                     &:hover:not(:disabled):not(.active) { background: #273548 !important; color: #e2e8f0 !important; } }
-  .nav-btn         { border-color: #334155 !important; background: #1e293b !important; color: #94a3b8 !important; }
-  .fortnight-title { background: #0f172a !important; }
-}
 
-:host-context(html[data-theme="midnight"]) {
-  .grid-wrapper    { border-color: #21262d !important; }
-  .sticky-col      { background: #0d1117 !important; }
-  .user-row        { border-bottom-color: #161b22 !important;
-                     td { background: #0d1117 !important; }
-                     .sticky-col { background: #0d1117 !important; } }
-  .att-cell.cell-unmarked { background: #161b22 !important; color: #a6adc8 !important; border-color: #21262d !important; }
-  .att-cell.cell-future   { background: #0d1117 !important; color: #30363d !important; border-color: #161b22 !important; }
-  .view-toggle     { border-color: #21262d !important; }
-  .toggle-btn      { background: #0d1117 !important; color: #a6adc8 !important;
-                     & + & { border-left-color: #21262d !important; }
-                     &:hover:not(:disabled):not(.active) { background: #161b22 !important; color: #cdd6f4 !important; } }
-  .nav-btn         { border-color: #21262d !important; background: #0d1117 !important; color: #a6adc8 !important; }
-  .fortnight-title { background: #020408 !important; }
-}
 
-:host-context(html[data-theme="warm"]) {
-  .grid-wrapper    { border-color: #ddc9a8 !important; }
-  .sticky-col      { background: #fffdf7 !important; }
-  // The sticky Date column turns cream in warm, so its header label + the user
-  // name (white/force-lit by default) must become dark to stay readable.
-  .user-col-label  { color: #3d2b1f !important; }
-  .user-name       { color: #3d2b1f !important; }
-  .user-row        { border-bottom-color: #e8d9c0 !important;
-                     td { background: #fffdf7 !important; }
-                     .sticky-col { background: #fffdf7 !important; } }
-  .att-cell.cell-unmarked { background: #f5ede0 !important; color: #7a5c4e !important; border-color: #ddc9a8 !important; }
-  .att-cell.cell-future   { background: #fef9f0 !important; color: #c4a882 !important; border-color: #e8d9c0 !important; }
-  .view-toggle     { border-color: #ddc9a8 !important; }
-  .toggle-btn      { background: #fffdf7 !important; color: #7a5c4e !important;
-                     & + & { border-left-color: #ddc9a8 !important; }
-                     &:hover:not(:disabled):not(.active) { background: #fef9f0 !important; color: #3d2b1f !important; } }
-  .nav-btn         { border-color: #ddc9a8 !important; background: #fffdf7 !important; color: #7a5c4e !important; }
-  .fortnight-title { background: #fdf3e3 !important; }
-}
 
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .grid-wrapper  { border-color: #334155 !important; }
-    .sticky-col    { background: #1e293b !important; }
-    .user-row      { border-bottom-color: #273548 !important;
-                     td { background: #1e293b !important; }
-                     .sticky-col { background: #1e293b !important; } }
-    .att-cell.cell-unmarked { background: #273548 !important; color: #94a3b8 !important; }
-    .att-cell.cell-future   { background: #1e293b !important; color: #475569 !important; }
-    .view-toggle   { border-color: #334155 !important; }
-    .toggle-btn    { background: #1e293b !important; color: #94a3b8 !important; }
-    .nav-btn       { border-color: #334155 !important; background: #1e293b !important; }
-    .fortnight-title { background: #0f172a !important; }
-  }
-}
+
+
+
+

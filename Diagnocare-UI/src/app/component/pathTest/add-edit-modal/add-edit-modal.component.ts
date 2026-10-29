@@ -5,6 +5,7 @@ import { ViewEncapsulation } from '@angular/core';
 import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
+import { NoDigitsDirective } from 'src/app/shared/directives/no-digits.directive';
 import { PathTestService } from 'src/app/services/pathTestServices/path-test-service';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
@@ -23,7 +24,7 @@ type AddType = 'group' | 'subgroup' | 'test';
   standalone: true,
   templateUrl: './add-edit-modal.component.html',
   styleUrls: ['./add-edit-modal.component.scss'],
-  imports:[FormsModule,CommonModule,LoadingSpinnerComponent],
+  imports:[FormsModule,CommonModule,LoadingSpinnerComponent,NoDigitsDirective],
   encapsulation: ViewEncapsulation.None
 })
 export class AddEditModalComponent implements OnInit, OnDestroy {
@@ -51,9 +52,17 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
 
   /** True while background code-list fetch is in progress. */
   codesLoading = false;
-  editSubGroups: GroupSubGroupModel[] = [];
+  /**
+   * Options for the SubGroup dropdown, fetched for whichever group is currently
+   * chosen. Shared by the Add and Edit flows — only one of them is on screen at
+   * a time, and sharing is what keeps the two behaving identically. (These were
+   * `editSubGroups` / `editSubGroupsLoading`: Add never used them, which is why
+   * picking a group in Add → Test populated nothing.)
+   */
+  subGroupOptions: GroupSubGroupModel[] = [];
+  subGroupsLoading = false;
+
   editTests: TestItem[] = [];
-  editSubGroupsLoading = false;
   editTestsLoading = false;
 
   /**
@@ -458,9 +467,9 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     // Clear cascading edit lists. Caches are dropped too — the next modal open
     // creates a new component instance and must not reuse data that a just-saved
     // update may have invalidated.
-    this.editSubGroups = [];
+    this.subGroupOptions = [];
     this.editTests = [];
-    this.editSubGroupsLoading = false;
+    this.subGroupsLoading = false;
     this.editTestsLoading = false;
     this.subGroupCache.clear();
     this.testCache.clear();
@@ -527,7 +536,7 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
    */
   onEditSubGroupSelect() {
     const code  = this.updatedFormData.subGroup.testGroupId;
-    const match = this.editSubGroups.find(s => s.testGroupId === code);
+    const match = this.subGroupOptions.find(s => s.testGroupId === code);
     if (match) {
       this.updatedFormData.subGroup.name           = match.name;
       this.updatedFormData.subGroup.price          = match.price;
@@ -568,14 +577,14 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     this.updatedFormData.subGroup = new GroupSubGroupModel();
     this.updatedFormData.test     = new TestItem();
     this.editTests = [];
-    this.loadEditSubGroups(this.updatedFormData.group.testGroupId);
+    this.loadSubGroupOptions(this.updatedFormData.group.testGroupId);
   }
 
   onEditGroupChangedForTest() {
     this.updatedFormData.subGroup = new GroupSubGroupModel();
     this.updatedFormData.test     = new TestItem();
     this.editTests = [];
-    this.loadEditSubGroups(this.updatedFormData.group.testGroupId);
+    this.loadSubGroupOptions(this.updatedFormData.group.testGroupId);
   }
 
   onEditSubGroupChangedForTest() {
@@ -583,31 +592,46 @@ export class AddEditModalComponent implements OnInit, OnDestroy {
     this.loadEditTests(this.updatedFormData.subGroup.testGroupId);
   }
 
-  /** Fetches the subgroups belonging to the group chosen in the edit form. */
-  private loadEditSubGroups(groupId: string): void {
-    this.editSubGroups = [];
+  /**
+   * Add → Test: the group changed, so fetch that group's subgroups.
+   *
+   * The same dependency as onEditGroupChangedForTest(), against formData rather
+   * than updatedFormData. Add used to have no handler here at all: its SubGroup
+   * dropdown filtered the `subGroups` @Input client-side, and the parent only
+   * ever passes the subgroups of the ONE group selected in the browse panel
+   * behind the modal. So choosing any other group produced an empty dropdown
+   * and nothing was fetched. It now goes through the same loader as Edit.
+   */
+  onAddGroupChangedForTest(): void {
+    this.formData.subGroup = new GroupSubGroupModel();
+    this.loadSubGroupOptions(this.formData.group.testGroupId);
+  }
+
+  /** Fetches the subgroups belonging to the chosen group. Used by both flows. */
+  private loadSubGroupOptions(groupId: string): void {
+    this.subGroupOptions = [];
     if (!groupId) return;
 
     const cached = this.subGroupCache.get(groupId);
     if (cached) {
-      this.editSubGroups = cached;
-      this.editSubGroupsLoading = false;
+      this.subGroupOptions = cached;
+      this.subGroupsLoading = false;
       return;
     }
 
-    this.editSubGroupsLoading = true;
+    this.subGroupsLoading = true;
     this._pathTest.getAllSubGroupList(groupId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (subs) => {
           // Backend may return placeholder rows with no code/name — drop them.
-          this.editSubGroups = (subs ?? []).filter(s => s && s.testGroupId && s.name);
-          this.subGroupCache.set(groupId, this.editSubGroups);
-          this.editSubGroupsLoading = false;
+          this.subGroupOptions = (subs ?? []).filter(s => s && s.testGroupId && s.name);
+          this.subGroupCache.set(groupId, this.subGroupOptions);
+          this.subGroupsLoading = false;
         },
         error: () => {
-          this.editSubGroups = [];
-          this.editSubGroupsLoading = false;
+          this.subGroupOptions = [];
+          this.subGroupsLoading = false;
         }
       });
   }
