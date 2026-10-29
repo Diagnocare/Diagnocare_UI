@@ -132,9 +132,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
         title: 'Invalid File',
         message: 'Only JPG and PNG images are allowed.',
         confirmText: 'OK',
-        cancelText: ''
+        hideCancelButton: true
       }).subscribe();
       this.previewAvailable = false;
+      this.selectedFile = null;
       (event.target as HTMLInputElement).value = '';
       return;
     }
@@ -171,7 +172,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
             title: 'Upload Failed',
             message: 'Failed to upload profile photo. Please try again.',
             confirmText: 'OK',
-            cancelText: ''
+            hideCancelButton: true
           }).subscribe();
         }
       });

@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, timer } from 'rxjs';
 import { CommonService } from 'src/app/shared/common.service';
 import { jwtDecode } from 'jwt-decode';
 import { FormsModule } from '@angular/forms';
@@ -25,12 +24,12 @@ export class ChangePasswordComponent {
   oldPassword = '';
   newPassword = '';
   confirmPassword = '';
-  oldPasswordValid: boolean | null = null;
-  validating: boolean = false;
   newPasswordMatch: boolean | null = null;
   newPasswordValid: boolean | null = null;
   isForceChange: boolean = false;
   passwordChanged: boolean = false;
+  /** True while the change request is in flight, so the form cannot be submitted twice. */
+  submitting: boolean = false;
   profilePhotoUrl: string = '/assets/defaultPic.jpg';
     onNewPasswordChange() {
       this.newPasswordValid = this.validatePasswordStrength(this.newPassword);
@@ -45,13 +44,7 @@ export class ChangePasswordComponent {
       const pattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
       return pattern.test(password);
     }
-  private debounceSub?: Subscription;
-  private confirmDebounceSub?: Subscription;
-  
   userName: string = '';
-
-  // debounce duration in milliseconds for async checks
-  private static readonly DEBOUNCE_MS = 500;
 
   constructor(
     private headerService: HeaderService,
@@ -73,26 +66,24 @@ export class ChangePasswordComponent {
     
   }
 
-  onOldPasswordChange() {
-    // The current password is verified by the server when the change is submitted. There is
-    // deliberately no live "is this my password?" check: that would be a password oracle.
-    this.oldPasswordValid = null;
-  }
-  
+  // The current password is verified by the server when the change is submitted. There is
+  // deliberately no live "is this my password?" check: that would be a password oracle. So the
+  // only thing the form can assert locally is that the field has been filled in.
+
   onConfirmPasswordChange() {
-    if (this.confirmDebounceSub) {
-      this.confirmDebounceSub.unsubscribe();
-    }
+    // A string comparison is synchronous: debouncing it only left the button's enabled state
+    // trailing behind what the user had actually typed.
     if (!this.newPassword || !this.confirmPassword) {
       this.newPasswordMatch = null;
       return;
     }
-    this.confirmDebounceSub = timer(ChangePasswordComponent.DEBOUNCE_MS).subscribe(() => {
-      this.newPasswordMatch = this.newPassword === this.confirmPassword;
-    });
+    this.newPasswordMatch = this.newPassword === this.confirmPassword;
   }
 
   changePassword() {
+    if (this.submitting) {
+      return;
+    }
     if (this.newPassword !== this.confirmPassword) {
       this.toastr.warning('New passwords do not match!', 'Validation Error');
       return;
@@ -101,8 +92,10 @@ export class ChangePasswordComponent {
       this.toastr.warning('Password does not meet requirements!', 'Validation Error');
       return;
     }
+    this.submitting = true;
     this.headerService.changePassword(this.isForceChange ? '' : this.oldPassword, this.newPassword).subscribe({
       next: (res: any) => {
+        this.submitting = false;
         if (res?.success === false) {
           this.toastr.error(res.message || 'Failed to change password.', 'Error');
           this.newPassword = '';
@@ -114,7 +107,6 @@ export class ChangePasswordComponent {
         this.oldPassword = '';
         this.newPassword = '';
         this.confirmPassword = '';
-        this.oldPasswordValid = null;
         this.newPasswordMatch = null;
         this.newPasswordValid = null;
         if (this.isForceChange) {
@@ -131,6 +123,7 @@ export class ChangePasswordComponent {
         }
       },
       error: () => {
+        this.submitting = false;
         this.toastr.error('Failed to change password.', 'Error');
       }
     });
