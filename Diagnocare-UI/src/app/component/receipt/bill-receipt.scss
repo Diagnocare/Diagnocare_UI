@@ -389,9 +389,10 @@
 .br-th-amount { text-align: right; }
 .br-th-action { text-align: center; width: 130px; }
 
-/* ── Payment row ── */
+/* ── Payment row ──
+   No cursor: pointer — the row is not a control. Downloading is the Download
+   button in the action cell. */
 .br-receipt-tr {
-  cursor: pointer;
   transition: background 0.14s;
   border-bottom: 1px solid var(--border-color, var(--color-border));
 }
@@ -808,7 +809,10 @@
   color: var(--text-secondary);
 }
 
-/* Clickable row affordance: accent bar, hover/focus highlight, download cue */
+/* Row hover highlight: accent bar on the first cell.
+   The :focus-visible halves of these rules are gone with the row's tabindex —
+   a <tr> that is not focusable can never match them. Focus now lands on the
+   Download button, which carries its own focus ring below. */
 .br-receipt-tr td:first-child,
 .br-refund-tr td:first-child { box-shadow: inset 3px 0 0 transparent; transition: box-shadow 0.14s; }
 .br-receipt-tr:hover td:first-child,
@@ -825,7 +829,17 @@
 
 .br-th-action { width: 1%; }
 
+/* The row's Download button. Same box, padding, radius, type scale and colour
+   as the decorative cue it replaces — the first four declarations are the
+   button reset that keeps it looking identical now that it is a real <button>.
+   It no longer sits at 0.55 opacity waiting for a row hover: it is the only
+   download control on the row, so it is visible at rest. */
 .br-dl-cue {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  font: inherit;
+
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -834,14 +848,17 @@
   font-size: 0.8em;
   font-weight: 600;
   color: var(--primary-color);
-  opacity: 0.55;
-  transition: opacity 0.14s, background 0.14s;
+  cursor: pointer;
+  transition: background 0.14s;
 }
+.br-dl-cue:hover,
 .br-receipt-tr:hover .br-dl-cue,
-.br-receipt-tr:focus-visible .br-dl-cue,
-.br-refund-tr:hover .br-dl-cue,
-.br-refund-tr:focus-visible .br-dl-cue {
-  opacity: 1;
+.br-refund-tr:hover .br-dl-cue {
+  background: rgba(30, 91, 168, 0.1);
+}
+.br-dl-cue:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
   background: rgba(30, 91, 168, 0.1);
 }
 .br-refund-tr .br-dl-cue { color: var(--color-info); }
