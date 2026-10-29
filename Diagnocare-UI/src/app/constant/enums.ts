@@ -14,7 +14,7 @@ export enum AuthType {
 // role called "User" next to it made the two impossible to tell apart in support
 // conversations. The key stays `User` so no ID or token mapping shifts.
 export const Role = {
-  User:           { id: 1 as const, label: 'Receptionist'   as const },
+  Receptionist:   { id: 1 as const, label: 'Receptionist'   as const },
   Assistant:      { id: 2 as const, label: 'Lab Assistant'  as const },
   Admin:          { id: 3 as const, label: 'Admin'          as const },
   Super_Admin:    { id: 4 as const, label: 'Super Admin'    as const },
