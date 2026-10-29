@@ -113,7 +113,7 @@ export class ChangePasswordComponent {
           const token = this.common.getAccessToken();
           const payload: any = token ? jwtDecode(token) : {};
           const userType = payload?.aud;
-          if (userType === Role.Assistant.label || userType === Role.User.label || userType === Role.Admin.label) {
+          if (userType === Role.Assistant.label || userType === Role.Receptionist.label || userType === Role.Admin.label) {
             this.router.navigate(['/patients']);
           } else {
             this.router.navigate(['/pathology']);

@@ -356,7 +356,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-users',
         route: '/patients',
         color: 'indigo',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
       },
       {
         title: 'Patient Tests',
@@ -364,7 +364,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-flask',
         route: '/patient-tests',
         color: 'blue',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
       },
     ];
 
@@ -375,7 +375,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-list-alt',
         route: '/manage-tests',
         color: 'teal',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Super_Admin.id]
       },
       {
         title: 'Reports',
