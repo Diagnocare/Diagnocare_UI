@@ -65,7 +65,7 @@ import {
     TpaDetailsModalComponent,
     FieldErrorComponent,
     FormKeyboardDirective,
-    NumericOnlyDirective, CapitalizedNameDirective,
+    NumericOnlyDirective,
     PaymentCalculatorComponent,
     PaymentModalComponent,
     TestProtocolPanelComponent,
