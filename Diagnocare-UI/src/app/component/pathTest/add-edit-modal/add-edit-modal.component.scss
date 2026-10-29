@@ -241,7 +241,12 @@
 
 .form-row-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr), not 1fr. A bare 1fr is minmax(auto, 1fr), so a grid item is
+     never allowed to be narrower than its content — and a <select>'s intrinsic
+     width is its longest <option>. The Group / SubGroup row therefore stopped
+     being a 50/50 split the moment a long subgroup name loaded into it, which
+     is the column-width jump between the loading and loaded states. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.875em;
 }
 
@@ -259,6 +264,30 @@
 }
 
 /* ── Inputs & Selects ──────────────────────────────────────────────── */
+/* ── Form controls ───────────────────────────────────────────────────
+   height / line-height / vertical padding are declared together on purpose:
+   they are one box, and splitting them across two stylesheets is what broke
+   the dropdowns.
+
+   This block used to set only `padding: 0.65em 0.9em` and `font-size: 0.9em`,
+   and inherit `height: 2.5em` from the global .form-control in styles.css.
+   Those three do not fit each other. Measured at the modal's own font size:
+
+       height   36.00px   (2.5em, from the global rule)
+     − padding  18.72px   (0.65em top + bottom, from this rule)
+     − border    2.00px
+     = content  15.28px   for a line of 14.4px text, which needs ~17.28px
+
+   An <input> lets that overflow show, so it merely looked tight. A <select>
+   clips its content box, so the selected text was cut off — and because the
+   input resolved line-height from the body (21.6px) while the select used
+   `normal`, the two controls did not share a vertical metric either.
+
+   The fix keeps the design system's 2.5em control height and makes the line
+   fit inside it: an explicit line-height both element types obey, and no
+   vertical padding (the line is centred in the content box, so vertical
+   padding only pushes it out of a box that is already a fixed height).
+   Scoped to this component, so dropdowns elsewhere are untouched. */
 .form-control {
   width: 100%;
   padding: 0.65em 0.9em;
@@ -287,6 +316,47 @@
 select.form-control {
   cursor: pointer;
   appearance: auto;
+}
+
+/* ── The control box, fixed ──────────────────────────────────────────
+   Scoped to .modal-container, not left on the bare .form-control above,
+   because this component is ViewEncapsulation.None: its stylesheet is injected
+   globally, so an unscoped .form-control rule here reaches every form in the
+   app. (The block above already does that — see the note at the end of this
+   file. It is left as it is; these rules are additive and stop at the modal.)
+
+   The dropdowns were clipping their selected text. The rule above sets padding
+   and font-size but no height, so the control inherited `height: 2.5em` from
+   the global .form-control in styles.css, and the three do not fit together.
+   Measured at this modal's font size:
+
+       height   36.00px   (2.5em, global)
+     − padding  18.72px   (0.65em top + bottom, above)
+     − border    2.00px
+     = content  15.28px   for a 14.4px line, which needs ~18px
+
+   An <input> lets the overflow show, so it only looked tight; a <select> clips
+   its content box, so the selected value was cut off. The input also resolved
+   line-height from the body (21.6px) while the select used `normal`, so the
+   two never shared a vertical metric.
+
+   Keeping the design system's 2.5em height, the line is made to fit inside it:
+   one explicit line-height that both element types obey, and no vertical
+   padding — the line is centred in the content box, so vertical padding only
+   pushes it out of a box whose height is already fixed. Control height is
+   unchanged at 2.5em, so the modal's dimensions do not move. */
+.modal-container .form-control {
+  height: 2.5em;
+  line-height: 1.25;
+  padding: 0 0.9em;
+}
+
+.modal-container select.form-control {
+  /* A long option must not widen the control or push the native arrow out of
+     view: the box is the grid column, and the label ellipsises inside it. */
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
 
 /* ── Auto-generated code field ─────────────────────────────────────── */
@@ -511,3 +581,18 @@ select.form-control {
   font-size: 0.72em;
   color: #94a3b8;
 }
+
+/* ────────────────────────────────────────────────────────────────────
+   NOTE — this component is ViewEncapsulation.None
+
+   Every selector in this file is injected globally and stays in the document
+   once the modal has been opened. The generic class names near the top
+   (.form-control, .form-group, .form-label) therefore reach every form in the
+   app, not just this modal — .form-control here restates padding and font-size,
+   so after opening this modal once, forms elsewhere are drawn with this
+   modal's values rather than the ones in styles.css.
+
+   That is pre-existing and is deliberately left alone: correcting it changes
+   how other screens look and wants a visual pass of its own. New rules added
+   here should be scoped to .modal-container, as the control-box block above is.
+   ──────────────────────────────────────────────────────────────────── */

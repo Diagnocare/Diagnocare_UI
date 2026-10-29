@@ -1112,8 +1112,18 @@
 
 /* ── Visit screen (replaces the second card deck) ─────────────────────── */
 .ptl-visit-screen .ptl-rel { font-weight: 400; opacity: 0.85; font-size: 0.8125em; }
+/* scrollbar-gutter: stable keeps room for the scrollbar whether or not one is
+   showing, which is what stops the table jumping sideways as the tests load.
+
+   Without it this panel has no scrollbar while `isLoadingDetails` is true — the
+   loading block is a few lines tall — and gains one the moment the rows render
+   and the content passes the container's 85vh. The scrollbar takes its width
+   out of the content box, so the table painted at full width and then
+   immediately reflowed ~15px narrower, moving every column with it. Reserving
+   the gutter means the first paint is already at the final width. */
 .ptl-visit-body {
-  flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 1.25em;
+  flex: 1; overflow: auto; scrollbar-gutter: stable;
+  display: flex; flex-direction: column; gap: 1.25em;
   padding: 1.5em 1.75em; background: var(--bg-light); font-size: 0.875rem;
 }
 /* The body scrolls as a whole; its blocks keep their natural height. */
@@ -1127,7 +1137,19 @@
   background: var(--bg-white); border: 1px solid var(--border-color);
   border-radius: var(--radius-lg); overflow-x: auto;
 }
-.ptl-table { width: 100%; border-collapse: collapse; }
+/* table-layout: fixed, so the geometry comes from these widths and not from the
+   data. With auto layout the browser sized the columns from their content,
+   which does not exist until the rows arrive: the header text sat in one place
+   while `isLoadingDetails` was true and moved when the tests rendered, and the
+   table's intrinsic width changed with it — wide enough, and .ptl-table-wrap's
+   `overflow-x: auto` added a scrollbar too. Same reasoning, and the same fix,
+   as .parameter-list-table below.
+
+   Only three columns are given a width; Test takes whatever is left, which is
+   what makes the row fill the panel at any width. */
+.ptl-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.ptl-table__col--sample { width: 11em; }
+.ptl-table__col--result { width: 11em; }
 .ptl-table th {
   text-align: left; padding: 0.8em 1.1em; font-size: 0.875em; font-weight: 700;
   color: var(--text-secondary); background: var(--bg-light);
@@ -1137,6 +1159,10 @@
   padding: 1em 1.1em; vertical-align: top; color: var(--text-primary);
   border-top: 1px solid var(--border-color);
 }
+/* Fixed columns clip rather than stretch, so long test names and rejection
+   reasons have to be allowed to wrap inside their cell. */
+.ptl-table th,
+.ptl-table td { overflow-wrap: break-word; }
 .ptl-table tbody tr:first-child td { border-top: 0; }
 .ptl-table__row--next td { background: var(--ptl-info-bg); }
 .ptl-table__act { text-align: right; width: 16em; }
