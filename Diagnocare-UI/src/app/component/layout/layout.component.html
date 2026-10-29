@@ -1,4 +1,17 @@
-<app-header></app-header>
+<!-- Two frames, one switch (USE_SIDEBAR_SHELL in shared/simple/simple-ui.flags.ts).
+     The sidebar shell projects the page into its main column; the classic frame
+     stacks the old header above it. The password notice and the page itself are
+     the same template in both, so neither can drift. -->
+<app-shell *ngIf="useShell; else classic">
+  <ng-container *ngTemplateOutlet="page"></ng-container>
+</app-shell>
+
+<ng-template #classic>
+  <app-header></app-header>
+  <ng-container *ngTemplateOutlet="page"></ng-container>
+</ng-template>
+
+<ng-template #page>
 
 <!--
   Password expiry notice.
@@ -46,3 +59,4 @@
 </div>
 
 <router-outlet></router-outlet>
+</ng-template>

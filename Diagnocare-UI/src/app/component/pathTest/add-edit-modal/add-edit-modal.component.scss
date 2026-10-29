@@ -160,7 +160,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #eef2ff;
+    background: var(--color-primary-subtle);
     color: var(--secondary-color);
     border-radius: var(--radius-md);
     font-size: 1.15em;
@@ -259,7 +259,7 @@
 
   &.required::after {
     content: ' *';
-    color: #dc2626;
+    color: var(--color-error);
   }
 }
 
@@ -302,12 +302,12 @@
   &:focus {
     outline: none;
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    box-shadow: var(--focus-ring);
   }
 
   &:disabled {
-    background: #f3f4f6;
-    color: #9ca3af;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
     cursor: not-allowed;
     border-style: dashed;
   }
@@ -372,8 +372,8 @@ select.form-control {
     font-weight: 700;
     letter-spacing: 0.08em;
     color: var(--primary-color) !important;
-    background: #eef2ff !important;
-    border: 1.5px dashed #c7d2fe !important;
+    background: var(--color-primary-subtle) !important;
+    border: 1.5px dashed var(--color-border) !important;
     border-radius: var(--radius-md);
     cursor: not-allowed;
   }
@@ -384,9 +384,9 @@ select.form-control {
     gap: 0.3em;
     font-size: 0.72em;
     font-weight: 600;
-    color: #6366f1;
-    background: #eef2ff;
-    border: 1px solid #c7d2fe;
+    color: var(--color-primary);
+    background: var(--color-primary-subtle);
+    border: 1px solid var(--color-border);
     border-radius: 1em;
     padding: 0.3em 0.7em;
     white-space: nowrap;
@@ -419,7 +419,7 @@ select.form-control {
 /* ── Field error ───────────────────────────────────────────────────── */
 .field-error {
   font-size: 0.78em;
-  color: #dc2626;
+  color: var(--color-error);
   display: flex;
   align-items: center;
   gap: 0.3em;
@@ -432,7 +432,7 @@ select.form-control {
   align-items: center;
   gap: 0.75em;
   padding: 0.6em 0.9em;
-  background: #f9fafb;
+  background: var(--color-surface-sunken);
   border: 1px dashed var(--border-color);
   border-radius: var(--radius-md);
   font-size: 0.82em;
@@ -454,7 +454,7 @@ select.form-control {
 
   .readonly-lock {
     margin-left: auto;
-    color: #9ca3af;
+    color: var(--color-text-muted);
     font-size: 0.85em;
     display: flex;
     align-items: center;
@@ -466,7 +466,7 @@ select.form-control {
 /* ── Template picker ───────────────────────────────────────────────── */
 .template-picker {
   padding: 1em 1.1em;
-  background: #f0f9ff;
+  background: var(--color-info-bg);
   border: 1.5px solid #bae6fd;
   border-radius: var(--radius-md);
   display: flex;
@@ -480,14 +480,14 @@ select.form-control {
   gap: 0.45em;
   font-size: 0.845em;
   font-weight: 700;
-  color: #0369a1;
+  color: var(--color-primary-hover);
 }
 
 .optional-tag {
   font-size: 0.72em;
   font-weight: 600;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--color-info-bg);
+  color: var(--color-primary-hover);
   border: 1px solid #7dd3fc;
   border-radius: 1em;
   padding: 0.1em 0.55em;
@@ -503,11 +503,11 @@ select.form-control {
   .form-control {
     flex: 1;
     font-size: 0.87em;
-    background: #fff;
-    border-color: #93c5fd;
+    background: var(--color-surface);
+    border-color: var(--color-info-border);
 
     &:focus {
-      border-color: #3b82f6;
+      border-color: var(--color-info);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
   }
@@ -521,7 +521,7 @@ select.form-control {
 
 .template-hint {
   font-size: 0.77em;
-  color: #0369a1;
+  color: var(--color-primary-hover);
   display: flex;
   align-items: flex-start;
   gap: 0.3em;
@@ -579,7 +579,7 @@ select.form-control {
 .field-hint {
   margin-top: 0.3em;
   font-size: 0.72em;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 /* ────────────────────────────────────────────────────────────────────
