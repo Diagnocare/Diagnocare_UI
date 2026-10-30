@@ -186,26 +186,33 @@ class Driver {
   }
 
   /**
-   * Opens one of the header dropdowns and clicks an item inside it.
+   * Clicks a link in the sidebar, opening its section first if it is folded.
    *
-   * The dropdowns are revealed by CSS :hover on the host, not by a click handler, so the
-   * pointer has to travel to the trigger and stay there — which is also exactly what a
-   * person does, and it reads correctly on video.
+   * This is the sidebar shell (USE_SIDEBAR_SHELL in simple-ui.flags.ts), not the
+   * old header: there are no hover dropdowns to dwell on. Sections are
+   * click-to-fold disclosures and most of them start open, so the section
+   * heading is only pressed when the link is not already on screen — pressing
+   * it unconditionally would *close* an open section and the link would vanish.
+   *
+   * `label` has to match the whole label, not a substring: "Patients" is also
+   * inside "Patient Register", "Patient History Wise" and four other report
+   * names, and a substring match picks whichever happens to come first.
    */
-  async navigate(triggerName, itemId) {
-    const trigger = this.page.locator('.dc-dropdown-trigger').filter({ hasText: triggerName }).first();
-    const { x, y } = await this.centerOf(trigger);
-    await this.moveTo(x, y);
-    await trigger.hover();
-    await this.wait(760);
+  async navigate(sectionTitle, label) {
+    const exact = new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
+    const link = this.page
+      .locator('.sh-nav-item .sh-nav-label, .sh-subnav-item .sh-nav-label')
+      .filter({ hasText: exact })
+      .first();
 
-    const item = this.page.locator(`#${itemId}`);
-    const target = await this.centerOf(item);
-    await this.moveTo(target.x, target.y, { duration: 620 });
-    await this.wait(240);
-    await this.page.evaluate(([cx, cy]) => window.__tutorialClickPulse?.(cx, cy), [target.x, target.y]).catch(() => {});
-    await item.click({ timeout: 15000 });
-    await this.wait(2200);
+    if (!(await link.isVisible().catch(() => false))) {
+      const heading = this.page.locator('.sh-nav-title').filter({ hasText: sectionTitle }).first();
+      await this.click(heading, { settle: 760 });
+      await link.waitFor({ state: 'visible', timeout: 10000 });
+    }
+
+    // The label is a <span> inside the <a>; the click bubbles to the link.
+    await this.click(link, { settle: 2200 });
   }
 
   async scrollBy(dy, { duration = 900 } = {}) {

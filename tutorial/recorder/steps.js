@@ -81,6 +81,19 @@ const sections = [
     async run(d, page) {
       await d.titleCard({ kicker: 'Chapter 1', title: 'Signing in', titleHi: 'लॉगिन करना' });
 
+      // Self-contained, so ONLY=login records the same thing a full run does.
+      // The intro chapter has usually already opened /login, but when it is
+      // skipped the page is still blank; and any session left over from an
+      // earlier chapter would bounce this straight back out of /login.
+      await page.evaluate(() => {
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('sessionTerminated');
+      }).catch(() => { /* nothing loaded yet — nothing to clear */ });
+      await page.goto(`${APP}/login`, { waitUntil: 'domcontentloaded' });
+      await page.locator('input[formControlName="userId"]')
+        .waitFor({ state: 'visible', timeout: 25000 });
+      await d.wait(600);
+
       await d.say(
         'A laboratory holds medical records, so DiagnoCare treats signing in as two steps rather than one.',
         'लैब में मेडिकल रिकॉर्ड रहते हैं, इसलिए DiagnoCare में लॉगिन एक नहीं, दो चरणों में होता है।');
@@ -139,11 +152,11 @@ const sections = [
     title: 'Navigation and the patient list',
     titleHi: 'नेविगेशन और पेशेंट लिस्ट',
     meta: {
-      onScreen: 'Top navigation, then the Patient Management System.',
-      clicks: 'Lab Operations → Patient Details, status filter, Search.',
-      highlight: 'Urgent patients pinned to the top; the filter bar.',
+      onScreen: 'The home dashboard, the sidebar, then the Patient Management System.',
+      clicks: 'Daily work → Patients, status filter, Search.',
+      highlight: 'The day read off the dashboard; urgent patients pinned to the top; the filter bar.',
       expect: 'Urgent rows sit above normal ones; filtering narrows the list in place.',
-      seconds: 108,
+      seconds: 132,
     },
     async run(d, page) {
       await d.titleCard({
@@ -153,21 +166,38 @@ const sections = [
         subtitleHi: 'जहाँ रिसेप्शन का पूरा दिन बीतता है',
       });
 
+      // The home dashboard is where every signed-in session starts, so the tour
+      // reads the day off it before going anywhere.
       await d.say(
-        'Everything in DiagnoCare hangs off the bar across the top, grouped by the job you are doing rather than by the screen you want.',
-        'DiagnoCare में सब कुछ ऊपर की इस बार से चलता है, और यह काम के हिसाब से बँटी है, स्क्रीन के हिसाब से नहीं।');
+        'Signing in lands on the home dashboard, and it is built to answer one question: what does this lab need to do today.',
+        'लॉगिन करते ही होम डैशबोर्ड खुलता है, और यह एक ही सवाल का जवाब देने के लिए बना है — आज इस लैब को क्या करना है।');
 
-      await d.focusOn(page.locator('.dc-nav').first());
+      await d.focusOn(page.locator('.hd-kpis'));
       await d.say(
-        'Lab Operations is the day-to-day work. Reports is the accounting view. User Panel is your own attendance, and Admin Panel is staff, setup and licensing.',
-        'Lab Operations रोज़ का काम है। Reports हिसाब-किताब है। User Panel आपकी अपनी हाज़िरी है, और Admin Panel में स्टाफ़, सेटअप और लाइसेंस आते हैं।');
+        'Four plain numbers across the top: how many people were registered today, how many tests that came to, how many reports are already signed off, and what has actually been collected.',
+        'ऊपर चार सीधे-सादे आँकड़े — आज कितने मरीज़ रजिस्टर हुए, उनके कितने टेस्ट बने, कितनी रिपोर्ट साइन हो चुकी हैं, और कितना पैसा असल में वसूल हुआ।');
+      await d.clearFocus();
+
+      await d.focusOn(page.locator('.hd-pipe'));
+      await d.say(
+        'Below them the day\'s work is laid out as a pipeline. Every sample moves left to right — waiting to be collected, in the lab, entered, checked, and finally ready to hand over — and each step shows how much is sitting in it right now.',
+        'उसके नीचे दिन का काम एक पाइपलाइन की तरह दिखता है। हर सैंपल बाएँ से दाएँ बढ़ता है — कलेक्शन का इंतज़ार, लैब में, एंट्री, जाँच, और आख़िर में देने के लिए तैयार — और हर चरण में इस वक़्त कितना अटका है, वह भी दिखता है।');
       await d.clearFocus();
 
       await d.say(
-        'The patient list lives under Lab Operations, as Patient Details.',
-        'पेशेंट लिस्ट Lab Operations के अंदर Patient Details में मिलती है।');
-      // Dropdown items carry author-written ids from labOperationMenu in constants.ts.
-      await d.navigate('Lab Operations', 'patientDetails');
+        'Everything else in DiagnoCare is reached from the sidebar on the left, grouped by the job you are doing rather than by the screen you want.',
+        'बाक़ी सब कुछ बाईं ओर के साइडबार से मिलता है, और यह काम के हिसाब से बँटा है, स्क्रीन के हिसाब से नहीं।');
+
+      await d.focusOn(page.locator('.sh-sidebar'));
+      await d.say(
+        'Daily work is the front desk and the lab bench. Reports is the accounting view. Lab setup holds the test catalogue and the people who work here, and My things is your own attendance and visits.',
+        'Daily work में रिसेप्शन और लैब का रोज़ का काम है। Reports हिसाब-किताब है। Lab setup में टेस्ट कैटलॉग और यहाँ काम करने वाले लोग हैं, और My things में आपकी अपनी हाज़िरी और विज़िट।');
+      await d.clearFocus();
+
+      await d.say(
+        'The patient list lives under Daily work, as Patients.',
+        'पेशेंट लिस्ट Daily work के अंदर Patients में मिलती है।');
+      await d.navigate('Daily work', 'Patients');
       await page.locator('table.patients-table').waitFor({ state: 'visible', timeout: 25000 });
       await d.wait(900);
 
@@ -234,14 +264,17 @@ const sections = [
         subtitleHi: 'रिसेप्शन का रोज़ का काम',
       });
 
-      await d.navigate('Lab Operations', 'patientDetails');
+      await d.navigate('Daily work', 'Patients');
       await page.locator('table.patients-table').waitFor({ state: 'visible', timeout: 25000 }).catch(() => {});
       await d.wait(900);
 
+      // Registration is in the top bar, not on the patient list: it is the one
+      // thing a receptionist does from wherever they happen to be standing, so
+      // the shell keeps it one click away on every screen.
       await d.say(
-        'A new patient starts here, with Add New Patient.',
-        'नया मरीज़ यहीं से शुरू होता है — Add New Patient से।');
-      await d.click(page.locator('.header-actions').getByRole('button', { name: 'Add New Patient' }), { settle: 2800 });
+        'Register patient sits in the top bar rather than on any one screen, because it is the thing the front desk reaches for most, and it should not depend on where you already are.',
+        'Register patient किसी एक स्क्रीन पर नहीं, ऊपर की बार में रहता है — क्योंकि रिसेप्शन पर यही सबसे ज़्यादा इस्तेमाल होता है, और इसके लिए पहले कहीं और जाना न पड़े।');
+      await d.click(page.locator('.sh-topbar').getByRole('link', { name: 'Register patient' }), { settle: 2800 });
       await page.locator('input[formControlName="patient_Id"]').waitFor({ state: 'visible', timeout: 25000 });
       await d.wait(900);
 
@@ -321,7 +354,7 @@ const sections = [
         subtitleHi: 'वह कैटलॉग जिस पर बाक़ी पूरा ऐप्लिकेशन खड़ा है',
       });
 
-      await d.navigate('Lab Operations', 'pathTest');
+      await d.navigate('Lab setup', 'Tests & prices');
       await page.locator('.master-list-wrap').waitFor({ state: 'visible', timeout: 25000 });
       await d.wait(1300);
 
@@ -354,7 +387,10 @@ const sections = [
       await d.say(
         'Now let us add to the catalogue. One dialog handles all three levels — it can create a group on its own, or a group with a panel and a test underneath it in a single pass.',
         'अब कैटलॉग में कुछ जोड़ते हैं। एक ही डायलॉग तीनों स्तर संभालता है — अकेला Group भी बना सकते हैं, या एक ही बार में Group, उसका पैनल और उसके नीचे टेस्ट भी।');
-      await d.click(page.locator('.action-bar').getByRole('button', { name: 'Add' }), { settle: 2200 });
+      // Scoped to .header-actions, where the page's own buttons live: an
+      // unscoped "Add" substring also matches "Add New Parameter" and the
+      // sidebar's own controls.
+      await d.click(page.locator('.header-actions').getByRole('button', { name: 'Add', exact: false }).first(), { settle: 2200 });
 
       const modal = page.locator('app-add-edit-modal');
       // The host element has no box of its own and so is never "visible"; wait on content.
@@ -489,6 +525,10 @@ const sections = [
            'ऐप्लिकेशन का ढाँचा यही है — एक टेस्ट कैटलॉग जो लैब एक बार बनाती है, उसी के आधार पर मरीज़ों का रजिस्ट्रेशन, सैंपल की ट्रैकिंग, रिज़ल्ट की एंट्री और साइन-ऑफ़, और दिन भर का हिसाब देती रिपोर्ट्स।'],
           ['If you are setting up a new lab, build the Master Test List first — everything else refers to it.',
            'अगर आप नई लैब शुरू कर रहे हैं, तो सबसे पहले Master Test List बनाइए — बाक़ी सब कुछ उसी को देखता है।'],
+          // The player this video is watched in — worth saying once, because a
+          // new member of staff will not think to look for it.
+          ['This walkthrough stays with the application: Watch tutorial video on the home page plays it again at any time, and it needs no internet connection.',
+           'यह वीडियो ऐप्लिकेशन के साथ ही रहता है — होम पेज पर Watch tutorial video दबाइए और यह दोबारा चल जाएगा, वह भी बिना इंटरनेट के।'],
           ['Thanks for watching.',
            'देखने के लिए धन्यवाद।'],
         ],

@@ -54,5 +54,42 @@ The OTP step is part of the product, so the walkthrough shows it. The mock accep
 cd tutorial && npm run record
 ```
 
-That script starts the mock API, starts `ng serve`, waits for both to answer, records,
-and shuts them down. `npm run build:video` then post-processes. `npm run all` does both.
+That script starts the mock API, **reuses an `ng serve` that is already running** (it
+checks `localhost:4200`, then `APP_PORT`) or starts one, waits for both to answer,
+records, and shuts down whatever it started. `npm run build:video` then post-processes,
+and `npm run install:app` copies the result into the application. `npm run all` does all
+three.
+
+Reuse is safe precisely because of the seam above: the app is pointed at the mock API
+from inside the browser, so *which* dev server is serving the bundle does not matter, and
+a developer's own server is never killed.
+
+## The mock had drifted from the app
+
+Two endpoints were written against the **old hero home page** and no longer matched what
+the shipping components read. Both were corrected here, in `mock-api/`, not in the app:
+
+| Endpoint | Was | Is |
+|---|---|---|
+| `GET api/Dashboard/GetHomeSummary` | `todayPatients`, `recentBookings`, `weekSparkline` | the `HomeSummary` shape — `patientsToday`, `testsBooked`, `recentActivity`, `weekRegistrations` |
+| `api/Worklist/GetWorklist` | registered as **POST**, `counts` an object | **GET** (what `WorklistService` issues), `counts` an array of `{ queue, count }` |
+
+Left as they were, every KPI on the dashboard rendered a dash and the pipeline strip had
+no counts at all — the home page would have been recorded empty.
+
+## Recording on Windows
+
+The pipeline was originally written for a Linux container and assumed `ffmpeg` on `PATH`,
+a POSIX shell, and `npx` as an executable. On Windows none of those hold, so:
+
+- the two `post/*.sh` scripts are now `post/*.js`, run by `node`;
+- ffmpeg comes from the **`ffmpeg-static`** package rather than the system, and `ffprobe`
+  is no longer used anywhere — the one duration the build reports is parsed out of
+  ffmpeg's own output;
+- `scripts/run.js` spawns through a shell on `win32` (there is no bare `npx`) and tears
+  children down with `taskkill /T`, because `SIGTERM` there kills only the wrapper and
+  leaves `ng serve` holding the port.
+
+Phase 7 also improves here rather than degrading: Windows ships **SAPI**, so the English
+narration is now really synthesised instead of falling back to silence. Hindi has no
+voice on a default install and stays captions-only.

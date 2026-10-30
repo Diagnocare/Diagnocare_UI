@@ -128,8 +128,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   /** Inline style strings for floating hero particles (generated once on init). */
   particleStyles: string[] = [];
 
-  /** Controls the video tutorial modal. */
-  isVideoOpen = false;
 
   // ── Dashboard state ─────────────────────────────────────────────────────
   //  Null means "no value": still loading, or the request failed. Deliberately
@@ -194,8 +192,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   // ── Video modal ─────────────────────────────────────────────────────────
 
-  openVideo(): void  { this.isVideoOpen = true;  }
-  closeVideo(): void { this.isVideoOpen = false; }
 
   // ── Navigation ──────────────────────────────────────────────────────────
 
