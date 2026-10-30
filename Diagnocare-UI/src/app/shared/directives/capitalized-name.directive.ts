@@ -1,16 +1,17 @@
 import { Directive, ElementRef, HostListener } from '@angular/core';
-import { capitalizeFirstLetter, formatPersonName } from 'src/app/utilities/person-name.util';
+import { capitalizeWords, formatPersonName } from 'src/app/utilities/person-name.util';
 
 /**
  * CapitalizedNameDirective
  * ────────────────────────
- * Keeps the first letter of a name field capitalised as it is typed, and trims the field
- * once the user leaves it.
+ * Keeps each word of a name field capitalised as it is typed, and trims the field once
+ * the user leaves it.
  *
  * Built the same way as NoDigitsDirective: the work happens on `input` rather than
  * `keydown`, so paste, drag-drop, autofill and IME input are all covered by the one
- * handler. Nothing is ever blocked — every character the user types still goes in, only
- * the first letter's case is adjusted.
+ * handler. Nothing is ever blocked and nothing is ever lower-cased — every character the
+ * user types still goes in, and the only change made is adding a capital they did not
+ * type. That is what keeps "McDonald" typeable; see person-name.util.ts.
  *
  * Trimming is held back until `blur` on purpose. Trimming on every keystroke would eat the
  * space the moment it was typed, making "John Smith" impossible to enter.
@@ -31,7 +32,7 @@ export class CapitalizedNameDirective {
 
   @HostListener('input')
   onInput(): void {
-    this.rewrite(capitalizeFirstLetter(this.el.nativeElement.value));
+    this.rewrite(capitalizeWords(this.el.nativeElement.value));
   }
 
   @HostListener('blur')
