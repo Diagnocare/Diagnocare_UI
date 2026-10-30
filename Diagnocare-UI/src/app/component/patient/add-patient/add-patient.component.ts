@@ -10,6 +10,8 @@ import { tabOrderAdd, validationMessages, DEFAULT_DIALING_CODE } from 'src/app/c
 import { FieldErrorComponent } from 'src/app/shared/field-error/field-error.component';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { NumericOnlyDirective } from 'src/app/shared/directives/numeric-only.directive';
+import { CapitalizedNameDirective } from 'src/app/shared/directives/capitalized-name.directive';
+import { formatPersonName } from 'src/app/utilities/person-name.util';
 import { ReceiptCreateDto } from 'src/app/models/receipt/receipt-create.dto';
 import { PatientService } from 'src/app/services/patientServices/patient.service';
 import { SampleLabelService } from 'src/app/services/sampleLabelServices/sample-label.service';
@@ -1588,10 +1590,24 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Register ───────────────────────────────────────────────────────────────
 
+  /** Trims the patient name and capitalises its first letter, in place, before submission. */
+  private normalizePatientName(): void {
+    const control = this.patientForm.get('patient_Name');
+    if (!control) return;
+    const formatted = formatPersonName(control.value);
+    if (control.value !== formatted) {
+      control.setValue(formatted, { emitEvent: false });
+    }
+  }
+
   registerPatient() {
     // Over-limit discount → No Payment with amount_Paid 0, re-asserted here so a
     // stale payment state can never block registration with "Amount Paid".
     this.syncDiscountApproval();
+
+    // Re-assert the name formatting here as well as in the field: autofill can populate
+    // the control without ever firing the input/blur events the directive listens for.
+    this.normalizePatientName();
 
     if (!this.patientForm.valid) {
       this.stepTouched[this.currentStep] = true;

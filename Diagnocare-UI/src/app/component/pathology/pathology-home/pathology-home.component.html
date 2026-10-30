@@ -201,67 +201,6 @@
       </div>
     </section>
 
-    <!-- Video / Tutorial -->
-    <section class="ph-video-section">
-      <div class="ph-video-left">
-        <p class="ph-video-eyebrow"><i class="fas fa-play-circle"></i> Platform Tutorial</p>
-        <h2 class="ph-video-heading">New to DiagnoCare?<br>Watch the Walkthrough.</h2>
-        <p class="ph-video-sub">
-          A 3-minute guided tour of patient registration, test entry, PDF reports, and billing.
-        </p>
-        <ul class="ph-vb-list">
-          <li class="ph-vb-item">
-            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
-            Register a patient and assign tests in under 60 seconds
-          </li>
-          <li class="ph-vb-item">
-            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
-            Enter lab values with live out-of-range highlighting
-          </li>
-          <li class="ph-vb-item">
-            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
-            Generate and print a branded PDF report with one click
-          </li>
-          <li class="ph-vb-item" *ngIf="showRevenue">
-            <div class="ph-vb-icon"><i class="fas fa-check"></i></div>
-            Track daily revenue and analytics on the dashboard
-          </li>
-        </ul>
-      </div>
-
-      <div class="ph-video-right">
-        <div class="ph-video-bg">
-          <svg class="ph-flask-svg" viewBox="0 0 160 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="64" y="4" width="32" height="12" rx="4" fill="#90caf9"/>
-            <rect x="72" y="4" width="16" height="70" rx="3" fill="#64b5f6"/>
-            <path d="M50 74 L30 160 Q28 180 50 182 L110 182 Q132 180 130 160 L110 74 Z" fill="#1e88e5" opacity=".7"/>
-            <path d="M58 130 Q80 118 102 130 L108 158 Q80 170 52 158 Z" fill="#00b894" opacity=".5"/>
-            <circle cx="62" cy="145" r="6" fill="rgba(255,255,255,.4)"/>
-            <circle cx="95" cy="138" r="4" fill="rgba(255,255,255,.3)"/>
-            <circle cx="80" cy="155" r="5" fill="rgba(255,255,255,.35)"/>
-          </svg>
-        </div>
-        <div class="ph-vid-pills">
-          <div class="ph-vdp">
-            <span class="ph-vdp-dot" style="background:#00b894;"></span> CBC Panel · Normal
-          </div>
-          <div class="ph-vdp ph-vdp-d1">
-            <span class="ph-vdp-dot" style="background:#ffc107;"></span> LFT · Elevated AST ⚠
-          </div>
-          <div class="ph-vdp ph-vdp-d2">
-            <span class="ph-vdp-dot" style="background:#1e88e5;"></span> Thyroid · Processing
-          </div>
-        </div>
-        <button class="ph-play-btn" (click)="openVideo()" type="button">
-          <i class="fas fa-play"></i>
-        </button>
-        <div class="ph-vid-duration">
-          <i class="fas fa-circle" style="font-size:.45rem;color:#e74c3c;"></i>
-          Tutorial Walkthrough · 3 min 24 sec
-        </div>
-      </div>
-    </section>
-
     <!-- Module showcase -->
     <section class="ph-showcase">
       <p class="ph-eyebrow"><i class="fas fa-th-large"></i> Module Gallery</p>
@@ -417,20 +356,4 @@
     <span>Diagnocare &copy; {{ currentYear }}</span>
   </footer>
 
-</div>
-
-<!-- Video modal (outside ph-root so it can be truly full-screen) -->
-<div class="ph-video-modal" *ngIf="isVideoOpen" (click)="closeVideo()">
-  <div class="ph-modal-inner" (click)="$event.stopPropagation()">
-    <button class="ph-modal-close" type="button" (click)="closeVideo()">
-      <i class="fas fa-times"></i>
-    </button>
-    <div class="ph-modal-frame">
-      <!-- Replace YOUR_VIDEO_ID with your actual embed ID -->
-      <iframe width="100%" height="100%"
-        src="https://www.youtube.com/embed/YOUR_VIDEO_ID?autoplay=1"
-        frameborder="0" allowfullscreen allow="autoplay">
-      </iframe>
-    </div>
-  </div>
 </div>

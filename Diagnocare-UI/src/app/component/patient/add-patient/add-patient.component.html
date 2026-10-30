@@ -76,7 +76,7 @@
                   <select formControlName="patient_Salutation" class="combo-prefix" [attr.tabindex]="getTabIndex('patient_Salutation')">
                     <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
                   </select>
-                      <input class="combo-input" formControlName="patient_Name" placeholder="Full Name"
+                      <input class="combo-input" appCapitalizedName formControlName="patient_Name" placeholder="Full Name"
                         [class.is-invalid]="isFieldInvalid('patient_Name')" [attr.tabindex]="getTabIndex('patient_Name')" />
                 </div>
                 <app-field-error [control]="patientForm.get('patient_Name')" label="Patient Name" [forceShow]="stepTouched[currentStep]"></app-field-error>

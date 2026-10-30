@@ -111,7 +111,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myPickups: false,
     landingRoute: '/pathology',
   },
-  [Role.User.id]: {
+  [Role.Receptionist.id]: {
     home: true,
     labOps: true,
     summaryReports: false,

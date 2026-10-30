@@ -48,7 +48,7 @@
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
   background: transparent;
-  color: var(--text-secondary);        /* #666 — readable on white */
+  color: var(--text-secondary);        /* var(--color-text-secondary) — readable on white */
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -58,12 +58,12 @@
 }
 
 .tab-btn:hover {
-  background: #f0f4ff;
+  background: var(--color-primary-subtle);
   color: var(--primary-color);
 }
 
 .tab-btn.active {
-  color: var(--primary-color);         /* #1E5BA8 — strong blue on white */
+  color: var(--primary-color);         /* var(--color-primary-ink) — strong blue on white */
   border-bottom-color: var(--primary-color);
   background: transparent;
 }
@@ -78,23 +78,23 @@
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 700;
-  background: #e2e8f0;
-  color: #334155;                      /* dark on light-gray pill */
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);                      /* dark on light-gray pill */
 }
 
 .tab-count.panel {
-  background: #d1fae5;
-  color: #065f46;                      /* dark green on green pill */
+  background: var(--color-success-bg);
+  color: var(--color-success);                      /* dark green on green pill */
 }
 
 .tab-btn.active .tab-count {
-  background: #dbeafe;
-  color: #1e40af;                      /* dark blue on blue pill */
+  background: var(--color-info-bg);
+  color: var(--color-info);                      /* dark blue on blue pill */
 }
 
 .tab-btn.active .tab-count.panel {
-  background: #bbf7d0;
-  color: #065f46;
+  background: var(--color-success-border);
+  color: var(--color-success);
 }
 
 /* Empty state inside the tab panel */
@@ -106,7 +106,7 @@
 .no-data-msg {
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, var(--color-text-muted));
 }
 
 .no-data-msg i {
@@ -124,5 +124,5 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.b-g { background: #d1fae5; color: #065f46; }   /* green  – has commission */
-.b-b { background: #e0e7ff; color: #3730a3; }   /* indigo – no commission  */
+.b-g { background: var(--color-success-bg); color: var(--color-success); }   /* green  – has commission */
+.b-b { background: var(--color-primary-subtle); color: var(--color-primary-hover); }   /* indigo – no commission  */

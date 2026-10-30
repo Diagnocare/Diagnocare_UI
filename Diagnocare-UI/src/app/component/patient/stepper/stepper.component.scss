@@ -28,8 +28,8 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  border: 2px solid #d1d5db;
-  background: #ffffff;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
   color: #111827; /* increased contrast */
   display: flex;
   align-items: center;
@@ -40,14 +40,14 @@
   flex-shrink: 0;
 
   &.active {
-    border-color: #1E5BA8;
-    background: #1E5BA8;
+    border-color: var(--color-primary-ink);
+    background: var(--color-primary-ink);
     color: #ffffff;
   }
 
   &.completed {
-    border-color: #16a34a;
-    background: #16a34a;
+    border-color: var(--color-success);
+    background: var(--color-success);
     color: #ffffff;
   }
 }
@@ -60,13 +60,13 @@
 .stepper-title {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #1f2937; /* darker for better contrast */
+  color: var(--color-text-primary); /* darker for better contrast */
   margin: 0;
   transition: color 0.25s;
   white-space: nowrap;
 
   &.active {
-    /*color: #1E5BA8;*/ /* primary accent */
+    /*color: var(--color-primary-ink);*/ /* primary accent */
     font-weight: 700;
   }
 }
@@ -81,39 +81,18 @@
 .stepper-line {
   flex: 1;
   height: 2px;
-  background: #d1d5db;
+  background: var(--color-border);
   margin-top: 1.25rem; /* vertically centre on circle */
   transition: background 0.25s;
   min-width: 1.5rem;
 
   &.active {
-    background: #1E5BA8;
+    background: var(--color-primary-ink);
   }
 }
 
 /* ══ THEME OVERRIDES ══════════════════════════════════════════════ */
-:host-context(html[data-theme="dark"]) {
-  .stepper-circle    { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-  .stepper-line      { background: #334155 !important; }
-  .stepper-title     { color: #94a3b8 !important; &.active { color: #60a5fa !important; } }
-  .stepper-description { color: #64748b !important; }
-}
-:host-context(html[data-theme="midnight"]) {
-  .stepper-circle    { background: #0d1117 !important; border-color: #21262d !important; color: #cdd6f4 !important; }
-  .stepper-line      { background: #21262d !important; }
-  .stepper-title     { color: #6e7681 !important; &.active { color: #58a6ff !important; } }
-  .stepper-description { color: #6e7681 !important; }
-}
-:host-context(html[data-theme="warm"]) {
-  .stepper-circle    { background: #fffdf7 !important; border-color: #ddc9a8 !important; color: #3d2b1f !important; }
-  .stepper-line      { background: #ddc9a8 !important; }
-  .stepper-title     { color: #7a5c4e !important; }
-  .stepper-description { color: #9e8272 !important; }
-}
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .stepper-circle  { background: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
-    .stepper-line    { background: #334155 !important; }
-    .stepper-title   { color: #94a3b8 !important; }
-  }
-}
+
+
+
+

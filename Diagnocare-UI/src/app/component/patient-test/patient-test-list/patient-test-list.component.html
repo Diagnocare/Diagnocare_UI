@@ -388,10 +388,15 @@
         <div class="ptl-table-wrap">
           <table class="ptl-table">
             <thead>
+              <!-- Column widths are fixed in CSS (table-layout: fixed), as on
+                   the parameter table. They must not be sized by the data:
+                   with auto layout the columns only settled once the rows had
+                   loaded, so the header text and the table width moved between
+                   the loading and the loaded state. -->
               <tr>
                 <th scope="col">Test</th>
-                <th scope="col">Sample</th>
-                <th scope="col">Result</th>
+                <th scope="col" class="ptl-table__col--sample">Sample</th>
+                <th scope="col" class="ptl-table__col--result">Result</th>
                 <th scope="col" class="ptl-table__act">What to do</th>
               </tr>
             </thead>

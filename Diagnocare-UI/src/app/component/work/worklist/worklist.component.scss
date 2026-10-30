@@ -58,8 +58,8 @@
   //
   // Contrast note: everything else on this screen sits on a white card, so it
   // can use the dc- kit's inks. The search block does not — it floats directly
-  // on .page-container's gradient. A slate ink (#64748b) and the kit's link blue
-  // (#1d4ed8) are both near-invisible there, which is what made the result count
+  // on .page-container's gradient. A slate ink (var(--color-text-secondary)) and the kit's link blue
+  // (var(--color-info)) are both near-invisible there, which is what made the result count
   // and the search note unreadable. On the gradient this screen follows the page
   // header's own convention instead: white, or a softened white for secondary
   // lines. Scoped to this block so the shared dc-search keeps its dark inks
@@ -129,7 +129,7 @@
   // recognisable in greyscale and to anyone who cannot separate amber from grey.
   // Striping and hover are the global .data-table's, deliberately left alone.
   &__row--urgent {
-    box-shadow: inset 3px 0 0 var(--dc-wait-line, #fcd34d);
+    box-shadow: inset 3px 0 0 var(--dc-wait-line, var(--color-warning-border));
   }
 
   // ── What to collect ───────────────────────────────────────────────────
@@ -158,7 +158,7 @@
   // The open row and its detail read as one object: the pair is tinted
   // together and the striping that would otherwise split them is overridden.
   &__row--has-brief > td {
-    background: var(--dc-surface-2, #f8fafc);
+    background: var(--dc-surface-2, var(--color-surface-sunken));
     border-bottom-color: transparent;
   }
 
@@ -171,8 +171,8 @@
     overflow: visible;
     white-space: normal;
     padding: 0.25rem 1rem 1rem;
-    background: var(--dc-surface-2, #f8fafc);
-    box-shadow: inset 3px 0 0 var(--dc-line, #cbd5e1);
+    background: var(--dc-surface-2, var(--color-surface-sunken));
+    box-shadow: inset 3px 0 0 var(--dc-line, var(--color-border-strong));
   }
 
   // ── Cells ─────────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@
   .cell-strong {
     display: block;
     font-weight: 600;
-    color: var(--dc-ink, #2c3e50);
+    color: var(--dc-ink, var(--color-text-primary));
     font-size: var(--dc-text-body, 0.875rem);
     line-height: 1.3;
     white-space: nowrap;
@@ -196,14 +196,14 @@
     margin-top: 0.1rem;
     font-size: var(--dc-text-meta, 0.8125rem);
     line-height: 1.3;
-    color: var(--dc-ink-3, #666666);
+    color: var(--dc-ink-3, var(--color-text-secondary)666);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
     // Anything unpaid is worth noticing before you pick the row up.
     &--warn {
-      color: var(--dc-wait-ink, #b45309);
+      color: var(--dc-wait-ink, var(--color-warning));
       font-weight: 600;
     }
   }
@@ -216,13 +216,13 @@
     display: block;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    color: var(--dc-ink, #2c3e50);
+    color: var(--dc-ink, var(--color-text-primary));
     font-size: var(--dc-text-body, 0.875rem);
     line-height: 1.3;
   }
 
   .urgent-flag {
-    color: var(--dc-wait-ink, #b45309);
+    color: var(--dc-wait-ink, var(--color-warning));
     font-size: var(--dc-text-body, 0.875rem);
   }
 
@@ -233,7 +233,7 @@
   .prog__text {
     display: block;
     font-size: var(--dc-text-meta, 0.8125rem);
-    color: var(--dc-ink-2, #2c3e50);
+    color: var(--dc-ink-2, var(--color-text-primary));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -244,13 +244,13 @@
     margin-top: 0.3rem;
     height: 3px;
     border-radius: 2px;
-    background: var(--dc-line, #e1e8ed);
+    background: var(--dc-line, var(--color-border));
     overflow: hidden;
 
     i {
       display: block;
       height: 100%;
-      background: var(--dc-info-line, #93c5fd);
+      background: var(--dc-info-line, var(--color-info-border));
       transition: width 0.2s ease;
     }
   }
@@ -261,7 +261,7 @@
     gap: 0.35rem;
     font-size: var(--dc-text-meta, 0.8125rem);
     font-weight: 600;
-    color: var(--dc-danger-ink, #b91c1c);
+    color: var(--dc-danger-ink, var(--color-error));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -278,7 +278,7 @@
     gap: 0.35rem;
     font-size: var(--dc-text-meta, 0.8125rem);
     font-weight: 600;
-    color: var(--text-secondary, #475569);
+    color: var(--text-secondary, var(--color-text-secondary));
     // Wraps rather than truncates: the name and how long ago are both the point.
     line-height: 1.3;
     i { flex: 0 0 auto; }
@@ -290,7 +290,7 @@
     gap: 0.35rem;
     font-size: var(--dc-text-meta, 0.8125rem);
     font-weight: 600;
-    color: var(--dc-wait-ink, #b45309);
+    color: var(--dc-wait-ink, var(--color-warning));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -304,7 +304,7 @@
     display: block;
     margin-top: 0.3rem;
     font-size: var(--dc-text-micro, 0.75rem);
-    color: var(--dc-danger-ink, #b91c1c);
+    color: var(--dc-danger-ink, var(--color-error));
     width: 100%;
     text-align: center;
   }
@@ -317,9 +317,9 @@
     font-size: var(--dc-text-body, 0.875rem);
     white-space: nowrap;
 
-    &--idle   { color: var(--dc-ink-3, #666666); }
-    &--wait   { color: var(--dc-wait-ink, #b45309); font-weight: 600; }
-    &--danger { color: var(--dc-danger-ink, #b91c1c); font-weight: 700; }
+    &--idle   { color: var(--dc-ink-3, var(--color-text-secondary)666); }
+    &--wait   { color: var(--dc-wait-ink, var(--color-warning)); font-weight: 600; }
+    &--danger { color: var(--dc-danger-ink, var(--color-error)); font-weight: 700; }
   }
 
   // ── Action ────────────────────────────────────────────────────────────
@@ -349,13 +349,13 @@
   border: 0;
   padding: 0;
   font: inherit;
-  color: var(--dc-link, #1e5ba8);
+  color: var(--dc-link, var(--color-primary-ink));
   cursor: pointer;
   text-align: left;
 
   &:hover { text-decoration: underline; }
   &:focus-visible {
-    outline: 3px solid var(--dc-focus-color, #1e5ba8);
+    outline: 3px solid var(--dc-focus-color, var(--color-primary-ink));
     outline-offset: 2px;
     border-radius: 2px;
   }

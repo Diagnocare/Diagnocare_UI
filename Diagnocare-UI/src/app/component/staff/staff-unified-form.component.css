@@ -44,8 +44,8 @@
 }
 
 /* Form errors */
-.form-error { color: var(--btn-danger, #dc2626); font-size: 0.78rem; margin-top: 2px; display: block; }
-.is-invalid  { border-color: var(--btn-danger, #dc2626) !important; }
+.form-error { color: var(--btn-danger, var(--color-error)); font-size: 0.78rem; margin-top: 2px; display: block; }
+.is-invalid  { border-color: var(--btn-danger, var(--color-error)) !important; }
 
 .signature-existing-actions{
   gap:1em;
