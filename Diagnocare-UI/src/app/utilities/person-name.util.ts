@@ -17,9 +17,18 @@
  *
  * Whitespace is preserved rather than trimmed so this is safe to run on every keystroke:
  * trimming mid-typing would swallow the space between "john" and "smith".
+ *
+ * Only the first letter is touched, and nothing is ever lower-cased. Running on every
+ * keystroke means any case change here fights the user's own typing: lower-casing the
+ * remainder would make "McDonald" and "D'Souza" impossible to enter, and would quietly
+ * rewrite a name a previous user had already stored in capitals.
+ *
+ * `\p{L}` matches a letter in any script, so a Devanagari or Tamil name is left alone
+ * rather than having a leading Latin letter hunted for. The regex is intentionally not
+ * global: `replace` then rewrites the first match only.
  */
-export function capitalizeWords(value: string | null | undefined): string {
-  const raw = value ?? '';
+export function capitalizeFirstLetter(value: string | null | undefined): string {
+   const raw = value ?? '';
 
   return raw
     .toLowerCase()
@@ -33,5 +42,5 @@ export function capitalizeWords(value: string | null | undefined): string {
  * backend receives matches what the user was shown.
  */
 export function formatPersonName(value: string | null | undefined): string {
-  return capitalizeWords((value ?? '').trim());
+  return capitalizeFirstLetter((value ?? '').trim());
 }

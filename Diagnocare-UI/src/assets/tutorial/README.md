@@ -23,19 +23,34 @@ The file is optional. Without it the player keeps both subtitle tracks and
 disables its Hindi **audio** option, with a line in the menu saying so, rather
 than offering a switch that silently mutes the tutorial.
 
-The media is **not committed** — see the rules in `.gitignore`. It is built from
-the recorder and copied here:
+The media is **not committed** — see the rules in `.gitignore`. Until something
+puts it here, the player shows a short note saying the walkthrough has not been
+added yet rather than a black rectangle. That is the expected state on a fresh
+checkout, not a bug.
+
+## How it gets here
+
+**In a deployment**, it is downloaded. The *Tutorial video* workflow records and
+encodes the walkthrough and attaches it to the `tutorial-latest` release; every
+UI build then runs `npm run ensure:tutorial` before `ng build`, which fetches
+those files into this folder. Nobody copies anything by hand, and the recording
+— half an hour of playback and encoding — stays out of the deploy path.
+
+If the download fails the build **continues** and the player falls back to its
+note; a missing walkthrough must never block a release. Set `TUTORIAL_REQUIRED=1`
+on an environment where the tutorial is part of what is being signed off, and the
+step becomes fatal instead.
+
+**Locally**, build it yourself:
 
 ```bash
 cd ../../../../tutorial     # Diagnocare_UI/tutorial
 npm install
-npm run all                 # record, then build the MP4
-npm run install:app         # copy the MP4 + .vtt into this folder
+npm run all                 # record → encode → copy into this folder
 ```
 
-Until that has been run, the player shows a short note saying the walkthrough
-has not been added yet rather than a black rectangle. That is the expected state
-on a fresh checkout, not a bug.
+`ensure:tutorial` leaves an existing file alone, so a locally built video is
+never overwritten by the published one.
 
 ## Serving it from somewhere else
 

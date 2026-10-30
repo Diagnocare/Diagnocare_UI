@@ -192,6 +192,18 @@ jobs:
           Write-Host "::warning::UI unit tests were SKIPPED because the repository variable SKIP_UNIT_TESTS is 'true'."
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "summary=SKIPPED (SKIP_UNIT_TESTS=true)`n")
 
+      # The walkthrough is not committed — it is tens of megabytes, rebuilt by
+      # the "Tutorial video" workflow — so without this the deployed app shows
+      # the player's "not added yet" note instead of the tutorial. It only
+      # downloads what that workflow published; recording takes about half an
+      # hour and has no business in a deploy. A failure warns and carries on,
+      # so a missing walkthrough can never block a release: see
+      # tutorial/ensure-video.js.
+      - name: Fetch the tutorial walkthrough
+        run: npm run ensure:tutorial
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build DEV
         run: npx --yes ng build --configuration development
 
