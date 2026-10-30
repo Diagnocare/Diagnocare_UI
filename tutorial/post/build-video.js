@@ -173,8 +173,10 @@ function main() {
   process.stdout.write('\n── built ──\n');
   process.stdout.write(`video:     ${FINAL}\n`);
   if (seconds) {
-    const mins = Math.floor(seconds / 60);
-    process.stdout.write(`duration:  ${mins}m ${Math.round(seconds % 60)}s\n`);
+    // Rounded before it is split, not after: 899.8s split first and then
+    // rounded reads as "14m 60s".
+    const whole = Math.round(seconds);
+    process.stdout.write(`duration:  ${Math.floor(whole / 60)}m ${whole % 60}s\n`);
   }
   process.stdout.write(`size:      ${megabytes.toFixed(1)} MB\n`);
   process.stdout.write(

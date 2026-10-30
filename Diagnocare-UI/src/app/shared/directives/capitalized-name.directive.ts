@@ -1,5 +1,5 @@
 import { Directive, ElementRef, HostListener } from '@angular/core';
-import { capitalizeWords, formatPersonName } from 'src/app/utilities/person-name.util';
+import { capitalizeFirstLetter, formatPersonName } from 'src/app/utilities/person-name.util';
 
 /**
  * CapitalizedNameDirective
@@ -31,7 +31,7 @@ export class CapitalizedNameDirective {
 
   @HostListener('input')
   onInput(): void {
-    this.rewrite(capitalizeWords(this.el.nativeElement.value));
+    this.rewrite(capitalizeFirstLetter(this.el.nativeElement.value));
   }
 
   @HostListener('blur')

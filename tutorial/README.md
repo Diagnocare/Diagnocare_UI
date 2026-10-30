@@ -115,6 +115,47 @@ megabytes and is rebuilt from the recorder. When it is absent the player says so
 sentence instead of showing a black rectangle, so a fresh checkout is a normal state
 rather than a broken page.
 
+## Getting it into a deployment
+
+A deployment builds from a checkout, and a checkout has no video — which is why UAT
+showed the "not added yet" note. The video is not generated during a deployment either:
+recording means playing fifteen minutes of UI in real time and then encoding it, so
+putting it in the deploy path would make every release half an hour slower and let a
+flaky screen recording block one.
+
+It is built once and fetched instead:
+
+```text
+.github/workflows/tutorial-video.yml     on tutorial/** or run by hand
+        ↓  record → encode → install:app
+        ↓  publish to the `tutorial-latest` release
+                              ↓
+ui-dev-qa.yml / ui-uat-prod.yml          npm run ensure:tutorial
+        ↓  downloads into src/assets/tutorial/
+        ↓  npx ng build  (angular.json already copies src/assets)
+        ↓  artifact → IIS
+```
+
+| Piece | What it does |
+|---|---|
+| `.github/workflows/tutorial-video.yml` | Records on `windows-latest` — **Windows for SAPI**, since a Linux runner has no voice and the narration would ship silent. Fails if English narration came out silent, rather than publishing a worse video than the one it replaces. |
+| `ensure-video.js` (`npm run ensure`) | Downloads the release assets into `Diagnocare-UI/src/assets/tutorial/`. No dependencies — Node builtins only — so the app build never needs `tutorial/node_modules`. |
+| `ensure:tutorial` in the UI's `package.json` | What the workflows call, one step before `ng build`. |
+
+It **never fails the build**: a missing walkthrough is a missing nice-to-have, a blocked
+deployment is an outage. Failures print a `::warning::` and exit 0, and the player falls
+back to its note. `TUTORIAL_REQUIRED=1` makes it fatal where the tutorial is part of what
+is being signed off.
+
+An existing file is left alone, so a locally built video is never replaced by the
+published one.
+
+**Refreshing the video after the UI changes:** the workflow only triggers on `tutorial/**`,
+because the UI changes constantly and re-recording on every merge would be both slow and
+pointless. Run it by hand from the Actions tab when the walkthrough has drifted from the
+product. The published `tutorial-manifest.json` records the commit and date it was
+recorded from, so you can tell how stale it is.
+
 Subtitles are attached as `<track>` elements because **no browser renders subtitles muxed
 into an MP4** — the `mov_text` tracks in the file are for desktop players like VLC.
 
