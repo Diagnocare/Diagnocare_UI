@@ -1,0 +1,159 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   Tutorial player overlay.
+
+   Reads the canonical tokens from shared/design-tokens.css and declares no
+   html[data-theme="…"] block of its own — every token below is already
+   redefined per theme there, so this themes itself for free. See the rule at
+   the top of that file.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.tv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;                 /* Above Bootstrap's modal layer (1055). */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--color-overlay);
+  /* The lab's patient list is behind this; blurring it keeps the eye on the
+     video without hiding that the app is still there. */
+  backdrop-filter: blur(0.25rem);
+  animation: tv-fade 0.18s ease-out;
+}
+
+.tv-dialog {
+  width: min(100%, 68rem);       /* ~1088px: 1080p at a readable size, not edge to edge. */
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: tv-rise 0.22s ease-out;
+}
+
+.tv-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tv-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tv-title i { color: var(--color-primary); }
+
+.tv-close {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tv-close:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.tv-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* The 16:9 box. Black rather than a surface token: letterbox bars around a
+   video read as part of the picture, and a pale strip would not. */
+.tv-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  background: #000;
+}
+
+.tv-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.tv-missing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+}
+
+.tv-missing i {
+  font-size: 1.75rem;
+  color: var(--color-text-muted);
+}
+
+.tv-missing h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.tv-missing p {
+  margin: 0;
+  max-width: 32rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.tv-missing code {
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 0.25rem;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+}
+
+@keyframes tv-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes tv-rise {
+  from { opacity: 0; transform: translateY(0.75rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Someone who asked for less motion gets the dialog without the entrance. */
+@media (prefers-reduced-motion: reduce) {
+  .tv-overlay,
+  .tv-dialog { animation: none; }
+}
+
+@media (max-width: 40rem) {
+  .tv-overlay { padding: 0.75rem; }
+  .tv-title   { font-size: 0.9375rem; }
+}

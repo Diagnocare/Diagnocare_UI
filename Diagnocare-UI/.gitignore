@@ -41,3 +41,11 @@ testem.log
 .DS_Store
 Thumbs.db
 
+
+# Product walkthrough. Built by tutorial/ (npm run all) and copied in, not
+# committed: the MP4 is tens of megabytes and is rebuilt from the recorder.
+# The player shows an explanation when it is absent, so a checkout without it
+# is a normal state rather than a broken page.
+/src/assets/tutorial/*.mp4
+/src/assets/tutorial/*.vtt
+/src/assets/tutorial/*.srt

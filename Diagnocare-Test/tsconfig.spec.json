@@ -12,9 +12,31 @@
     "strict":           false,
     "noImplicitAny":    false,
     "types":            ["jest", "node"],
+
+    // Both halves of this repo have their own node_modules, and TypeScript resolves
+    // a bare import starting from the *importing* file's folder: a spec under src/
+    // picks up Diagnocare-Test/node_modules, while UI source under ../Diagnocare-UI
+    // picks up its own copy. Two copies of @angular/* means two unrelated
+    // declarations of every Angular type, so handing a RouterStateSnapshot built in
+    // a spec to a guard imported from the UI fails to compile with TS2345 — two
+    // identical-looking types quoted from different paths.
+    //
+    // These mappings pin every shared runtime package to THIS project's copy, which
+    // is also the copy Jest loads at runtime (see moduleDirectories in
+    // jest.config.js). Keep them in step with package.json: a dependency the UI
+    // source imports needs an entry here, or specs can start type-checking against
+    // a second copy again.
     "paths": {
-      "src/app/*":          ["../Diagnocare-UI/src/app/*"],
-      "src/environments/*": ["../Diagnocare-UI/src/environments/*"]
+      "src/app/*":           ["../Diagnocare-UI/src/app/*"],
+      "src/environments/*":  ["../Diagnocare-UI/src/environments/*"],
+      "@angular/*":          ["./node_modules/@angular/*"],
+      "@auth0/auth0-spa-js": ["./node_modules/@auth0/auth0-spa-js"],
+      "rxjs":                ["./node_modules/rxjs"],
+      "rxjs/*":              ["./node_modules/rxjs/*"],
+      "zone.js":             ["./node_modules/zone.js"],
+      "zone.js/*":           ["./node_modules/zone.js/*"],
+      "ngx-toastr":          ["./node_modules/ngx-toastr"],
+      "tslib":               ["./node_modules/tslib"]
     }
   },
   "include": [

@@ -98,6 +98,7 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   queueCounts: Partial<Record<WorkQueue, number>> = {};
   queuesLoaded = false;
 
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(

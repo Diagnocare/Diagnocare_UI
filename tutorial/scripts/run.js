@@ -18,11 +18,27 @@ const UI = path.join(ROOT, '..', 'Diagnocare-UI');
 const API_PORT = Number(process.env.MOCK_API_PORT || 5099);
 const APP_PORT = Number(process.env.APP_PORT || 4299);
 const APP_URL = `http://127.0.0.1:${APP_PORT}`;
+/**
+ * Angular's own default. `ng serve` with no arguments binds localhost:4200, and
+ * on Windows that is often IPv6-only (::1), so this is spelt `localhost` rather
+ * than 127.0.0.1 — the numeric form does not always answer.
+ */
+const REUSE_URL = `http://localhost:${process.env.REUSE_PORT || 4200}`;
 
 const children = [];
 
+/**
+ * Windows has no `npx`, only `npx.cmd`, and spawn() without a shell will not
+ * find it — the whole run dies with ENOENT before the dev server is reached.
+ */
+const WINDOWS = process.platform === 'win32';
+
 function start(name, cmd, args, opts = {}) {
-  const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts });
+  const child = spawn(cmd, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: WINDOWS && cmd !== process.execPath,
+    ...opts,
+  });
   children.push({ name, child });
   // stdio:'inherit' callers have no pipes to read from.
   const tag = line => process.stdout.write(`[${name}] ${line}`);
@@ -39,7 +55,16 @@ function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
   for (const { child } of children) {
-    try { child.kill('SIGTERM'); } catch { /* already gone */ }
+    try {
+      // SIGTERM on Windows kills only the shell we spawned, leaving the real
+      // `ng serve` holding the port — the next run then fails to bind. taskkill
+      // /T takes the whole tree.
+      if (WINDOWS && child.pid) {
+        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        child.kill('SIGTERM');
+      }
+    } catch { /* already gone */ }
   }
 }
 process.on('SIGINT', () => { shutdown(); process.exit(130); });
@@ -78,16 +103,37 @@ async function waitFor(label, url, timeoutMs) {
     env: { ...process.env, MOCK_API_PORT: String(API_PORT) },
   });
 
-  start('ng-serve', 'npx', ['ng', 'serve', '--port', String(APP_PORT), '--host', '127.0.0.1'], {
-    cwd: UI,
-    env: { ...process.env, NG_CLI_ANALYTICS: 'false' },
-  });
+  // Reuse a dev server that is already up.
+  //
+  // Which server it is does not matter: the app is pointed at the mock API from
+  // inside the browser, through window.RUNTIME_CONFIG, so any `ng serve` of this
+  // project will do. Starting a second one costs a cold Angular build — minutes —
+  // and risks colliding with the one the developer is already using.
+  // get() answers null when nothing is listening, and `null < 500` is true, so
+  // the status has to be checked for being a number before it is compared.
+  const answers = async url => {
+    const status = await get(url);
+    return typeof status === 'number' && status < 500;
+  };
+
+  let appUrl = APP_URL;
+  if (await answers(APP_URL)) {
+    process.stdout.write(`reusing the dev server already on ${APP_URL}\n`);
+  } else if (await answers(REUSE_URL)) {
+    appUrl = REUSE_URL;
+    process.stdout.write(`reusing the dev server already on ${REUSE_URL}\n`);
+  } else {
+    start('ng-serve', 'npx', ['ng', 'serve', '--port', String(APP_PORT), '--host', '127.0.0.1'], {
+      cwd: UI,
+      env: { ...process.env, NG_CLI_ANALYTICS: 'false' },
+    });
+  }
 
   if (!await waitFor('mock api', `http://127.0.0.1:${API_PORT}/api/pathologyTest/GetAllGroupList`, 30000)) {
     shutdown(); process.exit(1);
   }
   // A cold Angular dev-server build is slow; give it room.
-  if (!await waitFor('ng serve', APP_URL, 420000)) {
+  if (!await waitFor('ng serve', appUrl, 420000)) {
     shutdown(); process.exit(1);
   }
 
@@ -96,7 +142,7 @@ async function waitFor(label, url, timeoutMs) {
     stdio: 'inherit',
     env: {
       ...process.env,
-      APP_URL,
+      APP_URL: appUrl,
       MOCK_API_URL: `http://127.0.0.1:${API_PORT}/`,
     },
   });

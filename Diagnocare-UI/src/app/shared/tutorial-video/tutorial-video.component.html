@@ -1,0 +1,50 @@
+
+<!-- Backdrop. Clicking it closes, so the dialog behaves like the rest of the app. -->
+<div class="tv-overlay" *ngIf="isOpen" (click)="close()"
+     role="dialog" aria-modal="true" aria-labelledby="tvHeading">
+
+  <!-- The dialog itself. Clicks inside must not reach the backdrop, or scrubbing
+       the timeline would close the player. -->
+  <div class="tv-dialog" (click)="$event.stopPropagation()">
+
+    <header class="tv-head">
+      <h2 id="tvHeading" class="tv-title">
+        <i class="fa fa-circle-play" aria-hidden="true"></i>
+        {{ heading }}
+      </h2>
+      <button type="button" class="tv-close" (click)="close()" aria-label="Close the tutorial">
+        <i class="fa fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <!-- 16:9 frame. The ratio is held by the box, not by the video, so the
+         dialog does not jump about while the file is still loading. -->
+    <div class="tv-frame">
+      <video #player
+             class="tv-video"
+             *ngIf="!failed"
+             [src]="src"
+             controls
+             controlsList="nodownload"
+             preload="metadata"
+             playsinline
+             (error)="onError()">
+        <track kind="subtitles" [src]="captionsEn" srclang="en" label="English">
+        <track kind="subtitles" [src]="captionsHi" srclang="hi" label="हिन्दी">
+      </video>
+
+      <!-- Not an error state so much as "this has not been built yet". It names
+           the command, because the person most likely to see it is a developer
+           on a fresh checkout. -->
+      <div class="tv-missing" *ngIf="failed">
+        <i class="fa fa-film" aria-hidden="true"></i>
+        <h3>The walkthrough has not been added yet</h3>
+        <p>
+          The video is built locally rather than committed. Run
+          <code>npm run all</code> in <code>tutorial/</code>, then copy the result to
+          <code>src/assets/tutorial/</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

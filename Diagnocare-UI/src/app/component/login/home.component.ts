@@ -5,6 +5,7 @@ import { PathologyService } from 'src/app/services/pathologyServices/pathology.s
 import { PathologyProfileCacheService } from 'src/app/services/pathologyServices/pathology-profile-cache.service';
 import { PathologyRegistrationCacheService } from 'src/app/services/pathologyServices/pathology-registration-cache.service';
 import { TokenService }     from 'src/app/core/interceptors/token.service';
+import { TutorialVideoComponent } from 'src/app/shared/tutorial-video/tutorial-video.component';
 
 /** How many days before expiry the "Extend Licence" button appears */
 const EXTEND_WINDOW_DAYS = 15;
@@ -17,13 +18,16 @@ export type HomeNavState =
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterModule, CommonModule],
+  imports: [RouterModule, CommonModule, TutorialVideoComponent],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
 })
 export class HomeComponent implements OnInit {
 
   currentYear = new Date().getFullYear();
+
+  /** The product walkthrough overlay, opened from the tutorial section. */
+  tutorialOpen = false;
 
   /**
    * Optimistic default: the navbar renders the Login link on the very first frame

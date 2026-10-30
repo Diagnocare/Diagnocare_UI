@@ -14,7 +14,7 @@
  */
 
 const http = require('node:http');
-const { patients, groups, subGroups, tests, techniques } = require('./data.js');
+const { patients, groups, subGroups, tests, techniques, dmy } = require('./data.js');
 
 const PORT = Number(process.env.MOCK_API_PORT || 5099);
 
@@ -59,6 +59,43 @@ function page(rows, paging) {
   const pageSize = Number(paging?.pageSize) || 10;
   const start = (pageNumber - 1) * pageSize;
   return { item1: rows.length, item2: rows.slice(start, start + pageSize) };
+}
+
+/**
+ * Per-queue counts for the pipeline strip, keyed by the ids in
+ * utilities/work-queue.util.ts. Chosen so the strip tells a coherent story
+ * left to right — work thins out as it moves along — and so "needs attention"
+ * is small but non-zero, which is what makes that banner appear.
+ */
+const QUEUE_COUNTS = [
+  { queue: 'to-collect',       count: 6 },
+  { queue: 'to-receive',       count: 4 },
+  { queue: 'awaiting-results', count: 7 },
+  { queue: 'partly-entered',   count: 3 },
+  { queue: 'returned',         count: 1 },
+  { queue: 'to-verify',        count: 5 },
+  { queue: 'ready-to-print',   count: 9 },
+  { queue: 'needs-attention',  count: 2 },
+];
+
+/**
+ * Monday–Sunday registration counts for the week containing today.
+ *
+ * Days after today are flagged `future`, which the dashboard draws flat and
+ * faded; today's bar must match patientsToday or the page contradicts itself.
+ */
+function weekRegistrations() {
+  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const counts = [5, 8, 6, 11, 9, 13, 7];
+  const now = new Date();
+  // getDay() is 0 for Sunday; this week starts on Monday.
+  const indexToday = (now.getDay() + 6) % 7;
+  return labels.map((label, i) => ({
+    date: dmy(indexToday - i),
+    label,
+    count: i > indexToday ? 0 : (i === indexToday ? 4 : counts[i]),
+    future: i > indexToday,
+  }));
 }
 
 function sortPatients(rows, sortBy, dir) {
@@ -119,19 +156,32 @@ const routes = [
   ['GET', /\/api\/Notification\//, async () => []],
 
   // ── Home dashboard ────────────────────────────────────────────────────────
-  ['GET', /\/api\/Dashboard\/GetHomeSummary/, async () => ({
-    totalPatients: db.patients.length,
-    todayPatients: 4,
-    pendingReports: db.patients.filter(p => p.testStatus === 'Pending').length,
-    completedReports: db.patients.filter(p => p.testStatus === 'Completed').length,
-    totalCollection: 48250,
-    todayCollection: 6400,
-    recentBookings: db.patients.slice(0, 5).map(p => ({
-      patientId: p.patientId, patientName: p.patientName,
-      testStatus: p.testStatus, patientRegDate: p.patientRegDate,
-    })),
-    weekSparkline: [5, 8, 6, 11, 9, 13, 7],
-  })],
+  // Shape is HomeSummary (models/dashboard/home-summary.ts), which is what the
+  // dashboard binds field-for-field. The earlier shape here was the old hero's
+  // (todayPatients / recentBookings / weekSparkline) and left every KPI on "—".
+  //
+  // The row has to add up — the model states testsBooked = reportsDone +
+  // testsPending — so the three test counts are derived from one split rather
+  // than written as three independent numbers that could drift.
+  ['GET', /\/api\/Dashboard\/GetHomeSummary/, async q => {
+    const reportsDone = 9;
+    const testsPending = 7;
+    return {
+      date: q.get('date') || dmy(0),
+      patientsToday: 4,
+      testsBooked: reportsDone + testsPending,
+      reportsDone,
+      testsPending,
+      revenueToday: 6400,
+      // Newest first, max three — the card shows no more than that.
+      recentActivity: db.patients.slice(0, 3).map(p => ({
+        patientId: p.patientId,
+        patientName: p.patientName,
+        status: p.testStatus,
+      })),
+      weekRegistrations: weekRegistrations(),
+    };
+  }],
 
   // ── Patients ──────────────────────────────────────────────────────────────
   ['POST', /\/api\/patient\/SearchPatients$/, async (_q, body) => {
@@ -213,14 +263,20 @@ const routes = [
   ['PUT', /\/api\/pathologyTest\//, async () => ({ success: true, message: 'Updated successfully' })],
 
   // ── Worklist & reports ────────────────────────────────────────────────────
-  ['POST', /\/api\/Worklist\/GetWorklist$/, async () => ({
-    counts: { collection: 3, entry: 5, verify: 2, issued: 11 },
-    items: db.patients.slice(0, 5).map(p => ({
+  // GET, not POST: WorklistService.getWorklist builds HttpParams and calls
+  // httpClient.get. Registered as POST, this never matched, so the pipeline
+  // strip and the task-tile badges had no counts at all.
+  //
+  // `counts` is an array of { queue, count } — the dashboard iterates it and
+  // keys by queue id — not the object of four ad-hoc names it used to return.
+  ['GET', /\/api\/Worklist\/GetWorklist/, async q => {
+    const items = db.patients.slice(0, Number(q.get('pageSize')) || 50).map(p => ({
       patientId: p.patientId, patientName: p.patientName,
       testName: 'Complete Blood Count', status: p.testStatus,
       bookedAt: p.patientRegDate, urgent: p.isUrgent === 'Yes',
-    })),
-  })],
+    }));
+    return { counts: QUEUE_COUNTS, items, totalRows: items.length };
+  }],
   ['POST', /\/api\/summaryReport\//, async (_q, body) =>
     page(db.patients.map(p => ({
       patientId: p.patientId, patientName: p.patientName,
