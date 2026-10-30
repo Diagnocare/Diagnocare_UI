@@ -91,17 +91,14 @@ async function main() {
       process.stdout.write(`  ✗ ${section.id}: ${err.message}\n`);
       failures.push({ section: section.id, error: err.message });
       await driver.clearFocus().catch(() => {});
-      await driver.clearCaption().catch(() => {});
     }
 
-    await driver.clearCaption().catch(() => {});
     timeline.sections.push({
       id: section.id, title: section.title,
       startMs: startedAt, endMs: Date.now() - timeline.t0,
     });
   }
 
-  await driver.clearCaption().catch(() => {});
   await page.waitForTimeout(900);
 
   const video = page.video();

@@ -6,9 +6,22 @@ the public home page (`/home`), before sign-in.
 
 | File | What it is |
 |---|---|
-| `DiagnoCare-Tutorial.mp4` | The walkthrough. 1920×1080, 16:9, H.264/AAC. |
+| `DiagnoCare-Tutorial.mp4` | The walkthrough. 1920×1080, 16:9, H.264/AAC, English and Hindi audio tracks. |
 | `tutorial.en.vtt` | English captions, attached as a `<track>`. |
 | `tutorial.hi.vtt` | Hindi captions, attached as a `<track>`. |
+| `tutorial.hi.m4a` | Hindi narration on its own. Optional — see below. |
+
+## Why the Hindi narration is here twice
+
+It is in the MP4 as a second, language-tagged audio track, and selecting that
+track from a page needs `HTMLMediaElement.audioTracks`, which ships enabled in
+Safari only. So the player switches language the way it can: in Safari through
+that API, and everywhere else by playing `tutorial.hi.m4a` in step with the
+picture while the video itself is muted.
+
+The file is optional. Without it the player keeps both subtitle tracks and
+disables its Hindi **audio** option, with a line in the menu saying so, rather
+than offering a switch that silently mutes the tutorial.
 
 The media is **not committed** — see the rules in `.gitignore`. It is built from
 the recorder and copied here:

@@ -1,11 +1,30 @@
 /* ══════════════════════════════════════════════════════════════════════════════
    Tutorial player overlay.
 
-   Reads the canonical tokens from shared/design-tokens.css and declares no
-   html[data-theme="…"] block of its own — every token below is already
-   redefined per theme there, so this themes itself for free. See the rule at
-   the top of that file.
+   The dialog's own chrome — header, close button, the "not built yet" note —
+   reads the canonical tokens from shared/design-tokens.css and declares no
+   html[data-theme="…"] block of its own, so it themes itself for free. See the
+   rule at the top of that file.
+
+   The CONTROL BAR is the documented exception, for the same reason the sidebar
+   tokens are fixed across themes: it sits on top of the picture, and the
+   picture is dark in every theme. Its ink and its scrims are therefore set
+   here in the --tv-* layer below rather than taken from the surface tokens,
+   which would put cream-on-cream over a letterboxed frame in the warm theme.
+   The one place the brand shows through is the played portion of the progress
+   bar, which reads --color-primary.
    ══════════════════════════════════════════════════════════════════════════════ */
+
+:host {
+  /* Chrome that lives on the picture. Deliberately theme-independent — see above. */
+  --tv-ink: #f4f6f8;
+  --tv-ink-dim: rgba(244, 246, 248, 0.72);
+  --tv-hover: rgba(255, 255, 255, 0.16);
+  --tv-rail: rgba(255, 255, 255, 0.26);
+  --tv-rail-buffered: rgba(255, 255, 255, 0.44);
+  --tv-scrim: linear-gradient(to top, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.5) 54%, transparent);
+  --tv-menu-bg: rgba(16, 20, 24, 0.96);
+}
 
 .tv-overlay {
   position: fixed;
@@ -87,6 +106,25 @@
   aspect-ratio: 16 / 9;
   width: 100%;
   background: #000;
+  overflow: hidden;
+}
+
+/* Full-screen: the ratio is the screen's now, so the frame fills it and the
+   video letterboxes itself inside. */
+.tv-frame--fullscreen {
+  aspect-ratio: auto;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Nothing has moved for a while and the video is playing: the bar slides off
+   and the pointer goes with it, so the picture is unobstructed. */
+.tv-frame--idle { cursor: none; }
+
+.tv-frame--idle .tv-controls {
+  opacity: 0;
+  transform: translateY(0.75rem);
+  pointer-events: none;
 }
 
 .tv-video {
@@ -94,7 +132,353 @@
   height: 100%;
   display: block;
   object-fit: contain;
+  cursor: pointer;
 }
+
+/* Subtitles sit above the control bar rather than behind it. */
+.tv-video::cue {
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+/* ── Buffering, and the first play ─────────────────────────────────────────── */
+
+.tv-spinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  color: var(--tv-ink);
+  pointer-events: none;
+  text-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.6);
+}
+
+.tv-poster-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  padding-left: 0.3rem;          /* Optical centring: the glyph is a triangle. */
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--tv-ink);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.tv-poster-play:hover {
+  background: var(--color-primary);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.tv-poster-play:focus-visible {
+  outline: 2px solid var(--tv-ink);
+  outline-offset: 3px;
+}
+
+/* ── Control bar ───────────────────────────────────────────────────────────── */
+
+.tv-controls {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 2.5rem 0.75rem 0.5rem; /* The top padding is the scrim's gradient. */
+  background: var(--tv-scrim);
+  color: var(--tv-ink);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tv-row {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.tv-spacer { flex: 1; }
+
+.tv-btn {
+  flex: none;
+  position: relative;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--tv-ink);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tv-btn:hover { background: var(--tv-hover); }
+
+.tv-btn:focus-visible {
+  outline: 2px solid var(--tv-ink);
+  outline-offset: -2px;
+}
+
+/* A control that is currently doing something — captions on, PiP open. */
+.tv-btn--on { color: var(--color-primary); }
+
+/* The "10" on the skip buttons, tucked inside the circular arrow. */
+.tv-btn--skip .fa { font-size: 1.0625rem; }
+
+.tv-skip-count {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -40%);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
+/* EN / HI beside the language glyph, so the current track is readable without
+   opening the menu. */
+.tv-btn--audio {
+  gap: 0.3rem;
+  grid-auto-flow: column;
+}
+
+.tv-btn-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.tv-time {
+  flex: none;
+  margin-left: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;  /* The row must not jog as digits change. */
+  color: var(--tv-ink);
+}
+
+.tv-time-sep,
+.tv-time-total { color: var(--tv-ink-dim); }
+
+/* ── Sliders ───────────────────────────────────────────────────────────────────
+   Both the progress bar and the volume are a stack of styled fills with a
+   transparent <input type="range"> laid over them. The native range brings
+   dragging, touch and keyboard with it; the fills are what can actually be
+   styled, and animated, which a range's own track cannot be.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.tv-seek {
+  position: relative;
+  height: 1.125rem;
+  display: flex;
+  align-items: center;
+}
+
+.tv-seek-rail {
+  position: absolute;
+  inset: auto 0;
+  height: 0.25rem;
+  border-radius: 0.125rem;
+  background: var(--tv-rail);
+  overflow: visible;
+  transition: height 0.12s ease;
+}
+
+.tv-seek-buffered,
+.tv-seek-played {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+}
+
+.tv-seek-buffered { background: var(--tv-rail-buffered); }
+
+.tv-seek-played {
+  background: var(--color-primary);
+  /* timeupdate only fires about four times a second, so the fill is eased
+     between reports — without this the bar visibly ticks forward. */
+  transition: width 0.25s linear;
+}
+
+/* …except while the viewer is dragging it, or the video is not playing, when
+   the fill must land exactly where it was put. */
+.tv-seek-played--held { transition: none; }
+
+.tv-seek-knob {
+  position: absolute;
+  top: 50%;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-left: -0.375rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  transform: translateY(-50%) scale(0);
+  transition: transform 0.12s ease;
+}
+
+/* The invisible control. Full height of the row so it is easy to hit, and
+   above the fills so it takes every pointer and key event. */
+.tv-seek-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* The thumb is transparent — the visible knob is the div behind — and narrow,
+   because a range insets its thumb by half its width at each end while the
+   knob is placed on the rail's full width. A slim thumb keeps the two within
+   a couple of pixels of each other at the extremes. */
+.tv-seek-input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.5rem;
+  height: 1.125rem;
+  background: transparent;
+}
+
+.tv-seek-input::-moz-range-thumb {
+  width: 0.5rem;
+  height: 1.125rem;
+  border: none;
+  background: transparent;
+}
+
+.tv-seek-input:focus { outline: none; }
+
+/* The bar grows and the knob appears on approach, as a video player's does.
+   Driven from the rail with :has() rather than from the input with `~`: the
+   input comes after the rail in the DOM, so a sibling combinator cannot reach
+   back to it. */
+.tv-seek:hover .tv-seek-rail,
+.tv-seek-rail:has(~ .tv-seek-input:focus-visible) { height: 0.375rem; }
+
+.tv-seek:hover .tv-seek-knob,
+.tv-seek-rail:has(~ .tv-seek-input:focus-visible) .tv-seek-knob {
+  transform: translateY(-50%) scale(1);
+}
+
+/* Volume: the same parts, narrower, and opened by hover or focus so the row
+   stays compact without putting the control out of a keyboard's reach. */
+.tv-volume {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+/* display:flex with centred items for the same reason .tv-seek has it: that is
+   what puts the absolutely-positioned rail on the row's centre line. */
+.tv-volume-slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 0;
+  height: 1.125rem;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.18s ease, opacity 0.18s ease;
+}
+
+.tv-volume:hover .tv-volume-slider,
+.tv-volume:focus-within .tv-volume-slider {
+  width: 4.5rem;
+  margin: 0 0.375rem 0 0.125rem;
+  opacity: 1;
+  overflow: visible;
+}
+
+/* ── Menus ─────────────────────────────────────────────────────────────────── */
+
+.tv-pop {
+  position: relative;
+  flex: none;
+}
+
+.tv-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  z-index: 2;
+  min-width: 11rem;
+  padding: 0.375rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  background: var(--tv-menu-bg);
+  box-shadow: var(--shadow-lg);
+  animation: tv-pop 0.12s ease-out;
+}
+
+.tv-menu-head {
+  margin: 0.125rem 0.5rem 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tv-ink-dim);
+}
+
+.tv-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.5rem;
+  border: none;
+  border-radius: 0.3125rem;
+  background: transparent;
+  color: var(--tv-ink);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.tv-menu-item:hover:not(:disabled) { background: var(--tv-hover); }
+
+.tv-menu-item:focus-visible {
+  outline: 2px solid var(--tv-ink);
+  outline-offset: -2px;
+}
+
+.tv-menu-item:disabled {
+  color: var(--tv-ink-dim);
+  cursor: not-allowed;
+}
+
+/* The tick keeps its space on every row, so the labels line up whichever one
+   is selected and the list does not shuffle as the choice changes. */
+.tv-menu-item .fa {
+  width: 0.75rem;
+  font-size: 0.75rem;
+  visibility: hidden;
+}
+
+.tv-menu-item--on { color: var(--color-primary); }
+.tv-menu-item--on .fa { visibility: visible; }
+
+.tv-menu-note {
+  margin: 0.375rem 0.5rem 0.125rem;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--tv-ink-dim);
+}
+
+/* ── Not built yet ─────────────────────────────────────────────────────────── */
 
 .tv-missing {
   position: absolute;
@@ -147,13 +531,40 @@
   to   { opacity: 1; transform: none; }
 }
 
-/* Someone who asked for less motion gets the dialog without the entrance. */
+@keyframes tv-pop {
+  from { opacity: 0; transform: translateY(0.25rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Someone who asked for less motion gets the dialog without the entrance, and
+   the progress bar without its easing. */
 @media (prefers-reduced-motion: reduce) {
   .tv-overlay,
-  .tv-dialog { animation: none; }
+  .tv-dialog,
+  .tv-menu { animation: none; }
+
+  .tv-seek-played,
+  .tv-controls,
+  .tv-poster-play,
+  .tv-volume-slider { transition: none; }
 }
 
 @media (max-width: 40rem) {
   .tv-overlay { padding: 0.75rem; }
   .tv-title   { font-size: 0.9375rem; }
+
+  /* On a phone the row has to give something up. The time readout goes: it is
+     the only control that is also drawn by the progress bar's own position. */
+  .tv-time { display: none; }
+
+  .tv-controls { padding-left: 0.25rem; padding-right: 0.25rem; }
+  .tv-btn { min-width: 2rem; padding: 0 0.3125rem; }
+
+  /* Hover cannot open the volume slider on a touch screen, so it is always out. */
+  .tv-volume-slider {
+    width: 3.5rem;
+    margin: 0 0.25rem;
+    opacity: 1;
+    overflow: visible;
+  }
 }
