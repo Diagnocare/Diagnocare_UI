@@ -9,9 +9,11 @@ import { capitalizeWords, formatPersonName } from 'src/app/utilities/person-name
  *
  * Built the same way as NoDigitsDirective: the work happens on `input` rather than
  * `keydown`, so paste, drag-drop, autofill and IME input are all covered by the one
- * handler. Nothing is ever blocked and nothing is ever lower-cased — every character the
- * user types still goes in, and the only change made is adding a capital they did not
- * type. That is what keeps "McDonald" typeable; see person-name.util.ts.
+ * handler. Nothing is ever blocked — every character the user types still goes in — but
+ * the field is normalised to Title Case as it goes, so typing with caps lock on still
+ * yields "Vanchhit Kumar". The flip side is that a capital inside a word is undone as it
+ * is typed: "McDonald" becomes "Mcdonald". That is the rule, not a bug here; the reasoning
+ * and the one way out are in person-name.util.ts.
  *
  * Trimming is held back until `blur` on purpose. Trimming on every keystroke would eat the
  * space the moment it was typed, making "John Smith" impossible to enter.
