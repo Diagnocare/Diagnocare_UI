@@ -52,6 +52,11 @@ Useful environment variables:
 | `MOCK_API_PORT` | `5099` | Port for the mock API |
 | `SAPI_VOICE` | `Zira` | Windows narration voice (a name or any substring of one) |
 | `SAPI_RATE` | `-1` | Windows narration rate, `-10`…`10` |
+| `AZURE_SPEECH_KEY` | — | Azure Text-to-Speech key. **Without it there is no Hindi narration** — see [Voice-over](#voice-over) |
+| `AZURE_SPEECH_REGION` | — | The key's region, e.g. `centralindia` |
+| `AZURE_VOICE_HI` | `hi-IN-SwaraNeural` | Azure voice for Hindi (likewise `AZURE_VOICE_EN`) |
+| `TTS_ENGINE` | unset | `azure` uses Azure for *every* language, not only the ones with no local voice |
+| `AZURE_GAP_MS` | `3100` | Pause between Azure requests; the free tier allows 20 a minute |
 | `FFMPEG` | — | Path to an ffmpeg binary, overriding `ffmpeg-static` |
 | `VERBOSE` | unset | Stream the child processes' output |
 
@@ -69,7 +74,7 @@ any `ng serve` of this project will do. This saves a cold Angular build on every
 | Node | 18+ |
 | Chromium | `npx playwright install chromium` |
 | ffmpeg | the `ffmpeg-static` npm package — **no system install**, and `ffprobe` is not used at all |
-| TTS | Windows SAPI, built into the OS (see [Voice-over](#voice-over)) |
+| TTS | Windows SAPI for languages with an installed voice; Azure Text-to-Speech for the rest (see [Voice-over](#voice-over)) |
 
 Verified on Windows 10 with Node 24, Playwright 1.56 and ffmpeg 6.0. The pipeline is
 plain Node throughout — the shell scripts it used to carry were replaced because they
@@ -128,23 +133,55 @@ the page as base64 at record time rather than being left to the browser's fallba
 
 ## Voice-over
 
-`post/make-voiceover.js` picks the best local engine it can find:
+`post/make-voiceover.js` prefers a local voice for the language and falls back to Azure
+for the languages nothing here can speak:
 
-| Platform | Engine | Result |
+| Language | Engine | Result |
 |---|---|---|
-| Windows, English | **SAPI** (`System.Speech`) | A real narration track. Part of the OS — nothing to install. |
-| Windows, Hindi | — | Silent track; a default install has no `hi-IN` voice. |
+| Windows, a voice is installed for it | **SAPI** (`System.Speech`) | A real narration track. Part of the OS — nothing to install. |
 | Linux/macOS | `piper`, else `espeak-ng`/`espeak` | `piper` with a `hi_IN` voice is the one worth using for Hindi; the formant synthesisers handle Devanagari badly. |
-| Nothing found | — | A silent track of exactly the right length. |
+| No local voice, `AZURE_SPEECH_KEY` set | **Azure Text-to-Speech** | A neural track. This is how Hindi gets a voice on Windows. |
+| Nothing available | — | A silent track of exactly the right length, and the language is dropped from the MP4. |
 
-SAPI is a concatenative engine and sounds like one. It is a real voice track, not a
-stand-in, but swap in a neural engine for anything customer-facing — set `FFMPEG`-style
-env vars or install `piper` and re-run `npm run build:video`; nothing else changes.
+The voice is chosen by asking Windows which voices are **installed for that language**,
+so adding a `hi-IN` voice under *Settings → Time & language → Speech → Manage voices*
+is enough to get local Hindi narration with no change here.
 
-Either way the **mux downstream is identical**, because a silent track is still written
-at the full recorded length. One clip is synthesised per narration beat and laid onto a
-silent bed at that beat's own recorded start time, so speech stays aligned with the
-picture however long each clip turns out to be.
+### Hindi narration needs a key
+
+A default Windows install has no `hi-IN` voice, and none of the offline engines are on
+PATH here, so Hindi is synthesised through Azure:
+
+```bash
+# A Speech resource on Azure's free tier (F0) covers this many times over:
+# the whole script is about 8,000 characters against 500,000 a month.
+export AZURE_SPEECH_KEY=…
+export AZURE_SPEECH_REGION=centralindia
+npm run build:video
+```
+
+**This is the one step in the build that leaves the machine** — the Hindi narration
+script is sent to Microsoft — and it says so on stdout each time it runs. With no key
+set, nothing is sent and the Hindi track comes out silent.
+
+Azure's documented, keyed API, rather than the unauthenticated Edge read-aloud endpoint
+that `edge-tts` and similar tools drive: that one is a consumer service fronted by an
+anti-abuse token, and working around the token in a build script is not something to put
+in a repository.
+
+### A silent language is dropped, not shipped
+
+`out/voice.<lang>.json` records whether a track holds speech. `build-video.js` reads it
+and leaves a silent language out of the MP4 and its `.m4a` sidecar entirely, and
+`install-to-app.js` removes a sidecar an earlier build had installed. The player then
+shows that narration language as unavailable with a line saying so, instead of offering a
+switch that selects silence — which is how a missing voice otherwise turns into a bug
+report about the language control not working.
+
+The **mux is identical either way**, because a silent track is still written at the full
+recorded length. One clip is synthesised per narration beat and laid onto a silent bed at
+that beat's own recorded start time, so speech stays aligned with the picture however long
+each clip turns out to be.
 
 ## Writing or changing a chapter
 

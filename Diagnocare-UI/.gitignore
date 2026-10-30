@@ -47,5 +47,6 @@ Thumbs.db
 # The player shows an explanation when it is absent, so a checkout without it
 # is a normal state rather than a broken page.
 /src/assets/tutorial/*.mp4
+/src/assets/tutorial/*.m4a
 /src/assets/tutorial/*.vtt
 /src/assets/tutorial/*.srt

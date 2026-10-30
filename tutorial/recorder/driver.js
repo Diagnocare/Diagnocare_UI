@@ -67,13 +67,16 @@ class Driver {
   }
 
   /**
-   * Speaks one narration beat in English and Hindi: shows both as captions, holds for
-   * the longer of the two reading times, and records the interval so both subtitle
-   * tracks line up with the finished video.
+   * One narration beat in English and Hindi: holds the picture for the longer of the
+   * two reading times, and records the interval so both subtitle tracks line up with
+   * the finished video.
+   *
+   * Nothing is drawn. The text reaches the viewer as the .vtt tracks the player lets
+   * them choose between — see the note at the top of overlay.js — so this method's
+   * only job is to decide how long the step is given and to write down when it ran.
    */
   async say(en, hi, { hold = 0 } = {}) {
     const startedAt = Date.now() - this.timeline.t0;
-    await this.page.evaluate(([a, b]) => window.__tutorialCaption?.(a, b), [en, hi]).catch(() => {});
 
     const duration = this.ms(
       Math.max(narrationDurationMs(en), narrationDurationMs(hi, DEVANAGARI_WPM)) + hold,
@@ -92,10 +95,6 @@ class Driver {
     await this.page.waitForTimeout(this.ms(INTER_LINE_MS));
   }
 
-  async clearCaption() {
-    await this.page.evaluate(() => window.__tutorialCaption?.(null, null)).catch(() => {});
-  }
-
   /** A full-screen chapter card. Also recorded, so chapters land in the subtitle file. */
   async titleCard({ kicker, title, titleHi, subtitle, subtitleHi, narration = [], hold = 900 }) {
     await this.page.evaluate(
@@ -106,7 +105,6 @@ class Driver {
     // narration is a list of [english, hindi] pairs.
     for (const [en, hi] of narration) await this.say(en, hi);
     await this.wait(hold);
-    await this.clearCaption();
     await this.page.evaluate(() => window.__tutorialCard?.(null)).catch(() => {});
     await this.wait(680);
   }

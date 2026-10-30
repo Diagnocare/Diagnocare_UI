@@ -10,13 +10,22 @@
  *   • a pointer that tracks real mousemove events (so it can never drift out of sync
  *     with where Playwright is actually clicking),
  *   • a click pulse,
- *   • a spotlight that dims the page around one element,
- *   • a bilingual caption bar (English above, Hindi below), and
+ *   • a spotlight that dims the page around one element, and
  *   • a full-screen title card for section transitions.
  *
- * The Devanagari face is passed in as base64 and embedded as an @font-face, rather than
- * relying on a system font: this container has no Devanagari font installed, and the
- * browser's own fallback is not something to leave the typography of a deliverable to.
+ * NO CAPTIONS ARE DRAWN HERE.
+ * ───────────────────────────
+ * This used to paint a bilingual caption bar, English above Hindi, into the picture.
+ * Both languages were therefore burnt into the H.264 frames, which meant the player's
+ * subtitle menu could not do its job: picking Hindi left the English line on screen,
+ * picking Off left both, and no amount of setting `track.mode` could remove pixels.
+ * Captions are now the <track> layer's alone — the .vtt sidecars, one language showing
+ * at a time — and the recording carries no text of its own. The timings are unaffected:
+ * `driver.say()` derives its hold from the reading time of the text, not from anything
+ * drawn here.
+ *
+ * The Devanagari face is still passed in as base64 and embedded as an @font-face: the
+ * title cards are bilingual, and this container has no Devanagari font installed.
  */
 
 const fs = require('node:fs');
@@ -31,7 +40,7 @@ function installTutorialOverlay(opts) {
   const LATIN = 'Inter,"Segoe UI",system-ui,sans-serif';
   const DEVA = '"TutorialDeva","Noto Sans Devanagari",sans-serif';
 
-  let root = null, pointer = null, capEn = null, capHi = null, capBox = null;
+  let root = null, pointer = null;
   let spotlight = null, card = null;
 
   function injectFont() {
@@ -69,26 +78,6 @@ function installTutorialOverlay(opts) {
       + 'transition:all .45s cubic-bezier(.4,0,.2,1)';
     spotlight.appendChild(ring);
     root.appendChild(spotlight);
-
-    // ── Bilingual caption bar.
-    capBox = document.createElement('div');
-    capBox.style.cssText = [
-      'position:absolute', 'left:50%', 'bottom:40px', 'transform:translateX(-50%) translateY(14px)',
-      'width:min(1480px,92vw)', 'box-sizing:border-box', 'padding:15px 34px 17px', 'border-radius:14px',
-      'background:rgba(8,13,24,.90)', 'backdrop-filter:blur(10px)',
-      'border:1px solid rgba(148,163,184,.26)', 'text-align:center',
-      'box-shadow:0 18px 50px rgba(2,8,23,.50)',
-      'opacity:0', 'transition:opacity .32s ease,transform .32s ease',
-    ].join(';');
-
-    capEn = document.createElement('div');
-    capEn.style.cssText = `font-family:${LATIN};font-size:26px;line-height:1.42;color:#f1f5f9;font-weight:450`;
-    capHi = document.createElement('div');
-    capHi.style.cssText = `font-family:${DEVA};font-size:25px;line-height:1.62;color:#7dd3fc;`
-      + 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(148,163,184,.20)';
-    capBox.appendChild(capEn);
-    capBox.appendChild(capHi);
-    root.appendChild(capBox);
 
     // ── Pointer: arrow plus a drop shadow so it reads at 1080p.
     pointer = document.createElement('div');
@@ -135,23 +124,6 @@ function installTutorialOverlay(opts) {
       [{ transform: 'scale(.3)', opacity: 1 }, { transform: 'scale(3.1)', opacity: 0 }],
       { duration: 620, easing: 'cubic-bezier(.22,.61,.36,1)' },
     ).onfinish = () => pulse.remove();
-  };
-
-  /** Shows one narration beat in both languages, or clears the bar when given nothing. */
-  window.__tutorialCaption = function (en, hi) {
-    build();
-    if (!capBox) return;
-    if (!en && !hi) {
-      capBox.style.opacity = '0';
-      capBox.style.transform = 'translateX(-50%) translateY(14px)';
-      return;
-    }
-    capEn.textContent = en || '';
-    capHi.textContent = hi || '';
-    capEn.style.display = en ? 'block' : 'none';
-    capHi.style.display = hi ? 'block' : 'none';
-    capBox.style.opacity = '1';
-    capBox.style.transform = 'translateX(-50%) translateY(0)';
   };
 
   window.__tutorialSpotlight = function (rect) {
