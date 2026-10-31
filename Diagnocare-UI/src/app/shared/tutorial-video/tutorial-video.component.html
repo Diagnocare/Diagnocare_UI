@@ -1,0 +1,265 @@
+
+<!-- Backdrop. Clicking it closes, so the dialog behaves like the rest of the app. -->
+<div class="tv-overlay" *ngIf="isOpen" (click)="close()"
+     role="dialog" aria-modal="true" aria-labelledby="tvHeading">
+
+  <!-- The dialog itself. Clicks inside must not reach the backdrop, or scrubbing
+       the timeline would close the player. -->
+  <div class="tv-dialog" (click)="$event.stopPropagation()">
+
+    <header class="tv-head">
+      <h2 id="tvHeading" class="tv-title">
+        <i class="fa fa-circle-play" aria-hidden="true"></i>
+        {{ heading }}
+      </h2>
+      <button type="button" class="tv-close" (click)="close()" aria-label="Close the tutorial">
+        <i class="fa fa-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <!-- 16:9 frame. The ratio is held by the box, not by the video, so the
+         dialog does not jump about while the file is still loading.
+
+         This is also the element that goes full-screen, which is why the
+         control bar is inside it: see toggleFullscreen(). -->
+    <div class="tv-frame" #frame
+         [class.tv-frame--fullscreen]="isFullscreen"
+         [class.tv-frame--idle]="!controlsVisible"
+         (mousemove)="onPointerMove()"
+         (mouseleave)="onFrameLeave()">
+
+      <video #player
+             class="tv-video"
+             *ngIf="!failed"
+             [src]="src"
+             preload="metadata"
+             playsinline
+             (click)="onVideoClick()"
+             (loadedmetadata)="onLoadedMetadata()"
+             (durationchange)="onDurationChange()"
+             (timeupdate)="onTimeUpdate()"
+             (progress)="onProgress()"
+             (play)="onPlay()"
+             (playing)="onPlaying()"
+             (pause)="onPause()"
+             (ended)="onEnded()"
+             (waiting)="onWaiting()"
+             (volumechange)="onVolumeChange()"
+             (seeked)="onSeeked()"
+             (enterpictureinpicture)="onPipChange(true)"
+             (leavepictureinpicture)="onPipChange(false)"
+             (error)="onError()">
+        <track kind="subtitles" [src]="captionsEn" srclang="en" label="English" (load)="onTrackLoad()">
+        <track kind="subtitles" [src]="captionsHi" srclang="hi" label="हिन्दी" (load)="onTrackLoad()">
+      </video>
+
+      <!-- Hindi narration for the browsers that cannot reach the MP4's second
+           audio track. It is started, synced and muted from the component,
+           never by the viewer directly.
+
+           preload="metadata", not "none": the headers alone are enough to
+           settle whether this build ships Hindi audio at all, and settling it
+           now is the difference between a menu that offers a language it
+           cannot play and one that says so before it is asked. The audio
+           itself is not fetched until the viewer switches. -->
+      <audio #sidecar
+             *ngIf="!failed && audioHi"
+             [src]="audioHi"
+             preload="metadata"
+             (error)="onSidecarError()"></audio>
+
+      <!-- Buffering. Only while actually stalled, so it does not flash on every
+           seek that resolves immediately. -->
+      <div class="tv-spinner" *ngIf="!failed && waiting" aria-hidden="true">
+        <i class="fa fa-spinner fa-spin"></i>
+      </div>
+
+      <!-- The big target on a paused picture. The bar at the bottom has a
+           play button too; this one is for the first click of all, before the
+           viewer has looked for the controls. -->
+      <button type="button"
+              class="tv-poster-play"
+              *ngIf="!failed && !playing && !waiting"
+              (click)="togglePlay()"
+              aria-label="Play the tutorial">
+        <i class="fa fa-play" aria-hidden="true"></i>
+      </button>
+
+      <!-- ══ Control bar ══════════════════════════════════════════════════════
+           Clicks are stopped here: the picture behind it toggles play, and a
+           miss on a button should not pause the video. -->
+      <div class="tv-controls" *ngIf="!failed" (click)="$event.stopPropagation()">
+
+        <!-- Progress. The rail is three stacked fills and the <input> on top of
+             them is transparent: the native range gives dragging, touch and
+             keyboard for free, while the fills can be styled and animated,
+             which a range's own track cannot. -->
+        <div class="tv-seek">
+          <div class="tv-seek-rail" aria-hidden="true">
+            <div class="tv-seek-buffered" [style.width.%]="bufferedPercent"></div>
+            <div class="tv-seek-played"
+                 [class.tv-seek-played--held]="scrubbing || !playing"
+                 [style.width.%]="playedPercent"></div>
+            <div class="tv-seek-knob" [style.left.%]="playedPercent"></div>
+          </div>
+          <input type="range"
+                 class="tv-seek-input"
+                 min="0"
+                 [max]="duration || 0"
+                 step="0.01"
+                 [value]="currentTime"
+                 [attr.aria-valuetext]="seekValueText"
+                 aria-label="Seek"
+                 (input)="onSeekInput($event)"
+                 (keydown)="onSeekKeydown($event)"
+                 (pointerdown)="startScrub()"
+                 (pointerup)="endScrub()"
+                 (pointercancel)="endScrub()"
+                 (blur)="endScrub()">
+        </div>
+
+        <div class="tv-row">
+
+          <button type="button" class="tv-btn" (click)="togglePlay()"
+                  [attr.aria-label]="playing ? 'Pause' : 'Play'"
+                  [title]="playing ? 'Pause (space)' : 'Play (space)'">
+            <i class="fa" [class.fa-play]="!playing" [class.fa-pause]="playing" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="tv-btn tv-btn--skip" (click)="skip(-10)"
+                  aria-label="Rewind 10 seconds" title="Rewind 10 seconds (←)">
+            <i class="fa fa-rotate-left" aria-hidden="true"></i>
+            <span class="tv-skip-count" aria-hidden="true">10</span>
+          </button>
+
+          <button type="button" class="tv-btn tv-btn--skip" (click)="skip(10)"
+                  aria-label="Forward 10 seconds" title="Forward 10 seconds (→)">
+            <i class="fa fa-rotate-right" aria-hidden="true"></i>
+            <span class="tv-skip-count" aria-hidden="true">10</span>
+          </button>
+
+          <!-- Volume. The slider widens on hover or focus so the row stays
+               compact but the control is still reachable by keyboard. -->
+          <div class="tv-volume">
+            <button type="button" class="tv-btn" (click)="toggleMute()"
+                    [attr.aria-label]="muted ? 'Unmute' : 'Mute'"
+                    [title]="muted ? 'Unmute (m)' : 'Mute (m)'">
+              <i class="fa" [ngClass]="volumeIcon" aria-hidden="true"></i>
+            </button>
+            <div class="tv-volume-slider">
+              <div class="tv-seek-rail" aria-hidden="true">
+                <div class="tv-seek-played tv-seek-played--held"
+                     [style.width.%]="muted ? 0 : volume * 100"></div>
+                <div class="tv-seek-knob" [style.left.%]="muted ? 0 : volume * 100"></div>
+              </div>
+              <input type="range"
+                     class="tv-seek-input"
+                     min="0" max="1" step="0.05"
+                     [value]="muted ? 0 : volume"
+                     aria-label="Volume"
+                     [attr.aria-valuetext]="volumeValueText"
+                     (input)="onVolumeInput($event)">
+            </div>
+          </div>
+
+          <span class="tv-time">
+            <span class="tv-time-now">{{ format(currentTime) }}</span>
+            <span class="tv-time-sep" aria-hidden="true">/</span>
+            <span class="tv-time-total">{{ format(duration) }}</span>
+          </span>
+
+          <span class="tv-spacer"></span>
+
+          <!-- ── Subtitles ─────────────────────────────────────────────────── -->
+          <div class="tv-pop">
+            <button type="button" class="tv-btn"
+                    [class.tv-btn--on]="subtitles !== 'off'"
+                    [attr.aria-expanded]="menu === 'cc'"
+                    aria-haspopup="menu"
+                    (click)="toggleMenu('cc')"
+                    aria-label="Subtitles" title="Subtitles (c)">
+              <i class="fa fa-closed-captioning" aria-hidden="true"></i>
+            </button>
+            <div class="tv-menu" *ngIf="menu === 'cc'" role="menu">
+              <p class="tv-menu-head">Subtitles</p>
+              <button type="button" role="menuitemradio" [attr.aria-checked]="subtitles === 'off'"
+                      class="tv-menu-item" [class.tv-menu-item--on]="subtitles === 'off'"
+                      (click)="chooseSubtitles('off')">
+                <i class="fa fa-check" aria-hidden="true"></i> Off
+              </button>
+              <button type="button" role="menuitemradio" [attr.aria-checked]="subtitles === 'en'"
+                      class="tv-menu-item" [class.tv-menu-item--on]="subtitles === 'en'"
+                      (click)="chooseSubtitles('en')">
+                <i class="fa fa-check" aria-hidden="true"></i> English
+              </button>
+              <button type="button" role="menuitemradio" [attr.aria-checked]="subtitles === 'hi'"
+                      class="tv-menu-item" [class.tv-menu-item--on]="subtitles === 'hi'"
+                      (click)="chooseSubtitles('hi')">
+                <i class="fa fa-check" aria-hidden="true"></i> हिन्दी
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Narration language ────────────────────────────────────────── -->
+          <div class="tv-pop">
+            <button type="button" class="tv-btn tv-btn--audio"
+                    [attr.aria-expanded]="menu === 'audio'"
+                    aria-haspopup="menu"
+                    (click)="toggleMenu('audio')"
+                    aria-label="Audio language" title="Audio language">
+              <i class="fa fa-language" aria-hidden="true"></i>
+              <span class="tv-btn-tag">{{ audio === 'hi' ? 'HI' : 'EN' }}</span>
+            </button>
+            <div class="tv-menu" *ngIf="menu === 'audio'" role="menu">
+              <p class="tv-menu-head">Audio</p>
+              <button type="button" role="menuitemradio" [attr.aria-checked]="audio === 'en'"
+                      class="tv-menu-item" [class.tv-menu-item--on]="audio === 'en'"
+                      (click)="chooseAudio('en')">
+                <i class="fa fa-check" aria-hidden="true"></i> English
+              </button>
+              <button type="button" role="menuitemradio" [attr.aria-checked]="audio === 'hi'"
+                      class="tv-menu-item" [class.tv-menu-item--on]="audio === 'hi'"
+                      [disabled]="!hindiAudioAvailable"
+                      (click)="chooseAudio('hi')">
+                <i class="fa fa-check" aria-hidden="true"></i> हिन्दी
+              </button>
+              <!-- Said plainly rather than leaving a dead option: the Hindi
+                   track is in the MP4 but only some browsers can select it,
+                   and the separate file is built locally like the video. -->
+              <p class="tv-menu-note" *ngIf="!hindiAudioAvailable">
+                Hindi narration is not available in this build. Hindi subtitles still are.
+              </p>
+            </div>
+          </div>
+
+          <button type="button" class="tv-btn" *ngIf="pipAvailable"
+                  [class.tv-btn--on]="isPip"
+                  (click)="togglePip()"
+                  aria-label="Picture in picture" title="Picture in picture (p)">
+            <i class="fa fa-clone" aria-hidden="true"></i>
+          </button>
+
+          <button type="button" class="tv-btn" (click)="toggleFullscreen()"
+                  [attr.aria-label]="isFullscreen ? 'Exit full screen' : 'Full screen'"
+                  [title]="isFullscreen ? 'Exit full screen (f)' : 'Full screen (f)'">
+            <i class="fa" [class.fa-expand]="!isFullscreen" [class.fa-compress]="isFullscreen"
+               aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Not an error state so much as "this has not been built yet". It names
+           the command, because the person most likely to see it is a developer
+           on a fresh checkout. -->
+      <div class="tv-missing" *ngIf="failed">
+        <i class="fa fa-film" aria-hidden="true"></i>
+        <h3>The walkthrough has not been added yet</h3>
+        <p>
+          The video is built locally rather than committed. Run
+          <code>npm run all</code> in <code>tutorial/</code>, then copy the result to
+          <code>src/assets/tutorial/</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

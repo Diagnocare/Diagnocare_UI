@@ -128,8 +128,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   /** Inline style strings for floating hero particles (generated once on init). */
   particleStyles: string[] = [];
 
-  /** Controls the video tutorial modal. */
-  isVideoOpen = false;
 
   // ── Dashboard state ─────────────────────────────────────────────────────
   //  Null means "no value": still loading, or the request failed. Deliberately
@@ -194,8 +192,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   // ── Video modal ─────────────────────────────────────────────────────────
 
-  openVideo(): void  { this.isVideoOpen = true;  }
-  closeVideo(): void { this.isVideoOpen = false; }
 
   // ── Navigation ──────────────────────────────────────────────────────────
 
@@ -356,7 +352,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-users',
         route: '/patients',
         color: 'indigo',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
       },
       {
         title: 'Patient Tests',
@@ -364,7 +360,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-flask',
         route: '/patient-tests',
         color: 'blue',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
       },
     ];
 
@@ -375,7 +371,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-list-alt',
         route: '/manage-tests',
         color: 'teal',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Super_Admin.id]
       },
       {
         title: 'Reports',

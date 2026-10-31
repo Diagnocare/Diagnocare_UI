@@ -1,0 +1,159 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Diagnocare UI — build on a GitHub runner, deploy to Vercel.
+#
+# Vercel's Git integration builds on Vercel's own infrastructure: it clones the
+# repository and runs the build there, which is why it reports back as a GitHub
+# check even though no Action is involved. This workflow does the build here
+# instead and uploads the finished output, so every step that has to happen
+# before `ng build` — fetching the product walkthrough, above all — is a step
+# you can see, re-run and read the log of.
+#
+# ── Before this can run ───────────────────────────────────────────────────────
+# Settings → Secrets and variables → Actions → New repository secret:
+#
+#   VERCEL_TOKEN             vercel.com/account/tokens, scoped to the team
+#   VERCEL_ORG_ID            the team id      (Vercel → Settings → General)
+#   VERCEL_PROJECT_ID_UAT    diagnocare-uat-ui   (Project → Settings → General)
+#   VERCEL_PROJECT_ID_PROD   diagnocare-ui
+#
+# The ids are identifiers rather than credentials, but this repository is public,
+# so they are kept as secrets rather than written into this file.
+#
+# ── Turn Vercel's own builds off, or you get two ─────────────────────────────
+# While the Git integration is still connected, a push deploys twice: once from
+# Vercel, once from here, and the two race for the same URL. Add this to
+# Diagnocare-UI/vercel.json when you switch over:
+#
+#   "git": { "deploymentEnabled": false }
+#
+# ── Why manual-only ───────────────────────────────────────────────────────────
+# There is no `push:` trigger on purpose. Until Vercel's auto-deploys are off,
+# adding one would double every deployment. Once they are off, add:
+#
+#   on:
+#     push:
+#       branches: [master_UI]      # → deploys UAT
+#
+# and leave production on workflow_dispatch behind its approval gate.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: UI - Deploy to Vercel
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which environment to deploy
+        type: choice
+        options:
+          - uat_ui
+          - main
+        default: uat_ui
+
+# One deploy at a time per environment, and never cancel one halfway: a
+# cancelled upload leaves the project pointing at whatever was there before,
+# which is confusing rather than dangerous, but still not worth doing.
+concurrency:
+  group: ui-vercel-${{ inputs.target }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22.x'
+  APP_DIR: Diagnocare-UI
+
+jobs:
+  deploy:
+    name: Deploy [${{ inputs.target }}]
+    runs-on: ubuntu-latest
+
+    # UAT and production are separate Vercel projects, so each has its own
+    # production deployment and its own approval gate.
+    environment: ${{ inputs.target == 'production' && 'prod-ui-approval' || 'uat-ui-approval' }}
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ inputs.target == 'production' && secrets.VERCEL_PROJECT_ID_PROD || secrets.VERCEL_PROJECT_ID_UAT }}
+
+    steps:
+      # Fail here rather than three minutes later inside the CLI, where a
+      # missing token surfaces as an authentication error that reads like the
+      # token is wrong rather than absent.
+      - name: Check the deploy credentials are set
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          [ -n "$VERCEL_TOKEN" ] || fail "VERCEL_TOKEN is not set. See the header of this workflow."
+          [ -n "$VERCEL_ORG_ID" ] || fail "VERCEL_ORG_ID is not set. See the header of this workflow."
+          [ -n "$VERCEL_PROJECT_ID" ] || fail "No project id for '${{ inputs.target }}'. See the header of this workflow."
+          echo "Deploying ${{ inputs.target }} to project $VERCEL_PROJECT_ID"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: ${{ env.APP_DIR }}
+
+      # This is the step that fixes "The walkthrough has not been added yet".
+      # The media is gitignored — tens of megabytes, rebuilt by the "Tutorial
+      # video" workflow and published to the `tutorial-latest` release — so a
+      # checkout has nothing for the player to play. This downloads it into
+      # src/assets/tutorial/, which angular.json already copies into the bundle.
+      #
+      # It cannot fail the build: every failure inside it is a warning and an
+      # exit 0, because a missing walkthrough is a missing nice-to-have and a
+      # blocked deployment is an outage. Set TUTORIAL_REQUIRED=1 below to make
+      # it fatal for an environment where the tutorial is part of the sign-off.
+      - name: Fetch the tutorial walkthrough
+        run: npm run ensure:tutorial
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Confirm the walkthrough is in place
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          video=src/assets/tutorial/DiagnoCare-Tutorial.mp4
+          if [ -f "$video" ]; then
+            echo "walkthrough: $(du -h "$video" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::No walkthrough in this build - the tutorial page will show its 'not added yet' note."
+            echo "walkthrough: **missing**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Install the Vercel CLI
+        run: npm install --global vercel@48
+
+      # The CLI runs from the repository root, not from Diagnocare-UI: the
+      # project's Root Directory setting is part of what `vercel pull` fetches,
+      # and the CLI applies it itself. Running it from inside Diagnocare-UI
+      # would make it look for Diagnocare-UI/Diagnocare-UI.
+      - name: Pull the project settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      # --archive=tgz because an Angular bundle is thousands of files plus a
+      # 53 MB video, and uploading them one by one is what the upload rate
+      # limits are there to stop.
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed **${{ inputs.target }}** to $url" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

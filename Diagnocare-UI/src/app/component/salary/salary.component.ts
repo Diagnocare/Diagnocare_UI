@@ -492,7 +492,7 @@ export class SalaryComponent implements OnInit, OnDestroy {
 
   /** Which typeUserId values belong to each staff type in the picker. */
   private readonly STAFF_TYPE_ROLES: Record<'user' | 'collection-boy' | 'doctor', number[]> = {
-    'user':           [Role.User.id, Role.Assistant.id, Role.Admin.id],
+    'user':           [Role.Receptionist.id, Role.Assistant.id, Role.Admin.id],
     'collection-boy': [Role.Collection_Boy.id],
     'doctor':         [Role.Doctor.id],
   };

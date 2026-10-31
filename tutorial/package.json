@@ -1,0 +1,22 @@
+{
+  "name": "diagnocare-tutorial",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Automated product tutorial recording for the DiagnoCare UI.",
+  "scripts": {
+    "mock": "node mock-api/server.js",
+    "record": "node scripts/run.js",
+    "record:only": "node scripts/run.js",
+    "storyboard": "node post/make-storyboard.js",
+    "subtitles": "node post/make-subtitles.js",
+    "voiceover": "node post/make-voiceover.js",
+    "build:video": "node post/build-video.js",
+    "install:app": "node post/install-to-app.js",
+    "all": "npm run record && npm run build:video && npm run install:app",
+    "ensure": "node ../Diagnocare-UI/tools/ensure-tutorial.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "5.2.0",
+    "playwright": "1.56.1"
+  }
+}
