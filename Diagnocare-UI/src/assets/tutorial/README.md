@@ -32,9 +32,22 @@ checkout, not a bug.
 
 **In a deployment**, it is downloaded. The *Tutorial video* workflow records and
 encodes the walkthrough and attaches it to the `tutorial-latest` release; every
-UI build then runs `npm run ensure:tutorial` before `ng build`, which fetches
-those files into this folder. Nobody copies anything by hand, and the recording
-— half an hour of playback and encoding — stays out of the deploy path.
+UI build then fetches those files into this folder before `ng build`. Nobody
+copies anything by hand, and the recording — half an hour of playback and
+encoding — stays out of the deploy path.
+
+Each build path reaches it differently, which is why there are two entry points:
+
+- **Vercel**, which builds UAT and production, runs it from the `postinstall`
+  script in the UI’s `package.json`. `npm install` is the one step Vercel always
+  runs regardless of how a project’s build command is configured, so nothing has
+  to be set in the dashboard for a deployment to carry the walkthrough.
+- **GitHub Actions** (DEV/QA) and the **Dockerfile** call `npm run ensure:tutorial`
+  explicitly, one step before the build, so the fetch is visible in the log.
+
+The script itself is `Diagnocare-UI/tools/ensure-tutorial.js`. It sits inside the
+UI project rather than next to the recorder because Vercel builds from this
+directory and does not carry anything above its Root Directory into the build.
 
 If the download fails the build **continues** and the player falls back to its
 note; a missing walkthrough must never block a release. Set `TUTORIAL_REQUIRED=1`

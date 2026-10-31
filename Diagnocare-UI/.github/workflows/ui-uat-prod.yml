@@ -34,6 +34,7 @@ name: UI – UAT / Production
 on:
   push:
     branches:
+      - uat_ui
       - main
     paths-ignore:
       - "*.md"
@@ -72,7 +73,7 @@ jobs:
       # the "Tutorial video" workflow — so without this the deployed app shows
       # the player's "not added yet" note instead of the tutorial. It only
       # downloads; the recording itself is far too slow to sit in a deploy.
-      # A failure here warns and carries on: see tutorial/ensure-video.js.
+      # A failure here warns and carries on: see Diagnocare-UI/tools/ensure-tutorial.js.
       - name: Fetch the tutorial walkthrough
         run: npm run ensure:tutorial
         working-directory: ${{ env.WORKING_DIR }}

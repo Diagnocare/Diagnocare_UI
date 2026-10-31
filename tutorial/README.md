@@ -130,17 +130,23 @@ It is built once and fetched instead:
         ↓  record → encode → install:app
         ↓  publish to the `tutorial-latest` release
                               ↓
-ui-dev-qa.yml / ui-uat-prod.yml          npm run ensure:tutorial
-        ↓  downloads into src/assets/tutorial/
-        ↓  npx ng build  (angular.json already copies src/assets)
-        ↓  artifact → IIS
+   ┌──────────────────────────┼──────────────────────┐
+   ↓                          ↓                      ↓
+   Vercel (UAT, PROD)         ui-dev-qa.yml          Dockerfile
+   npm install                npm run                RUN npm run
+     → postinstall              ensure:tutorial        ensure:tutorial
+   ↓                          ↓                      ↓
+
+   all three land in Diagnocare-UI/src/assets/tutorial/, then
+   ng build  (angular.json already copies src/assets into the bundle)
 ```
 
 | Piece | What it does |
 |---|---|
 | `.github/workflows/tutorial-video.yml` | Records on `windows-latest` — **Windows for SAPI**, since a Linux runner has no voice and the narration would ship silent. Fails if English narration came out silent, rather than publishing a worse video than the one it replaces. |
-| `ensure-video.js` (`npm run ensure`) | Downloads the release assets into `Diagnocare-UI/src/assets/tutorial/`. No dependencies — Node builtins only — so the app build never needs `tutorial/node_modules`. |
-| `ensure:tutorial` in the UI's `package.json` | What the workflows call, one step before `ng build`. |
+| `Diagnocare-UI/tools/ensure-tutorial.js` | Downloads the release assets into `Diagnocare-UI/src/assets/tutorial/`. No dependencies — Node builtins only — so the app build never needs `tutorial/node_modules`. It lives under `Diagnocare-UI/` rather than here **because Vercel builds from that directory** and does not carry anything above its Root Directory into the build container. |
+| `ensure:tutorial` in the UI’s `package.json` | The explicit entry point: what `ui-dev-qa.yml` and the Dockerfile call, one step before `ng build`. |
+| `postinstall` in the UI’s `package.json` | How it reaches **Vercel**, which is what builds UAT and production. `npm install` is the one hook Vercel always runs whatever a project’s build command is set to, so the fetch hangs off that. It does nothing unless `VERCEL` is set, so `npm install` on a laptop stays offline. |
 
 It **never fails the build**: a missing walkthrough is a missing nice-to-have, a blocked
 deployment is an outage. Failures print a `::warning::` and exit 0, and the player falls

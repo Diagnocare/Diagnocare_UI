@@ -146,19 +146,12 @@ jobs:
           # `npm cache verify` above is a native command.
           exit 0
 
-      # `tutorial` is in this list for one small file: ensure-video.js, which the
-      # "Fetch the tutorial walkthrough" step below runs as ../tutorial/ensure-video.js.
-      # Leaving it out does not skip that step, it makes it die on MODULE_NOT_FOUND and
-      # take the deploy with it. The directory is cheap to add — the walkthrough itself
-      # is gitignored and the recording dependencies are never installed here, because
-      # ensure-video.js imports nothing but node: builtins.
       - name: Checkout UI and its unit tests
         uses: actions/checkout@v4
         with:
           sparse-checkout: |
             Diagnocare-UI
             Diagnocare-Test
-            tutorial
           sparse-checkout-cone-mode: true
           fetch-depth: 1
 
@@ -205,8 +198,8 @@ jobs:
       # downloads what that workflow published; recording takes about half an
       # hour and has no business in a deploy. A failure warns and carries on,
       # so a missing walkthrough can never block a release: see
-      # tutorial/ensure-video.js.
-      # continue-on-error backs that promise up at the workflow level. ensure-video.js
+      # Diagnocare-UI/tools/ensure-tutorial.js.
+      # continue-on-error backs that promise up at the workflow level. The script
       # turns its own failures into warnings and exits 0, but it cannot do that if it
       # never runs — a missing file or a Node that won't start is an exit 1 the script
       # has no say in, and that is exactly how this step once stopped a deploy.

@@ -13,7 +13,7 @@
     "build:video": "node post/build-video.js",
     "install:app": "node post/install-to-app.js",
     "all": "npm run record && npm run build:video && npm run install:app",
-    "ensure": "node ensure-video.js"
+    "ensure": "node ../Diagnocare-UI/tools/ensure-tutorial.js"
   },
   "dependencies": {
     "ffmpeg-static": "5.2.0",

@@ -9,7 +9,7 @@
 # browser download and about a gigabyte of scratch space. Putting that in the
 # deploy path would make every release half an hour slower and let a flaky
 # screen recording block one. So it runs here, on its own, and the deployments
-# only download the result (tutorial/ensure-video.js).
+# only download the result (Diagnocare-UI/tools/ensure-tutorial.js).
 #
 # WHEN IT RUNS
 #   • `tutorial/**` changes on a main branch — the recording's own source
@@ -161,7 +161,7 @@ jobs:
           # without it a second run fails on "asset already exists".
           gh release view $env:TAG 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $env:TAG --title "Product walkthrough" --notes "Built by the Tutorial video workflow. Fetched by tutorial/ensure-video.js during every UI build." --latest=false
+            gh release create $env:TAG --title "Product walkthrough" --notes "Built by the Tutorial video workflow. Fetched by Diagnocare-UI/tools/ensure-tutorial.js during every UI build." --latest=false
           }
           gh release upload $env:TAG $assets --clobber
 
