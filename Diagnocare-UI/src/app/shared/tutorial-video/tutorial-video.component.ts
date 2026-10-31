@@ -650,7 +650,11 @@ export class TutorialVideoComponent implements OnDestroy {
   private routeAudio(el: HTMLVideoElement): AudioRoute {
     const tracks = (el as HTMLVideoElement & { audioTracks?: { length: number } }).audioTracks;
     if (tracks && tracks.length > 1) return 'native';
-    return this.audioHi ? 'sidecar' : 'none';
+    // `hindiAudioMissing` is checked, not just `audioHi`: the sidecar preloads
+    // its metadata, so its 404 can land either side of the video's own
+    // loadedmetadata. Without this the later of the two would win and a build
+    // with no Hindi audio would go on offering it.
+    return this.audioHi && !this.hindiAudioMissing ? 'sidecar' : 'none';
   }
 
   private selectNativeAudioTrack(choice: TutorialAudioChoice): void {

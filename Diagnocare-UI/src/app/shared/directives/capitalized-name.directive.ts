@@ -4,13 +4,16 @@ import { capitalizeWords, formatPersonName } from 'src/app/utilities/person-name
 /**
  * CapitalizedNameDirective
  * ────────────────────────
- * Keeps the first letter of a name field capitalised as it is typed, and trims the field
- * once the user leaves it.
+ * Keeps each word of a name field capitalised as it is typed, and trims the field once
+ * the user leaves it.
  *
  * Built the same way as NoDigitsDirective: the work happens on `input` rather than
  * `keydown`, so paste, drag-drop, autofill and IME input are all covered by the one
- * handler. Nothing is ever blocked — every character the user types still goes in, only
- * the first letter's case is adjusted.
+ * handler. Nothing is ever blocked — every character the user types still goes in — but
+ * the field is normalised to Title Case as it goes, so typing with caps lock on still
+ * yields "Vanchhit Kumar". The flip side is that a capital inside a word is undone as it
+ * is typed: "McDonald" becomes "Mcdonald". That is the rule, not a bug here; the reasoning
+ * and the one way out are in person-name.util.ts.
  *
  * Trimming is held back until `blur` on purpose. Trimming on every keystroke would eat the
  * space the moment it was typed, making "John Smith" impossible to enter.

@@ -1,0 +1,181 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Record the product walkthrough and publish it for the app builds to fetch.
+#
+#   tutorial/  ──▶  record (Playwright drives the real UI)  ──▶  encode  ──▶
+#   release `tutorial-latest`  ──▶  fetched by every UI build
+#
+# This is deliberately NOT part of the deploy pipeline. Recording means playing
+# fifteen minutes of UI in real time and then encoding it — half an hour, a
+# browser download and about a gigabyte of scratch space. Putting that in the
+# deploy path would make every release half an hour slower and let a flaky
+# screen recording block one. So it runs here, on its own, and the deployments
+# only download the result (tutorial/ensure-video.js).
+#
+# WHEN IT RUNS
+#   • `tutorial/**` changes on a main branch — the recording's own source
+#   • manually, from the Actions tab, which is how you refresh the video after
+#     the UI it records has changed
+#
+# WINDOWS, NOT UBUNTU
+#   English narration is synthesised with Windows SAPI, which is part of the OS
+#   and needs nothing installed. On a Linux runner there is no SAPI and no piper
+#   or espeak, so the narration would come out silent — a worse video than the
+#   one being replaced. The job checks for that at the end rather than trusting
+#   it. GitHub-hosted rather than the self-hosted builder because that box runs
+#   close to full (see the disk-reclaim step in ui-dev-qa.yml) and this job
+#   wants roughly a gigabyte of scratch.
+#
+# HINDI NARRATION
+#   Needs AZURE_SPEECH_KEY / AZURE_SPEECH_REGION as repository secrets. Without
+#   them the Hindi audio track is left out of the MP4 and the player disables
+#   its Hindi audio option, saying so. Hindi *subtitles* ship either way. See
+#   tutorial/README.md → Voice-over.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Tutorial video
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish to'
+        required: false
+        default: 'tutorial-latest'
+  push:
+    branches: [main, master_UI]
+    paths:
+      - "tutorial/**"
+      - ".github/workflows/tutorial-video.yml"
+
+# One recording at a time: two runs would fight over the same release tag, and
+# the later upload would silently win.
+concurrency:
+  group: tutorial-video
+  cancel-in-progress: false
+
+permissions:
+  contents: write          # creating and updating the release
+
+jobs:
+  record:
+    name: Record, encode and publish
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    env:
+      TAG: ${{ inputs.tag || 'tutorial-latest' }}
+      AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+      AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      # The recorder drives the real application, so the app's dependencies are
+      # needed as well as the recorder's — `scripts/run.js` starts `ng serve`.
+      - name: Install app dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: Diagnocare-UI
+
+      - name: Install recorder dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: tutorial
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+        working-directory: tutorial
+
+      # record → build:video → install:app. The last step is what puts the files
+      # under Diagnocare-UI/src/assets/tutorial, which is where they are read from.
+      - name: Record and encode the walkthrough
+        run: npm run all
+        working-directory: tutorial
+
+      # A video whose English narration is silent is not worth publishing — it
+      # would replace a good one. make-voiceover.js records what it managed, so
+      # this is read rather than assumed.
+      - name: Check the narration actually got a voice
+        shell: pwsh
+        working-directory: tutorial
+        run: |
+          $en = Get-Content out/voice.en.json -Raw | ConvertFrom-Json
+          Write-Host "english narration: speech=$($en.speech) voice=$($en.voice) clips=$($en.clips)"
+          if (-not $en.speech) {
+            Write-Host "::error::English narration came out silent ($($en.why)). Not publishing."
+            exit 1
+          }
+          if (Test-Path out/voice.hi.json) {
+            $hi = Get-Content out/voice.hi.json -Raw | ConvertFrom-Json
+            Write-Host "hindi narration:   speech=$($hi.speech) voice=$($hi.voice)"
+            if (-not $hi.speech) {
+              Write-Host "::warning::No Hindi narration in this build - $($hi.why) Hindi subtitles are unaffected."
+            }
+          }
+
+      # A note of what this video actually is, published beside it. Without it
+      # there is no way to tell how old a downloaded walkthrough is or which
+      # revision of the UI it shows.
+      - name: Write the manifest
+        shell: pwsh
+        working-directory: tutorial
+        run: |
+          $files = Get-ChildItem ../Diagnocare-UI/src/assets/tutorial -File |
+            Where-Object { $_.Name -ne 'README.md' } |
+            ForEach-Object { @{ name = $_.Name; bytes = $_.Length } }
+          @{
+            commit    = '${{ github.sha }}'
+            ref       = '${{ github.ref_name }}'
+            recordedAt = (Get-Date).ToUniversalTime().ToString('o')
+            runUrl    = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+            files     = $files
+          } | ConvertTo-Json -Depth 4 | Set-Content out/tutorial-manifest.json -Encoding utf8
+          Get-Content out/tutorial-manifest.json
+
+      - name: Publish to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # `gh release view` is EXPECTED to fail the first time, and pwsh on
+          # the runner turns a non-zero native exit into a terminating error
+          # ($PSNativeCommandUseErrorActionPreference is on by default in 7.4+),
+          # which would abort the step on the one run that has to create the
+          # release. Both are turned off for the length of this step.
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
+
+          $assets = Get-ChildItem Diagnocare-UI/src/assets/tutorial -File |
+            Where-Object { $_.Name -ne 'README.md' } |
+            ForEach-Object { $_.FullName }
+          $assets += (Resolve-Path tutorial/out/tutorial-manifest.json).Path
+          Write-Host "publishing to '$env:TAG':"
+          $assets | ForEach-Object { Write-Host "  $_" }
+
+          # The tag moves with each rebuild, so the release is created once and
+          # updated after that. --clobber replaces an asset of the same name;
+          # without it a second run fails on "asset already exists".
+          gh release view $env:TAG 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:TAG --title "Product walkthrough" --notes "Built by the Tutorial video workflow. Fetched by tutorial/ensure-video.js during every UI build." --latest=false
+          }
+          gh release upload $env:TAG $assets --clobber
+
+      # Kept for a few days so a bad recording can be looked at without
+      # re-running the whole job.
+      - name: Keep the raw capture for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutorial-build-logs
+          path: |
+            tutorial/out/timeline.json
+            tutorial/out/voice.*.json
+            tutorial/out/tutorial-manifest.json
+            tutorial/out/*.vtt
+          retention-days: 7
+          if-no-files-found: warn

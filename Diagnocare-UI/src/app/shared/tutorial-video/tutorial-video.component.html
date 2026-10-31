@@ -54,13 +54,18 @@
       </video>
 
       <!-- Hindi narration for the browsers that cannot reach the MP4's second
-           audio track. preload="none" so a viewer who never switches language
-           never downloads it; it is started, synced and muted from the
-           component, never by the viewer directly. -->
+           audio track. It is started, synced and muted from the component,
+           never by the viewer directly.
+
+           preload="metadata", not "none": the headers alone are enough to
+           settle whether this build ships Hindi audio at all, and settling it
+           now is the difference between a menu that offers a language it
+           cannot play and one that says so before it is asked. The audio
+           itself is not fetched until the viewer switches. -->
       <audio #sidecar
              *ngIf="!failed && audioHi"
              [src]="audioHi"
-             preload="none"
+             preload="metadata"
              (error)="onSidecarError()"></audio>
 
       <!-- Buffering. Only while actually stalled, so it does not flash on every
