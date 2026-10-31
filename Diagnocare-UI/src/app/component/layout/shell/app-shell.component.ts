@@ -250,11 +250,11 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     if (a.labOps || a.patientsLink) daily.push({ label: 'Patients',        route: 'patients',      icon: 'fa-users' });
     if (a.labOps || a.patientTestsLink)
                                    daily.push({ label: 'Test reports',     route: 'patient-tests', icon: 'fa-file-medical' });
-    if (a.labOps)                  daily.push({ label: 'Bills & receipts', route: 'receipt',       icon: 'fa-receipt' });
+    if (a.labOps)                  daily.push({ label: 'Bills & Receipts', route: 'receipt',       icon: 'fa-receipt' });
     if (a.labOps)                  daily.push({ label: 'Test reminders',   route: 'test-reminders', icon: 'fa-bell' });
 
     const lab: NavItem[] = [];
-    if (a.labOps)    lab.push({ label: 'Tests & prices',    route: 'manage-tests', icon: 'fa-vials' });
+    if (a.labOps)    lab.push({ label: 'Tests & Prices',    route: 'manage-tests', icon: 'fa-vials' });
     if (a.labOps)    lab.push({ label: 'Doctors & Contacts', route: 'contacts',    icon: 'fa-address-book' });
     if (a.labSetup)  lab.push({ label: 'Lab profile',       route: 'lab-profile',  icon: 'fa-hospital' });
     if (a.labSetup)  lab.push({ label: 'Lab settings',      route: 'lab-setup',    icon: 'fa-sliders' });

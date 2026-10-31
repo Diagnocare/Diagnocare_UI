@@ -1,6 +1,9 @@
+/* The column is centred, but it adds no vertical space of its own: the gap
+   above the heading is .page-header's padding, the same as on every other
+   screen, and the space under the last block is .content-container's. */
 .contact-list-container {
   max-width: 90em;
-  margin: 1.5rem auto;
+  margin: 0 auto;
   padding: 0;
 }
 
@@ -10,10 +13,6 @@
   background: var(--bg-white);
   box-shadow: var(--shadow-light);
   text-align: center;
-}
-
-.page-margin{
-    margin:3em;
 }
 
 /* ── Tab panel wrapper (tab bar + table as one card) ──────────────────────── */

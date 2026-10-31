@@ -11,7 +11,14 @@
     </div>
     </div>
 
-    <div class="search-section page-margin">
+    <!-- Every screen in the app is .page-header + .content-container: the
+         column, its gutters and the top/bottom inset all come from there, at
+         every breakpoint. This page used to inset its blocks by a flat 3em
+         instead, which matched neither the header above them nor any other
+         screen. -->
+    <div class="content-container">
+
+    <div class="search-section">
       <div class="search-row">
         <div class="filter-group">
           <label class="filter-label"><i class="fa fa-address-book"></i> Search</label>
@@ -39,7 +46,7 @@
     <app-loading-spinner [isLoading]="isLoading" message="Loading contacts..."></app-loading-spinner>
 
     <!-- ── Tabbed panel (tab bar + table fused into one card) ───────────────── -->
-    <div class="tab-panel page-margin" *ngIf="!isLoading">
+    <div class="tab-panel" *ngIf="!isLoading">
 
       <!-- Tab bar -->
       <div class="tab-bar">
@@ -102,4 +109,6 @@
     </div>
 
     </div><!-- /tab-panel -->
+
+    </div><!-- /content-container -->
 </div></div>

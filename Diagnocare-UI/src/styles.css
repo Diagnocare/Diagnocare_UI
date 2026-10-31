@@ -1252,25 +1252,32 @@ body:has(#pinAuthModal.show) .spinner-container {
   box-shadow: none;
 }
 
-.btn-nav {
-  background: var(--color-text-muted); /* slate-600 — neutral-dark, clearly "previous" */
-  border: 1.5px solid var(--color-border); /* slate-700 */
-  color: #ffffff; /* white — maximum contrast on slate bg */
-}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25em;
+  height: 2.25em;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background: var(--bg-white, #fff);
+  color: var(--text-primary, var(--color-text-primary));
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 0.85em;
 
-  .btn-nav:hover:not(:disabled) {
-    background: var(--color-text-muted); /* slate-700, visibly darker on hover */
-    border-color: var(--color-surface);
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(51, 65, 85, 0.35);
-    transform: translateY(-1px);
+  &:hover:not(:disabled) {
+    background: var(--primary-color, var(--color-primary-ink));
+    color: #fff;
+    border-color: transparent;
   }
-
-  .btn-nav:active:not(:disabled) {
+  &:active:not(:disabled) {
     background: var(--color-text-muted);
     transform: translateY(0);
     box-shadow: none;
   }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
 /* The "auto-adapt to a white outline with a white label inside .page-header"
    override that used to live here is gone. It was written when .page-header was
    always a dark gradient band; inside the sidebar shell that band is a light
@@ -1457,7 +1464,12 @@ body:has(#pinAuthModal.show) .spinner-container {
 }
 
 /* ── Clear / Reset — outline (grey border, transparent) ──────────────────── */
-.dc-btn--clear,
+.dc-btn--clear
+{
+  background: transparent;
+  color: var(--color-primary-ink);
+  border-color: var(--color-text-primary);
+}
 .dc-btn--reset {
   background: transparent;
   color: var(--color-border-strong);
@@ -1467,7 +1479,7 @@ body:has(#pinAuthModal.show) .spinner-container {
 .dc-btn--reset:hover:not(:disabled) {
   background: var(--color-surface-sunken);
   border-color: var(--color-text-secondary);
-  color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 /* ── Theme overrides for the light-surfaced variants (cancel/clear) ──────── */

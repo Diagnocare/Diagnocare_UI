@@ -68,7 +68,6 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
 .legend-lbl {
   font-size: 0.8em;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
@@ -230,30 +229,6 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
 
   &:focus { outline: 2px solid var(--primary-color, var(--color-primary-ink)); outline-offset: 1px; }
 }
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25em;
-  height: 2.25em;
-  border-radius: 50%;
-  border: 1px solid var(--color-border-strong);
-  background: var(--bg-white, #fff);
-  color: var(--text-primary, var(--color-text-primary));
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  font-size: 0.85em;
-
-  &:hover:not(:disabled) {
-    background: var(--primary-color, var(--color-primary-ink));
-    color: #fff;
-    border-color: transparent;
-  }
-
-  &:disabled { opacity: 0.35; cursor: not-allowed; }
-}
-
 // ── Grid wrapper ─────────────────────────────────────────────────
 .grid-wrapper {
   overflow-x: auto;
@@ -331,12 +306,6 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
   background: rgba(30, 91, 168, 0.55) !important;
 }
 
-.col-today {
-  background: rgba(255,255,255,0.22) !important;
-  .day-name { color: #fff !important; font-weight: 800 !important; text-decoration: underline; }
-  .day-date { color: #fff !important; font-weight: 800 !important; }
-}
-
 .col-locked {
   background: rgba(30, 91, 168, 0.5) !important;
   .day-name, .day-date { color: rgba(255,255,255,0.5) !important; }
@@ -346,6 +315,64 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
   background: rgba(217, 119, 6, 0.75) !important;
   .day-name { color: #fff !important; }
   .day-date { color: rgba(255,255,255,0.9) !important; }
+}
+
+// ── Today column ─────────────────────────────────────────────────
+// Today is the column an admin is nearly always aiming for, so it is lifted
+// out of the brand band rather than tinted inside it: the header cell takes
+// the page surface, the body cells keep their own row colour under a 5% brand
+// wash, and a rail in --color-primary-ink runs down both edges so header and
+// body read as one continuous column.
+//
+// Why a surface fill rather than a lighter veil: the old
+// rgba(255,255,255,0.22) was "slightly lighter teal" — roughly 1.3:1 against
+// its neighbours, and it faded further in the warm and dark themes. Surface
+// against the band is >= 3.1:1 in all five themes. Colour is not the only cue
+// either — the day name stays bold and underlined.
+//
+// The wash is deliberately held at 5%. At 8% the Half-Day amber tile dropped
+// from 3.40:1 to 2.99:1 against the column background in the light theme, so
+// the highlight would have cost a status tile its 3:1 boundary.
+$today-rail: var(--color-primary-ink);
+
+// Header cell. !important on the background only because .col-holiday is
+// itself !important; this rule then wins on specificity. So when today *is* a
+// holiday the Today marker takes the fill and the amber "H" badge carries the
+// holiday — which reads better on surface than it did on the amber wash.
+.header-row th.col-today {
+  background: var(--color-surface) !important;
+  box-shadow:
+    inset  2px 0    0 $today-rail,
+    inset -2px 0    0 $today-rail,
+    inset  0   -3px 0 $today-rail;
+
+  .day-name {
+    color: var(--color-primary-ink) !important;
+    font-weight: 800 !important;
+    text-decoration: underline;
+  }
+  .day-date { color: var(--color-text-primary) !important; font-weight: 800 !important; }
+
+  // The lock glyph and the bulk-action buttons now sit on surface rather than
+  // on the band, so the glyph needs a surface-readable ink.
+  .col-lock-icon { color: var(--color-text-secondary); }
+}
+
+// Body cells — the rail continues down the column. Each row state keeps its
+// own base colour so striping and hover feedback survive the highlight.
+.user-row td.col-today {
+  background: color-mix(in srgb, var(--color-primary-ink) 5%, var(--color-surface));
+  box-shadow: inset 2px 0 0 $today-rail, inset -2px 0 0 $today-rail;
+}
+
+.user-row.row-alt td.col-today {
+  background: color-mix(in srgb, var(--color-primary-ink) 5%, var(--color-primary-subtle));
+}
+
+// .user-row:hover td is !important, so this has to be too. It still wins on
+// specificity, which is what keeps hover visible inside the Today column.
+.user-row:hover td.col-today {
+  background: color-mix(in srgb, var(--color-primary-ink) 5%, var(--color-info-bg)) !important;
 }
 
 .col-lock-icon {
@@ -636,9 +663,14 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
   }
 
-  // Today glow
+  // Today ring. --color-primary-ink, not --color-primary: on a dark surface
+  // --color-primary reached only 2.65:1 against the cell's background, under
+  // the 3:1 floor WCAG 1.4.11 asks of a non-text indicator. Ink is 6.4:1 or
+  // better in all five themes. The 2px offset keeps the ring on the column
+  // background rather than on the status fill, so it stays legible whatever
+  // the cell is marked as.
   &.today-glow:not(.cell-future) {
-    outline: 2.5px solid var(--primary-color, var(--color-primary-ink));
+    outline: 2.5px solid var(--color-primary-ink);
     outline-offset: 2px;
   }
 }
@@ -841,6 +873,18 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
 
   .user-row td  { padding: 0.3em 0.15em; }
   .totals-row td { padding: 0.4em 0.15em; }
+
+  // 31 narrow columns take a proportionally thinner rail — width only, same
+  // colour, so the contrast figures above still hold.
+  .header-row th.col-today {
+    box-shadow:
+      inset  1.5px 0      0 $today-rail,
+      inset -1.5px 0      0 $today-rail,
+      inset  0     -2.5px 0 $today-rail;
+  }
+  .user-row td.col-today {
+    box-shadow: inset 1.5px 0 0 $today-rail, inset -1.5px 0 0 $today-rail;
+  }
 }
 
 // ── Fortnight selector toggle ─────────────────────────────────────
