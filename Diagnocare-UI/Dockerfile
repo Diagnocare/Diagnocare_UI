@@ -14,11 +14,22 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 # Install dependencies against the lockfile first (better layer caching).
+# tools/ comes with them because package.json has a postinstall that runs
+# tools/ensure-tutorial.js: without it npm ci dies on MODULE_NOT_FOUND here,
+# one layer before COPY . would have brought the file in.
 COPY package.json package-lock.json ./
+COPY tools ./tools
 RUN npm ci
 
-# Build the production bundle. outputPath (angular.json) = dist/diagnocareUI-app
 COPY . ./
+
+# Put the product walkthrough in the bundle. It is gitignored - built by the
+# Tutorial video workflow and published to a release - so without this the
+# image ships an app whose tutorial page says the walkthrough has not been
+# added yet. It never fails the build: see tools/ensure-tutorial.js.
+RUN npm run ensure:tutorial
+
+# Build the production bundle. outputPath (angular.json) = dist/diagnocareUI-app
 RUN npm run build -- --configuration=production
 
 # ── Stage 2: serve via nginx ──────────────────────────────────────────────────
