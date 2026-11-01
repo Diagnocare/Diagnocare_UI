@@ -169,6 +169,7 @@ jobs:
       # re-running the whole job.
       - name: Keep the raw capture for inspection
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: tutorial-build-logs

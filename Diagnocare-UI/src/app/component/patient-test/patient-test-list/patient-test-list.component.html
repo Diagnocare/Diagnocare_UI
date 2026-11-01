@@ -198,14 +198,14 @@
         <strong *ngIf="!vm(test).cancelled">Next:</strong> {{ vm(test).nextText }}
       </p>
       <div class="ptl-actions">
-        <button class="dc-btn dc-btn--clear" type="button"
+        <button class="dc-btn dc-btn--add" type="button"
                 *ngIf="!vm(test).cancelled && hasSamplingLocation(test)"
                 (click)="printBarcode(test, $event)"
                 [disabled]="printingLabelFor === test.patient_Test_Id">
           <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
           {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print barcode' }}
         </button>
-        <button class="dc-btn dc-btn--clear" type="button"
+        <button class="dc-btn dc-btn--add" type="button"
                 *ngIf="!vm(test).cancelled && vm(test).paymentTone === 'due' && vm(test).next !== 'payment'"
                 (click)="openPaymentModal(test, $event)">
           <i class="fa fa-inr"></i> Take payment

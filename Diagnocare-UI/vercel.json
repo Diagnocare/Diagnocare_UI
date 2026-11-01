@@ -18,7 +18,11 @@
       "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     },
     {
-      "source": "/assets/:path((?!runtime-config\\.js).*)",
+      "source": "/assets/tutorial/:file*",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    },
+    {
+      "source": "/assets/:path((?!runtime-config\\.js|tutorial/).*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
     },
     {

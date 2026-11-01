@@ -10,6 +10,19 @@
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+/* THE SIDEBAR ITSELF NEVER SCROLLS.
+   ─────────────────────────────────
+   It is a viewport-tall flex column of three parts: the brand row, the menu
+   and the footer. Only the middle one scrolls — see .sh-nav. `overflow-y:
+   auto` here instead, which is what this rule used to say, carried the brand
+   row and the footer away with the menu, and those are the two parts that
+   most need to stay put: the footer holds "Show all sections", the way back
+   from a menu someone has folded shut, and on a 768px-tall screen a couple of
+   expanded sections were enough to scroll it out of reach.
+
+   `overflow: hidden` is the backstop: whatever the sections contain, the
+   frame stays exactly one viewport tall. The rail flyout is `position: fixed`
+   precisely so that it is not clipped by it. */
 .sh-sidebar {
   width: var(--sh-sidebar-w);
   flex-shrink: 0;
@@ -20,15 +33,18 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow-y: auto;
+  max-height: 100vh;
+  overflow: hidden;
   z-index: 60;
 }
-.sh-sidebar::-webkit-scrollbar { width: 6px; }
-.sh-sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 6px; }
 
 /* Brand and the rail toggle share a row, so narrowing the sidebar does not
    cost a whole row of height. */
+/* `flex: 0 0 auto` is what pins it to the top: first child of a column that
+   is exactly one viewport tall, neither growing nor shrinking, so a menu of
+   any length scrolls underneath it instead of moving it. */
 .sh-brand-row {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -83,7 +99,12 @@
 .sh-rail-btn:hover { background: var(--sh-sidebar-hover); color: var(--sh-sidebar-ink); }
 .sh-rail-btn:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
 
+/* Between the brand row and the menu, and part of the fixed head: a lock
+   notice that scrolls away is a notice nobody reads. It shortens the nav's
+   share of the column instead, which needs no arithmetic here — the nav's
+   height is simply whatever is left over. */
 .sh-expired {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -96,7 +117,39 @@
   font-weight: 600;
 }
 
-.sh-nav { padding: 8px 10px 16px; flex: 1; }
+/* ── The one scrolling region ──────────────────────────────────────────────
+   `min-height: 0` is the load-bearing line here, not `overflow-y`. A flex
+   child's default `min-height: auto` refuses to shrink below its content, so
+   with `flex: 1` alone a long menu — or two expanded sections — grew the
+   column past 100vh and pushed the footer off the bottom of the screen
+   instead of scrolling. With it, the nav takes exactly the room left between
+   the brand row and the footer, and scrolls inside that.
+
+   Note what is NOT here: a height. Nothing may hardcode one. How much room
+   is left over depends on the viewport, on whether the licence notice is
+   showing and on whether the footer is collapsed, and flexbox is already
+   measuring all three. Expanded sections and submenus live inside this box,
+   so they scroll with it and can never reach the footer. */
+.sh-nav {
+  padding: 8px 10px 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Reaching the end of the menu must not start scrolling the page behind
+     it; being dragged along reads as the sidebar having a scrollbar of the
+     whole page. */
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+/* A 6px thumb on the dark sidebar: present enough to grab, quiet enough not
+   to be read as a second page scrollbar. Absent entirely while the menu
+   fits, since it is `auto` and not `scroll`. */
+.sh-nav::-webkit-scrollbar { width: 6px; }
+.sh-nav::-webkit-scrollbar-track { background: transparent; }
+.sh-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 6px; }
+.sh-nav::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
 
 /* The section heading is the fold control, so it is a real <button>: focusable,
    Enter/Space activated, and announced with its expanded state. Reset the
@@ -207,13 +260,75 @@
 .sh-subnav-item.is-active .sh-subnav-icon { opacity: 1; }
 .sh-subnav-item.is-locked { opacity: 0.55; }
 
+/* ── Fixed footer ──────────────────────────────────────────────────────────
+   Never scrolls and never leaves the bottom of the sidebar: it is the last,
+   non-shrinking child of a column that is exactly one viewport tall, so no
+   length of menu can push it out of view — the menu runs out of room and
+   scrolls first.
+
+   Flex, not `position: absolute`. Its height is not a constant: the lab-id
+   row comes and goes, the collapse below changes it, and in the rail it is
+   one centred icon. Out of flow, every one of those would have to be fed
+   back to the nav as a reserved height; in flow, flexbox measures it. */
 .sh-sidebar-foot {
+  flex: 0 0 auto;
   padding: 12px 14px 16px;
   border-top: 1px solid var(--sh-sidebar-line);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+.sh-foot-items { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+/* ── The footer's own collapse ─────────────────────────────────────────────
+   A vertical fold of these rows and nothing else. It is NOT the rail button
+   in the brand row, which narrows the whole sidebar horizontally; the two
+   are separate controls in separate places and neither reads the other's
+   state. Kept quiet and chevron-only, like the section carets, so the fold
+   does not outweigh what it folds. */
+.sh-foot-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sh-sidebar-muted);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.sh-foot-toggle:hover { background: var(--sh-sidebar-hover); color: var(--sh-sidebar-ink); }
+.sh-foot-toggle:focus-visible { outline: 2px solid var(--sh-sidebar-ink); outline-offset: -2px; }
+.sh-foot-toggle > .fa { font-size: 10px; }
+
+/* Collapsed: three rows become one. The actions stay on screen as icon-only
+   tiles rather than disappearing — the point of the fold is to give the menu
+   back some height, not to hide the only route to Help, or to "Show all
+   sections", which is itself the way out of an over-folded menu. The tiles
+   keep their title= tooltips, so nothing is left unnamed. */
+.sh-sidebar-foot.is-collapsed {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 10px;
+}
+.sh-sidebar-foot.is-collapsed .sh-foot-items { flex-direction: row; align-items: center; gap: 6px; }
+.sh-sidebar-foot.is-collapsed .sh-nav-label,
+.sh-sidebar-foot.is-collapsed .sh-lab-id { display: none; }
+.sh-sidebar-foot.is-collapsed .sh-help {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+}
+.sh-sidebar-foot.is-collapsed .sh-foot-toggle { width: auto; margin-left: auto; min-height: 34px; }
 .sh-help {
   display: flex;
   align-items: center;
@@ -294,10 +409,26 @@
 .sh-sidebar.is-railed .sh-help { justify-content: center; padding: 0; gap: 0; }
 .sh-sidebar.is-railed .sh-expired { margin: 8px; padding: 8px; justify-content: center; }
 
+/* The footer in the rail is one centred icon, so there are no rows to lay out
+   sideways and the collapsed state is simply the chevron on its own. That
+   chevron is the compact representation the fold leaves behind: one click
+   brings the icon back, and the fold is still worth having because it is the
+   difference between two rows and one at the bottom of a 72px column. */
+.sh-sidebar.is-railed .sh-sidebar-foot { padding: 10px 8px 12px; }
+.sh-sidebar.is-railed .sh-foot-toggle { justify-content: center; padding: 0; }
+.sh-sidebar.is-railed .sh-sidebar-foot.is-collapsed {
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 8px 8px;
+}
+.sh-sidebar.is-railed .sh-sidebar-foot.is-collapsed .sh-foot-items { display: none; }
+.sh-sidebar.is-railed .sh-sidebar-foot.is-collapsed .sh-foot-toggle { width: 100%; margin-left: 0; }
+
 /* ── Rail flyout ──────────────────────────────────────────────────────────────
-   Fixed, not absolute: .sh-sidebar scrolls, and an absolutely positioned panel
-   would be clipped by that scroll container. `top` is set inline from the
-   section button's own position — see flyoutTop in the component.
+   Fixed, not absolute: .sh-nav scrolls and .sh-sidebar clips, so an absolutely
+   positioned panel hanging off a section would be cut off by one or the other.
+   `top` is set inline from the section button's own position — see flyoutTop
+   in the component.
    ──────────────────────────────────────────────────────────────────────────── */
 .sh-flyout {
   position: fixed;
@@ -582,6 +713,11 @@
     left: calc(-1 * var(--sh-sidebar-w));
     top: 0;
     transition: left 0.18s ease;
+    /* Dynamic viewport height, so a mobile browser's retracting address bar
+       does not leave the footer below the fold. Dropped wholesale by anything
+       that does not understand the unit, which then keeps the 100vh above. */
+    height: 100dvh;
+    max-height: 100dvh;
   }
   .sh-sidebar.is-open { left: 0; box-shadow: 8px 0 28px rgba(0, 0, 0, 0.3); }
 
@@ -613,6 +749,24 @@
   }
   .sh-sidebar.is-railed .sh-help { justify-content: flex-start; padding: 0 10px; gap: 10px; }
   .sh-sidebar.is-railed .sh-expired { margin: 12px 12px 0; padding: 10px 12px; justify-content: flex-start; }
+  /* …and the rail's footer with it, so the drawer's footer folds the way the
+     full sidebar's does. The footer's own fold is untouched here: it is not a
+     rail behaviour and it works at every width. */
+  .sh-sidebar.is-railed .sh-sidebar-foot { padding: 12px 14px 16px; }
+  .sh-sidebar.is-railed .sh-foot-toggle { justify-content: flex-end; padding: 0 10px; }
+  .sh-sidebar.is-railed .sh-sidebar-foot.is-collapsed {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px 10px;
+  }
+  .sh-sidebar.is-railed .sh-sidebar-foot.is-collapsed .sh-foot-items {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  .sh-sidebar.is-railed .sh-sidebar-foot.is-collapsed .sh-foot-toggle { width: auto; margin-left: auto; }
   .sh-scrim { display: block; position: fixed; inset: 0; background: rgba(10, 20, 18, 0.45); z-index: 55; }
   .sh-menu-btn { display: inline-flex; }
   .sh-topbar { padding: 10px 16px; flex-wrap: wrap; }
