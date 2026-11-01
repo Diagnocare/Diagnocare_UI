@@ -1,14 +1,16 @@
 <div class="page-container"><div class="contact-list-container">
     <div class="page-header">
-      <div>
-        <h2 style="margin:0;">Contact Address Book</h2>
+      <div class="header-left">
+        <h2>Contact Address Book</h2>
       </div>
-      <div style="display: flex; gap: 0.5rem;">
-      <button (click)="goBack()" class="btn btn-back"><i class="fa fa-arrow-left"></i> Back</button>
-      <button (click)="addContact()" class="btn btn-primary">
-        <i class="fa fa-plus"></i> Add Contact
-      </button>
-    </div>
+      <div class="header-actions">
+        <button class="btn btn-back" (click)="goBack()">
+          <i class="fa fa-arrow-left"></i> Back
+        </button>
+        <button class="btn btn-primary" (click)="addContact()">
+          <i class="fa fa-plus"></i> Add Contact
+        </button>
+      </div>
     </div>
 
     <!-- Every screen in the app is .page-header + .content-container: the

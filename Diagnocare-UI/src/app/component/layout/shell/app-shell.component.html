@@ -2,10 +2,23 @@
 
   <!-- ══ Sidebar ══════════════════════════════════════════════════════════════
        Every place this person may go, always visible, grouped by job. No hover
-       menus: nothing disappears when the mouse drifts. -->
+       menus: nothing disappears when the mouse drifts.
+
+       THREE PARTS, AND ONLY THE MIDDLE ONE SCROLLS:
+
+         <header class="sh-brand-row">  fixed — brand, role, rail toggle
+         <nav class="sh-nav">           scrolls — the whole menu
+         <footer class="sh-sidebar-foot"> fixed — show-all, help, lab id
+
+       The sidebar is a 100vh flex column with `overflow: hidden`; the nav is
+       the flex child with `min-height: 0; overflow-y: auto`. So the menu can
+       be any length, with any number of sections expanded, and the head and
+       the footer stay where they are. See the component's CSS — the reasoning
+       lives next to the declarations that carry it. -->
   <aside class="sh-sidebar" [class.is-open]="drawerOpen" [class.is-railed]="railed"
          aria-label="Main menu">
-    <div class="sh-brand-row">
+    <!-- ══ Fixed head ══ -->
+    <header class="sh-brand-row">
       <a class="sh-brand" routerLink="/pathology" title="Go to Home">
         <span class="sh-brand-logo"><i class="fa fa-heart-pulse" aria-hidden="true"></i></span>
         <span class="sh-brand-text">
@@ -23,13 +36,17 @@
               [title]="railed ? 'Widen the menu' : 'Narrow the menu to icons'">
         <i class="fa" [ngClass]="railed ? 'fa-angles-right' : 'fa-angles-left'" aria-hidden="true"></i>
       </button>
-    </div>
+    </header>
 
     <div class="sh-expired" *ngIf="isLicenceExpired">
       <i class="fa fa-lock" aria-hidden="true"></i>
       <span class="sh-nav-label">Licence expired — screens are locked</span>
     </div>
 
+    <!-- ══ The scrolling region ══════════════════════════════════════════════
+         Everything that can grow is in here, including every expanded section
+         and submenu, so growth turns into scrolling rather than pushing the
+         footer off the screen. -->
     <nav class="sh-nav">
       <div class="sh-section" *ngFor="let section of sections"
            [class.has-flyout]="flyoutId === section.id">
@@ -149,25 +166,55 @@
       </div>
     </nav>
 
-    <div class="sh-sidebar-foot">
-      <!-- Only offered once something is actually folded, so it is not a
-           permanent button that usually does nothing — and never in the rail,
-           where it would undo a fold state the rail does not render anyway.
-           Leaving it there would also put a route-dependent row back in the
-           collapsed sidebar: revealActive() clears folds as you navigate, so
-           the button would vanish from the footer the moment you opened a
-           page in the last folded section. -->
-      <button type="button" class="sh-help sh-expand-all" *ngIf="hasCollapsed && !railActive"
-              (click)="expandAll()" title="Show every menu section">
-        <i class="fa fa-list" aria-hidden="true"></i>
-        <span class="sh-nav-label">Show all sections</span>
+    <!-- ══ Fixed footer ══════════════════════════════════════════════════════
+         Outside the <nav>, so the menu cannot scroll it away, and the last
+         child of the sidebar column, so it cannot be pushed past the bottom
+         of the viewport.
+
+         It carries a fold of its own, which is a different thing from the
+         rail button up in the head: this one folds these rows down to a
+         single compact row of icons; that one narrows the entire sidebar.
+         Neither control writes the other's state — see footOpen in the
+         component. -->
+    <footer class="sh-sidebar-foot" [class.is-collapsed]="!footOpen">
+      <div class="sh-foot-items" id="shFootItems">
+        <!-- The two fold-everything buttons. Each is offered only while its own
+             action would change something, so neither is a permanent row that
+             usually does nothing: with the menu fully open only "Hide all" is
+             here, with it fully folded only "Show all" is, and in between both
+             are. Neither appears in the rail, which renders no fold state at
+             all — a button there would act on something invisible.
+
+             That they come and go is also why they are down here rather than
+             in the menu: revealActive() clears folds as you navigate, so the
+             row would otherwise appear and disappear inside the list being
+             navigated. -->
+        <button type="button" class="sh-help sh-expand-all" *ngIf="hasCollapsed && !railActive"
+                (click)="expandAll()" title="Show every menu section">
+          <i class="fa fa-list" aria-hidden="true"></i>
+          <span class="sh-nav-label">Show all sections</span>
+        </button>
+        <button type="button" class="sh-help sh-collapse-all" *ngIf="hasExpanded && !railActive"
+                (click)="collapseAll()" title="Fold every menu section shut">
+          <i class="fa fa-compress" aria-hidden="true"></i>
+          <span class="sh-nav-label">Hide all sections</span>
+        </button>
+        <a routerLink="/help" class="sh-help" title="Help &amp; support">
+          <i class="fa fa-life-ring" aria-hidden="true"></i>
+          <span class="sh-nav-label">Help &amp; support</span>
+        </a>
+        <span class="sh-lab-id" *ngIf="pathologyId">Lab ID · {{ pathologyId }}</span>
+      </div>
+
+      <!-- The fold control. Chevron only, pointing the way the rows will go,
+           matching the section carets just above it. -->
+      <button type="button" class="sh-foot-toggle" (click)="toggleFoot()"
+              [attr.aria-expanded]="footOpen" aria-controls="shFootItems"
+              [attr.aria-label]="footOpen ? 'Collapse the footer' : 'Expand the footer'"
+              [title]="footOpen ? 'Collapse the footer' : 'Expand the footer'">
+        <i class="fa" [ngClass]="footOpen ? 'fa-chevron-down' : 'fa-chevron-up'" aria-hidden="true"></i>
       </button>
-      <a routerLink="/help" class="sh-help" title="Help &amp; support">
-        <i class="fa fa-life-ring" aria-hidden="true"></i>
-        <span class="sh-nav-label">Help &amp; support</span>
-      </a>
-      <span class="sh-lab-id" *ngIf="pathologyId">Lab ID · {{ pathologyId }}</span>
-    </div>
+    </footer>
   </aside>
 
   <div class="sh-scrim" *ngIf="drawerOpen" (click)="drawerOpen = false" aria-hidden="true"></div>
