@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, tap, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { LoginService }       from '../../services/loginServices/login.service';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { TokenService }       from './token.service';
@@ -22,8 +22,11 @@ import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
  *  In both cases:
  *    a. PIN set      — show PIN modal. Correct PIN → refresh + retry.
  *                      Wrong × 3 or cancel → force logout.
- *    b. No PIN set   — show "Set Up a PIN" modal. "Go to Settings" → refresh
- *                      token once + navigate to /settings. "Log Out" → logout.
+ *    b. No PIN set   — show "Set Up a PIN" modal. A missing PIN is a setup
+ *                      state, NOT an auth failure, so "Go to Settings" keeps
+ *                      the session and navigates to /settings?setupPin=1
+ *                      (token refresh is best-effort only — a failure must not
+ *                      log the user out). Only "Log Out" ends the session.
  *
  *  Concurrent requests that all hit the expired-token check simultaneously are
  *  deduplicated by PinModalService — the modal opens exactly once and all
@@ -83,6 +86,42 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
       })
     );
 
+  // ── Helper: are we on (or navigating to) the PIN-setup page? ──────────────
+  // router.navigate() resolves asynchronously, so a request fired in the gap
+  // between "Go to Settings" and the URL actually changing would still see the
+  // old route.  Prefer the in-flight navigation target when there is one, so
+  // that gap cannot re-open the modal.  The optional call keeps this working
+  // with a plain Router stub in tests.
+  const isOnPinSetupPage = () => {
+    const pending = router.getCurrentNavigation?.()?.finalUrl?.toString();
+    const url = pending ?? router.url;
+    return url.split('?')[0].startsWith('/settings');
+  };
+
+  // ── Helper: "Go to Settings" → PIN setup, session preserved ───────────────
+  // Deliberately does NOT go through refreshAndRetry(): that helper calls
+  // clearAuth() + navigate('/login') when the refresh is rejected, which logged
+  // the user out just for not having a PIN yet.  The setup modal only ever
+  // appears once the token has expired, and the API refuses to refresh an
+  // expired token unless a grace buffer is configured, so that failure was the
+  // normal case — "Go to Settings" logged you out almost every time.
+  //
+  // Here instead:
+  //   • navigate to PIN setup FIRST, so the user always lands there;
+  //   • refresh only as a best effort, so the Settings page can load its data;
+  //   • swallow a refresh failure — the PIN is stored client-side, so it can
+  //     still be configured, and the session is left exactly as it was.
+  const goToPinSetup = () => {
+    pinModalService.beginPinSetup();
+    router.navigate(['/settings'], { queryParams: { setupPin: '1' } });
+    return loginSvc.refreshToken().pipe(
+      switchMap(() => next(withBearer(req))),
+      catchError(() => throwError(
+        () => new Error('PIN not set up yet — navigated to Settings, session kept'),
+      )),
+    );
+  };
+
   // ── Helper: PIN gate → refresh → retry ────────────────────────────────────
   // Used by BOTH the proactive check and the reactive 401 path so neither
   // path can bypass PIN verification.
@@ -98,14 +137,30 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
         }),
       );
     } else {
+      // ── No PIN configured ───────────────────────────────────────────────
+      // A missing PIN is a SETUP state, never an authentication failure, so
+      // nothing in this branch may clear the token, the user state or the
+      // session — except the explicit "Log Out" choice below.
+
+      // Already heading to / sitting on the PIN-setup page: the page's own API
+      // calls must not re-open the modal (infinite loop) and must not end the
+      // session.  Fail just this request and keep the user signed in.
+      if (pinModalService.isPinSetupPending) {
+        if (isOnPinSetupPage()) {
+          return throwError(() => new Error('PIN setup in progress — prompt suppressed, session kept'));
+        }
+        // They navigated away without setting a PIN — drop the flag so the
+        // normal prompt comes back.
+        pinModalService.endPinSetup();
+      }
+
       return pinModalService.requestPinSetup().pipe(
         switchMap(goToSettings => {
-          if (goToSettings) {
-            return refreshAndRetry().pipe(tap(() => router.navigate(['/settings'])));
-          }
+          if (goToSettings) return goToPinSetup();
+          // Only an explicit "Log Out" ends the session.
           loginSvc.logout().subscribe();
           router.navigate(['/login'], { queryParams: { reason: 'no_pin' } });
-          return throwError(() => new Error('No PIN — redirecting to login'));
+          return throwError(() => new Error('No PIN — user chose to log out'));
         }),
       );
     }

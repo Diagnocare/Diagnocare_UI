@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonService } from 'src/app/shared/common.service';
 import { jwtDecode } from 'jwt-decode';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +14,7 @@ import { SetupMfaComponent } from '../setup-mfa/setup-mfa.component';
 import { SetupFingerprintComponent } from '../setup-fingerprint/setup-fingerprint.component';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
 import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
+import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 
 @Component({
   selector: 'app-settings',
@@ -52,6 +53,8 @@ export class SettingsComponent implements OnInit {
   // ── Session PIN ──────────────────────────────────────────────────────────
   hasPinSet = false;
   pinMode: 'none' | 'set' | 'change' | 'remove' = 'none';
+  /** True when the user was sent here by the "Set Up a PIN" modal (?setupPin=1). */
+  cameForPinSetup = false;
 
   // ── MFA dialog (reused OtpMfaDialogComponent) ────────────────────────────
   showMfaDialog = false;
@@ -105,7 +108,9 @@ export class SettingsComponent implements OnInit {
     private themeService: ThemeService,
     private pinService:   PinService,
     private router:       Router,
+    private route:        ActivatedRoute,
     private fingerprint:  FingerprintService,
+    private pinModalService: PinModalService,
   ) {
     const token = this.common.getAccessToken();
     if (token) {
@@ -116,9 +121,24 @@ export class SettingsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.headerService.getUserDetails(this.userName).subscribe((data: any) => {
-      this.user = data;
-      this.selectedAuthType = data.loginType;
+    // Read this FIRST: the handlers below branch on it.
+    this.cameForPinSetup = this.route.snapshot.queryParamMap.get('setupPin') === '1';
+
+    // The PIN-setup entry point can reach this page with an already-expired
+    // token (the whole point is that the user has no PIN to renew it with), so
+    // this call may legitimately fail.  Handle it instead of letting it surface
+    // as an unhandled error: the Session PIN card is stored client-side and
+    // still works, which is what the user came here for.
+    this.headerService.getUserDetails(this.userName).subscribe({
+      next: (data: any) => {
+        this.user = data;
+        this.selectedAuthType = data.loginType;
+      },
+      error: () => {
+        if (!this.cameForPinSetup) {
+          this.errorMsg = 'Could not load your profile details. Please try again.';
+        }
+      },
     });
 
     // Load MFA status so the "Authenticator App" login-method option can be
@@ -140,6 +160,17 @@ export class SettingsComponent implements OnInit {
     }
 
     this.hasPinSet = this.pinService.hasPin(this.userName);
+
+    // Arrived from the "Set Up a PIN" modal (?setupPin=1): highlight the
+    // Session PIN card and scroll to it so the user lands on the thing they
+    // were sent here to do.  The session is deliberately left untouched —
+    // a missing PIN is a setup state, not an authentication failure.
+    if (this.cameForPinSetup && !this.hasPinSet) {
+      setTimeout(() => {
+        document.getElementById('session-pin-card')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
   }
 
   setTheme(theme: Theme): void {
@@ -304,6 +335,9 @@ export class SettingsComponent implements OnInit {
     this.hasPinSet  = true;
     this.pinMode    = 'none';
     this.pinSaving  = false;
+    // The setup journey is complete — allow the PIN modal to prompt normally again.
+    this.pinModalService.endPinSetup();
+    this.cameForPinSetup = false;
     this.pinSuccess = 'PIN set successfully. It will be used for session re-authentication.';
     setTimeout(() => this.pinSuccess = '', 5000);
   }

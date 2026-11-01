@@ -40,7 +40,7 @@
   <!-- ══════════════════════════════════════
        SECTION: SESSION PIN
   ══════════════════════════════════════ -->
-  <div class="acct-card">
+  <div class="acct-card" id="session-pin-card">
     <div class="acct-card-header">
       <i class="fa fa-lock"></i>
       <div>
@@ -53,6 +53,16 @@
     </div>
 
     <div class="acct-card-body">
+
+      <!-- Sent here by the "Set Up a PIN" session modal. You are still signed in. -->
+      <div class="hint-row hint-row--pin-setup" *ngIf="cameForPinSetup && !hasPinSet">
+        <i class="fa fa-shield"></i>
+        <span>
+          <strong>Set up your Session PIN to continue.</strong>
+          You're still signed in — set a PIN here and you'll be able to renew your
+          session with it instead of logging in again.
+        </span>
+      </div>
 
       <!-- Status row -->
       <div class="current-value-row" *ngIf="pinMode === 'none'">

@@ -16,6 +16,8 @@ import { of, throwError } from 'rxjs';
 import { AuthInterceptor } from './auth.interceptor';
 import { TokenService } from './token.service';
 import { LoginService } from 'src/app/services/loginServices/login.service';
+import { PinService } from 'src/app/services/pinServices/pin.service';
+import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 import { controllerEndpoints } from 'src/app/constant/constants';
 
 describe('AuthInterceptor', () => {
@@ -24,12 +26,26 @@ describe('AuthInterceptor', () => {
   let tokenService: TokenService;
   let loginService: jasmine.SpyObj<LoginService>;
   let router: jasmine.SpyObj<Router>;
+  let pinService: PinService;
+  let pinModalService: PinModalService;
 
   const VALID_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwiZXhwIjo5OTk5OTk5OTk5fQ.fakesig';
+  // exp = 1000000000 (Sept 2001) — always expired. sub = 'user'.
+  const EXPIRED_TOKEN =
+    'eyJhbGciOiJIUzI1NiJ9.' +
+    'eyJzdWIiOiJ1c2VyIiwiZXhwIjoxMDAwMDAwMDAwfQ.' +
+    'fakesig';
+  /** getUserId() reads the `sub` claim of the tokens above. */
+  const USER_ID = 'user';
+  const API_URL = '/api/Patient/SearchPatients';
 
   beforeEach(() => {
-    const loginSpy   = jasmine.createSpyObj('LoginService',   ['refreshToken']);
-    const routerSpy  = jasmine.createSpyObj('Router', ['navigate'], { url: '/dashboard' });
+    const loginSpy   = jasmine.createSpyObj('LoginService',   ['refreshToken', 'logout']);
+    loginSpy.logout.and.returnValue(of(undefined));
+    // `url` is assigned (not passed as a createSpyObj property) so individual
+    // tests can move the "current route" — the no-PIN path branches on it.
+    const routerSpy  = jasmine.createSpyObj('Router', ['navigate']);
+    routerSpy.url = '/dashboard';
 
     TestBed.configureTestingModule({
       providers: [
@@ -46,14 +62,26 @@ describe('AuthInterceptor', () => {
     tokenService = TestBed.inject(TokenService);
     loginService = TestBed.inject(LoginService) as jasmine.SpyObj<LoginService>;
     router       = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    pinService      = TestBed.inject(PinService);
+    pinModalService = TestBed.inject(PinModalService);
 
     sessionStorage.clear();
+    localStorage.clear();   // PIN hashes live in localStorage
   });
 
   afterEach(() => {
     httpMock.verify();
+    pinModalService.endPinSetup();
     sessionStorage.clear();
+    localStorage.clear();
   });
+
+  /** True when the interceptor sent the user to the login page. */
+  const navigatedToLogin = () =>
+    router.navigate.calls.allArgs().some(args => {
+      const commands = args[0] as unknown[];
+      return Array.isArray(commands) && commands[0] === '/login';
+    });
 
   // ── Bearer token attachment ──────────────────────────────────────────────
 
@@ -103,61 +131,140 @@ describe('AuthInterceptor', () => {
 
   // ── 401 retry ────────────────────────────────────────────────────────────
 
-  it('calls refreshToken and retries request on 401', () => {
+  // Every refresh is PIN-gated, so these tests give the user a PIN and then
+  // stand in for PinModalComponent by resolving the modal.
+
+  it('calls refreshToken and retries request on 401', async () => {
+    await pinService.setPin(USER_ID, '1234');
     tokenService.setToken(VALID_TOKEN);
-    const NEW_TOKEN = 'new.valid.token';
 
-    loginService.refreshToken.and.returnValue(of({ token: NEW_TOKEN, success: true }) as any);
-    tokenService.setToken(NEW_TOKEN); // simulate what refreshToken does
+    // Simulate what refreshToken does: store a freshly issued (still decodable)
+    // token. It must stay a real JWT — getUserId() reads its `sub` to find the PIN.
+    loginService.refreshToken.and.callFake(() => {
+      tokenService.setToken(VALID_TOKEN);
+      return of({ token: VALID_TOKEN, success: true }) as any;
+    });
 
-    let responseData: any;
-    httpClient.get('/api/Patient/SearchPatients').subscribe(d => (responseData = d));
+    httpClient.get(API_URL).subscribe({ error: () => {} });
 
     // First request returns 401
-    const firstReq = httpMock.expectOne('/api/Patient/SearchPatients');
+    const firstReq = httpMock.expectOne(API_URL);
     firstReq.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
+    // The PIN modal is now open — the correct PIN was entered.
+    pinModalService.resolve(true);
+
     // After refresh, the retry goes out
-    const retryReq = httpMock.expectOne('/api/Patient/SearchPatients');
+    const retryReq = httpMock.expectOne(API_URL);
     retryReq.flush([{ patientId: 'Pat1001' }]);
 
     expect(loginService.refreshToken).toHaveBeenCalledTimes(1);
   });
 
-  it('redirects to /login when refresh fails on 401', () => {
+  it('redirects to /login when refresh fails on 401', async () => {
+    await pinService.setPin(USER_ID, '1234');
     tokenService.setToken(VALID_TOKEN);
     loginService.refreshToken.and.returnValue(throwError(() => new Error('refresh failed')));
 
-    httpClient.get('/api/Patient/SearchPatients').subscribe({ error: () => {} });
+    httpClient.get(API_URL).subscribe({ error: () => {} });
 
-    const req = httpMock.expectOne('/api/Patient/SearchPatients');
+    const req = httpMock.expectOne(API_URL);
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    pinModalService.resolve(true);   // correct PIN, but the refresh itself fails
 
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
   // ── Proactive expiry check ────────────────────────────────────────────────
 
-  it('refreshes token proactively when stored token is already expired', () => {
-    // Expired token: exp = 1000000000 (Sept 2001)
-    const EXPIRED =
-      'eyJhbGciOiJIUzI1NiJ9.' +
-      'eyJzdWIiOiJ1c2VyIiwiZXhwIjoxMDAwMDAwMDAwfQ.' +
-      'fakesig';
-    tokenService.setToken(EXPIRED);
+  it('refreshes token proactively when stored token is already expired', async () => {
+    await pinService.setPin(USER_ID, '1234');
+    tokenService.setToken(EXPIRED_TOKEN);
 
-    const REFRESHED = VALID_TOKEN;
     loginService.refreshToken.and.callFake(() => {
-      tokenService.setToken(REFRESHED);
-      return of({ token: REFRESHED, success: true }) as any;
+      tokenService.setToken(VALID_TOKEN);
+      return of({ token: VALID_TOKEN, success: true }) as any;
     });
 
-    httpClient.get('/api/Patient/SearchPatients').subscribe({ error: () => {} });
+    httpClient.get(API_URL).subscribe({ error: () => {} });
+
+    pinModalService.resolve(true);   // PIN entered correctly
 
     // The retry after proactive refresh
-    const req = httpMock.expectOne('/api/Patient/SearchPatients');
+    const req = httpMock.expectOne(API_URL);
     req.flush([]);
 
     expect(loginService.refreshToken).toHaveBeenCalledTimes(1);
+  });
+
+  // ── No PIN configured: "Go to Settings" must NEVER log the user out ──────
+  // A missing PIN is a setup state, not an authentication failure. Regression
+  // guard: this path used to run through refreshAndRetry(), which cleared the
+  // session and redirected to /login whenever the refresh was rejected — which
+  // is the normal case, since the modal only appears once the token has expired.
+
+  it('navigates to PIN setup and keeps the session when the refresh is rejected', () => {
+    tokenService.setToken(EXPIRED_TOKEN);   // no PIN set — setup modal path
+    loginService.refreshToken.and.returnValue(throwError(() => new Error('refresh denied')));
+
+    httpClient.get(API_URL).subscribe({ error: () => {} });
+
+    pinModalService.resolve(true);          // user clicked "Go to Settings"
+
+    expect(router.navigate).toHaveBeenCalledWith(['/settings'], { queryParams: { setupPin: '1' } });
+    expect(navigatedToLogin()).toBeFalse();
+    expect(loginService.logout).not.toHaveBeenCalled();
+    expect(tokenService.hasToken()).toBeTrue();   // session left intact
+  });
+
+  it('keeps the session when the refresh succeeds and retries the request', () => {
+    tokenService.setToken(EXPIRED_TOKEN);
+    loginService.refreshToken.and.callFake(() => {
+      tokenService.setToken(VALID_TOKEN);
+      return of({ token: VALID_TOKEN, success: true }) as any;
+    });
+
+    httpClient.get(API_URL).subscribe({ error: () => {} });
+
+    pinModalService.resolve(true);          // "Go to Settings"
+
+    const req = httpMock.expectOne(API_URL);
+    req.flush([]);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/settings'], { queryParams: { setupPin: '1' } });
+    expect(navigatedToLogin()).toBeFalse();
+    expect(tokenService.hasToken()).toBeTrue();
+  });
+
+  it('does not re-open the setup modal for requests made on the PIN setup page', () => {
+    tokenService.setToken(EXPIRED_TOKEN);
+    pinModalService.beginPinSetup();
+    (router as any).url = '/settings?setupPin=1';   // user is already on the setup page
+
+    const openSpy = jasmine.createSpy('open');
+    const sub = pinModalService.open$.subscribe(openSpy);
+
+    let failed = false;
+    httpClient.get(API_URL).subscribe({ error: () => (failed = true) });
+
+    expect(openSpy).not.toHaveBeenCalled();  // no modal loop
+    expect(failed).toBeTrue();               // the request alone fails
+    expect(navigatedToLogin()).toBeFalse();
+    expect(loginService.logout).not.toHaveBeenCalled();
+    expect(tokenService.hasToken()).toBeTrue();
+
+    sub.unsubscribe();
+  });
+
+  it('logs out only when the user explicitly chooses "Log Out"', () => {
+    tokenService.setToken(EXPIRED_TOKEN);
+
+    httpClient.get(API_URL).subscribe({ error: () => {} });
+
+    pinModalService.resolve(false);          // user clicked "Log Out"
+
+    expect(loginService.logout).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { reason: 'no_pin' } });
   });
 });
