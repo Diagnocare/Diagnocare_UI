@@ -38,6 +38,22 @@
   </div>
 
   <!-- ══════════════════════════════════════
+       ACCOUNT DETAILS LOAD STATE
+       Shown instead of letting the cards render as though the signed-in user
+       simply has no details. The session is never ended on failure.
+  ══════════════════════════════════════ -->
+  <div *ngIf="profileLoading" class="msg msg-loading">
+    <i class="fa fa-spinner fa-spin"></i> Loading your profile…
+  </div>
+
+  <div *ngIf="!profileLoading && profileError" class="msg msg-error profile-error-row">
+    <span><i class="fa fa-exclamation-circle"></i> {{ profileError }}</span>
+    <button type="button" class="btn-link-sm" (click)="retryLoadAccountData()">
+      <i class="fa fa-redo"></i> Try again
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════
        SECTION: SESSION PIN
   ══════════════════════════════════════ -->
   <div class="acct-card" id="session-pin-card">
@@ -71,9 +87,15 @@
           <i class="fa" [class.fa-check-circle]="hasPinSet" [class.fa-times-circle]="!hasPinSet"></i>
           {{ hasPinSet ? 'PIN is set' : 'No PIN set' }}
         </span>
-        <button class="btn-link-sm" (click)="startSetPin()" *ngIf="!hasPinSet">
+        <!-- Setting a PIN is verified by OTP/TOTP, which needs the account's
+             id and contact details — so it waits for the profile to load. -->
+        <button class="btn-link-sm" (click)="startSetPin()" *ngIf="!hasPinSet"
+                [disabled]="!canSetPin">
           <i class="fa fa-plus"></i> Set PIN
         </button>
+        <span class="radio-hint" *ngIf="!hasPinSet && !canSetPin">
+          — {{ profileLoading ? 'loading your account details…' : 'account details unavailable, try again above' }}
+        </span>
         <button class="btn-link-sm" (click)="startChangePin()" *ngIf="hasPinSet">
           <i class="fa fa-pencil-alt"></i> Change
         </button>

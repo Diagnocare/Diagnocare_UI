@@ -16,6 +16,12 @@ import { FingerprintService } from 'src/app/services/loginServices/fingerprint.s
 import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 
+/**
+ * Shown when the account details cannot be fetched. Deliberately generic —
+ * backend exception text never reaches the user.
+ */
+const PROFILE_LOAD_ERROR = "We couldn't load your account details. Please try again.";
+
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
@@ -36,6 +42,12 @@ export class SettingsComponent implements OnInit {
   AuthType = AuthType;
   errorMsg:   string = '';
   successMsg: string = '';
+
+  // ── Profile load state ───────────────────────────────────────────────────
+  /** True while the signed-in user's account details are being fetched. */
+  profileLoading = false;
+  /** User-facing message when the fetch failed; '' when there is no error. */
+  profileError = '';
 
   /**
    * Whether the Authenticator App (TOTP MFA) is currently set up for this user.
@@ -112,32 +124,91 @@ export class SettingsComponent implements OnInit {
     private fingerprint:  FingerprintService,
     private pinModalService: PinModalService,
   ) {
+    this.readIdentityFromToken();
+  }
+
+  /**
+   * Resolves the signed-in user from the JWT — the app's single source of truth
+   * for identity (the same `sub` claim TokenService.getUserId() reads, and the
+   * same account the API derives from the Bearer token server-side).
+   *
+   * Called from the constructor AND again before each load: arriving from the
+   * "Set Up a PIN" modal renews the token on the way in, so the token held at
+   * construction time is not necessarily the one in play when the data loads.
+   * Never clears an already-resolved identity if the token is momentarily gone.
+   */
+  private readIdentityFromToken(): void {
     const token = this.common.getAccessToken();
-    if (token) {
-      const decoded = jwtDecode<any>(token || '');
+    if (!token) return;
+    try {
+      const decoded = jwtDecode<any>(token);
       this.pathology_Id = decoded.typ;
-      this.userName = decoded.sub;
+      this.userName     = decoded.sub;
+    } catch {
+      // Malformed token — keep whatever identity we already had.
     }
   }
 
   ngOnInit(): void {
-    // Read this FIRST: the handlers below branch on it.
+    // Read this FIRST: the load below branches on it.
     this.cameForPinSetup = this.route.snapshot.queryParamMap.get('setupPin') === '1';
 
-    // The PIN-setup entry point can reach this page with an already-expired
-    // token (the whole point is that the user has no PIN to renew it with), so
-    // this call may legitimately fail.  Handle it instead of letting it surface
-    // as an unhandled error: the Session PIN card is stored client-side and
-    // still works, which is what the user came here for.
+    if (this.userName) {
+      this.selectedTheme = this.themeService.getForUser(this.userName);
+    }
+
+    this.hasPinSet = this.pinService.hasPin(this.userName);
+
+    this.loadAccountData();
+
+    // Arrived from the "Set Up a PIN" modal (?setupPin=1): highlight the
+    // Session PIN card and scroll to it so the user lands on the thing they
+    // were sent here to do.  The session is deliberately left untouched —
+    // a missing PIN is a setup state, not an authentication failure.
+    if (this.cameForPinSetup && !this.hasPinSet) {
+      setTimeout(() => {
+        document.getElementById('session-pin-card')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }
+
+  /**
+   * Loads everything this page shows about the signed-in user: their profile
+   * (login type, and the id + contact details the PIN-setup MFA dialog needs),
+   * plus their MFA and fingerprint enrolment status.
+   *
+   * Uses the existing HeaderService.getUserDetails — the same call the Profile
+   * page makes. The server ignores the userName in the query string and derives
+   * the account from the Bearer token (SEC-010), so this always returns the
+   * caller's own profile.
+   *
+   * A failure here never touches the session: it shows a retryable message and
+   * leaves the Session PIN card working, since the PIN is stored client-side.
+   */
+  loadAccountData(): void {
+    // Re-resolve identity: the token may have been renewed on the way to this
+    // page, after the constructor ran.
+    this.readIdentityFromToken();
+
+    this.profileLoading = true;
+    this.profileError   = '';
+
     this.headerService.getUserDetails(this.userName).subscribe({
       next: (data: any) => {
+        this.profileLoading = false;
+        if (!data) {
+          this.profileError = PROFILE_LOAD_ERROR;
+          return;
+        }
+        // Assign only on success, so a failed reload never blanks out details
+        // that are already on screen.
         this.user = data;
-        this.selectedAuthType = data.loginType;
+        this.selectedAuthType = data.loginType ?? this.selectedAuthType;
       },
       error: () => {
-        if (!this.cameForPinSetup) {
-          this.errorMsg = 'Could not load your profile details. Please try again.';
-        }
+        this.profileLoading = false;
+        this.profileError   = PROFILE_LOAD_ERROR;
       },
     });
 
@@ -154,23 +225,29 @@ export class SettingsComponent implements OnInit {
       next: (status: any) => { this.isFingerprintEnabled = status?.isFingerprintEnabled === true; },
       error: () => { this.isFingerprintEnabled = false; },
     });
+  }
 
-    if (this.userName) {
-      this.selectedTheme = this.themeService.getForUser(this.userName);
-    }
+  /**
+   * "Try again" in the profile error banner. Re-issues the same requests and
+   * never touches the session — a failed load is not a sign-out.
+   *
+   * Deliberately does NOT call LoginService.refreshToken() to force a new token
+   * first: that method uses rawHttp (no interceptors), so renewing from a
+   * component would sidestep the auth interceptor's PIN gate — the same reason
+   * authGuard refuses to refresh silently. Token renewal stays with the
+   * interceptor.
+   */
+  retryLoadAccountData(): void {
+    this.loadAccountData();
+  }
 
-    this.hasPinSet = this.pinService.hasPin(this.userName);
-
-    // Arrived from the "Set Up a PIN" modal (?setupPin=1): highlight the
-    // Session PIN card and scroll to it so the user lands on the thing they
-    // were sent here to do.  The session is deliberately left untouched —
-    // a missing PIN is a setup state, not an authentication failure.
-    if (this.cameForPinSetup && !this.hasPinSet) {
-      setTimeout(() => {
-        document.getElementById('session-pin-card')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    }
+  /**
+   * PIN creation is gated by an OTP/TOTP check that needs the account's id and
+   * contact details, so it stays disabled until the profile has loaded. Without
+   * this the button opened a dialog that could only fail verification.
+   */
+  get canSetPin(): boolean {
+    return !this.profileLoading && !!this.user?.user_Id;
   }
 
   setTheme(theme: Theme): void {

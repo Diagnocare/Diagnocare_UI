@@ -107,18 +107,33 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   // normal case — "Go to Settings" logged you out almost every time.
   //
   // Here instead:
-  //   • navigate to PIN setup FIRST, so the user always lands there;
-  //   • refresh only as a best effort, so the Settings page can load its data;
-  //   • swallow a refresh failure — the PIN is stored client-side, so it can
-  //     still be configured, and the session is left exactly as it was.
+  //   • renew the token FIRST, then navigate, so the Settings page loads like
+  //     any other authenticated page;
+  //   • navigate even when the renewal is refused, so the user still reaches
+  //     PIN setup (the PIN is stored client-side, so it can still be saved);
+  //   • never clear auth state — the session is left exactly as it was.
+  //
+  // Ordering matters: SettingsComponent fetches the signed-in user's profile in
+  // ngOnInit. Navigating before the refresh resolved was a race between the
+  // lazy-loaded route chunk and the refresh round-trip — when the page won,
+  // its profile calls were made with the still-expired token, got suppressed
+  // below, and Settings rendered with no account data at all.
   const goToPinSetup = () => {
     pinModalService.beginPinSetup();
-    router.navigate(['/settings'], { queryParams: { setupPin: '1' } });
+    const openSettings = () => router.navigate(['/settings'], { queryParams: { setupPin: '1' } });
     return loginSvc.refreshToken().pipe(
-      switchMap(() => next(withBearer(req))),
-      catchError(() => throwError(
-        () => new Error('PIN not set up yet — navigated to Settings, session kept'),
-      )),
+      // catchError sits BEFORE switchMap so it only covers the refresh itself;
+      // a failure of the retried request below must propagate untouched.
+      catchError(() => {
+        openSettings();
+        return throwError(
+          () => new Error('PIN not set up yet — navigated to Settings, session kept'),
+        );
+      }),
+      switchMap(() => {
+        openSettings();
+        return next(withBearer(req));
+      }),
     );
   };
 

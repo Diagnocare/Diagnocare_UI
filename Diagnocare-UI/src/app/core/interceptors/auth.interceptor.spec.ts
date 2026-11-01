@@ -237,6 +237,47 @@ describe('AuthInterceptor', () => {
     expect(tokenService.hasToken()).toBeTrue();
   });
 
+  it('renews the token BEFORE navigating, so Settings can load the profile', () => {
+    tokenService.setToken(EXPIRED_TOKEN);
+
+    const order: string[] = [];
+    router.navigate.and.callFake(() => { order.push('navigate'); return Promise.resolve(true); });
+    loginService.refreshToken.and.callFake(() => {
+      order.push('refresh');
+      tokenService.setToken(VALID_TOKEN);
+      return of({ token: VALID_TOKEN, success: true }) as any;
+    });
+
+    httpClient.get(API_URL).subscribe({ error: () => {} });
+
+    pinModalService.resolve(true);          // "Go to Settings"
+
+    // Navigating first was a race with the lazy route chunk: Settings fetched
+    // the profile with the dead token and rendered empty.
+    expect(order).toEqual(['refresh', 'navigate']);
+    // The page therefore loads with a usable token.
+    expect(tokenService.isTokenExpired()).toBeFalse();
+
+    httpMock.expectOne(API_URL).flush([]);
+  });
+
+  it('lets the Settings profile request through once the token is valid', () => {
+    // State right after a successful "Go to Settings": setup still pending,
+    // user on the setup page, but the token has been renewed.
+    pinModalService.beginPinSetup();
+    (router as any).url = '/settings?setupPin=1';
+    tokenService.setToken(VALID_TOKEN);
+
+    let loaded: any = null;
+    httpClient.get('/api/Header/GetUserDetails?userName=user').subscribe(d => (loaded = d));
+
+    const req = httpMock.expectOne('/api/Header/GetUserDetails?userName=user');
+    expect(req.request.headers.get('Authorization')).toBe(`Bearer ${VALID_TOKEN}`);
+    req.flush({ user_Id: 7, email: 'kumar@example.com', contactPhone: 9999999999, loginType: 2 });
+
+    expect(loaded.email).toBe('kumar@example.com');   // profile data reaches the page
+  });
+
   it('does not re-open the setup modal for requests made on the PIN setup page', () => {
     tokenService.setToken(EXPIRED_TOKEN);
     pinModalService.beginPinSetup();
