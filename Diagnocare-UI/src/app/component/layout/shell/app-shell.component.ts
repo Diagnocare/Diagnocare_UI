@@ -267,7 +267,10 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     const a = this.access;
     const roleId = this.tokenRoleId();
     const isCollectionBoy = roleId === Role.Collection_Boy.id;
-    const isDoctor = roleId === Role.Doctor.id;
+    // The capability, not the role: a Super Admin who also practises gets the doctor's
+    // own queue link on top of everything Super Admin already gives them. Resolved in
+    // HeaderComponent.checkAdminPanelAccess() from the token's isdoc claim.
+    const isDoctor = this.isDoctor;
 
     this.canRegister = a.labOps;
     this.canFind = a.labOps || a.patientsLink;
@@ -276,6 +279,9 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     if (a.home)                    daily.push({ label: 'Home',             route: 'pathology',     icon: 'fa-house' });
     if (a.labOps && !isCollectionBoy)
                                    daily.push({ label: 'Work queue',       route: 'work',          icon: 'fa-list-check' });
+    // Not a duplicate of "Work queue" above, which opens the same page on a different
+    // queue: this is the doctor's own sign-off list. A doctor-capable Super Admin gets
+    // both, because they do both jobs.
     if (isDoctor)                  daily.push({ label: 'Reports to verify', route: 'work',         icon: 'fa-user-doctor', query: { queue: 'to-verify' } });
     if (a.labOps || a.patientsLink) daily.push({ label: 'Patients',        route: 'patients',      icon: 'fa-users' });
     if (a.labOps || a.patientTestsLink)

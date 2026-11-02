@@ -406,6 +406,14 @@
 }
 .hint-row i { flex-shrink: 0; }
 
+/* Variant shown at the TOP of the Session PIN card when the user was sent here
+   by the "Set Up a PIN" modal — spacing only, colours stay with .hint-row. */
+.hint-row--pin-setup {
+  margin-top: 0;
+  margin-bottom: 1em;
+  align-items: flex-start;
+}
+
 /* ══════════════════════════════════════════════════════
    THEME OVERRIDES
    All settings-specific overrides grouped by theme.

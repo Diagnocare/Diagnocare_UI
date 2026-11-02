@@ -10,7 +10,7 @@ import {
 } from '@angular/router';
 import { CommonService } from '../../shared/common.service';
 import { Role } from '../../constant/enums';
-import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
 import { Subscription, filter } from 'rxjs';
 import { LoginService } from 'src/app/services/loginServices/login.service';
 import { OtpChannel, VerifyAuthRequest } from 'src/app/models/auth/otp-request.dto';
@@ -19,6 +19,7 @@ import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { FormKeyboardDirective } from 'src/app/shared/directives/form-keyboard.directive';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
+import { authFeatures } from 'src/app/constant/auth.flags';
 
 @Component({
   selector: 'app-login',
@@ -330,9 +331,18 @@ export class LoginComponent implements OnInit, OnDestroy {
         // Use the user's preferred channel (loginType) to auto-select and send OTP
         const { method } = this.getPreferredMfaMethod(response?.loginType);
 
-        if (response?.loginType === 4) {
+        if (response?.loginType === 4 && authFeatures.fingerprint) {
           // Fingerprint (WebAuthn) — no code to type; run the browser ceremony directly.
           this.loginWithFingerprint(raw.userId);
+        } else if (response?.loginType === 4) {
+          // Fingerprint sign-in is switched off, but this account still has it
+          // stored as its preferred method. Fall through to the OTP dialog so the
+          // user can pick email / phone rather than wait for a prompt that will
+          // never appear.
+          this.isTotpMode     = false;
+          this.selectedMethod = null;
+          this.showOtpInput   = false;
+          this.openOtpDialog();
         } else if (response?.loginType === 3 && this.hasMfa) {
           // Authenticator App (TOTP) — no OTP to generate/send; open dialog in TOTP mode
           this.isTotpMode    = true;
@@ -630,10 +640,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   private resolveLandingRoute(): string {
     const returnUrl = this._route.snapshot.queryParams['returnUrl'];
     if (returnUrl) return returnUrl;
-    const role = this._tokenService.getUserRole();
-    return role !== null
-      ? (MODULE_ACCESS[role]?.landingRoute ?? DEFAULT_ACCESS.landingRoute)
-      : DEFAULT_ACCESS.landingRoute;
+    // The primary role decides where you land. Being additionally a doctor adds
+    // features, it does not move a Super Admin's front door.
+    return resolveModuleAccess(this._tokenService.getUserRole()).landingRoute;
   }
 
   /** Re-generates and re-sends the OTP via the same channel. */

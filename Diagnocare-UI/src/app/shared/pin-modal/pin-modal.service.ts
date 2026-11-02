@@ -46,6 +46,19 @@ export class PinModalService {
   private modalOpen = false;
 
   /**
+   * True from the moment the user chooses "Go to Settings" on the
+   * setup-required modal until a PIN is actually saved (or they navigate away
+   * from Settings without saving one).
+   *
+   * A missing PIN is a SETUP state, not an authentication failure, so this flag
+   * exists purely to stop the setup modal re-opening in a loop: the Settings
+   * page fires its own API calls on load, and with an expired token every one
+   * of them would otherwise re-trigger the same modal.  It must never be used
+   * as a reason to clear the session.
+   */
+  private pinSetupPending = false;
+
+  /**
    * PinModalComponent listens to this stream.
    * Null values (initial / post-resolve state) are filtered out so the
    * component only reacts to genuine open requests.
@@ -65,11 +78,31 @@ export class PinModalService {
 
   /**
    * Shows the "no PIN configured" modal (or returns the in-flight observable).
-   * Emits true  — user chose "Go to Settings" (caller should refresh + navigate).
+   * Emits true  — user chose "Go to Settings". The caller must navigate to PIN
+   *               setup and leave the session intact — it must NOT log out or
+   *               clear any auth state just because no PIN exists yet.
    * Emits false — user chose "Log Out" (caller should logout).
    */
   requestPinSetup(): Observable<boolean> {
     return this._open('setup-required');
+  }
+
+  /** True while the user is on their way to / inside Settings to configure a PIN. */
+  get isPinSetupPending(): boolean {
+    return this.pinSetupPending;
+  }
+
+  /**
+   * Marks the start of the PIN-setup journey ("Go to Settings" was clicked).
+   * Callers must keep the session intact — see the pinSetupPending docs.
+   */
+  beginPinSetup(): void {
+    this.pinSetupPending = true;
+  }
+
+  /** Clears the setup flag — a PIN was saved, or the user left the setup page. */
+  endPinSetup(): void {
+    this.pinSetupPending = false;
   }
 
   /**

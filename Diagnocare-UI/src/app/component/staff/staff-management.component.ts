@@ -11,8 +11,9 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
 import { SignaturePreviewModalComponent } from 'src/app/shared/signature-preview-modal/signature-preview-modal.component';
 
-import { MemberDto } from 'src/app/models/member/member.dto';
-import { Role }      from 'src/app/constant/enums';
+import { MemberDto }   from 'src/app/models/member/member.dto';
+import { Role }        from 'src/app/constant/enums';
+import { TokenService } from 'src/app/core/interceptors/token.service';
 import { isMemberActive, filterActiveMembers, filterInactiveMembers } from 'src/app/shared/member-utils';
 
 export type SectionType = 'user' | 'collection-boy' | 'doctor';
@@ -124,6 +125,7 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
     private router:        Router,
     private route:         ActivatedRoute,
     private toastr:        ToastrService,
+    private tokenService:  TokenService,
   ) {}
 
   ngOnInit(): void {
@@ -176,6 +178,23 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
 
   editStaff(type: 'doctor' | 'collection-boy', id: number): void {
     this.router.navigate(['/users/edit', id], { queryParams: { type } });
+  }
+
+  /**
+   * Opens a member in the form for the role they actually hold.
+   *
+   * The Doctors tab lists everyone who IS a doctor, which now includes members who are
+   * one by capability rather than by role — a Super Admin who also practises. Sending
+   * them to the Doctor form would be wrong twice over: it shows no "Also a Doctor"
+   * checkbox and no role select, and on save it submits typeUserId=Doctor, demoting the
+   * lab's owner to a doctor-only account. The row's own role decides the form.
+   */
+  editMember(m: MemberDto): void {
+    const type: SectionType =
+      m.typeUserId === Role.Doctor.id         ? 'doctor'
+      : m.typeUserId === Role.Collection_Boy.id ? 'collection-boy'
+      :                                           'user';
+    this.router.navigate(['/users/edit', m.id], { queryParams: { type } });
   }
 
   // ── Deactivate / Reactivate ───────────────────────────────────────────────
@@ -265,14 +284,57 @@ export class StaffManagementComponent implements OnInit, OnDestroy {
   /** Exposed to template for inactive row styling / badge. */
   readonly isMemberActive = isMemberActive;
 
+  /** Label for the "also a Doctor" badge — same wording as the Doctor role itself. */
+  readonly doctorLabel = Role.Doctor.label;
+
   getRoleLabel(typeUserId: number): string {
     return Object.values(Role).find(r => r.id === typeUserId)?.label ?? 'Unknown';
   }
 
-  /** Super Admin (typeUserId=4) and the lab-owner admin (last_Name='Admin') cannot be edited or deleted. */
-  isProtectedUser(u: MemberDto): boolean {
-    return u.typeUserId === 4 ||
-           (u.last_Name ?? '').toLowerCase() === 'admin';
+  /**
+   * True when this member also carries the Doctor capability on top of their role —
+   * the row then shows a second "Doctor" badge beside the role. Not shown for someone
+   * whose role already IS Doctor; that would just repeat the badge next to it.
+   */
+  isAlsoDoctor(u: MemberDto): boolean {
+    return !!u.isDoctor && u.typeUserId !== Role.Doctor.id;
+  }
+
+  /**
+   * The lab-owner admin (last_Name='Admin') is the account the lab was registered with.
+   * It is never edited or deactivated from here.
+   */
+  private isOwnerAccount(u: MemberDto): boolean {
+    return (u.last_Name ?? '').toLowerCase() === 'admin';
+  }
+
+  /**
+   * Whether this row offers Edit.
+   *
+   * A Super Admin row is editable by a Super Admin, and by nobody else. That is how the
+   * "Also a Doctor" capability is granted — a Super Admin who also practises needs their
+   * own record open to tick it, and there is no other Super Admin form in the app. The
+   * API agrees independently: only a Super Admin may update a Super Admin
+   * (RejectIfTargetOutranks), nobody may change their own role (RejectIfChangingOwnRole),
+   * and only a Super Admin may assign the role at all (RejectIfEscalating).
+   *
+   * Deactivation is a separate question — see `canDeactivate`.
+   */
+  canEdit(u: MemberDto): boolean {
+    if (this.isOwnerAccount(u)) return false;
+    if (u.typeUserId === Role.Super_Admin.id) return this.tokenService.isSuperAdmin();
+    return true;
+  }
+
+  /**
+   * Whether this row offers Deactivate / Reactivate.
+   *
+   * Unchanged by the above, deliberately: a Super Admin is still never deactivated from
+   * this screen. Deactivating the lab's owner is how a lab locks itself out of its own
+   * owner-level settings with nobody able to restore them, and the API refuses it too.
+   */
+  canDeactivate(u: MemberDto): boolean {
+    return !this.isOwnerAccount(u) && u.typeUserId !== Role.Super_Admin.id;
   }
 
   ngOnDestroy(): void { this.subs.unsubscribe(); }

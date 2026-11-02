@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
 import { Role, RoleId } from 'src/app/constant/enums';
-import { ModuleAccess, MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
+import { ModuleAccess, DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { CommonService } from 'src/app/shared/common.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -61,7 +61,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isAdmin = false;
   /** True only for Super Admin — hides owner-level items (payroll) from Admin. */
   isSuperAdmin = false;
-  /** Human-readable role label shown in the profile dropdown. */
+  /**
+   * True when this user is a doctor — by role, or as the additional capability a Super
+   * Admin can hold. Shows the doctor-specific nav ALONGSIDE whatever the role already
+   * grants; it never takes anything away. Gate doctor features on this, not on
+   * `getUserRole() === Role.Doctor.id`.
+   */
+  isDoctor = false;
+  /**
+   * Human-readable role label shown in the profile dropdown. Reads "Super Admin • Doctor"
+   * for someone who is both.
+   */
   roleLabel = '';
 
   mobileNavOpen = false;
@@ -235,14 +245,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
    */
   checkAdminPanelAccess(): void {
     const role = this.tokenService.getUserRole();
-    this.access      = role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
+    // The capability as the server issued it in the token — see TokenService.isDoctor.
+    this.isDoctor     = this.tokenService.isDoctor();
+    this.access       = resolveModuleAccess(role, this.isDoctor);
     this.isAdmin      = this.tokenService.isAdmin();
     this.isSuperAdmin = this.tokenService.isSuperAdmin();
 
     // Derive the readable role label directly from the Role config
-    this.roleLabel = role !== null
+    const primaryLabel = role !== null
       ? (Object.values(Role).find(r => r.id === role)?.label ?? '')
       : '';
+
+    // Someone who is both shows both — "Super Admin • Doctor". The primary role stays
+    // first and keeps its own wording; the capability is appended, never substituted, so
+    // nobody's badge changes identity just because they also practise. A plain Doctor
+    // already reads "Doctor", so it is not repeated.
+    this.roleLabel = this.isDoctor && role !== Role.Doctor.id && primaryLabel
+      ? `${primaryLabel} • ${Role.Doctor.label}`
+      : primaryLabel;
 
     // Filter the full User Panel item list down to what this role's ModuleAccess
     // flags allow. Was never computed, so the User Panel dropdown always rendered

@@ -26,6 +26,13 @@
       <i class="fa fa-spinner fa-spin"></i> Loading fingerprint status…
     </div>
 
+    <!-- Feature switched off (authFeatures.fingerprint) -->
+    <div *ngIf="state === 'disabled'" class="fp-note fp-note--warn">
+      <i class="fa fa-info-circle"></i>
+      <span>Fingerprint sign-in isn't available yet. Use your email, mobile, or the
+      Authenticator App as your login method.</span>
+    </div>
+
     <!-- Unsupported browser / device -->
     <div *ngIf="state === 'unsupported'" class="fp-note fp-note--warn">
       <i class="fa fa-exclamation-triangle"></i>
