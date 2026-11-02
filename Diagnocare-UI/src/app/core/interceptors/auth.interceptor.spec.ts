@@ -278,10 +278,40 @@ describe('AuthInterceptor', () => {
     expect(loaded.email).toBe('kumar@example.com');   // profile data reaches the page
   });
 
-  it('does not re-open the setup modal for requests made on the PIN setup page', () => {
+  it('renews silently (no modal) for requests made on the PIN setup page', () => {
     tokenService.setToken(EXPIRED_TOKEN);
     pinModalService.beginPinSetup();
     (router as any).url = '/settings?setupPin=1';   // user is already on the setup page
+    loginService.refreshToken.and.callFake(() => {
+      tokenService.setToken(VALID_TOKEN);
+      return of({ token: VALID_TOKEN, success: true }) as any;
+    });
+
+    const openSpy = jasmine.createSpy('open');
+    const sub = pinModalService.open$.subscribe(openSpy);
+
+    let loaded: any = null;
+    httpClient.get(API_URL).subscribe({ next: d => (loaded = d), error: () => {} });
+
+    // A request that raced ahead of the initial refresh still gets through,
+    // instead of being dropped and leaving Settings empty.
+    const req = httpMock.expectOne(API_URL);
+    expect(req.request.headers.get('Authorization')).toBe(`Bearer ${VALID_TOKEN}`);
+    req.flush([{ patientId: 'Pat1001' }]);
+
+    expect(openSpy).not.toHaveBeenCalled();  // no modal loop
+    expect(loaded).toEqual([{ patientId: 'Pat1001' }]);
+    expect(navigatedToLogin()).toBeFalse();
+    expect(loginService.logout).not.toHaveBeenCalled();
+
+    sub.unsubscribe();
+  });
+
+  it('fails only the request, keeping the session, when renewal is refused on the setup page', () => {
+    tokenService.setToken(EXPIRED_TOKEN);
+    pinModalService.beginPinSetup();
+    (router as any).url = '/settings?setupPin=1';
+    loginService.refreshToken.and.returnValue(throwError(() => new Error('refresh denied')));
 
     const openSpy = jasmine.createSpy('open');
     const sub = pinModalService.open$.subscribe(openSpy);
@@ -289,11 +319,11 @@ describe('AuthInterceptor', () => {
     let failed = false;
     httpClient.get(API_URL).subscribe({ error: () => (failed = true) });
 
-    expect(openSpy).not.toHaveBeenCalled();  // no modal loop
     expect(failed).toBeTrue();               // the request alone fails
+    expect(openSpy).not.toHaveBeenCalled();  // no modal loop
     expect(navigatedToLogin()).toBeFalse();
     expect(loginService.logout).not.toHaveBeenCalled();
-    expect(tokenService.hasToken()).toBeTrue();
+    expect(tokenService.hasToken()).toBeTrue();   // session still intact
 
     sub.unsubscribe();
   });

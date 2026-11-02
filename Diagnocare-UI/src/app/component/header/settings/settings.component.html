@@ -48,9 +48,17 @@
 
   <div *ngIf="!profileLoading && profileError" class="msg msg-error profile-error-row">
     <span><i class="fa fa-exclamation-circle"></i> {{ profileError }}</span>
-    <button type="button" class="btn-link-sm" (click)="retryLoadAccountData()">
-      <i class="fa fa-redo"></i> Try again
-    </button>
+    <span class="profile-error-actions">
+      <!-- Retrying only makes sense while the session can still be renewed. -->
+      <button type="button" class="btn-link-sm" *ngIf="!sessionCannotRenew"
+              (click)="retryLoadAccountData()">
+        <i class="fa fa-redo"></i> Try again
+      </button>
+      <button type="button" class="btn-link-sm" *ngIf="sessionCannotRenew"
+              (click)="signInAgain()">
+        <i class="fa fa-sign-in-alt"></i> Sign in again
+      </button>
+    </span>
   </div>
 
   <!-- ══════════════════════════════════════

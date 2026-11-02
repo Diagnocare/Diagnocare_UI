@@ -15,12 +15,21 @@ import { SetupFingerprintComponent } from '../setup-fingerprint/setup-fingerprin
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
 import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
+import { TokenService } from 'src/app/core/interceptors/token.service';
+import { LoginService } from 'src/app/services/loginServices/login.service';
 
 /**
  * Shown when the account details cannot be fetched. Deliberately generic —
  * backend exception text never reaches the user.
  */
 const PROFILE_LOAD_ERROR = "We couldn't load your account details. Please try again.";
+
+/**
+ * Shown when the session itself is past renewal, so retrying is pointless.
+ * The user is still signed in locally — only they decide to sign in again.
+ */
+const SESSION_EXPIRED_ERROR =
+  "Your session expired and couldn't be renewed, so your account details can't be loaded. Please sign in again.";
 
 @Component({
   selector: 'app-settings',
@@ -48,6 +57,8 @@ export class SettingsComponent implements OnInit {
   profileLoading = false;
   /** User-facing message when the fetch failed; '' when there is no error. */
   profileError = '';
+  /** True when the failure was an unrenewable session, so "Try again" can't help. */
+  sessionCannotRenew = false;
 
   /**
    * Whether the Authenticator App (TOTP MFA) is currently set up for this user.
@@ -123,6 +134,8 @@ export class SettingsComponent implements OnInit {
     private route:        ActivatedRoute,
     private fingerprint:  FingerprintService,
     private pinModalService: PinModalService,
+    private tokenService: TokenService,
+    private loginService: LoginService,
   ) {
     this.readIdentityFromToken();
   }
@@ -191,8 +204,9 @@ export class SettingsComponent implements OnInit {
     // page, after the constructor ran.
     this.readIdentityFromToken();
 
-    this.profileLoading = true;
-    this.profileError   = '';
+    this.profileLoading     = true;
+    this.profileError       = '';
+    this.sessionCannotRenew = false;
 
     this.headerService.getUserDetails(this.userName).subscribe({
       next: (data: any) => {
@@ -208,7 +222,14 @@ export class SettingsComponent implements OnInit {
       },
       error: () => {
         this.profileLoading = false;
-        this.profileError   = PROFILE_LOAD_ERROR;
+        // If the token is STILL expired after the attempt, the interceptor's
+        // renewal was refused (expired past the lab's grace buffer, or the
+        // session is no longer live). Retrying cannot help, so say so and offer
+        // a sign-in the user chooses — never an automatic logout.
+        this.sessionCannotRenew = this.tokenService.isTokenExpired();
+        this.profileError = this.sessionCannotRenew
+          ? SESSION_EXPIRED_ERROR
+          : PROFILE_LOAD_ERROR;
       },
     });
 
@@ -239,6 +260,17 @@ export class SettingsComponent implements OnInit {
    */
   retryLoadAccountData(): void {
     this.loadAccountData();
+  }
+
+  /**
+   * "Sign in again" — only offered when the session is past renewal, and only
+   * ever run because the user clicked it. This is the explicit sign-out the PIN
+   * flow permits; nothing on this page ends the session on its own.
+   */
+  signInAgain(): void {
+    this.pinModalService.endPinSetup();
+    this.loginService.logout().subscribe();
+    this.router.navigate(['/login'], { queryParams: { reason: 'session_expired' } });
   }
 
   /**

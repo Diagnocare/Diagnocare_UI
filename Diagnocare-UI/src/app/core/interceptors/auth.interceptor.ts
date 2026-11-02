@@ -157,12 +157,29 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
       // nothing in this branch may clear the token, the user state or the
       // session — except the explicit "Log Out" choice below.
 
-      // Already heading to / sitting on the PIN-setup page: the page's own API
+      // Already heading to / sitting on the PIN-setup page. The page's own API
       // calls must not re-open the modal (infinite loop) and must not end the
-      // session.  Fail just this request and keep the user signed in.
+      // session — but they must not be dropped on the floor either: that left
+      // Settings rendering with none of the signed-in user's details.
+      //
+      // So try to renew once more, silently. No modal: the user already chose
+      // "Go to Settings", and with no PIN there is no second factor to ask for,
+      // so there is nothing to verify. This is the same renewal goToPinSetup()
+      // performs on the way in; repeating it per request means a call that
+      // raced ahead of it — or a "Try again" after a transient failure — can
+      // still succeed. The server remains the authority: it still enforces the
+      // grace-buffer window and that the session id is live, so this grants no
+      // extra reach. A refusal fails THIS request only, and the session stays.
       if (pinModalService.isPinSetupPending) {
         if (isOnPinSetupPage()) {
-          return throwError(() => new Error('PIN setup in progress — prompt suppressed, session kept'));
+          return loginSvc.refreshToken().pipe(
+            // Before switchMap: covers the renewal only, so a genuine error
+            // from the retried request propagates as itself.
+            catchError(() => throwError(
+              () => new Error('Session expired and could not be renewed — PIN setup page'),
+            )),
+            switchMap(() => next(withBearer(req))),
+          );
         }
         // They navigated away without setting a PIN — drop the flag so the
         // normal prompt comes back.
