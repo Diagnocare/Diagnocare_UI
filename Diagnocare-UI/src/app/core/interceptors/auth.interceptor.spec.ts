@@ -19,8 +19,13 @@ import { LoginService } from 'src/app/services/loginServices/login.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
 import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 import { controllerEndpoints } from 'src/app/constant/constants';
+import { authFeatures } from 'src/app/constant/auth.flags';
 
 describe('AuthInterceptor', () => {
+  /** The shipped values, captured before any test flips them. */
+  const PIN_GATE_DEFAULT    = authFeatures.pinGatedRefresh;
+  const FINGERPRINT_DEFAULT = authFeatures.fingerprint;
+
   let httpClient: HttpClient;
   let httpMock: HttpTestingController;
   let tokenService: TokenService;
@@ -67,6 +72,12 @@ describe('AuthInterceptor', () => {
 
     sessionStorage.clear();
     localStorage.clear();   // PIN hashes live in localStorage
+
+    // The PIN gate currently ships OFF (see authFeatures.pinGatedRefresh). The
+    // tests in this describe cover the gated behaviour so it stays verified for
+    // when it is switched back on; the shipping path has its own describe at
+    // the bottom of the file, which turns the flag off again.
+    authFeatures.pinGatedRefresh = true;
   });
 
   afterEach(() => {
@@ -74,6 +85,8 @@ describe('AuthInterceptor', () => {
     pinModalService.endPinSetup();
     sessionStorage.clear();
     localStorage.clear();
+    authFeatures.pinGatedRefresh = PIN_GATE_DEFAULT;
+    authFeatures.fingerprint     = FINGERPRINT_DEFAULT;
   });
 
   /** True when the interceptor sent the user to the login page. */
@@ -337,5 +350,124 @@ describe('AuthInterceptor', () => {
 
     expect(loginService.logout).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { reason: 'no_pin' } });
+  });
+
+  // ── Shipping behaviour: PIN gate OFF ─────────────────────────────────────
+  // What the app actually does today. An expired token or a 401 is renewed and
+  // the request retried; a refused renewal ends the session and goes to /login.
+  // Nothing opens a modal, asks for a PIN, or detours through PIN setup — the
+  // whole point of switching the gate off, since with no PIN configured every
+  // expired token used to surface as "PIN not set up yet".
+
+  describe('with the PIN gate disabled', () => {
+
+    beforeEach(() => {
+      authFeatures.pinGatedRefresh = false;
+    });
+
+    /** True when the interceptor sent the user to PIN setup. */
+    const navigatedToPinSetup = () =>
+      router.navigate.calls.allArgs().some(args => {
+        const commands = args[0] as unknown[];
+        return Array.isArray(commands) && commands[0] === '/settings';
+      });
+
+    it('refreshes and retries on 401 without opening the PIN modal', () => {
+      tokenService.setToken(VALID_TOKEN);
+      loginService.refreshToken.and.callFake(() => {
+        tokenService.setToken(VALID_TOKEN);
+        return of({ token: VALID_TOKEN, success: true }) as any;
+      });
+
+      const openSpy = jasmine.createSpy('open');
+      const sub = pinModalService.open$.subscribe(openSpy);
+
+      let loaded: any = null;
+      httpClient.get(API_URL).subscribe({ next: d => (loaded = d), error: () => {} });
+
+      httpMock.expectOne(API_URL)
+        .flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+      httpMock.expectOne(API_URL).flush([{ patientId: 'Pat1001' }]);
+
+      expect(loginService.refreshToken).toHaveBeenCalledTimes(1);
+      expect(loaded).toEqual([{ patientId: 'Pat1001' }]);
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(navigatedToPinSetup()).toBeFalse();
+
+      sub.unsubscribe();
+    });
+
+    it('refreshes proactively for an expired token with no PIN prompt', () => {
+      tokenService.setToken(EXPIRED_TOKEN);
+      loginService.refreshToken.and.callFake(() => {
+        tokenService.setToken(VALID_TOKEN);
+        return of({ token: VALID_TOKEN, success: true }) as any;
+      });
+
+      const openSpy = jasmine.createSpy('open');
+      const sub = pinModalService.open$.subscribe(openSpy);
+
+      httpClient.get(API_URL).subscribe({ error: () => {} });
+
+      const req = httpMock.expectOne(API_URL);
+      expect(req.request.headers.get('Authorization')).toBe(`Bearer ${VALID_TOKEN}`);
+      req.flush([]);
+
+      expect(loginService.refreshToken).toHaveBeenCalledTimes(1);
+      expect(openSpy).not.toHaveBeenCalled();
+
+      sub.unsubscribe();
+    });
+
+    it('does not ask for a PIN even when the user has one configured', async () => {
+      await pinService.setPin(USER_ID, '1234');
+      tokenService.setToken(EXPIRED_TOKEN);
+      loginService.refreshToken.and.callFake(() => {
+        tokenService.setToken(VALID_TOKEN);
+        return of({ token: VALID_TOKEN, success: true }) as any;
+      });
+
+      const openSpy = jasmine.createSpy('open');
+      const sub = pinModalService.open$.subscribe(openSpy);
+
+      httpClient.get(API_URL).subscribe({ error: () => {} });
+
+      httpMock.expectOne(API_URL).flush([]);
+      expect(openSpy).not.toHaveBeenCalled();
+
+      sub.unsubscribe();
+    });
+
+    it('ends the session and redirects to /login when the refresh is refused', () => {
+      // The API declines to refresh a token expired past the lab's grace
+      // buffer. That is an expired session, so it ends as one — it is NOT
+      // reported as a missing PIN.
+      tokenService.setToken(EXPIRED_TOKEN);
+      loginService.refreshToken.and.returnValue(throwError(() => new Error('refresh denied')));
+
+      let errored = false;
+      httpClient.get(API_URL).subscribe({ error: () => (errored = true) });
+
+      expect(errored).toBeTrue();
+      expect(router.navigate).toHaveBeenCalledWith(['/login']);
+      expect(navigatedToPinSetup()).toBeFalse();
+      expect(tokenService.hasToken()).toBeFalse();
+    });
+
+    it('treats fingerprint endpoints as ordinary authenticated calls while fingerprint sign-in is off', () => {
+      authFeatures.fingerprint = false;
+      tokenService.setToken(VALID_TOKEN);
+      tokenService.setLoginTicket('ticket-123');
+
+      const fpUrl = `/${controllerEndpoints.fingerprint}assert/begin`;
+      httpClient.post(fpUrl, null).subscribe({ error: () => {} });
+
+      // No pre-login exemption: the URL gets no special meaning, so it carries
+      // the Bearer token like any other call and no login ticket.
+      const req = httpMock.expectOne(fpUrl);
+      expect(req.request.headers.has('X-Login-Ticket')).toBeFalse();
+      expect(req.request.headers.get('Authorization')).toBe(`Bearer ${VALID_TOKEN}`);
+      req.flush({});
+    });
   });
 });

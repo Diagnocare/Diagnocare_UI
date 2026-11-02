@@ -197,7 +197,12 @@
       </div>
 
       <div *ngIf="editingAuthType" class="edit-block">
-        <div *ngFor="let opt of authTypeOptions" class="radio-row">
+        <!-- Fingerprint is left out entirely, not just disabled, while fingerprint
+             sign-in is switched off — there is no enrolment panel below to send
+             the user to, so a greyed-out option with a hint would go nowhere. -->
+        <ng-container *ngFor="let opt of authTypeOptions">
+        <div class="radio-row"
+             *ngIf="opt.value !== AuthType.Fingerprint || fingerprintAuthEnabled">
           <input class="radio-input" type="radio" name="authType"
                  [id]="'authType_' + opt.value"
                  [value]="opt.value"
@@ -218,6 +223,7 @@
             </span>
           </label>
         </div>
+        </ng-container>
         <div class="action-row">
           <button class="dc-btn dc-btn--save dc-btn--sm" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
           <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
@@ -236,8 +242,12 @@
 
   <!-- ══════════════════════════════════════
        SECTION: FINGERPRINT (WebAuthn)
+       Not rendered while fingerprint sign-in is switched off, so the panel
+       never mounts and never calls FingerprintService.
   ══════════════════════════════════════ -->
-  <app-setup-fingerprint [embedded]="true" (statusChanged)="onFingerprintStatusChanged($event)"></app-setup-fingerprint>
+  <app-setup-fingerprint *ngIf="fingerprintAuthEnabled"
+                         [embedded]="true"
+                         (statusChanged)="onFingerprintStatusChanged($event)"></app-setup-fingerprint>
 
   <!-- ══════════════════════════════════════
        SECTION: APPEARANCE / THEME

@@ -92,6 +92,19 @@ export class ProfileComponent implements OnInit, OnDestroy {
     return match?.label ?? '';
   }
 
+  /** Label for the "also a Doctor" badge — same wording as the Doctor role itself. */
+  readonly doctorLabel = Role.Doctor.label;
+
+  /**
+   * True when this account carries the Doctor capability on top of its role — a Super
+   * Admin who also practises. Read from the record the server returned, not from the
+   * role, which still says Super Admin. Not shown for someone whose role already IS
+   * Doctor; that would simply repeat the badge next to it.
+   */
+  get isAlsoDoctor(): boolean {
+    return !!this.user?.isDoctor && this.user?.typeUserId !== Role.Doctor.id;
+  }
+
   // ── User / image ─────────────────────────────────────────────────────────────
 
   getUserDetails() {

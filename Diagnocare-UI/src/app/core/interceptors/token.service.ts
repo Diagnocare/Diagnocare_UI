@@ -366,20 +366,58 @@ export class TokenService {
 
   // ── Role helpers ───────────────────────────────────────────────────────────
 
-  getUserRole(): RoleId | null {
-    const payload = this.decodeToken();
-    if (!payload?.role) return null;
-
-    const numeric = parseInt(payload.role, 10);
+  /** Resolves one role claim value — numeric string, key name, or label — to a RoleId. */
+  private toRoleId(claim: string): RoleId | null {
+    const numeric = parseInt(claim, 10);
     if (!isNaN(numeric)) return numeric as RoleId;
 
-    const entry = Role[payload.role as keyof typeof Role];
+    const entry = Role[claim as keyof typeof Role];
     if (entry !== undefined) return entry.id;
 
-    const byLabel = ROLE_LABEL_TO_ID[payload.role];
+    const byLabel = ROLE_LABEL_TO_ID[claim];
     return byLabel !== undefined ? byLabel : null;
   }
 
+  /**
+   * The user's PRIMARY role — the one that decides their landing route, their role
+   * label and which ModuleAccess row applies.
+   *
+   * The `role` claim is a string for a single role and an array when the account holds
+   * more than one, which is the case for a Super Admin who also holds the Doctor
+   * capability. The API writes the primary role first, so the first element is it.
+   * The doctor capability is deliberately NOT folded in here: it is an addition to this
+   * role, not a replacement for it, and treating it as the primary role would change
+   * where a Super Admin lands and what their badge says.
+   */
+  getUserRole(): RoleId | null {
+    const claim = this.decodeToken()?.role;
+    const primary = Array.isArray(claim) ? claim[0] : claim;
+    return primary ? this.toRoleId(primary) : null;
+  }
+
+  /**
+   * Every role the token carries, primary first. Use this only where "any of the user's
+   * roles" is genuinely the question; for everything else `getUserRole()` is what you
+   * want, and for doctor features `isDoctor()`.
+   */
+  getUserRoles(): RoleId[] {
+    const claim = this.decodeToken()?.role;
+    const values = Array.isArray(claim) ? claim : claim ? [claim] : [];
+    return values
+      .map(v => this.toRoleId(v))
+      .filter((r): r is RoleId => r !== null);
+  }
+
+  /**
+   * Whether the user's PRIMARY role is one of `roles`.
+   *
+   * Deliberately the primary role only, not every role claim. Several callers use this
+   * to mean "this person is a plain Doctor, so skip something doctors cannot reach" —
+   * for example patient-test-list skips loading the patient's contact number, since the
+   * API denies Doctors patient records. A Super Admin who is also a doctor CAN read
+   * patient records, so widening this would have taken a working feature away from
+   * them. Ask `isDoctor()` when the question is about the capability.
+   */
   hasRole(...roles: RoleId[]): boolean {
     const current = this.getUserRole();
     return current !== null && roles.includes(current);
@@ -391,8 +429,25 @@ export class TokenService {
   /**
    * True only for Super Admin. Use this — not isAdmin() — to gate owner-level
    * surfaces: lab profile writes, payroll, licence and role assignment.
+   *
+   * Unaffected by the Doctor capability: a Super Admin who is also a doctor is still
+   * every bit a Super Admin.
    */
   isSuperAdmin(): boolean { return this.hasRole(Role.Super_Admin.id); }
+
+  /**
+   * True when this user is a doctor — either their role IS Doctor, or they are a Super
+   * Admin who additionally holds the Doctor capability.
+   *
+   * Gate doctor-specific UI on this, never on `hasRole(Role.Doctor.id)`, which is false
+   * for the second case. It is read from the `isdoc` claim, so the answer is the
+   * server's: the capability lives in the database and reaches the client only inside a
+   * signed token. Ticking the checkbox in the staff form does not change it — only a
+   * save followed by a freshly issued token does.
+   */
+  isDoctor(): boolean {
+    return this.decodeToken()?.isdoc === 'true';
+  }
 
   // ── Token lifecycle ────────────────────────────────────────────────────────
 

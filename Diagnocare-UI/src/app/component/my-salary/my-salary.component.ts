@@ -9,7 +9,7 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { SalaryService } from 'src/app/services/salaryServices/salary.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { NotificationService } from 'src/app/services/notificationServices/notification.service';
-import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
 import {
   SalaryPaymentDTO,
   UserSalarySummaryDTO,
@@ -92,8 +92,8 @@ export class MySalaryComponent implements OnInit, OnDestroy {
     // Everyone except Super Admin may view their own payments. (The Owner account —
     // last name "admin" — is excluded server-side.) Read the flag straight off
     // MODULE_ACCESS so this page and the "My Salary" nav entry stay in step.
-    const role = this.tokenSvc.getUserRole();
-    this.canView = (role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS).mySalary;
+    this.canView = resolveModuleAccess(
+      this.tokenSvc.getUserRole(), this.tokenSvc.isDoctor()).mySalary;
 
     if (this.canView) this.loadPayments();
 

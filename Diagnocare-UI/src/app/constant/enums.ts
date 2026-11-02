@@ -9,10 +9,11 @@ export enum AuthType {
 // IDs mirror the API's Enums/Roles.cs and are persisted in User.TypeUserId — never
 // renumber them. Labels are display-only and safe to change.
 //
-// The `User` role is the front desk. Its label reads "Receptionist" because the app
-// also has a "User Panel" nav section that EVERY non-admin role sees, and having a
-// role called "User" next to it made the two impossible to tell apart in support
-// conversations. The key stays `User` so no ID or token mapping shifts.
+// The front desk is `Receptionist` (id 1), matching Roles.Receptionist in the API.
+// It is NOT the API's Roles.User (7): that value is only TokenProvider's fallback for
+// an unrecognised TypeUserId, has no entry here on purpose, and is in no API policy.
+// A token whose role claim is "User" therefore maps to null in toRoleId() and is
+// treated as having no role at all, which is the intended degrade.
 export const Role = {
   Receptionist:   { id: 1 as const, label: 'Receptionist'   as const },
   Assistant:      { id: 2 as const, label: 'Lab Assistant'  as const },

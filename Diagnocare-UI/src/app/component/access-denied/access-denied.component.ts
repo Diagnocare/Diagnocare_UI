@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role } from 'src/app/constant/enums';
-import { MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
 
 /**
  * Shown when a signed-in user reaches something their role does not permit.
@@ -57,9 +57,7 @@ export class AccessDeniedComponent implements OnInit {
       ? (Object.values(Role).find(r => r.id === roleId)?.label ?? 'your account')
       : 'your account';
 
-    this.landingRoute = roleId !== null
-      ? (MODULE_ACCESS[roleId] ?? DEFAULT_ACCESS).landingRoute
-      : DEFAULT_ACCESS.landingRoute;
+    this.landingRoute = resolveModuleAccess(roleId).landingRoute;
   }
 
   /** Explanatory line under the heading, tailored to how we got here. */

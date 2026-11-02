@@ -113,7 +113,7 @@
 .msg-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid var(--color-success-border); }
 .msg-loading { background: var(--color-primary-subtle); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
 
-/* Error message with an inline retry action on the right. */
+/* Error message with an inline recovery action on the right. */
 .profile-error-row {
   display: flex;
   align-items: center;
@@ -121,6 +121,7 @@
   gap: 0.75em;
   flex-wrap: wrap;
 }
+.profile-error-actions { flex-shrink: 0; }
 
 /* ══════════════════════════════════════════════════════
    THEME OVERRIDES  (host-context beats component scope)

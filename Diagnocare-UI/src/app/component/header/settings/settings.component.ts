@@ -13,6 +13,7 @@ import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.com
 import { SetupMfaComponent } from '../setup-mfa/setup-mfa.component';
 import { SetupFingerprintComponent } from '../setup-fingerprint/setup-fingerprint.component';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
+import { authFeatures } from 'src/app/constant/auth.flags';
 import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
 import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -72,6 +73,13 @@ export class SettingsComponent implements OnInit {
    * Drives whether "Fingerprint" can be chosen as the preferred login method.
    */
   isFingerprintEnabled = false;
+
+  /**
+   * Whether fingerprint sign-in is switched on at all. While false the template
+   * hides the enrolment panel and the "Fingerprint" login-method option, so
+   * nothing on this page can reach FingerprintService.
+   */
+  readonly fingerprintAuthEnabled = authFeatures.fingerprint;
 
   // ── Session PIN ──────────────────────────────────────────────────────────
   hasPinSet = false;
@@ -241,11 +249,16 @@ export class SettingsComponent implements OnInit {
     });
 
     // Load fingerprint status so the "Fingerprint" login-method option can be
-    // disabled until at least one credential is registered.
-    this.fingerprint.getStatus(this.userName).subscribe({
-      next: (status: any) => { this.isFingerprintEnabled = status?.isFingerprintEnabled === true; },
-      error: () => { this.isFingerprintEnabled = false; },
-    });
+    // disabled until at least one credential is registered. Skipped entirely
+    // while fingerprint sign-in is switched off: the option is hidden either
+    // way, and this was the call whose error handler surfaced unrelated auth
+    // failures in the console as "[FingerprintService] …".
+    if (this.fingerprintAuthEnabled) {
+      this.fingerprint.getStatus(this.userName).subscribe({
+        next: (status: any) => { this.isFingerprintEnabled = status?.isFingerprintEnabled === true; },
+        error: () => { this.isFingerprintEnabled = false; },
+      });
+    }
   }
 
   /**

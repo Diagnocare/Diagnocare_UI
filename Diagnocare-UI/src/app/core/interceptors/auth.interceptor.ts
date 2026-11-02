@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { LoginService }       from '../../services/loginServices/login.service';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
+import { authFeatures }       from 'src/app/constant/auth.flags';
 import { TokenService }       from './token.service';
 import { PinService }         from '../../services/pinServices/pin.service';
 import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
@@ -15,11 +16,17 @@ import { PinModalService }    from '../../shared/pin-modal/pin-modal.service';
  *                                never by a secret shipped in this bundle.
  *  - All other endpoints      →  Bearer token from sessionStorage
  *
- * Token-refresh behaviour (both paths require PIN):
+ * Token-refresh behaviour:
  *  1. Proactive  — token is already expired client-side before the request fires.
  *  2. Reactive   — server returns 401 (clock skew, race condition, etc.).
  *
- *  In both cases:
+ *  In both cases the interceptor refreshes the token and retries the request;
+ *  if the refresh is refused, the session is cleared and the user is sent to
+ *  /login. That is the whole flow while `authFeatures.pinGatedRefresh` is off,
+ *  which it currently is — nothing below asks for a PIN, opens a modal, or
+ *  routes to PIN setup.
+ *
+ *  With `authFeatures.pinGatedRefresh` ON, both paths are PIN-gated instead:
  *    a. PIN set      — show PIN modal. Correct PIN → refresh + retry.
  *                      Wrong × 3 or cancel → force logout.
  *    b. No PIN set   — show "Set Up a PIN" modal. A missing PIN is a setup
@@ -55,7 +62,10 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   const isLogoutPath = req.url.includes(apiEndpoints.logout) ||
                        req.url.includes(apiEndpoints.clearSession);
   const isOtpPath = req.url.includes(controllerEndpoints.otp);
-  const isFpAssertPath = req.url.includes(controllerEndpoints.fingerprint + 'assert');
+  // Only recognised while fingerprint sign-in is enabled; with it off no such
+  // request is ever made, and this interceptor gives the URL no special meaning.
+  const isFpAssertPath = authFeatures.fingerprint &&
+                         req.url.includes(controllerEndpoints.fingerprint + 'assert');
   const isPreLogin = (isLoginPath || isOtpPath || isFpAssertPath) && !isLogoutPath;
   if (isPreLogin) {
     const ticket = (isOtpPath || isFpAssertPath) ? tokenSvc.getLoginTicket() : null;
@@ -198,9 +208,20 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
     }
   };
 
+  // ── Renew the session for this request ────────────────────────────────────
+  // The one entry point used by BOTH the proactive check and the reactive 401,
+  // so neither can take a different route through the PIN gate.
+  //
+  // With the gate off (the default) this is a plain refresh + retry: no modal,
+  // no PIN-setup detour, and a refused refresh simply ends the session and
+  // redirects to /login — the ordinary expired-session outcome. The PIN
+  // branches below are left in place, unreached, for when the gate comes back.
+  const renewAndRetry = () =>
+    authFeatures.pinGatedRefresh ? pinGatedRefresh() : refreshAndRetry();
+
   // ── Proactive check: token already expired before the request goes out ────
   if (tokenSvc.hasToken() && tokenSvc.isTokenExpired()) {
-    return pinGatedRefresh();
+    return renewAndRetry();
   }
 
   // ── Normal flow: attach Bearer, then watch for 401 ────────────────────────
@@ -218,12 +239,12 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
           router.navigate(['/login'], { queryParams: { reason: 'session_terminated' } });
           return throwError(() => err);
         }
-        // 401 from clock skew or token that expired mid-flight — require PIN.
+        // 401 from clock skew or a token that expired mid-flight — renew once.
         // Only when there is an actual session: a 401 with no token simply means
         // the user isn't logged in (e.g. the public register-pathology page), so
-        // do NOT prompt to set up a PIN — just propagate the error.
+        // there is nothing to renew — just propagate the error.
         if (tokenSvc.hasToken()) {
-          return pinGatedRefresh();
+          return renewAndRetry();
         }
         return throwError(() => err);
       }
