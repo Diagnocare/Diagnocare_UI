@@ -233,16 +233,12 @@
                 </tr>
                 <ng-container *ngFor="let r of rows; trackBy: trackReceipt">
 
-                  <!-- ── Payment row ────────────────────────────── -->
+                  <!-- ── Payment row ──────────────────────────────
+                       The row is NOT clickable. Downloading is the Download
+                       button in the action cell and nothing else, so there is
+                       one way to do it. -->
                   <tr class="br-receipt-tr"
-                      [class.br-tr--has-refund]="r.isRefunded"
-                      role="button"
-                      tabindex="0"
-                      [attr.aria-label]="'Download payment receipt ' + r.receiptId + ', ' + formatDate(r.createdDate) + ', ₹' + (r.amountPaid | number:'1.2-2')"
-                      (click)="onReceiptClick(r, $event)"
-                      (keydown.enter)="onReceiptRowKeydown(r, $event, 'payment')"
-                      (keydown.space)="onReceiptRowKeydown(r, $event, 'payment')"
-                      title="Click to download payment receipt PDF">
+                      [class.br-tr--has-refund]="r.isRefunded">
 
                     <td class="br-td-id">
                       <i class="fa fa-file-text-o br-rcpt-file-icon"></i>
@@ -278,22 +274,18 @@
                       </span>
                     </td>
                     <td class="br-td-action">
-                      <span class="br-dl-cue" aria-hidden="true">
-                        <i class="fa fa-download"></i><span class="br-dl-label">Download</span>
-                      </span>
+                      <button type="button" class="br-dl-cue"
+                              [attr.aria-label]="'Download payment receipt ' + r.receiptId + ', ' + formatDate(r.createdDate) + ', ₹' + (r.amountPaid | number:'1.2-2')"
+                              title="Download payment receipt PDF"
+                              (click)="downloadReceiptPdf(r, $event)">
+                        <i class="fa fa-download" aria-hidden="true"></i><span class="br-dl-label">Download</span>
+                      </button>
                     </td>
                   </tr>
 
                   <!-- ── Refund row ──────────────────────────────── -->
                   <tr class="br-refund-tr"
-                      *ngIf="r.isRefunded"
-                      role="button"
-                      tabindex="0"
-                      [attr.aria-label]="'Download refund receipt ' + r.receiptId + ', ' + formatDate(r.refundedAt || '') + ', ₹' + (r.refundAmount | number:'1.2-2') + ' refunded'"
-                      (click)="onRefundRowClick(r, $event)"
-                      (keydown.enter)="onReceiptRowKeydown(r, $event, 'refund')"
-                      (keydown.space)="onReceiptRowKeydown(r, $event, 'refund')"
-                      title="Click to download refund receipt PDF">
+                      *ngIf="r.isRefunded">
 
                     <td class="br-td-id br-rr-id">
                       <i class="fa fa-undo br-rr-icon"></i>
@@ -313,9 +305,12 @@
                       <span class="br-rr-reason" *ngIf="r.refundReason" [title]="r.refundReason">
                         <i class="fa fa-info-circle"></i> {{ r.refundReason }}
                       </span>
-                      <span class="br-dl-cue" aria-hidden="true">
-                        <i class="fa fa-download"></i><span class="br-dl-label">Download</span>
-                      </span>
+                      <button type="button" class="br-dl-cue"
+                              [attr.aria-label]="'Download refund receipt ' + r.receiptId + ', ' + formatDate(r.refundedAt || '') + ', ₹' + (r.refundAmount | number:'1.2-2') + ' refunded'"
+                              title="Download refund receipt PDF"
+                              (click)="downloadRefundPdf(r, $event)">
+                        <i class="fa fa-download" aria-hidden="true"></i><span class="br-dl-label">Download</span>
+                      </button>
                     </td>
                   </tr>
 

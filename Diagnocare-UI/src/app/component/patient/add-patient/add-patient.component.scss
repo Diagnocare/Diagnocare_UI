@@ -1,7 +1,7 @@
 // ...existing code...
 // ─── Registration Card ─────────────────────────────────────────────────────
 .registration-card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 14px;
   box-shadow: 0 4px 24px rgba(30, 91, 168, 0.10);
   /* overflow: hidden; */
@@ -16,13 +16,13 @@ small{
   align-items: center;
   gap: 1em;
   padding: 1.25em 1.75em;
-  border-bottom: 2px solid #f0f4fb;
+  border-bottom: 2px solid var(--color-surface-sunken);
 
   h3 {
     margin: 0;
     font-size: 1.15em;
     font-weight: 700;
-    color: #1a2e4a;
+    color: var(--color-text-primary);
   }
 
   p {
@@ -33,10 +33,10 @@ small{
 }
 
 // Step accent bars per step
-.step-header--1 { border-left: 5px solid #667eea; }
-.step-header--2 { border-left: 5px solid #1E5BA8; }
-.step-header--3 { border-left: 5px solid #764ba2; }
-.step-header--4 { border-left: 5px solid #4CAF50; }
+.step-header--1 { border-left: 5px solid var(--color-primary); }
+.step-header--2 { border-left: 5px solid var(--color-primary-ink); }
+.step-header--3 { border-left: 5px solid var(--color-primary-hover); }
+.step-header--4 { border-left: 5px solid var(--color-success); }
 
 .step-badge {
   width: 2.4em;
@@ -49,11 +49,11 @@ small{
   font-size: 1em;
   color: #fff;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #1E5BA8, #667eea);
+  background: linear-gradient(var(--color-primary), var(--color-primary));
 }
 
-.step-header--3 .step-badge { background: linear-gradient(135deg, #667eea, #764ba2); }
-.step-header--4 .step-badge { background: linear-gradient(135deg, #4CAF50, #2e7d32); }
+.step-header--3 .step-badge { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); }
+.step-header--4 .step-badge { background: linear-gradient(135deg, var(--color-success), var(--color-success)); }
 
 // ─── Step Body ─────────────────────────────────────────────────────────────
 .step-body {
@@ -66,10 +66,10 @@ small{
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8be;
+  color: var(--color-text-muted);
   margin: 1.4em 0 0.6em;
   padding-bottom: 0.4em;
-  border-bottom: 1px solid #eef1f8;
+  border-bottom: 1px solid var(--color-surface-sunken);
 
   &:first-child { margin-top: 0; }
 }
@@ -95,14 +95,14 @@ small{
   display: flex;
   align-items: flex-start;
   gap: 0.6em;
-  background: #fff5f5;
-  border: 1px solid #fecaca;
-  border-left: 4px solid #ef4444;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-left: 4px solid var(--color-error);
   border-radius: 8px;
   padding: 0.75em 1em;
   margin: 0.75em 1.75em;
   font-size: 0.8em;
-  color: #b91c1c;
+  color: var(--color-error);
 
   i { margin-top: 1px; flex-shrink: 0; }
 }
@@ -110,7 +110,7 @@ small{
 // ─── Inline Field Error ────────────────────────────────────────────────────
 .field-error {
   display: block;
-  color: #dc2626;
+  color: var(--color-error);
   font-size: 0.75em;
   margin-top: 0.3em;
   padding-left: 0.1em;
@@ -132,24 +132,24 @@ small{
 // ─── Input Combo (select + input side-by-side) ─────────────────────────────
 .input-combo {
   display: flex;
-  border: 2px solid var(--border-color, #e1e8ed);
+  border: 2px solid var(--border-color, var(--color-border));
   border-radius: 8px;
   /* overflow: hidden; */
   transition: border-color 0.2s;
 
   &:focus-within {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
   }
 
   &.is-invalid {
-    border-color: #ef4444;
+    border-color: var(--color-error);
   }
 }
 
 .combo-prefix {
   border: none;
-  border-right: 2px solid var(--border-color, #e1e8ed);
+  border-right: 2px solid var(--border-color, var(--color-border));
   border-radius: 0;
   background: #f7f9fc;
   padding: 0.65em 0.5em;
@@ -158,10 +158,10 @@ small{
   width: auto;
   flex-shrink: 0;
   cursor: pointer;
-  color: #374151;
+  color: var(--color-text-primary);
   outline: none;
 
-  &:focus { background: #eef2ff; }
+  &:focus { background: var(--color-primary-subtle); }
 }
 
 .combo-prefix--md {
@@ -175,13 +175,13 @@ small{
   font-size: 0.875em;
   flex: 1;
   outline: none;
-  background: #fff;
-  color: #1a2e4a;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 
   &::placeholder { color: #aab5c6; }
 
   &.is-invalid {
-    background: #fff5f5;
+    background: var(--color-error-bg);
   }
 }
 
@@ -193,13 +193,13 @@ small{
 // ─── Invalid state on native controls ─────────────────────────────────────
 .form-control.is-invalid,
 .form-select.is-invalid {
-  border-color: #ef4444 !important;
-  background-color: #fff5f5;
+  border-color: var(--color-error) !important;
+  background-color: var(--color-error-bg);
 }
 
 .radio-pill-group.is-invalid {
   padding: 4px;
-  border: 2px solid #ef4444;
+  border: 2px solid var(--color-error);
   border-radius: 8px;
 }
 
@@ -224,27 +224,27 @@ small{
   span {
     display: inline-block;
     padding: 0.35em 0.9em;
-    border: 2px solid #d1d9e6;
+    border: 2px solid var(--color-border);
     border-radius: 20px;
     font-size: 0.82em;
     font-weight: 600;
-    color: #5a6a7e;
+    color: var(--color-text-secondary);
     background: #f7f9fc;
     transition: all 0.18s;
     user-select: none;
   }
 
   input[type="radio"]:checked + span {
-    background: linear-gradient(135deg, #1E5BA8, #667eea);
-    border-color: #1E5BA8;
+    background: linear-gradient(var(--color-primary), var(--color-primary));
+    border-color: var(--color-primary-ink);
     color: #fff;
     box-shadow: 0 2px 8px rgba(30, 91, 168, 0.25);
   }
 
   &:hover span {
-    border-color: #667eea;
-    color: #1E5BA8;
-    background: #eef2ff;
+    border-color: var(--color-primary);
+    color: var(--color-primary-ink);
+    background: var(--color-primary-subtle);
   }
 }
 
@@ -258,7 +258,7 @@ small{
     width: 1.1em;
     height: 1.1em;
     margin: 0;
-    accent-color: #667eea;
+    accent-color: var(--color-primary);
     cursor: pointer;
     flex-shrink: 0;
   }
@@ -266,7 +266,7 @@ small{
   .toggle-label {
     font-size: 0.85em;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text-primary);
     cursor: pointer;
     margin: 0;
     padding: 0;
@@ -277,7 +277,7 @@ small{
 
 // ─── Report on WhatsApp ────────────────────────────────────────────────────
 .whatsapp-icon {
-  color: #25a244;
+  color: var(--color-success);
 }
 
 .whatsapp-hint {
@@ -286,7 +286,7 @@ small{
   font-size: 0.78em;
   color: #1c7c3a;
 
-  .fa { color: #25a244; }
+  .fa { color: var(--color-success); }
 }
 
 .whatsapp-link {
@@ -295,7 +295,7 @@ small{
   background: none;
   cursor: pointer;
   font: inherit;
-  color: #1E5BA8;
+  color: var(--color-primary-ink);
   text-decoration: underline;
 }
 
@@ -307,7 +307,7 @@ small{
     cursor: pointer;
     padding-right: 2.5em;
 
-    &:hover { border-color: #667eea; background: #f5f7ff; }
+    &:hover { border-color: var(--color-primary); background: #f5f7ff; }
   }
 }
 
@@ -316,7 +316,7 @@ small{
   right: 0.85em;
   top: 50%;
   transform: translateY(-50%);
-  color: #9aa8be;
+  color: var(--color-text-muted);
   pointer-events: none;
   font-size: 0.9em;
 }
@@ -332,8 +332,8 @@ small{
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #ffffff;
-  border: 1px solid var(--border-color, #e1e8ed);
+  background: var(--color-surface);
+  border: 1px solid var(--border-color, var(--color-border));
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(16,24,40,0.06);
   z-index: 1200;
@@ -348,14 +348,14 @@ small{
   padding: 8px 12px;
   cursor: pointer;
   font-size: 0.92rem;
-  color: #0f172a;
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
 .referred-by-suggestions li:hover,
 .referred-by-suggestions li:focus {
-  background: #eef2ff;
-  color: #1E5BA8;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-ink);
 }
 
 /* Ensure combo prefix and input align and don't collapse */
@@ -404,9 +404,9 @@ small{
   }
 }
 
-.amount-card--test     { background: #eef2ff; color: #3730a3; }
-.amount-card--discount { background: #fff7ed; color: #92400e; }
-.amount-card--net      { background: #ecfdf5; color: #065f46; }
+.amount-card--test     { background: var(--color-primary-subtle); color: var(--color-primary-hover); }
+.amount-card--discount { background: var(--color-warning-bg); color: var(--color-warning); }
+.amount-card--net      { background: var(--color-success-bg); color: var(--color-success); }
 
 // ─── Form Actions Bar ──────────────────────────────────────────────────────
 .form-actions {
@@ -416,7 +416,7 @@ small{
   padding: 1.1em 1.75em;
   /* Tokens, not fixed light hex: this bar sits inside the registration card and
      has to follow the theme like every other card footer in the app. */
-  border-top: 2px solid var(--border-color, #f0f4fb);
+  border-top: 2px solid var(--border-color, var(--color-surface-sunken));
   background: var(--bg-light, #fafbff);
   border-radius: 0 0 14px 14px;
   gap: 1em;
@@ -440,17 +440,17 @@ small{
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #d1d9e6;
+  background: var(--color-border);
   transition: all 0.2s;
 
   &--active {
     width: 22px;
     border-radius: 4px;
-    background: linear-gradient(90deg, #1E5BA8, #667eea);
+    background: linear-gradient(90deg, var(--color-primary-ink), var(--color-primary));
   }
 
   &--done {
-    background: #4CAF50;
+    background: var(--color-success);
   }
 }
 
@@ -477,13 +477,13 @@ textarea.form-control {
   justify-content: space-between;
   align-items: center;
   padding: 1em 1.25em;
-  border-bottom: 1px solid #e8edf5;
+  border-bottom: 1px solid var(--color-border);
   position: relative;
 
   .modal-title {
     font-weight: 700;
     font-size: 1em;
-    color: #1a2e4a;
+    color: var(--color-text-primary);
     display: flex;
     align-items: center;
     gap: 0.5em;
@@ -500,7 +500,7 @@ textarea.form-control {
   gap: 0.75em;
   justify-content: flex-end;
   padding-top: 0.75em;
-  border-top: 1px solid #eef1f8;
+  border-top: 1px solid var(--color-surface-sunken);
   margin-top: 1em;
 }
 
@@ -521,21 +521,21 @@ textarea.form-control {
 }
 
 .payment-locked-input {
-  background: #f0fdf4 !important;
-  border-color: #86efac !important;
-  color: #166534 !important;
+  background: var(--color-success-bg) !important;
+  border-color: var(--color-success-border) !important;
+  color: var(--color-success) !important;
   font-weight: 700;
   cursor: default;
 }
 
 // ── TPA: confirmed banner override (blue theme vs green for partial payment) ──
 .tpa-confirmed-banner {
-  .payment-confirmed-text strong { color: #1d4ed8; }
-  .payment-confirmed-text span   { color: #1e40af; font-size: 0.8em; }
+  .payment-confirmed-text strong { color: var(--color-info); }
+  .payment-confirmed-text span   { color: var(--color-info); font-size: 0.8em; }
   .btn-edit-payment {
-    border-color: #1d4ed8;
-    color: #1d4ed8;
-    &:hover { background: #1d4ed8; color: #fff; }
+    border-color: var(--color-info);
+    color: var(--color-info);
+    &:hover { background: var(--color-info); color: #fff; }
   }
 }
 
@@ -547,11 +547,11 @@ textarea.form-control {
   flex-wrap: wrap;
   margin-top: 0.75rem;
   padding: 0.75rem 1rem;
-  background: #eff6ff;
-  border: 1.5px solid #bfdbfe;
+  background: var(--color-info-bg);
+  border: 1.5px solid var(--color-info-border);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #1d4ed8;
+  color: var(--color-info);
   animation: fadeSlideIn 0.2s ease;
 
   .fa { flex-shrink: 0; font-size: 1rem; }
@@ -559,7 +559,7 @@ textarea.form-control {
 
 .tpa-open-btn {
   margin-left: auto;
-  background: #1d4ed8;
+  background: var(--color-info);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -572,7 +572,7 @@ textarea.form-control {
   gap: 5px;
   transition: background 0.15s;
 
-  &:hover { background: #1e40af; }
+  &:hover { background: var(--color-info); }
 }
 
 @keyframes fadeSlideIn {
@@ -587,8 +587,8 @@ textarea.form-control {
   gap: 1em;
   margin-top: 1em;
   padding: 0.85em 1.1em;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border: 1.5px solid #86efac;
+  background: linear-gradient(135deg, var(--color-success-bg), var(--color-success-bg));
+  border: 1.5px solid var(--color-success-border);
   border-radius: 10px;
 
   .payment-confirmed-content {
@@ -609,20 +609,20 @@ textarea.form-control {
 
     strong {
       font-size: 0.9em;
-      color: #166534;
+      color: var(--color-success);
     }
 
     span {
       font-size: 0.8em;
-      color: #15803d;
+      color: var(--color-success);
     }
   }
 }
 
 .btn-edit-payment {
   background: none;
-  border: 1.5px solid #15803d;
-  color: #15803d;
+  border: 1.5px solid var(--color-success);
+  color: var(--color-success);
   border-radius: 6px;
   padding: 0.35em 0.85em;
   font-size: 0.8em;
@@ -632,7 +632,7 @@ textarea.form-control {
   transition: background 0.18s, color 0.18s;
 
   &:hover {
-    background: #15803d;
+    background: var(--color-success);
     color: #fff;
   }
 
@@ -702,8 +702,8 @@ textarea.form-control {
       min-height: 0;
       padding: 0;
       gap: 0;
-      background: #f1f5f9;
-      border: 1px solid var(--border-color, #e2e8f0);
+      background: var(--color-surface-sunken);
+      border: 1px solid var(--border-color, var(--color-border));
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -711,8 +711,8 @@ textarea.form-control {
       line-height: 1;
 
       &:hover {
-        background: var(--primary-color, #2196f3);
-        border-color: var(--primary-color, #2196f3);
+        background: var(--primary-color, var(--color-info));
+        border-color: var(--primary-color, var(--color-info));
         box-shadow: none;
 
         .dp-trigger-icon { color: #fff; }
@@ -723,7 +723,7 @@ textarea.form-control {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-secondary, var(--color-text-secondary));
       font-size: 0.85rem;
       line-height: 1;
     }
@@ -732,41 +732,16 @@ textarea.form-control {
 
 // ══ THEME OVERRIDES ══════════════════════════════════════════════════════════
 
-:host-context(html[data-theme="dark"]) {
-  .registration-card       { background: #1e293b !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; }
-  .step-header             { border-bottom-color: #273548 !important; }
-  .combo-input             { background: #0f172a !important; color: #e2e8f0 !important; }
-  .referred-by-suggestions { background: #1e293b !important; border-color: #334155 !important; }
-  .card                    { background: #1e293b !important; border-color: #273548 !important; }
-}
-:host-context(html[data-theme="midnight"]) {
-  .registration-card       { background: #0d1117 !important; box-shadow: 0 4px 24px rgba(0,0,0,.5) !important; }
-  .step-header             { border-bottom-color: #161b22 !important; }
-  .combo-input             { background: #020408 !important; color: #cdd6f4 !important; }
-  .referred-by-suggestions { background: #0d1117 !important; border-color: #21262d !important; }
-  .card                    { background: #0d1117 !important; border-color: #161b22 !important; }
-}
-:host-context(html[data-theme="warm"]) {
-  .registration-card       { background: #fffdf7 !important; }
-  .step-header             { border-bottom-color: #e8d9c0 !important; }
-  .combo-input             { background: #fef9f0 !important; color: #3d2b1f !important; }
-  .referred-by-suggestions { background: #fffdf7 !important; border-color: #ddc9a8 !important; }
-  .card                    { background: #fffdf7 !important; border-color: #e8d9c0 !important; }
-}
-@media (prefers-color-scheme: dark) {
-  :host-context(html[data-theme="system"]) {
-    .registration-card       { background: #1e293b !important; }
-    .combo-input             { background: #0f172a !important; color: #e2e8f0 !important; }
-    .referred-by-suggestions { background: #1e293b !important; border-color: #334155 !important; }
-    .card                    { background: #1e293b !important; }
-  }
-}
+
+
+
+
 
 /* ── Unbookable test (no parameters configured) ───────────────────────────
    Matches the add-test-modal treatment. Still rendered and still clickable so
    a stale selection can be removed — just visibly inert. */
 .list-item.test-unavailable {
-  background: #fafafa;
+  background: var(--color-surface-sunken);
   border: 1.5px dashed #e2e2e2;
   cursor: not-allowed;
   opacity: 0.72;
@@ -782,7 +757,7 @@ textarea.form-control {
   margin-top: 2px;
   font-size: 11px;
   font-weight: 600;
-  color: #c2410c;
+  color: var(--color-warning);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -802,9 +777,9 @@ textarea.form-control {
 .ap-catalog-protocol {
   margin-top: 0.9rem;
   padding: 0.9rem 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-surface);
   max-height: 320px;
   overflow-y: auto;
 }
@@ -812,10 +787,10 @@ textarea.form-control {
 .ap-protocol-toggle {
   margin-left: 0.6rem;
   padding: 0.12rem 0.5rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-border-strong);
   border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: none;
@@ -824,8 +799,8 @@ textarea.form-control {
   transition: background 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
+    background: var(--color-surface-sunken);
+    border-color: var(--color-text-muted);
   }
 
   i {
@@ -843,10 +818,10 @@ textarea.form-control {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--color-border-strong);
   border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
 }
 
@@ -873,21 +848,21 @@ textarea.form-control {
   }
 
   &--fasting {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-left: 4px solid #dc2626;
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error-border);
+    border-left: 4px solid var(--color-error);
     color: #7f1d1d;
 
-    i { color: #dc2626; }
+    i { color: var(--color-error); }
   }
 
   &--missing {
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    border-left: 4px solid #ea580c;
-    color: #7c2d12;
+    background: var(--color-warning-bg);
+    border: 1px solid var(--color-warning-border);
+    border-left: 4px solid var(--color-warning);
+    color: var(--color-warning);
 
-    i { color: #ea580c; }
+    i { color: var(--color-warning); }
   }
 }
 
@@ -899,9 +874,9 @@ textarea.form-control {
 
 .ap-protocol-card {
   padding: 0.75rem 0.85rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 @media (max-width: 768px) {
@@ -922,9 +897,9 @@ textarea.form-control {
 .discount-approval-note {
   align-items: flex-start;
   margin: 0 0 0.75rem;
-  background: #fffbeb;
-  border-color: #fcd34d;
-  color: #92400e;
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning);
 
   .fa {
     margin-top: 0.15rem;
@@ -955,7 +930,7 @@ textarea.form-control {
   gap: 0.6rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-primary);
 }
 
 .ap-catalog-protocol:not(.ap-catalog-protocol--collapsed) .ap-catalog-protocol-bar {
@@ -964,12 +939,12 @@ textarea.form-control {
 
 .ap-catalog-protocol-title i {
   margin-right: 0.3rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .ap-catalog-protocol-test {
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .ap-protocol-chip {
@@ -979,9 +954,9 @@ textarea.form-control {
   margin-left: 0.5rem;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error);
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: none;
@@ -990,6 +965,6 @@ textarea.form-control {
 
 // "Choose who will go to collect the sample." under the Collection boy picker.
 .form-hint--warn {
-  color: var(--dc-wait-ink, #b45309);
+  color: var(--dc-wait-ink, var(--color-warning));
   font-weight: 600;
 }

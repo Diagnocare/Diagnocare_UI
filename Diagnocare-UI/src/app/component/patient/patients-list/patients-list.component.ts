@@ -21,6 +21,11 @@ import { Role } from 'src/app/constant/enums';
 /**
  * Maps a sortable column to the API's sort key (see PatientRepository.PatientSortMap).
  * Sorting runs on the server across all patients, not just the visible page.
+ *
+ * Urgent patients lead the list. That ordering is the API's too (PatientSortMap's
+ * PrimaryBy), applied before paging, so the rows arrive urgent-first and the table
+ * renders them in the order they came in — nothing is re-sorted here. Sorting by
+ * the Urgent column itself is the one case that overrides it, server-side.
  */
 const PATIENT_SORT_KEYS: Partial<Record<SortPatientField, string>> = {
   patient_Reg_Date: 'regDate',
@@ -170,7 +175,19 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     this.dateTo = "";
     // Restore the Status filter chosen earlier in this session (see key doc above).
     this.statusFilter = this.readStoredStatusFilter() ?? this.statusFilter;
-    this.loadPatients();
+
+    // `?search=` is how the sidebar shell's "Find a patient" box lands here. A
+    // subscription rather than a snapshot: searching again from the top bar while
+    // already on this page reuses the component and only changes the query param.
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const term = (params.get('search') ?? '').trim();
+      if (term.length >= 2) {
+        this.searchTerm = term;
+        this.searchPatients();
+      } else {
+        this.loadPatients();
+      }
+    });
   }
 
   /**
@@ -283,13 +300,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
         this.totalItems = response.item1;
         this.totalPages = Math.ceil(this.totalItems / this.pageSize);
 
-        // isUrgent is already normalised in mapPatient(); override only if
-        // lstPatientTests carries a positive urgent_Report flag.
-        this.filteredPatients.forEach((patient) => {
-          if (patient.lstPatientTests?.urgent_Report === true) {
-            patient.isUrgent = 'Yes';
-          }
-        });
         this.isLoading = false;
         this.updatePagination();
         this.cdr.detectChanges();
@@ -517,9 +527,9 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     return 0;
   }
 
-  navigateToAddPatient() {
-    this.router.navigate(['/patients/add']);
-  }
+  // navigateToAddPatient() {
+  //   this.router.navigate(['/patients/add']);
+  // }
 
   refreshList() {
     this.loadPatients();

@@ -139,7 +139,8 @@
                 </div>
               </td>
 
-              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td">
+              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td"
+                  [class.col-today]="cell.isToday">
                 <span
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
@@ -214,7 +215,8 @@
                     </div>
                   </td>
 
-                  <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td">
+                  <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td"
+                      [class.col-today]="cell.isToday">
                     <span
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
@@ -282,7 +284,8 @@
                     </div>
                   </td>
 
-                  <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td">
+                  <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td"
+                      [class.col-today]="cell.isToday">
                     <span
                       class="att-cell"
                       [ngClass]="cellClass(cell)"

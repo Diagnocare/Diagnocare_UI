@@ -5,8 +5,9 @@ import { jwtDecode } from 'jwt-decode';
 import { CommonService } from 'src/app/shared/common.service';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { FingerprintService } from 'src/app/services/loginServices/fingerprint.service';
+import { authFeatures } from 'src/app/constant/auth.flags';
 
-type FpState = 'loading' | 'unsupported' | 'configured' | 'setup';
+type FpState = 'loading' | 'disabled' | 'unsupported' | 'configured' | 'setup';
 
 /**
  * Fingerprint (WebAuthn) enrolment panel — the fingerprint equivalent of
@@ -51,6 +52,13 @@ export class SetupFingerprintComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Fingerprint sign-in switched off: render inert and make no call at all.
+    // Settings does not render this panel while the flag is off; this guard
+    // covers any other host, so FingerprintService is never reached.
+    if (!authFeatures.fingerprint) {
+      this.state = 'disabled';
+      return;
+    }
     if (!FingerprintService.isSupported()) {
       this.state = 'unsupported';
       return;

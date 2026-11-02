@@ -38,9 +38,33 @@
   </div>
 
   <!-- ══════════════════════════════════════
+       ACCOUNT DETAILS LOAD STATE
+       Shown instead of letting the cards render as though the signed-in user
+       simply has no details. The session is never ended on failure.
+  ══════════════════════════════════════ -->
+  <div *ngIf="profileLoading" class="msg msg-loading">
+    <i class="fa fa-spinner fa-spin"></i> Loading your profile…
+  </div>
+
+  <div *ngIf="!profileLoading && profileError" class="msg msg-error profile-error-row">
+    <span><i class="fa fa-exclamation-circle"></i> {{ profileError }}</span>
+    <span class="profile-error-actions">
+      <!-- Retrying only makes sense while the session can still be renewed. -->
+      <button type="button" class="btn-link-sm" *ngIf="!sessionCannotRenew"
+              (click)="retryLoadAccountData()">
+        <i class="fa fa-redo"></i> Try again
+      </button>
+      <button type="button" class="btn-link-sm" *ngIf="sessionCannotRenew"
+              (click)="signInAgain()">
+        <i class="fa fa-sign-in-alt"></i> Sign in again
+      </button>
+    </span>
+  </div>
+
+  <!-- ══════════════════════════════════════
        SECTION: SESSION PIN
   ══════════════════════════════════════ -->
-  <div class="acct-card">
+  <div class="acct-card" id="session-pin-card">
     <div class="acct-card-header">
       <i class="fa fa-lock"></i>
       <div>
@@ -54,6 +78,16 @@
 
     <div class="acct-card-body">
 
+      <!-- Sent here by the "Set Up a PIN" session modal. You are still signed in. -->
+      <div class="hint-row hint-row--pin-setup" *ngIf="cameForPinSetup && !hasPinSet">
+        <i class="fa fa-shield"></i>
+        <span>
+          <strong>Set up your Session PIN to continue.</strong>
+          You're still signed in — set a PIN here and you'll be able to renew your
+          session with it instead of logging in again.
+        </span>
+      </div>
+
       <!-- Status row -->
       <div class="current-value-row" *ngIf="pinMode === 'none'">
         <span class="current-label">Status:</span>
@@ -61,9 +95,15 @@
           <i class="fa" [class.fa-check-circle]="hasPinSet" [class.fa-times-circle]="!hasPinSet"></i>
           {{ hasPinSet ? 'PIN is set' : 'No PIN set' }}
         </span>
-        <button class="btn-link-sm" (click)="startSetPin()" *ngIf="!hasPinSet">
+        <!-- Setting a PIN is verified by OTP/TOTP, which needs the account's
+             id and contact details — so it waits for the profile to load. -->
+        <button class="btn-link-sm" (click)="startSetPin()" *ngIf="!hasPinSet"
+                [disabled]="!canSetPin">
           <i class="fa fa-plus"></i> Set PIN
         </button>
+        <span class="radio-hint" *ngIf="!hasPinSet && !canSetPin">
+          — {{ profileLoading ? 'loading your account details…' : 'account details unavailable, try again above' }}
+        </span>
         <button class="btn-link-sm" (click)="startChangePin()" *ngIf="hasPinSet">
           <i class="fa fa-pencil-alt"></i> Change
         </button>
@@ -157,7 +197,12 @@
       </div>
 
       <div *ngIf="editingAuthType" class="edit-block">
-        <div *ngFor="let opt of authTypeOptions" class="radio-row">
+        <!-- Fingerprint is left out entirely, not just disabled, while fingerprint
+             sign-in is switched off — there is no enrolment panel below to send
+             the user to, so a greyed-out option with a hint would go nowhere. -->
+        <ng-container *ngFor="let opt of authTypeOptions">
+        <div class="radio-row"
+             *ngIf="opt.value !== AuthType.Fingerprint || fingerprintAuthEnabled">
           <input class="radio-input" type="radio" name="authType"
                  [id]="'authType_' + opt.value"
                  [value]="opt.value"
@@ -178,6 +223,7 @@
             </span>
           </label>
         </div>
+        </ng-container>
         <div class="action-row">
           <button class="dc-btn dc-btn--save dc-btn--sm" (click)="saveAuthTypeChange()"><i class="fa fa-check"></i> Save</button>
           <button class="dc-btn dc-btn--cancel dc-btn--sm" (click)="editingAuthType = false"><i class="fa fa-times"></i> Cancel</button>
@@ -196,8 +242,12 @@
 
   <!-- ══════════════════════════════════════
        SECTION: FINGERPRINT (WebAuthn)
+       Not rendered while fingerprint sign-in is switched off, so the panel
+       never mounts and never calls FingerprintService.
   ══════════════════════════════════════ -->
-  <app-setup-fingerprint [embedded]="true" (statusChanged)="onFingerprintStatusChanged($event)"></app-setup-fingerprint>
+  <app-setup-fingerprint *ngIf="fingerprintAuthEnabled"
+                         [embedded]="true"
+                         (statusChanged)="onFingerprintStatusChanged($event)"></app-setup-fingerprint>
 
   <!-- ══════════════════════════════════════
        SECTION: APPEARANCE / THEME

@@ -10,7 +10,7 @@
 
 .tpp {
   font-size: 0.86rem;
-  color: #1e293b;
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 
@@ -21,16 +21,16 @@
   align-items: center;
   gap: 0.55rem;
   padding: 1.15rem 1rem;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--color-border-strong);
   border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
   font-size: 0.84rem;
 }
 
 .tpp-state i {
   font-size: 1rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 /* ── Heading ────────────────────────────────────────────────────────────── */
@@ -42,7 +42,7 @@
   gap: 0.75rem;
   padding-bottom: 0.65rem;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tpp-heading-main {
@@ -60,19 +60,19 @@
 .tpp-heading-title {
   font-weight: 700;
   font-size: 0.9rem;
-  color: #0f172a;
+  color: var(--color-text-primary);
   letter-spacing: 0.01em;
 }
 
 .tpp-heading-test {
   font-size: 0.82rem;
-  color: #475569;
+  color: var(--color-text-secondary);
   margin-top: 0.1rem;
   word-break: break-word;
 }
 
 .tpp-heading-code {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -86,14 +86,14 @@
   display: flex;
   gap: 0.7rem;
   padding: 0.85rem 0.95rem;
-  border: 1px solid #fed7aa;
-  border-left: 4px solid #ea580c;
+  border: 1px solid var(--color-warning-border);
+  border-left: 4px solid var(--color-warning);
   border-radius: 8px;
-  background: #fff7ed;
+  background: var(--color-warning-bg);
 }
 
 .tpp-fallback-icon i {
-  color: #ea580c;
+  color: var(--color-warning);
   font-size: 1.05rem;
 }
 
@@ -106,7 +106,7 @@
 
 .tpp-fallback-body p {
   margin: 0;
-  color: #7c2d12;
+  color: var(--color-warning);
   font-size: 0.79rem;
   line-height: 1.5;
 }
@@ -122,17 +122,17 @@
 
 .tpp-fact {
   padding: 0.5rem 0.65rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--color-surface-sunken);
   min-width: 0;
 }
 
 /* The sample type is the instruction the collector acts on first, so it is the one
    fact that is picked out rather than sitting level with the others. */
 .tpp-fact--sample {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
 }
 
 .tpp-fact-label {
@@ -140,7 +140,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 600;
   margin-bottom: 0.15rem;
 }
@@ -149,12 +149,12 @@
   display: block;
   font-size: 0.84rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text-primary);
   word-break: break-word;
 }
 
 .tpp-fact--sample .tpp-fact-value {
-  color: #1d4ed8;
+  color: var(--color-info);
 }
 
 /* ── Fasting badge ──────────────────────────────────────────────────────── */
@@ -171,15 +171,15 @@
 }
 
 .tpp-fasting--required {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
 }
 
 .tpp-fasting--none {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
 }
 
 /* ── Detail sections ────────────────────────────────────────────────────── */
@@ -192,10 +192,10 @@
 
 .tpp-section {
   padding: 0.6rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-left: 3px solid #94a3b8;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-text-muted);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .tpp-section h4 {
@@ -207,18 +207,18 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.045em;
-  color: #334155;
+  color: var(--color-text-primary);
 }
 
 .tpp-section h4 i {
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
 }
 
 .tpp-section p {
   margin: 0;
   font-size: 0.81rem;
-  color: #334155;
+  color: var(--color-text-primary);
   line-height: 1.55;
   white-space: pre-line;
 }
@@ -226,27 +226,27 @@
 /* Precautions and rejection criteria carry consequences — a rejected sample means a
    second needle for the patient — so they read as warnings, not as more prose. */
 .tpp-section--caution {
-  border-left-color: #f59e0b;
-  background: #fffbeb;
+  border-left-color: var(--color-warning);
+  background: var(--color-warning-bg);
 }
 
 .tpp-section--caution h4,
 .tpp-section--caution h4 i {
-  color: #a16207;
+  color: var(--color-warning);
 }
 
 .tpp-section--caution p {
-  color: #78350f;
+  color: var(--color-warning);
 }
 
 .tpp-section--reject {
-  border-left-color: #dc2626;
-  background: #fef2f2;
+  border-left-color: var(--color-error);
+  background: var(--color-error-bg);
 }
 
 .tpp-section--reject h4,
 .tpp-section--reject h4 i {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .tpp-section--reject p {
@@ -260,7 +260,7 @@
   align-items: center;
   gap: 0.35rem;
   font-size: 0.73rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
@@ -286,9 +286,9 @@
   flex: 0 0 auto;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  background: #e0e7ff;
-  color: #3730a3;
-  border: 1px solid #c7d2fe;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-hover);
+  border: 1px solid var(--color-border);
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
@@ -304,9 +304,9 @@
    rather than one long undifferentiated block. */
 .tpp-item {
   padding: 0.7rem 0.8rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .tpp-list .tpp-item + .tpp-item {
@@ -319,7 +319,7 @@
   gap: 0.5rem;
   margin-bottom: 0.55rem;
   padding-bottom: 0.45rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-surface-sunken);
 }
 
 /* The step number is the sequence the collector works through. */
@@ -331,7 +331,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #1d4ed8;
+  background: var(--color-info);
   color: #ffffff;
   font-size: 0.72rem;
   font-weight: 700;
@@ -342,7 +342,7 @@
   min-width: 0;
   font-size: 0.84rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-primary);
   word-break: break-word;
 }
 
@@ -350,7 +350,7 @@
   margin-left: 0.35rem;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -367,9 +367,9 @@
 }
 
 .tpp-tag--standard {
-  background: #fef3c7;
-  color: #a16207;
-  border: 1px solid #fde68a;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
 }
 
 /* The lab's reason for attaching this protocol to this test. Distinct from the protocol's
@@ -380,10 +380,10 @@
   gap: 0.4rem;
   margin-bottom: 0.55rem;
   padding: 0.45rem 0.6rem;
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid var(--color-primary);
   border-radius: 0 6px 6px 0;
-  background: #eef2ff;
-  color: #3730a3;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-hover);
   font-size: 0.78rem;
   line-height: 1.5;
 }

@@ -178,6 +178,11 @@
           </ng-container>
         </div>
 
+        <!-- Send failed (e.g. EMAIL_SEND_FAILED) — no code is on its way. -->
+        <div *ngIf="sendError" class="otp-verify-error">
+          <i class="fa fa-exclamation-circle"></i> {{ sendError }}
+        </div>
+
         <div class="otp-step-actions">
           <button type="button" class="otp-btn otp-btn-ghost" (click)="resetMethod()">
             <i class="fa fa-arrow-left"></i> Change Method
@@ -276,6 +281,12 @@
             <i class="fa fa-info-circle"></i>
             Code refreshes every 30 seconds &mdash; use the current one shown in your app.
           </p>
+
+          <!-- Resend failed — no new code was sent, so say so rather than leaving the
+               user waiting on a message the server never managed to deliver. -->
+          <div *ngIf="sendError" class="otp-verify-error">
+            <i class="fa fa-exclamation-circle"></i> {{ sendError }}
+          </div>
 
           <!-- Verify error from parent (e.g. wrong OTP in profile/settings flow) -->
           <div *ngIf="verifyError" class="otp-verify-error">

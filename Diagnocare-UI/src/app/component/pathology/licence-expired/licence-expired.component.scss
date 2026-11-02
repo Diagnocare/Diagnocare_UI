@@ -1,7 +1,7 @@
 /* ── Page shell ─────────────────────────────────────────────────────────── */
 .le-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 100%);
+  background: var(--gradient-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,7 +22,7 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #dc2626, #ef4444);
+  background: linear-gradient(135deg, var(--color-error), var(--color-error));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,13 +38,13 @@
   letter-spacing: 0.3px;
 
   span {
-    color: #f0c040;
+    color: var(--color-warning);
   }
 }
 
 /* ── Card ───────────────────────────────────────────────────────────────── */
 .le-card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 20px;
   padding: 48px 40px;
   max-width: 520px;
@@ -58,8 +58,8 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
-  border: 3px solid #fca5a5;
+  background: linear-gradient(135deg, var(--color-error-bg), var(--color-error-bg));
+  border: 3px solid var(--color-error-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,20 +68,20 @@
 
 .le-lock-icon {
   font-size: 36px;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 /* ── Text ───────────────────────────────────────────────────────────────── */
 .le-title {
   font-size: 28px;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--color-text-primary);
   margin: 0 0 10px;
 }
 
 .le-subtitle {
   font-size: 15px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0 0 24px;
 }
@@ -91,9 +91,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #fef2f2;
-  border: 1.5px solid #fca5a5;
-  color: #dc2626;
+  background: var(--color-error-bg);
+  border: 1.5px solid var(--color-error-border);
+  color: var(--color-error);
   border-radius: 999px;
   padding: 6px 18px;
   font-size: 14px;
@@ -103,8 +103,8 @@
 
 /* ── Info box ───────────────────────────────────────────────────────────── */
 .le-info-box {
-  background: #f0f9ff;
-  border: 1.5px solid #bae6fd;
+  background: var(--color-primary-subtle);
+  border: 1.5px solid var(--color-border);
   border-radius: 12px;
   padding: 16px 20px;
   text-align: left;
@@ -114,7 +114,7 @@
 .le-info-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0369a1;
+  color: var(--color-primary-hover);
   margin: 0 0 10px;
   display: flex;
   align-items: center;
@@ -128,14 +128,14 @@
 
   li {
     font-size: 13px;
-    color: #334155;
+    color: var(--color-text-primary);
     padding: 3px 0;
     display: flex;
     align-items: center;
     gap: 8px;
 
     i {
-      color: #16a34a;
+      color: var(--color-success);
       font-size: 12px;
     }
   }
@@ -143,15 +143,15 @@
 
 /* ── CTA box ────────────────────────────────────────────────────────────── */
 .le-cta-box {
-  background: #fffbeb;
-  border: 1.5px solid #fde68a;
+  background: var(--color-warning-bg);
+  border: 1.5px solid var(--color-warning-border);
   border-radius: 12px;
   padding: 20px;
 }
 
 .le-cta-text {
   font-size: 14px;
-  color: #92400e;
+  color: var(--color-warning);
   line-height: 1.6;
   margin: 0 0 16px;
 }
@@ -181,15 +181,15 @@
 }
 
 .le-btn-primary {
-  background: linear-gradient(135deg, #1e5ba8, #667eea);
+  background: linear-gradient(var(--color-primary), var(--color-primary));
   color: #fff;
   box-shadow: 0 4px 12px rgba(30, 91, 168, 0.3);
 }
 
 .le-btn-outline {
   background: transparent;
-  border: 1.5px solid #64748b !important;
-  color: #64748b;
+  border: 1.5px solid var(--color-text-secondary) !important;
+  color: var(--color-text-secondary);
 }
 
 /* ── Refresh licence (pull latest from the licence server) ──────────────── */
@@ -200,8 +200,8 @@
 
 .le-btn-refresh {
   background: transparent;
-  border: 1.5px solid #1e5ba8 !important;
-  color: #1e5ba8;
+  border: 1.5px solid var(--color-primary-ink) !important;
+  color: var(--color-primary-ink);
 
   &:disabled {
     opacity: 0.6;
@@ -214,10 +214,10 @@
   margin: 10px 0 0;
   font-size: 13px;
   line-height: 1.5;
-  color: #15803d;
+  color: var(--color-success);
 
   &.le-refresh-warn {
-    color: #92400e;
+    color: var(--color-warning);
   }
 }
 

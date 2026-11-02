@@ -100,7 +100,7 @@
             <div class="form-group">
               <label class="form-label required">Group Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
-                     [(ngModel)]="formData.group.name" #groupName="ngModel" required>
+                     appNoDigits [(ngModel)]="formData.group.name" #groupName="ngModel" required>
               <div class="field-error" *ngIf="groupName.invalid && groupName.touched">
                 <i class="fa fa-exclamation-circle"></i> Group name is required
               </div>
@@ -135,7 +135,7 @@
             <div class="form-group">
               <label class="form-label required">SubGroup Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
-                     [(ngModel)]="formData.subGroup.name" #subGroupName="ngModel" required>
+                     appNoDigits [(ngModel)]="formData.subGroup.name" #subGroupName="ngModel" required>
               <div class="field-error" *ngIf="subGroupName.invalid && subGroupName.touched">
                 <i class="fa fa-exclamation-circle"></i> SubGroup name is required
               </div>
@@ -170,7 +170,7 @@
             <div class="form-group">
               <label class="form-label required">Test Name</label>
               <input type="text" class="form-control" placeholder="e.g., TLC DLC"
-                     [(ngModel)]="formData.test.testName" #testName="ngModel" required>
+                     appNoDigits [(ngModel)]="formData.test.testName" #testName="ngModel" required>
               <div class="field-error" *ngIf="testName.invalid && testName.touched">
                 <i class="fa fa-exclamation-circle"></i> Test name is required
               </div>
@@ -268,7 +268,7 @@
             <div class="form-group">
               <label class="form-label required">SubGroup Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
-                     [(ngModel)]="formData.subGroup.name">
+                     appNoDigits [(ngModel)]="formData.subGroup.name">
             </div>
 
             <div class="form-group">
@@ -300,7 +300,7 @@
             <div class="form-group">
               <label class="form-label required">Test Name</label>
               <input type="text" class="form-control" placeholder="e.g., TLC DLC"
-                     [(ngModel)]="formData.test.testName">
+                     appNoDigits [(ngModel)]="formData.test.testName">
             </div>
 
             <div class="form-group">
@@ -375,7 +375,8 @@
             <div class="form-row-2">
               <div class="form-group">
                 <label class="form-label required">Group</label>
-                <select class="form-control" [(ngModel)]="formData.group.testGroupId">
+                <select class="form-control" [(ngModel)]="formData.group.testGroupId"
+                        (change)="onAddGroupChangedForTest()">
                   <option value="" disabled selected>Select group…</option>
                   <option *ngFor="let g of groups" [value]="g.testGroupId">
                     {{ g.testGroupId }} — {{ g.name }}
@@ -384,14 +385,22 @@
               </div>
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
-                <select class="form-control" [(ngModel)]="formData.subGroup.testGroupId">
-                  <option value="" disabled selected>Select subgroup…</option>
-                  <ng-container *ngFor="let s of subGroups">
-                    <option *ngIf="s.parentGroupId === formData.group.testGroupId" [value]="s.testGroupId">
-                      {{ s.testGroupId }} — {{ s.name }}
-                    </option>
-                  </ng-container>
-                  <option *ngIf="!formData.group.testGroupId" value="" disabled>Choose a group first</option>
+                <!-- Options come from subGroupOptions, fetched for the chosen
+                     group — the same source and the same states as Edit → Test.
+                     It used to filter the `subGroups` @Input, which only ever
+                     holds one group's subgroups. -->
+                <select class="form-control" [(ngModel)]="formData.subGroup.testGroupId"
+                        [disabled]="!formData.group.testGroupId || subGroupsLoading">
+                  <option value="" disabled selected>
+                    {{ !formData.group.testGroupId ? 'Select a group first…'
+                       : subGroupsLoading ? 'Loading subgroups…'
+                       : 'Select subgroup…' }}
+                  </option>
+                  <option *ngFor="let s of subGroupOptions" [value]="s.testGroupId">
+                    {{ s.testGroupId }} — {{ s.name }}
+                  </option>
+                  <option *ngIf="formData.group.testGroupId && !subGroupsLoading && subGroupOptions.length === 0"
+                          value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
             </div>
@@ -407,7 +416,7 @@
             <div class="form-group">
               <label class="form-label required">Test Name</label>
               <input type="text" class="form-control" placeholder="e.g., TLC DLC"
-                     [(ngModel)]="formData.test.testName">
+                     appNoDigits [(ngModel)]="formData.test.testName">
             </div>
 
             <div class="form-group">
@@ -541,7 +550,7 @@
             <div class="form-group" *ngIf="updatedFormData.group.testGroupId">
               <label class="form-label required">Group Name</label>
               <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
-                     [(ngModel)]="updatedFormData.group.name" required>
+                     appNoDigits [(ngModel)]="updatedFormData.group.name" required>
             </div>
 
             <div class="form-group" *ngIf="updatedFormData.group.testGroupId">
@@ -578,17 +587,17 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
                 <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
-                        [disabled]="!updatedFormData.group.testGroupId || editSubGroupsLoading"
+                        [disabled]="!updatedFormData.group.testGroupId || subGroupsLoading"
                         (change)="onEditSubGroupSelect()">
                   <option value="" disabled selected>
                     {{ !updatedFormData.group.testGroupId ? 'Select a group first…'
-                       : editSubGroupsLoading ? 'Loading subgroups…'
+                       : subGroupsLoading ? 'Loading subgroups…'
                        : 'Choose subgroup…' }}
                   </option>
-                  <option *ngFor="let s of editSubGroups" [value]="s.testGroupId">
+                  <option *ngFor="let s of subGroupOptions" [value]="s.testGroupId">
                     {{ s.testGroupId }} — {{ s.name }}
                   </option>
-                  <option *ngIf="updatedFormData.group.testGroupId && !editSubGroupsLoading && editSubGroups.length === 0"
+                  <option *ngIf="updatedFormData.group.testGroupId && !subGroupsLoading && subGroupOptions.length === 0"
                           value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
@@ -604,7 +613,7 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup Name</label>
                 <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
-                       [(ngModel)]="updatedFormData.subGroup.name" required>
+                       appNoDigits [(ngModel)]="updatedFormData.subGroup.name" required>
               </div>
 
               <div class="form-group">
@@ -642,17 +651,17 @@
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
                 <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
-                        [disabled]="!updatedFormData.group.testGroupId || editSubGroupsLoading"
+                        [disabled]="!updatedFormData.group.testGroupId || subGroupsLoading"
                         (change)="onEditSubGroupChangedForTest()">
                   <option value="" disabled selected>
                     {{ !updatedFormData.group.testGroupId ? 'Select a group first…'
-                       : editSubGroupsLoading ? 'Loading subgroups…'
+                       : subGroupsLoading ? 'Loading subgroups…'
                        : 'Choose subgroup…' }}
                   </option>
-                  <option *ngFor="let s of editSubGroups" [value]="s.testGroupId">
+                  <option *ngFor="let s of subGroupOptions" [value]="s.testGroupId">
                     {{ s.testGroupId }} — {{ s.name }}
                   </option>
-                  <option *ngIf="updatedFormData.group.testGroupId && !editSubGroupsLoading && editSubGroups.length === 0"
+                  <option *ngIf="updatedFormData.group.testGroupId && !subGroupsLoading && subGroupOptions.length === 0"
                           value="" disabled>No subgroups in this group</option>
                 </select>
               </div>
@@ -685,7 +694,7 @@
               <div class="form-group">
                 <label class="form-label required">Test Name</label>
                 <input type="text" class="form-control" placeholder="e.g., TLC DLC"
-                       [(ngModel)]="updatedFormData.test.testName" required>
+                       appNoDigits [(ngModel)]="updatedFormData.test.testName" required>
               </div>
 
               <div class="form-group">

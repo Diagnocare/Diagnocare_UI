@@ -111,7 +111,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
     myPickups: false,
     landingRoute: '/pathology',
   },
-  [Role.User.id]: {
+  [Role.Receptionist.id]: {
     home: true,
     labOps: true,
     summaryReports: false,
@@ -182,6 +182,7 @@ export const MODULE_ACCESS: Record<RoleId, ModuleAccess> = {
   }
 };
 
+
 /** Fallback when role is unknown or not yet set. */
 export const DEFAULT_ACCESS: ModuleAccess = {
   home:             false,
@@ -200,3 +201,53 @@ export const DEFAULT_ACCESS: ModuleAccess = {
   myPickups:        false,
   landingRoute:     '/pathology',
 };
+
+/**
+ * The nav flags the DOCTOR capability adds, for someone whose role is something else.
+ *
+ * A Super Admin can additionally be a doctor (one account, both jobs — see
+ * `TokenService.isDoctor`). Their access is then the union of the two, which in practice
+ * is a very short list, because Super Admin already grants nearly everything a doctor
+ * can reach:
+ *
+ *   patientTestsLink  – the doctor's own route to the test-report list. Super Admin
+ *                       reaches the same screen through labOps, so this changes nothing
+ *                       for them in the nav; it is listed because it is genuinely part
+ *                       of the capability and must apply to any other role that is ever
+ *                       given it.
+ *   summaryReports    – already true for Super Admin, listed for the same reason.
+ *
+ * Everything NOT listed here is left exactly as the role had it. In particular the
+ * self-service User Panel flags (myVisits / myAttendance / mySalary / myHolidays /
+ * userPanel) are deliberately absent: those are not doctor features, and a Super Admin
+ * has them off on purpose because the Admin Panel already carries the same modules for
+ * all staff. Turning them on would hand the owner a second copy of four screens they
+ * already have — the duplicate menu entries this is meant to avoid.
+ *
+ * The doctor-specific sidebar item that a doctor-capable Super Admin genuinely gains is
+ * "Reports to verify", which AppShellComponent.buildNav() adds from `isDoctor()`
+ * directly — it is one link, not a section of them, so it needs no flag here.
+ */
+const DOCTOR_CAPABILITY_FLAGS = ['patientTestsLink', 'summaryReports'] as const satisfies
+  readonly (keyof ModuleAccess)[];
+
+/**
+ * The access a user actually has: their role's row, plus the Doctor capability's flags
+ * when they hold it.
+ *
+ * Use this instead of indexing MODULE_ACCESS directly, so a doctor-capable Super Admin
+ * is never shown the plain Super Admin menu. Purely additive — a flag the role already
+ * has stays on, and nothing the role has is ever switched off, so a role's own access
+ * cannot be reduced by also being a doctor.
+ *
+ * `isDoctor` is the capability as the server reported it in the JWT, not a checkbox
+ * value; the API enforces the same matrix regardless of what this returns.
+ */
+export function resolveModuleAccess(roleId: RoleId | null, isDoctor = false): ModuleAccess {
+  const base = roleId !== null ? (MODULE_ACCESS[roleId] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
+  if (!isDoctor) return base;
+
+  const merged = { ...base };
+  for (const flag of DOCTOR_CAPABILITY_FLAGS) merged[flag] = true;
+  return merged;
+}

@@ -5,8 +5,10 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "ensure:tutorial": "node tools/ensure-tutorial.js",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "postinstall": "node tools/ensure-tutorial.js --install-hook"
   },
   "private": true,
   "dependencies": {

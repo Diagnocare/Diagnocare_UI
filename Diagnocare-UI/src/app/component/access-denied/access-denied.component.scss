@@ -12,8 +12,8 @@
 
 /* ── Card ───────────────────────────────────────────────────────────────── */
 .ad-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 40px 36px;
   max-width: 480px;
@@ -28,14 +28,14 @@
   height: 72px;
   margin: 0 auto 20px;
   border-radius: 50%;
-  background: #fef3c7;
+  background: var(--color-warning-bg);
   display: flex;
   align-items: center;
   justify-content: center;
 
   i {
     font-size: 30px;
-    color: #b45309;
+    color: var(--color-warning);
   }
 }
 
@@ -51,7 +51,7 @@
   margin: 0 0 22px;
   font-size: 15px;
   line-height: 1.55;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 /* ── Detail rows ────────────────────────────────────────────────────────── */
@@ -62,8 +62,8 @@
   gap: 12px;
   padding: 10px 14px;
   margin-bottom: 8px;
-  background: #f8fafc;
-  border: 1px solid #eef2f7;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-surface-sunken);
   border-radius: 10px;
   text-align: left;
 }
@@ -73,13 +73,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .ad-detail-value {
   font-size: 13px;
-  color: #1e293b;
+  color: var(--color-text-primary);
   word-break: break-all;
   text-align: right;
 }
@@ -98,7 +98,7 @@ code.ad-detail-value {
   margin: 18px 0 26px;
   font-size: 13px;
   line-height: 1.5;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 /* ── Actions ────────────────────────────────────────────────────────────── */
@@ -123,7 +123,7 @@ code.ad-detail-value {
   i { font-size: 13px; }
 
   &:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid var(--color-info);
     outline-offset: 2px;
   }
 }
@@ -137,11 +137,11 @@ code.ad-detail-value {
 }
 
 .ad-btn--ghost {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  color: #334155;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
 
-  &:hover { border-color: #94a3b8; }
+  &:hover { border-color: var(--color-text-muted); }
 }
 
 /* ── Small screens ──────────────────────────────────────────────────────── */

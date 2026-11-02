@@ -6,6 +6,8 @@ export interface ConfirmOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  /** Hide the cancel button, making the dialog a plain acknowledge-only alert. Defaults to true
+   *  when cancelText is blank, so `cancelText: ''` also yields a single-button alert. */
   hideCancelButton?: boolean;
   /** When true, clicking Confirm shows a loading spinner instead of closing the modal.
    *  The caller must call dismiss() once the async operation completes. */

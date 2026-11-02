@@ -1,26 +1,10 @@
-.ar-page { padding: 1rem 1.25rem 2rem; }
-
-// ── Hero header ───────────────────────────────────────────────────
-.ar-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  background: var(--primary-gradient, linear-gradient(135deg, #0d1f3e 0%, #1a2a6e 50%, #2d1654 100%));
-  color: #fff;
-  border-radius: 0.9rem;
-  padding: 1.15rem 1.4rem;
-  margin-bottom: 1.1rem;
-  box-shadow: var(--shadow-light, 0 2px 10px rgba(0,0,0,0.15));
-
-  h1 { margin: 0; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 0.55rem; }
-  .subtitle { margin: 0.25rem 0 0; font-size: 0.85rem; opacity: 0.85; }
-}
+// Page shell (.page-container / .page-header / .header-left / .subtitle /
+// .content-container) comes from styles.css. The .ar-page/.ar-hero pair that
+// used to live here was a copy of it with a different heading size.
 
 .btn-light-primary {
   display: inline-flex; align-items: center; gap: 0.45rem;
-  background: #fff; color: #1d4ed8; border: none; font-weight: 600;
+  background: var(--color-surface); color: var(--color-info); border: none; font-weight: 600;
   border-radius: 0.55rem; padding: 0.55rem 1.1rem; font-size: 0.88rem; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.1s ease, box-shadow 0.15s ease;
   &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
@@ -30,12 +14,12 @@
 .chip-bar {
   display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;
   .chip {
-    border: 1px solid var(--border-color, #ced4da);
+    border: 1px solid var(--border-color, var(--color-border-strong));
     background: var(--bg-white, #fff);
-    color: var(--text-secondary, #64748b);
+    color: var(--text-secondary, var(--color-text-secondary));
     border-radius: 999px; padding: 0.35rem 1rem; font-size: 0.8rem; cursor: pointer;
     transition: all 0.15s ease;
-    &.active { background: var(--primary-color, #2563eb); border-color: var(--primary-color, #2563eb); color: #fff; font-weight: 600; }
+    &.active { background: var(--primary-color, var(--color-info)); border-color: var(--primary-color, var(--color-info)); color: #fff; font-weight: 600; }
     &:hover:not(.active) { background: rgba(0,0,0,0.04); }
   }
 }
@@ -47,7 +31,7 @@
 // is answered before the click.
 .bucket-tabs {
   display: flex; gap: 0.25rem; margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  border-bottom: 1px solid var(--border-color, var(--color-border));
   overflow-x: auto;
 
   .bucket-tab {
@@ -57,14 +41,14 @@
     padding: 0.6rem 1rem; margin-bottom: -1px;
     border-bottom: 2px solid transparent;
     font-size: 0.875rem; font-weight: 500; white-space: nowrap; cursor: pointer;
-    color: var(--text-secondary, #64748b);
+    color: var(--text-secondary, var(--color-text-secondary));
     transition: color 0.15s ease, border-color 0.15s ease;
 
     &:hover:not(.active) { color: var(--text-primary, #334155); }
 
     &.active {
-      color: var(--primary-color, #2563eb);
-      border-bottom-color: var(--primary-color, #2563eb);
+      color: var(--primary-color, var(--color-info));
+      border-bottom-color: var(--primary-color, var(--color-info));
       font-weight: 600;
     }
   }
@@ -75,68 +59,25 @@
     min-width: 1.4rem; padding: 0.05rem 0.4rem;
     border-radius: 999px;
     background: rgba(100, 116, 139, 0.14);
-    color: var(--text-secondary, #64748b);
+    color: var(--text-secondary, var(--color-text-secondary));
     font-size: 0.72rem; font-weight: 600; line-height: 1.5; text-align: center;
 
     &.zero { opacity: 0.55; }
   }
 
   .bucket-tab.active .tab-count:not(.zero) {
-    background: var(--primary-color, #2563eb);
+    background: var(--primary-color, var(--color-info));
     color: #fff;
   }
 }
 
-// ── Filter panel (admin) ──────────────────────────────────────────
-// Grid rather than flex-wrap: with flex-wrap, the "grow" search field's wide
-// flex-basis meant it was the one item forced onto its own line at common
-// tablet widths, landing it out of step with the row above it and with the
-// Apply/Reset buttons. A grid gives every field a fixed column so wrapping
-// always breaks on whole rows instead of stranding one field.
-.filter-panel {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: end;
-  gap: 0.75rem 1rem;
-  padding: 1rem; margin-bottom: 1rem;
-
-  .filter-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
-  // With Status gone to the tab strip, the three remaining fields plus the buttons
-  // fit one row exactly — so search takes a single column and the actions the last,
-  // instead of the buttons being pushed onto a row of their own.
-  .filter-field.grow { grid-column: span 1; }
-
-  label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary, #94a3b8); }
-
-  // Every field's control (input, select, or the date-picker trigger) shares
-  // one height so the row's bottom edge — where align-items: end lines things
-  // up — is the same for all of them.
-  .form-control, .form-select, app-date-picker { box-sizing: border-box; }
-  app-date-picker ::ng-deep .dp-trigger { height: 38px; box-sizing: border-box; }
-
-  .filter-actions {
-    grid-column: -2 / -1;
-    display: flex; justify-content: flex-end; gap: 0.5rem;
-  }
-  .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
-}
-
-@media (max-width: 900px) {
-  .filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    .filter-field.grow { grid-column: 1 / -1; }
-    .filter-actions { grid-column: 1 / -1; }
-  }
-}
-
-@media (max-width: 520px) {
-  .filter-panel {
-    grid-template-columns: 1fr;
-    .filter-field.grow { grid-column: 1; }
-    .filter-actions { grid-column: 1; flex-direction: column; }
-    .filter-actions .btn { width: 100%; justify-content: center; }
-  }
-}
+// ── Filter bar (admin) ────────────────────────────────────────────
+// The filter bar is .search-section / .search-row / .filter-group /
+// .filter-label / .search-btn-group from styles.css, responsive rules
+// included. A .filter-panel grid with its own column template, label style,
+// control heights and breakpoints used to stand here. Only the employee
+// dropdown's positioning context is page-specific.
+.emp-field { position: relative; }
 
 // ── Table ─────────────────────────────────────────────────────────
 // overflow-x lets the table scroll horizontally on tablet widths, below which
@@ -149,12 +90,12 @@
   th, td { padding: 0.75rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border-color, #eef0f2); }
   th {
     background: rgba(0,0,0,0.02);
-    font-weight: 600; color: var(--text-secondary, #64748b);
+    font-weight: 600; color: var(--text-secondary, var(--color-text-secondary));
     font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.02em;
   }
   th.sortable {
     cursor: pointer; user-select: none; display: table-cell;
-    &:hover { color: var(--primary-color, #2563eb); }
+    &:hover { color: var(--primary-color, var(--color-info)); }
   }
   .dc-sort-icon { margin-left: 0.35rem; font-size: 0.68rem; }
   tbody tr:last-child td { border-bottom: none; }
@@ -163,20 +104,20 @@
 
   // Reviewer queue: a thin amber rail marks rows still waiting on a decision,
   // so the working set is visible without reading every status badge.
-  tr.row-awaiting { box-shadow: inset 3px 0 0 #f59e0b; }
+  tr.row-awaiting { box-shadow: inset 3px 0 0 var(--color-warning); }
   tr.row-awaiting:hover { background: rgba(245, 158, 11, 0.06); }
 
   .emp-cell { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
   .avatar {
     width: 1.75rem; height: 1.75rem; border-radius: 50%;
-    background: var(--primary-color, #2563eb); color: #fff;
+    background: var(--primary-color, var(--color-info)); color: #fff;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
   }
 
   .date-cell { display: flex; flex-direction: column; align-items: flex-start; }
-  .date { font-weight: 600; color: var(--text-primary, #1e293b); }
-  .day { color: var(--text-secondary, #94a3b8); font-size: 0.72rem; }
+  .date { font-weight: 600; color: var(--text-primary, var(--color-text-primary)); }
+  .day { color: var(--text-secondary, var(--color-text-muted)); font-size: 0.72rem; }
 
   // ── Same-day history ─────────────────────────────────────────────
   // One row per date; where a date was asked about more than once, this chip
@@ -190,7 +131,7 @@
     border: 1px solid rgba(124, 58, 237, 0.3);
     border-radius: 999px;
     background: rgba(124, 58, 237, 0.08);
-    color: #6d28d9;
+    color: var(--color-accent);
     font-size: 0.68rem;
     font-weight: 700;
     line-height: 1.5;
@@ -199,7 +140,7 @@
 
     i { font-size: 0.62rem; }
     &:hover { background: rgba(124, 58, 237, 0.16); }
-    &.open { background: #7c3aed; border-color: #6d28d9; color: #fff; }
+    &.open { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
   }
 
   // Superseded attempts, shown indented under the row that replaced them.
@@ -207,7 +148,7 @@
     background: rgba(100, 116, 139, 0.04);
     font-size: 0.82rem;
 
-    td { color: var(--text-secondary, #64748b); }
+    td { color: var(--text-secondary, var(--color-text-secondary)); }
     &:hover { background: rgba(100, 116, 139, 0.09); }
   }
 
@@ -215,20 +156,20 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary, var(--color-text-muted));
     font-size: 0.7rem;
     font-style: italic;
 
     i { color: rgba(124, 58, 237, 0.7); }
   }
 
-  .transition { .arrow { margin: 0 0.5rem; color: var(--text-secondary, #adb5bd); font-size: 0.75rem; } .to { font-weight: 600; } }
-  .changed { color: #b45309; font-weight: 600; }
-  .muted { color: var(--text-secondary, #adb5bd); }
-  .reason-cell { max-width: 220px; color: var(--text-secondary, #64748b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .transition { .arrow { margin: 0 0.5rem; color: var(--text-secondary, var(--color-border-strong)); font-size: 0.75rem; } .to { font-weight: 600; } }
+  .changed { color: var(--color-warning); font-weight: 600; }
+  .muted { color: var(--text-secondary, var(--color-border-strong)); }
+  .reason-cell { max-width: 220px; color: var(--text-secondary, var(--color-text-secondary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .actions-col { white-space: nowrap; text-align: right; }
-  .chevron { color: var(--border-color, #cbd5e1); font-size: 0.8rem; margin-left: 0.5rem; }
+  .chevron { color: var(--border-color, var(--color-border-strong)); font-size: 0.8rem; margin-left: 0.5rem; }
 }
 
 // ── Mobile: stacked cards instead of a table ────────────────────────
@@ -243,7 +184,7 @@
       border-bottom: 1px solid var(--border-color, #eef0f2);
       padding: 0.75rem 0.9rem;
     }
-    tr.row-awaiting { box-shadow: inset 3px 0 0 #f59e0b; }
+    tr.row-awaiting { box-shadow: inset 3px 0 0 var(--color-warning); }
     td {
       border-bottom: none;
       padding: 0.3rem 0;
@@ -259,7 +200,7 @@
     td[data-label]::before {
       content: attr(data-label);
       font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.02em;
-      color: var(--text-secondary, #94a3b8); font-weight: 600; text-align: left;
+      color: var(--text-secondary, var(--color-text-muted)); font-weight: 600; text-align: left;
       flex-shrink: 0;
     }
     .emp-cell { justify-content: flex-start; }
@@ -271,15 +212,15 @@
 
 .icon-btn {
   background: none; border: none; cursor: pointer; padding: 0.3rem 0.4rem; border-radius: 0.4rem;
-  color: var(--primary-color, #2563eb); font-size: 0.85rem; transition: background 0.12s ease;
-  &.danger { color: #dc2626; }
+  color: var(--primary-color, var(--color-info)); font-size: 0.85rem; transition: background 0.12s ease;
+  &.danger { color: var(--color-error); }
   &:hover { background: rgba(0,0,0,0.06); }
 }
 
 // ── Pager ─────────────────────────────────────────────────────────
 .pager {
   display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem;
-  .page-info { color: var(--text-secondary, #64748b); font-size: 0.82rem; }
+  .page-info { color: var(--text-secondary, var(--color-text-secondary)); font-size: 0.82rem; }
   .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
 }
 
@@ -288,7 +229,7 @@
   text-align: center; padding: 3rem 1.5rem;
   .empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
   h3 { margin: 0 0 0.35rem; color: var(--text-primary, #334155); font-size: 1.05rem; }
-  p { color: var(--text-secondary, #94a3b8); margin-bottom: 1rem; }
+  p { color: var(--text-secondary, var(--color-text-muted)); margin-bottom: 1rem; }
 }
 
 /* ── Theme-visibility guard ────────────────────────────────────────────────
@@ -296,24 +237,23 @@
    dark themes), but the app's global `[data-theme] p/span/li !important` rules
    whiten them on the light card. Re-assert with !important so the correct
    theme colour wins on every surface in every mode. */
-.ar-table .date              { color: var(--text-primary, #1e293b) !important; }
+.ar-table .date              { color: var(--text-primary, var(--color-text-primary)) !important; }
 .ar-table .day,
 .ar-table .muted,
 .ar-table .reason-cell,
-.ar-table th                 { color: var(--text-secondary, #64748b) !important; }
-.ar-table .transition .to    { color: var(--text-primary, #1e293b) !important; }
-.ar-table .transition .arrow { color: var(--text-secondary, #adb5bd) !important; }
-.ar-table .changed           { color: #b45309 !important; }
-.chip-bar .chip              { color: var(--text-secondary, #64748b) !important; }
+.ar-table th                 { color: var(--text-secondary, var(--color-text-secondary)) !important; }
+.ar-table .transition .to    { color: var(--text-primary, var(--color-text-primary)) !important; }
+.ar-table .transition .arrow { color: var(--text-secondary, var(--color-border-strong)) !important; }
+.ar-table .changed           { color: var(--color-warning) !important; }
+.chip-bar .chip              { color: var(--text-secondary, var(--color-text-secondary)) !important; }
 .chip-bar .chip.active       { color: #fff !important; }
-.bucket-tabs .bucket-tab     { color: var(--text-secondary, #64748b) !important; }
-.bucket-tabs .bucket-tab.active { color: var(--primary-color, #2563eb) !important; }
-.bucket-tabs .tab-count      { color: var(--text-secondary, #64748b) !important; }
+.bucket-tabs .bucket-tab     { color: var(--text-secondary, var(--color-text-secondary)) !important; }
+.bucket-tabs .bucket-tab.active { color: var(--primary-color, var(--color-info)) !important; }
+.bucket-tabs .tab-count      { color: var(--text-secondary, var(--color-text-secondary)) !important; }
 .bucket-tabs .bucket-tab.active .tab-count:not(.zero) { color: #fff !important; }
-.filter-panel label          { color: var(--text-secondary, #94a3b8) !important; }
-.pager .page-info            { color: var(--text-secondary, #64748b) !important; }
+.pager .page-info            { color: var(--text-secondary, var(--color-text-secondary)) !important; }
 .empty-state h3              { color: var(--text-primary, #334155) !important; }
-.empty-state p               { color: var(--text-secondary, #94a3b8) !important; }
+.empty-state p               { color: var(--text-secondary, var(--color-text-muted)) !important; }
 
 // ═════════════════════════════════════════════════════════════════
 // Reviewer work-queue refinements
@@ -326,25 +266,7 @@
   padding-top: 0.25rem;
 }
 
-// Filter bar: Employee | From | To | Apply Reset. The employee field gets the extra width.
-.filter-panel {
-  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr)) auto;
-  .filter-actions { grid-column: auto; }
-  .emp-field { position: relative; }
-}
 
-@media (max-width: 900px) {
-  .filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    .emp-field { grid-column: 1 / -1; }
-  }
-}
-@media (max-width: 520px) {
-  .filter-panel {
-    grid-template-columns: 1fr;
-    .emp-field { grid-column: 1; }
-  }
-}
 
 // ── Employee dropdown ─────────────────────────────────────────────
 .emp-select { position: relative; }
@@ -353,53 +275,53 @@
   display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
   .emp-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .emp-value.placeholder { color: var(--bg-white); }
-  .emp-caret { font-size: 0.7rem; color: var(--text-secondary, #94a3b8); transition: transform 0.15s ease; }
+  .emp-caret { font-size: 0.7rem; color: var(--text-secondary, var(--color-text-muted)); transition: transform 0.15s ease; }
 }
 .emp-select.open .emp-caret.fa-chevron-down { transform: rotate(180deg); }
 
 .emp-menu {
   position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
-  background: var(--bg-white, #fff); border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--bg-white, #fff); border: 1px solid var(--border-color, var(--color-border));
   border-radius: 0.55rem; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); overflow: hidden;
   min-width: 240px;
 
   .emp-search {
-    width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--border-color, #e2e8f0);
+    width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--border-color, var(--color-border));
     padding: 0.6rem 0.8rem; font-size: 0.85rem; outline: none;
-    background: transparent; color: var(--text-primary, #1e293b);
+    background: transparent; color: var(--text-primary, var(--color-text-primary));
   }
   .emp-options { list-style: none; margin: 0; padding: 0.25rem 0; max-height: 260px; overflow-y: auto; }
   .emp-option {
     display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem;
     padding: 0.5rem 0.8rem; cursor: pointer; font-size: 0.85rem;
-    color: var(--text-primary, #1e293b);
+    color: var(--text-primary, var(--color-text-primary));
     &:hover { background: rgba(37, 99, 235, 0.07); }
     &.selected { background: rgba(37, 99, 235, 0.12); font-weight: 600; }
-    .emp-detail { font-size: 0.72rem; color: var(--text-secondary, #94a3b8); white-space: nowrap; }
+    .emp-detail { font-size: 0.72rem; color: var(--text-secondary, var(--color-text-muted)); white-space: nowrap; }
   }
   .emp-note {
-    padding: 0.6rem 0.8rem; font-size: 0.8rem; color: var(--text-secondary, #64748b);
-    &.error { color: #b91c1c; }
+    padding: 0.6rem 0.8rem; font-size: 0.8rem; color: var(--text-secondary, var(--color-text-secondary));
+    &.error { color: var(--color-error); }
   }
-  .link-btn { background: none; border: none; padding: 0; margin-left: 0.4rem; color: var(--primary-color, #2563eb); font-weight: 600; cursor: pointer; }
+  .link-btn { background: none; border: none; padding: 0; margin-left: 0.4rem; color: var(--primary-color, var(--color-info)); font-weight: 600; cursor: pointer; }
 }
 
 // ── Compact table touches ─────────────────────────────────────────
 .ar-table.reviewer {
   th, td { padding-top: 0.6rem; padding-bottom: 0.6rem; }
   .applied-note { display: block; font-size: 0.7rem; }
-  .applied-on { color: var(--text-secondary, #64748b); font-size: 0.8rem; white-space: nowrap; }
+  .applied-on { color: var(--text-secondary, var(--color-text-secondary)); font-size: 0.8rem; white-space: nowrap; }
   tr.row-active { background: rgba(37, 99, 235, 0.08); }
 }
 .review-btn {
-  border: 1px solid var(--border-color, #cbd5e1); background: transparent; border-radius: 0.4rem;
+  border: 1px solid var(--border-color, var(--color-border-strong)); background: transparent; border-radius: 0.4rem;
   padding: 0.25rem 0.75rem; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  color: var(--text-secondary, #475569);
-  &.primary { background: var(--primary-color, #2563eb); border-color: var(--primary-color, #2563eb); color: #fff; }
+  color: var(--text-secondary, var(--color-text-secondary));
+  &.primary { background: var(--primary-color, var(--color-info)); border-color: var(--primary-color, var(--color-info)); color: #fff; }
   &:hover { filter: brightness(0.96); }
 }
-.ar-table .applied-on { color: var(--text-secondary, #64748b) !important; }
-.review-btn:not(.primary) { color: var(--text-secondary, #475569) !important; }
+.ar-table .applied-on { color: var(--text-secondary, var(--color-text-secondary)) !important; }
+.review-btn:not(.primary) { color: var(--text-secondary, var(--color-text-secondary)) !important; }
 .review-btn.primary { color: #fff !important; }
 
 // ── Loading skeleton ──────────────────────────────────────────────
@@ -439,12 +361,12 @@
 }
 .drawer-head {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border-color, #e2e8f0);
-  h2 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-primary, #1e293b) !important; }
+  padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border-color, var(--color-border));
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-primary, var(--color-text-primary)) !important; }
 }
 .drawer-close {
   background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.3rem 0.5rem;
-  border-radius: 0.4rem; color: var(--text-secondary, #64748b) !important;
+  border-radius: 0.4rem; color: var(--text-secondary, var(--color-text-secondary)) !important;
   &:hover { background: rgba(0, 0, 0, 0.07); }
 }
 .drawer-body { flex: 1; overflow-y: auto; padding: 1rem 1.1rem 1.5rem; }

@@ -3,9 +3,9 @@
   display: flex;
   align-items: flex-start;
   gap: .75rem;
-  background: var(--dc-danger-bg, #fef2f2);
-  border: 1px solid var(--dc-danger-border, #fca5a5);
-  color: var(--dc-danger-text, #b91c1c);
+  background: var(--dc-danger-bg, var(--color-error-bg));
+  border: 1px solid var(--dc-danger-border, var(--color-error-border));
+  color: var(--dc-danger-text, var(--color-error));
   border-radius: .5rem;
   padding: .9rem 1.1rem;
   margin-bottom: 1.25rem;
@@ -28,7 +28,7 @@
   display: block;
   font-size: .8rem;
   font-weight: 600;
-  color: var(--dc-text-secondary, #64748b);
+  color: var(--dc-text-secondary, var(--color-text-secondary));
   text-transform: uppercase;
   letter-spacing: .04em;
   margin-bottom: .35rem;
@@ -53,12 +53,12 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--dc-text-secondary, #94a3b8);
+  color: var(--dc-text-secondary, var(--color-text-muted));
   padding: .25rem;
   line-height: 1;
 }
 
-.pin-eye-btn:hover { color: var(--dc-text-primary, #1e293b); }
+.pin-eye-btn:hover { color: var(--dc-text-primary, var(--color-text-primary)); }
 
 /* ── Match indicators ────────────────────────────────────────────────────────── */
 .pin-match-hint {
@@ -66,8 +66,8 @@
   font-size: .78rem;
   margin-top: .3rem;
 }
-.pin-match-ok  { color: #16a34a; }
-.pin-match-err { color: #dc2626; }
+.pin-match-ok  { color: var(--color-success); }
+.pin-match-err { color: var(--color-error); }
 
 /* ── Forgot PIN link ─────────────────────────────────────────────────────────── */
 .pin-forgot-link {
@@ -81,7 +81,7 @@
   cursor: pointer;
   font-size: .8rem;
   font-weight: 600;
-  color: var(--dc-primary, #4f46e5);
+  color: var(--dc-primary, var(--color-primary-hover));
 }
 .pin-forgot-link:hover { text-decoration: underline; }
 
@@ -97,8 +97,8 @@
 }
 .msg i { flex-shrink: 0; margin-top: .1rem; }
 
-.msg-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
-.msg-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+.msg-success { background: var(--color-success-bg); border: 1px solid var(--color-success-border); color: var(--color-success); }
+.msg-error   { background: var(--color-error-bg); border: 1px solid var(--color-error-border); color: var(--color-error); }
 
 .msg-sub {
   display: block;
@@ -129,15 +129,15 @@
 }
 
 .btn-save {
-  background: var(--dc-primary, #4f46e5);
+  background: var(--dc-primary, var(--color-primary-hover));
   color: #fff;
 }
 .btn-save:disabled { opacity: .6; cursor: not-allowed; }
 .btn-save:not(:disabled):hover { opacity: .88; }
 
 .btn-cancel {
-  background: var(--dc-surface-alt, #f1f5f9);
-  color: var(--dc-text-secondary, #475569);
+  background: var(--dc-surface-alt, var(--color-surface-sunken));
+  color: var(--dc-text-secondary, var(--color-text-secondary));
 }
 .btn-cancel:disabled { opacity: .6; cursor: not-allowed; }
-.btn-cancel:not(:disabled):hover { background: var(--dc-surface-hover, #e2e8f0); }
+.btn-cancel:not(:disabled):hover { background: var(--dc-surface-hover, var(--color-border)); }

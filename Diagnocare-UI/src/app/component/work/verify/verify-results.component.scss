@@ -24,7 +24,7 @@
     justify-content: center;
     padding: 2.5rem 1rem;
     font-size: var(--dc-text-body, 0.875rem);
-    color: var(--dc-ink-3, #666666);
+    color: var(--dc-ink-3, var(--color-text-secondary)666);
   }
 
   // ── Abnormal summary ──────────────────────────────────────────────────
@@ -54,13 +54,13 @@
   // look like every other row. On this screen that is a patient-safety detail,
   // not a cosmetic one, so the selector is specific enough to win.
   &__table tbody tr.verify__row--abnormal {
-    background: var(--dc-danger-bg, #fee2e2);
-    box-shadow: inset 3px 0 0 var(--dc-danger-line, #fca5a5);
+    background: var(--dc-danger-bg, var(--color-error-bg));
+    box-shadow: inset 3px 0 0 var(--dc-danger-line, var(--color-error-border));
   }
 
   &__param {
     font-weight: 600;
-    color: var(--dc-ink, #2c3e50);
+    color: var(--dc-ink, var(--color-text-primary));
   }
 
   // See the note in worklist.component.scss: tabular figures, app typeface.
@@ -68,22 +68,22 @@
   &__unit {
     font-variant-numeric: tabular-nums;
     font-size: var(--dc-text-body, 0.875rem);
-    color: var(--dc-ink-3, #666666);
+    color: var(--dc-ink-3, var(--color-text-secondary)666);
   }
 
   &__value {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    color: var(--dc-ink, #2c3e50);
+    color: var(--dc-ink, var(--color-text-primary));
 
-    &--abnormal { color: var(--dc-danger-ink, #b91c1c); }
+    &--abnormal { color: var(--dc-danger-ink, var(--color-error)); }
 
     // A blank value is stated, not left as an empty cell — an empty cell reads
     // as "nothing to report" when it means "nobody has entered this".
     &--missing {
       font-weight: 400;
       font-style: italic;
-      color: var(--dc-ink-3, #666666);
+      color: var(--dc-ink-3, var(--color-text-secondary)666);
     }
   }
 
@@ -92,19 +92,19 @@
     font-size: var(--dc-text-micro, 0.75rem);
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: var(--dc-danger-ink, #b91c1c);
+    color: var(--dc-danger-ink, var(--color-error));
   }
 
   &__range {
     margin-left: 0.5rem;
     font-size: var(--dc-text-meta, 0.8125rem);
-    color: var(--dc-ink-3, #666666);
+    color: var(--dc-ink-3, var(--color-text-secondary)666);
   }
 
   &__unknown-range {
     margin-left: 0.5rem;
     font-size: var(--dc-text-micro, 0.75rem);
-    color: var(--dc-ink-3, #666666);
+    color: var(--dc-ink-3, var(--color-text-secondary)666);
     font-style: italic;
   }
 
@@ -121,7 +121,7 @@
       margin-bottom: 0.35rem;
       font-weight: 600;
       font-size: var(--dc-text-meta, 0.8125rem);
-      color: var(--dc-ink, #2c3e50);
+      color: var(--dc-ink, var(--color-text-primary));
     }
 
     textarea {
@@ -132,15 +132,15 @@
 
   &__return {
     padding: 1rem;
-    border: 1px solid var(--dc-danger-line, #fca5a5);
+    border: 1px solid var(--dc-danger-line, var(--color-error-border));
     border-radius: var(--radius-md, 0.5em);
-    background: var(--dc-danger-bg, #fee2e2);
+    background: var(--dc-danger-bg, var(--color-error-bg));
   }
 
   &__return-hint {
     margin: 0.4rem 0 0;
     font-size: var(--dc-text-meta, 0.8125rem);
-    color: var(--dc-ink-2, #2c3e50);
+    color: var(--dc-ink-2, var(--color-text-primary));
   }
 
   // Same geometry and alignment as the global .form-actions footer, so the pair
@@ -166,8 +166,8 @@
     flex-wrap: wrap;
     margin-top: 1.25rem;
     padding: 0.85rem 1rem;
-    background: var(--dc-surface-2, #f8f9fa);
-    border-top: 2px solid var(--dc-line, #e1e8ed);
+    background: var(--dc-surface-2, var(--color-surface-sunken));
+    border-top: 2px solid var(--dc-line, var(--color-border));
   }
 
   &__savebar-actions {
@@ -185,7 +185,7 @@
     gap: 0.45rem;
     font-size: var(--dc-text-body, 0.875rem);
     font-weight: 600;
-    color: var(--dc-wait-ink, #b45309);
+    color: var(--dc-wait-ink, var(--color-warning));
   }
 }
 

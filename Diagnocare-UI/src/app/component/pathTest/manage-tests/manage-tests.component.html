@@ -1,23 +1,32 @@
 <div class="page-container">
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Master Test List</h1>
+      <p class="subtitle">Manage groups, subgroups, and test rates</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="add()"><i class="fa fa-plus"></i> Add</button>
+      <button class="btn btn-primary" (click)="importFromExcel()"><i class="fa fa-upload"></i> Import from Excel</button>
+      <button class="btn btn-primary" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
+      <button class="btn btn-primary" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
+      <button class="btn btn-primary" (click)="manageTestProtocol()"><i class="fa fa-flask"></i> Manage Protocol</button>
+      <button class="btn btn-danger" (click)="drop()"><i class="fa fa-trash"></i> Drop</button>
+    </div>
+  </div>
+
   <div class="content-container">
     <div class="master-list-wrap">
-      <header class="header">
-        <div class="header-left">
-          <h1>Master Test List</h1>
-          <p class="subtitle">Manage groups, subgroups, and test rates</p>
+      <div class="search-section">
+        <div class="search-row">
+          <div class="filter-group">
+            <label class="filter-label"><i class="fa fa-vials"></i> Find a test</label>
+            <div class="input-icon-wrap">
+              <i class="fa fa-search input-icon" aria-hidden="true"></i>
+              <input type="text" class="form-control"
+                     placeholder="Group, subgroup or test name…" [(ngModel)]="query" />
+            </div>
+          </div>
         </div>
-        <div class="action-bar">
-          <button class="btn btn-primary" (click)="add()"><i class="fa fa-plus"></i> Add</button>
-          <button class="btn btn-primary" (click)="importFromExcel()"><i class="fa fa-upload"></i> Import from Excel</button>
-          <button class="btn btn-primary" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
-          <button class="btn btn-primary" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
-          <button class="btn btn-primary" (click)="manageTestProtocol()"><i class="fa fa-flask"></i> Manage Protocol</button>
-          <button class="btn btn-danger" (click)="drop()"><i class="fa fa-trash"></i> Drop</button>
-        </div>
-      </header>
-
-      <div class="search-row">
-        <input type="text" placeholder="Search groups, subgroups, or tests..." [(ngModel)]="query" />
       </div>
 
       <div class="columns">

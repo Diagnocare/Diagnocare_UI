@@ -11,11 +11,11 @@
   text-align: center;
   border-radius: var(--radius-lg, 12px);
   background: var(--bg-white, #fff);
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, var(--color-text-secondary));
 
   .fa { font-size: 1.6rem; }
-  &--ok .fa { color: var(--dc-ok-ink, #15803d); }
-  strong { color: var(--text-primary, #1e293b); }
+  &--ok .fa { color: var(--dc-ok-ink, var(--color-success)); }
+  strong { color: var(--text-primary, var(--color-text-primary)); }
 }
 
 .mp-group {
@@ -52,11 +52,11 @@
   padding: 1rem 1.1rem;
   border-radius: var(--radius-lg, 12px);
   background: var(--bg-white, #fff);
-  border-left: 4px solid var(--primary-color, #1e5ba8);
+  border-left: 4px solid var(--primary-color, var(--color-primary-ink));
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, var(--color-text-primary));
 
-  &--urgent { border-left-color: #dc2626; }
+  &--urgent { border-left-color: var(--color-error); }
 
   &__top {
     display: flex;
@@ -67,15 +67,15 @@
   }
 }
 
-.mp-group--to-hand-over .mp-card { border-left-color: #d97706; }
-.mp-group--handed-over  .mp-card { border-left-color: #15803d; opacity: 0.85; }
+.mp-group--to-hand-over .mp-card { border-left-color: var(--color-warning); }
+.mp-group--handed-over  .mp-card { border-left-color: var(--color-success); opacity: 0.85; }
 
-.mp-sub { font-size: 0.78rem; color: var(--text-secondary, #64748b); }
+.mp-sub { font-size: 0.78rem; color: var(--text-secondary, var(--color-text-secondary)); }
 
 .mp-badge--urgent {
   display: inline-flex; align-items: center; gap: 0.25rem;
   padding: 0.15rem 0.55rem; border-radius: 999px;
-  background: #fee2e2; color: #b91c1c; font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+  background: var(--color-error-bg); color: var(--color-error); font-size: 0.72rem; font-weight: 700; white-space: nowrap;
 }
 
 .mp-tests {
@@ -83,17 +83,17 @@
   margin: 0; padding: 0; list-style: none;
   li {
     padding: 0.15rem 0.55rem; border-radius: 6px;
-    background: var(--bg-light, #f1f5f9); font-size: 0.78rem; font-weight: 600;
+    background: var(--bg-light, var(--color-surface-sunken)); font-size: 0.78rem; font-weight: 600;
   }
 }
 
 .mp-where, .mp-remark {
   display: flex; gap: 0.45rem; align-items: flex-start;
   margin: 0; font-size: 0.85rem; color: var(--text-primary, #334155);
-  .fa { margin-top: 0.2rem; color: var(--text-secondary, #64748b); }
+  .fa { margin-top: 0.2rem; color: var(--text-secondary, var(--color-text-secondary)); }
 }
 
-.mp-meta { font-size: 0.78rem; color: var(--text-secondary, #64748b); }
+.mp-meta { font-size: 0.78rem; color: var(--text-secondary, var(--color-text-secondary)); }
 
 // "What to collect". Closed, this is one quiet line of link text and the card
 // keeps the height it had; open, the card grows and the grid reflows around it,
@@ -103,7 +103,7 @@
 // and a panel inside a panel inside a card is three frames for one thought.
 .mp-brief {
   padding-top: 0.5rem;
-  border-top: 1px dashed var(--border-color, #e2e8f0);
+  border-top: 1px dashed var(--border-color, var(--color-border));
 }
 
 .mp-actions {
@@ -121,7 +121,7 @@
 
 .mp-status {
   display: inline-flex; align-items: center; gap: 0.4rem;
-  font-size: 0.82rem; font-weight: 600; color: #b45309;
+  font-size: 0.82rem; font-weight: 600; color: var(--color-warning);
 }
 
 @media (max-width: 30em) {

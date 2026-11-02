@@ -30,7 +30,7 @@
                 <select formControlName="patient_Salutation" class="form-select" style="max-width: 80px;" [attr.tabindex]="getTabIndex('patient_Salutation')">
                   <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
                 </select>
-                <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Name')"
+                <input type="text" class="form-control" appCapitalizedName [class.is-invalid]="isFieldInvalid('patient_Name')"
                        formControlName="patient_Name" [attr.tabindex]="getTabIndex('patient_Name')">
               </div>
               <app-field-error [control]="editPatientForm.get('patient_Name')" label="Patient Name" [forceShow]="formSubmitted"></app-field-error>

@@ -1,0 +1,358 @@
+<title>Diagnocare Redesign Wireframes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Layout: a wireframe board. Tabs pick a screen; each screen is a framed
+   mock (sidebar + page) with numbered callouts explaining each decision. */
+:root {
+  --bg: #f2f3ee; --paper: #ffffff; --soft: #fafaf6; --ink: #152420; --ink-2: #5b655f; --ink-3: #7a8079;
+  --line: #dee0d4; --side: #0c2a2b; --side-ink: #afc8c3; --teal: #0f7a6e; --teal-ink: #0b5a52; --teal-tint: #e3f3ef;
+  --amber: #b26a16; --amber-tint: #fbeeda; --blue: #2a5fa5; --blue-tint: #e7eef8; --red: #b4402f; --red-tint: #fbeae6;
+  --green: #2e7d4f; --green-tint: #e7f3eb; --purple: #6e58b0; --purple-tint: #ede9f7; --note: #fff4c2; --note-ink: #5a4500;
+  --sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --hand: "Segoe Print", "Comic Neue", "Bradley Hand", var(--sans);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1716; --paper: #172221; --soft: #1c2a28; --ink: #e3ece9; --ink-2: #a9b8b3; --ink-3: #85948f; --line: #2c3c39;
+  --side: #071413; --teal: #168275; --teal-ink: #5fd0c1; --teal-tint: rgba(43,179,162,.16);
+  --amber-tint: rgba(199,121,31,.22); --blue-tint: rgba(42,95,165,.3); --red-tint: rgba(180,64,47,.26); --green-tint: rgba(46,125,79,.26);
+  --purple-tint: rgba(110,88,176,.28); --note: #3d3413; --note-ink: #f3dd8b; --amber: #e0a14f; --blue: #7aa6e0; --red: #e58a7b; --green: #6cc191; --purple: #a996e6;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1716; --paper: #172221; --soft: #1c2a28; --ink: #e3ece9; --ink-2: #a9b8b3; --ink-3: #85948f; --line: #2c3c39;
+  --side: #071413; --teal: #168275; --teal-ink: #5fd0c1; --teal-tint: rgba(43,179,162,.16);
+  --amber-tint: rgba(199,121,31,.22); --blue-tint: rgba(42,95,165,.3); --red-tint: rgba(180,64,47,.26); --green-tint: rgba(46,125,79,.26);
+  --purple-tint: rgba(110,88,176,.28); --note: #3d3413; --note-ink: #f3dd8b; --amber: #e0a14f; --blue: #7aa6e0; --red: #e58a7b; --green: #6cc191; --purple: #a996e6;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 22px; }
+h1 { margin: 0; font-size: clamp(24px, 3.4vw, 34px); text-wrap: balance; letter-spacing: -0.01em; }
+.lede { margin: 6px 0 0; color: var(--ink-2); max-width: 70ch; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--teal-ink); }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.rule { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.rule b { display: block; font-size: 15px; }
+.rule span { color: var(--ink-2); font-size: 13.5px; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper);
+  color: var(--ink-2); font: 600 14px var(--sans); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.tab:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+.board { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+.notes { display: grid; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); }
+.notes h3 { margin: 0 0 2px; font-size: 16px; }
+.note { background: var(--note); color: var(--note-ink); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; display: grid; grid-template-columns: 24px 1fr; gap: 8px; }
+.pin, .note i { width: 22px; height: 22px; border-radius: 50%; background: var(--red); color: #fff; font: 700 12px/22px var(--sans); text-align: center; font-style: normal; }
+.pin { position: absolute; box-shadow: 0 0 0 3px var(--paper); z-index: 2; }
+
+/* the mock device */
+.frame { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: 0 10px 30px rgba(12,42,43,.08); }
+.frame-bar { display: flex; gap: 6px; padding: 9px 12px; background: var(--paper); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-3); align-items: center; }
+.frame-bar span.d { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.app { display: grid; grid-template-columns: 190px minmax(0,1fr); min-height: 560px; }
+.side { background: var(--side); color: var(--side-ink); padding: 14px 10px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; position: relative; }
+.side .brand { color: #fff; font-weight: 700; padding: 2px 8px 12px; display: flex; gap: 8px; align-items: center; }
+.side .brand::before { content: ""; width: 24px; height: 24px; border-radius: 7px; background: var(--teal); }
+.side .sec { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; opacity: .55; padding: 10px 8px 4px; font-weight: 700; }
+.side .it { padding: 8px; border-radius: 7px; display: flex; justify-content: space-between; }
+.side .it.on { background: var(--teal); color: #fff; }
+.side .ct { background: #e0a33a; color: #2b1a00; border-radius: 20px; font-size: 11px; font-weight: 700; padding: 0 7px; }
+.main { min-width: 0; display: flex; flex-direction: column; }
+.top { display: flex; align-items: center; gap: 10px; background: var(--paper); border-bottom: 1px solid var(--line); padding: 10px 16px; position: relative; }
+.top .t { min-width: 0; }
+.top .t b { display: block; font-size: 16px; } .top .t small { color: var(--ink-3); font-size: 12px; }
+.find { margin-left: auto; flex: 0 1 240px; min-width: 140px; height: 38px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); color: var(--ink-3); font-size: 12.5px; display: flex; align-items: center; padding: 0 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 14px; border-radius: 9px; font-weight: 700; font-size: 13px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); white-space: nowrap; }
+.btn.p { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn.big { min-height: 48px; padding: 0 22px; font-size: 15px; }
+.av { width: 38px; height: 38px; border-radius: 9px; background: var(--teal-tint); color: var(--teal-ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.page { padding: 16px; display: grid; gap: 14px; position: relative; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; position: relative; min-width: 0; }
+.panel h4 { margin: 0 0 10px; font-size: 14px; }
+.grid { display: grid; gap: 10px; }
+.g4 { grid-template-columns: repeat(4, minmax(0,1fr)); } .g5 { grid-template-columns: repeat(5, minmax(0,1fr)); } .g2 { grid-template-columns: 1.3fr 1fr; } .g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.task { background: var(--paper); border: 1px solid var(--line); border-top: 4px solid var(--c, var(--teal)); border-radius: 12px; padding: 12px; display: grid; gap: 2px; min-height: 108px; }
+.task b { font-size: 14px; } .task small { color: var(--ink-2); font-size: 12px; }
+.task .n { font-size: 24px; font-weight: 800; color: var(--c); line-height: 1; justify-self: end; }
+.task.lead { background: var(--teal); color: #fff; border-color: var(--teal); } .task.lead small { color: rgba(255,255,255,.85); }
+.kpi { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.kpi small { color: var(--ink-2); font-size: 12px; } .kpi b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.pipe { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); text-align: center; }
+.pipe div { padding: 6px 2px; border-right: 1px dashed var(--line); } .pipe div:last-child { border: 0; }
+.pipe b { display: block; font-size: 20px; color: var(--c); font-variant-numeric: tabular-nums; } .pipe span { font-size: 11.5px; color: var(--ink-2); }
+.warn { background: var(--red-tint); color: var(--red); border-radius: 9px; padding: 9px 12px; font-size: 13px; font-weight: 600; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ok { background: var(--green-tint); color: var(--green); } .wt { background: var(--amber-tint); color: var(--amber); } .in { background: var(--blue-tint); color: var(--blue); } .bad { background: var(--red-tint); color: var(--red); }
+.row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.row:last-child { border: 0; } .row .who { flex: 1; min-width: 0; } .row .who b { display: block; } .row .who small { color: var(--ink-3); }
+.qtabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.qt { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; font-weight: 700; display: flex; gap: 6px; align-items: center; }
+.qt.on { background: var(--ink); color: var(--bg); border-color: var(--ink); } .qt i { font-style: normal; font-size: 11px; background: var(--soft); color: var(--ink); border-radius: 20px; padding: 0 6px; }
+.box { height: 38px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; padding: 0 10px; }
+.lbl { font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin-bottom: 4px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 2px solid var(--line); border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 13px; background: var(--soft); }
+.chip.on { border-color: var(--teal); background: var(--teal-tint); color: var(--teal-ink); }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.step { border-radius: 10px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--line); font-size: 12.5px; }
+.step b { display: block; font-size: 13.5px; } .step.on { border: 2px solid var(--teal); } .step.done { background: var(--teal-tint); }
+.savebar { position: sticky; bottom: 0; display: flex; gap: 10px; align-items: center; background: var(--paper); border-top: 1px solid var(--line); padding: 10px 16px; margin-top: auto; }
+.savebar small { color: var(--ink-2); flex: 1; }
+.res { display: grid; grid-template-columns: 1.4fr .8fr .6fr 1fr .8fr; gap: 8px; align-items: center; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.res.h { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 700; }
+.res .v { height: 32px; border: 1px solid var(--line); border-radius: 7px; background: var(--soft); padding: 0 8px; display: flex; align-items: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.res .v.hi { border-color: var(--red); background: var(--red-tint); color: var(--red); }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.compare .panel ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13.5px; display: grid; gap: 6px; }
+.tree { font-size: 13px; display: grid; gap: 4px; }
+.tree .dd { border: 1px dashed var(--ink-3); border-radius: 8px; padding: 6px 10px; color: var(--ink-2); }
+[hidden] { display: none !important; }
+
+@media (max-width: 980px) {
+  .board { grid-template-columns: 1fr; } .notes { position: static; }
+  .app { grid-template-columns: 1fr; } .side { display: none; }
+  .g4, .g5 { grid-template-columns: repeat(2, minmax(0,1fr)); } .g2, .g3, .compare { grid-template-columns: 1fr; }
+  .pipe { grid-template-columns: repeat(3, minmax(0,1fr)); row-gap: 8px; }
+  .res { grid-template-columns: 1.2fr .8fr .8fr; } .res > :nth-child(4), .res > :nth-child(5) { display: none; }
+}
+@media (max-width: 520px) { .top { flex-wrap: wrap; } .steps { grid-template-columns: 1fr; } .find { order: 9; flex-basis: 100%; margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Diagnocare · UI redesign proposal</div>
+    <h1>A lab app a first-week receptionist can use</h1>
+    <p class="lede">Wireframes for the new Diagnocare layout, based on the ServiceHub reference: a fixed sidebar instead of hover menus, a home page that starts with tasks, and screens that walk through one job at a time. Screen 1 and the sidebar are already built on the <b>ui-redesign-sidebar</b> branch; the rest are the target for the next steps.</p>
+  </header>
+
+  <section class="rules" aria-label="Design rules">
+    <div class="rule"><b>Everything is visible</b><span>The sidebar lists every screen the person may open. No menu disappears when the mouse moves.</span></div>
+    <div class="rule"><b>Start from the task</b><span>Home asks "What do you want to do?" with big task buttons and a count of what is waiting.</span></div>
+    <div class="rule"><b>Words, not icons</b><span>Every button says what it does. Status is colour + dot + word, never colour alone.</span></div>
+    <div class="rule"><b>One step at a time</b><span>Long forms become short steps with a check page before saving.</span></div>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Screens">
+    <button class="tab" role="tab" id="t-home" aria-controls="home" aria-selected="true">1 · Home</button>
+    <button class="tab" role="tab" id="t-work" aria-controls="work" aria-selected="false">2 · Work queue</button>
+    <button class="tab" role="tab" id="t-register" aria-controls="register" aria-selected="false">3 · Register patient</button>
+    <button class="tab" role="tab" id="t-results" aria-controls="results" aria-selected="false">4 · Enter results</button>
+    <button class="tab" role="tab" id="t-nav" aria-controls="nav" aria-selected="false">5 · Menu before / after</button>
+  </div>
+
+  <!-- 1 HOME -->
+  <section class="board" id="home" role="tabpanel" aria-labelledby="t-home">
+    <div class="frame">
+      <div class="frame-bar"><span class="d"></span><span class="d"></span><span class="d"></span>&nbsp; diagnocare / home</div>
+      <div class="app">
+        <nav class="side" aria-label="Example sidebar">
+          <span class="pin" style="right:-10px;top:60px">1</span>
+          <div class="brand">Diagnocare</div>
+          <div class="sec">Daily work</div>
+          <div class="it on">Home</div><div class="it">Work queue</div><div class="it">Patients</div><div class="it">Test reports</div><div class="it">Bills &amp; receipts</div>
+          <div class="sec">Reports</div><div class="it">Business reports ▾</div>
+          <div class="sec">Lab setup</div><div class="it">Tests &amp; prices</div><div class="it">Doctors &amp; contacts</div>
+          <div class="sec">Team</div><div class="it">Staff</div><div class="it">Attendance</div><div class="it">Discount approvals <span class="ct">2</span></div>
+        </nav>
+        <div class="main">
+          <div class="top">
+            <div class="t"><b>Home</b><small>Today's work at your lab, at a glance</small></div>
+            <div class="find">Find a patient — name, phone or ID</div>
+            <span class="btn p">+ Register patient</span><span class="av">AS</span>
+            <span class="pin" style="right:150px;top:-8px">2</span>
+          </div>
+          <div class="page">
+            <div><b>Good morning, Anita</b> <small style="color:var(--ink-3)">· Friday 9 October</small></div>
+            <div class="grid g5" style="position:relative">
+              <span class="pin" style="left:-8px;top:-8px">3</span>
+              <div class="task lead"><b>Register a patient</b><small>New patient, book tests, take payment</small></div>
+              <div class="task" style="--c:var(--blue)"><span class="n">6</span><b>Collect samples</b><small>Waiting for a sample</small></div>
+              <div class="task" style="--c:var(--amber)"><span class="n">13</span><b>Enter results</b><small>Samples in the lab</small></div>
+              <div class="task" style="--c:var(--purple)"><span class="n">5</span><b>Check &amp; sign</b><small>Waiting for a doctor</small></div>
+              <div class="task" style="--c:var(--green)"><span class="n">12</span><b>Print &amp; hand over</b><small>Or send on WhatsApp</small></div>
+            </div>
+            <div class="grid g4">
+              <div class="kpi"><small>Patients today</small><b>24</b></div>
+              <div class="kpi"><small>Tests booked</small><b>61</b></div>
+              <div class="kpi"><small>Reports ready</small><b>38</b></div>
+              <div class="kpi"><small>Collected today</small><b>₹18,450</b></div>
+            </div>
+            <div class="panel"><span class="pin" style="right:-8px;top:-8px">4</span>
+              <h4>Where the work is</h4>
+              <div class="pipe">
+                <div style="--c:var(--ink-2)"><b>6</b><span>To collect</span></div>
+                <div style="--c:var(--blue)"><b>9</b><span>Awaiting results</span></div>
+                <div style="--c:var(--amber)"><b>3</b><span>Partly entered</span></div>
+                <div style="--c:var(--amber)"><b>1</b><span>Returned</span></div>
+                <div style="--c:var(--purple)"><b>5</b><span>To verify</span></div>
+                <div style="--c:var(--green)"><b>12</b><span>Ready to print</span></div>
+              </div>
+              <div class="warn" style="margin-top:10px">⚠ 2 items need attention — unpaid or stuck. Tap to sort them out.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3>Why it looks like this</h3>
+      <div class="note"><i>1</i><span>Sidebar replaces five hover dropdowns. Grouped by job, active page highlighted, counts beside items that have work waiting. Folds into a "Menu" drawer on phones.</span></div>
+      <div class="note"><i>2</i><span>The two things front desk does most are always in the top bar: find a patient and register one.</span></div>
+      <div class="note"><i>3</i><span>Tasks named in the user's words, each with its own colour and a waiting count. Only tasks the role can do are shown.</span></div>
+      <div class="note"><i>4</i><span>The sample pipeline, like ServiceHub's job pipeline. Each number opens the work queue on that step. Problems get their own red line.</span></div>
+    </aside>
+  </section>
+
+  <!-- 2 WORK -->
+  <section class="board" id="work" role="tabpanel" aria-labelledby="t-work" hidden>
+    <div class="frame">
+      <div class="frame-bar"><span class="d"></span><span class="d"></span><span class="d"></span>&nbsp; diagnocare / work?queue=awaiting-results</div>
+      <div class="app">
+        <nav class="side" aria-label="Example sidebar"><div class="brand">Diagnocare</div><div class="sec">Daily work</div><div class="it">Home</div><div class="it on">Work queue</div><div class="it">Patients</div><div class="it">Test reports</div></nav>
+        <div class="main">
+          <div class="top"><div class="t"><b>Work queue</b><small>Pick a step with a number in it and work down the list</small></div><div class="find">Search this list</div></div>
+          <div class="page">
+            <div class="qtabs" style="position:relative"><span class="pin" style="left:-8px;top:-8px">1</span>
+              <span class="qt">To collect <i>6</i></span><span class="qt on">Awaiting results <i>9</i></span><span class="qt">Partly entered <i>3</i></span><span class="qt">Returned <i>1</i></span><span class="qt">To verify <i>5</i></span><span class="qt">Ready to print <i>12</i></span><span class="qt" style="color:var(--red)">Needs attention <i>2</i></span>
+            </div>
+            <div class="panel">
+              <div class="row"><div class="who"><b>Ramesh Kumar · 45 M</b><small>CBC, Lipid profile · sample 10:12</small></div><span class="pill in">In the lab</span><span class="btn p">Enter results</span></div>
+              <div class="row"><div class="who"><b>Sunita Devi · 38 F</b><small>Thyroid profile · sample 10:40</small></div><span class="pill in">In the lab</span><span class="btn p">Enter results</span></div>
+              <div class="row"><div class="who"><b>Mohd. Arif · 61 M</b><small>HbA1c · <b style="color:var(--red)">Urgent</b></small></div><span class="pill bad">Urgent</span><span class="btn p">Enter results</span></div>
+              <div class="row" style="position:relative"><span class="pin" style="right:-8px;top:2px">2</span><div class="who"><b>Priya Verma · 29 F</b><small>Urine routine · sample 11:05</small></div><span class="pill in">In the lab</span><span class="btn p">Enter results</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3>Why it looks like this</h3>
+      <div class="note"><i>1</i><span>The queue tabs already exist in the app. In the redesign they take the sidebar look: dark selected tab, count on every tab, red for problems.</span></div>
+      <div class="note"><i>2</i><span>One row per patient, one button per row, and the button says the next action ("Enter results", "Print"). No icon-only buttons at the edge of a wide table.</span></div>
+    </aside>
+  </section>
+
+  <!-- 3 REGISTER -->
+  <section class="board" id="register" role="tabpanel" aria-labelledby="t-register" hidden>
+    <div class="frame">
+      <div class="frame-bar"><span class="d"></span><span class="d"></span><span class="d"></span>&nbsp; diagnocare / patients/add</div>
+      <div class="app">
+        <nav class="side" aria-label="Example sidebar"><div class="brand">Diagnocare</div><div class="sec">Daily work</div><div class="it">Home</div><div class="it">Work queue</div><div class="it on">Patients</div></nav>
+        <div class="main">
+          <div class="top"><div class="t"><b>Register patient</b><small>Three short steps. Nothing is saved until you press "Register patient".</small></div></div>
+          <div class="page">
+            <div class="steps" style="position:relative"><span class="pin" style="left:-8px;top:-8px">1</span>
+              <div class="step on"><b>1. Who is the patient?</b>Name, age, phone</div>
+              <div class="step"><b>2. Which tests?</b>Pick tests, see the price</div>
+              <div class="step"><b>3. Check &amp; pay</b>Read back, take payment</div>
+            </div>
+            <div class="panel">
+              <div class="grid g2">
+                <div><div class="lbl">Mobile number *</div><div class="box">98765 43210</div></div>
+                <div style="position:relative"><span class="pin" style="right:-8px;top:-8px">2</span><div class="lbl">&nbsp;</div><div class="warn" style="background:var(--blue-tint);color:var(--blue)">Found 1 patient with this number — <u>use Ramesh Kumar</u></div></div>
+                <div><div class="lbl">Patient name *</div><div class="box">e.g. Ramesh Kumar</div></div>
+                <div><div class="lbl">Age *</div><div class="box">45 years</div></div>
+              </div>
+              <div style="margin-top:12px;position:relative"><span class="pin" style="left:-10px;top:0">3</span><div class="lbl">Gender *</div>
+                <div class="chips"><span class="chip on">Male</span><span class="chip">Female</span><span class="chip">Other</span></div></div>
+              <div style="margin-top:12px"><div class="lbl">Referred by</div><div class="box">Type a doctor's name…</div></div>
+            </div>
+          </div>
+          <div class="savebar" style="position:relative"><span class="pin" style="left:6px;top:-10px">4</span><small>Still needed: patient name.</small><span class="btn">Back</span><span class="btn p big">Next: choose tests →</span></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3>Why it looks like this</h3>
+      <div class="note"><i>1</i><span>The long registration form becomes three steps named as questions. Uses the existing &lt;dc-wizard&gt; component.</span></div>
+      <div class="note"><i>2</i><span>Phone number first, so a returning patient is found before anyone types their name again. Stops duplicate patients.</span></div>
+      <div class="note"><i>3</i><span>Short fixed choices are big buttons, not a dropdown (&lt;dc-choice&gt;).</span></div>
+      <div class="note"><i>4</i><span>The main button is always on screen and says what is still missing, instead of a greyed-out Save with no reason.</span></div>
+    </aside>
+  </section>
+
+  <!-- 4 RESULTS -->
+  <section class="board" id="results" role="tabpanel" aria-labelledby="t-results" hidden>
+    <div class="frame">
+      <div class="frame-bar"><span class="d"></span><span class="d"></span><span class="d"></span>&nbsp; diagnocare / patient-tests/edit</div>
+      <div class="app">
+        <nav class="side" aria-label="Example sidebar"><div class="brand">Diagnocare</div><div class="sec">Daily work</div><div class="it">Home</div><div class="it on">Work queue</div><div class="it">Patients</div></nav>
+        <div class="main">
+          <div class="top"><div class="t"><b>Enter results — Ramesh Kumar, 45 M</b><small>Complete blood count · sample taken 10:12</small></div></div>
+          <div class="page">
+            <div class="panel" style="position:relative"><span class="pin" style="right:-8px;top:-8px">1</span>
+              <div class="res h"><span>Test</span><span>Result</span><span>Unit</span><span>Normal range</span><span>Flag</span></div>
+              <div class="res"><span>Haemoglobin</span><span class="v">13.8</span><span>g/dL</span><span>13.0 – 17.0</span><span class="pill ok">Normal</span></div>
+              <div class="res"><span>WBC count</span><span class="v hi">14,200</span><span>/µL</span><span>4,000 – 11,000</span><span class="pill bad">High</span></div>
+              <div class="res"><span>Platelets</span><span class="v">2.4</span><span>lakh/µL</span><span>1.5 – 4.1</span><span class="pill ok">Normal</span></div>
+              <div class="res"><span>ESR</span><span class="v" style="color:var(--ink-3);font-weight:400">type here</span><span>mm/hr</span><span>0 – 15</span><span class="pill wt">Empty</span></div>
+            </div>
+          </div>
+          <div class="savebar" style="position:relative"><span class="pin" style="left:6px;top:-10px">2</span><small>3 of 4 filled · ESR still empty.</small><span class="btn">Save and finish later</span><span class="btn p big">Save &amp; send to verify</span></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3>Why it looks like this</h3>
+      <div class="note"><i>1</i><span>Normal range beside every box, and an out-of-range value turns red with the word "High" while typing, so mistakes like a missing decimal are caught before the doctor sees them.</span></div>
+      <div class="note"><i>2</i><span>Two clear exits: finish later, or send for verification. The bar counts what is left.</span></div>
+    </aside>
+  </section>
+
+  <!-- 5 NAV -->
+  <section id="nav" role="tabpanel" aria-labelledby="t-nav" hidden>
+    <div class="compare">
+      <div class="panel">
+        <h4>Today: top header with hover menus</h4>
+        <div class="tree">
+          <div>Home · <span class="dd">Lab Operations ▾ (7 items)</span></div>
+          <div><span class="dd">Reports ▾ (12 items)</span> · <span class="dd">Lab Setup ▾ (2)</span></div>
+          <div><span class="dd">User Panel ▾ (4)</span> · <span class="dd">Admin Panel ▾ (7)</span></div>
+        </div>
+        <ul style="margin-top:12px">
+          <li>32 screens hidden behind 5 menus that open on hover and close when the mouse drifts.</li>
+          <li>Hover does not work on a touch screen or tablet.</li>
+          <li>People must remember that "Patient Details" lives under "Lab Operations".</li>
+          <li>Labels in system words: "Master Test details", "Contact Address Manager".</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>Redesign: sidebar, always open</h4>
+        <div class="tree">
+          <div><b>Daily work</b> — Home, Work queue, Patients, Test reports, Bills &amp; receipts, Test reminders</div>
+          <div><b>Reports</b> — Business reports (folds open on click)</div>
+          <div><b>Lab setup</b> — Tests &amp; prices, Doctors &amp; contacts, Lab profile, Lab settings</div>
+          <div><b>Team</b> — Staff, Attendance, Salary, Discount approvals, Holidays, Visit schedule</div>
+          <div><b>My things</b> — My attendance, My visits, My salary</div>
+        </div>
+        <ul style="margin-top:12px">
+          <li>Every allowed screen visible at once; the current one is highlighted.</li>
+          <li>Each role sees only what its permissions allow (same rules as today).</li>
+          <li>Plain names: "Tests &amp; prices", "Doctors &amp; contacts", "Staff".</li>
+          <li>Works by tap: a Menu button opens it as a drawer on phones and tablets.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function show(id) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('aria-controls') === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.getAttribute('aria-controls')); }); });
+  var h = (location.hash || '').slice(1);
+  if (document.getElementById(h) && tabs.some(function (t) { return t.getAttribute('aria-controls') === h; })) show(h);
+})();
+</script>

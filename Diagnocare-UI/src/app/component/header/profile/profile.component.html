@@ -43,6 +43,13 @@
 
           <div class="role-badge-wrap" *ngIf="user?.typeUserId">
             <span class="role-badge">{{ getRoleLabel(user?.typeUserId) }}</span>
+            <!-- Someone who is both wears both. The role badge keeps its place and its
+                 wording; this is an addition beside it, not a replacement for it. -->
+            <span class="role-badge role-badge-doctor"
+                  *ngIf="isAlsoDoctor"
+                  title="Also a Doctor — appears on test reports as a signing doctor">
+              <i class="fa fa-user-md"></i> {{ doctorLabel }}
+            </span>
           </div>
         </div>
 

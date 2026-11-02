@@ -17,6 +17,18 @@ import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
 import { TestProtocolModalComponent } from '../test-protocol-modal/test-protocol-modal.component';
 
+/**
+ * Treats a blank id as "not supplied".
+ *
+ * The form models default every id to '' rather than null, and `??` only falls through on
+ * null/undefined — so an unfilled id would otherwise be taken downstream for a real
+ * selection, match no row, and silently fall back to the first group in the list.
+ */
+function blankToNull(id: string | null | undefined): string | null {
+  const trimmed = (id ?? '').trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 @Component({
   selector: 'app-manage-tests',
   templateUrl: './manage-tests.component.html',
@@ -214,10 +226,14 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
       if (!payload.SubGroups.length) delete payload.SubGroups;
       if (!payload.Tests.length)     delete payload.Tests;
 
-      // Capture the IDs of what was just added so we can navigate to it after reload
-      const addedGroupId    = data.formData.group?.testGroupId    ?? null;
-      const addedSubGroupId = data.formData.subGroup?.testGroupId ?? null;
-      const addedTestCode   = data.formData.test?.testCode        ?? null;
+      // Capture the IDs of what was just added so we can navigate to it after reload.
+      // Blank ids are normalised away: the Add → SubGroup form fills in only the parent's id
+      // and never formData.group, so reading testGroupId alone yielded '' and sent the reload
+      // to whichever group happened to be first — leaving the new subgroup off screen.
+      const addedGroupId    = blankToNull(data.formData.group?.testGroupId)
+                           ?? blankToNull(data.formData.subGroup?.parentGroupId);
+      const addedSubGroupId = blankToNull(data.formData.subGroup?.testGroupId);
+      const addedTestCode   = blankToNull(data.formData.test?.testCode);
       const addedSelected   = data.selected as string;
       const addedStep       = data.step as number;
 
@@ -327,6 +343,10 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
     subGroupId: string | null,
     testCode: string | null
   ) {
+    groupId    = blankToNull(groupId);
+    subGroupId = blankToNull(subGroupId);
+    testCode   = blankToNull(testCode);
+
     this._pathTest.getAllGroupList().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data: any) => {
         this.groups = Array.isArray(data)

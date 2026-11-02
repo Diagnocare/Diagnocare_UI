@@ -8,7 +8,7 @@ import { DashboardService } from 'src/app/services/dashboardServices/dashboard.s
 import { HomeSummary, HomeActivity, HomeWeekDay } from 'src/app/models/dashboard/home-summary';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role, RoleId } from 'src/app/constant/enums';
-import { MODULE_ACCESS, DEFAULT_ACCESS, ModuleAccess } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, ModuleAccess, resolveModuleAccess } from 'src/app/constant/module-access';
 
 /**
  * A count the API sent, or null when it sent nothing usable.
@@ -93,6 +93,11 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   userRole: RoleId | null = null;
   userRoleDisplay = '';
+  /**
+   * True when this user is a doctor — by role, or as the additional capability a Super
+   * Admin can hold. Additive to `userRole`, never a substitute for it.
+   */
+  isDoctor = false;
   userName = '';
 
   greeting = '';
@@ -128,8 +133,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
   /** Inline style strings for floating hero particles (generated once on init). */
   particleStyles: string[] = [];
 
-  /** Controls the video tutorial modal. */
-  isVideoOpen = false;
 
   // ── Dashboard state ─────────────────────────────────────────────────────
   //  Null means "no value": still loading, or the request failed. Deliberately
@@ -194,8 +197,6 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   // ── Video modal ─────────────────────────────────────────────────────────
 
-  openVideo(): void  { this.isVideoOpen = true;  }
-  closeVideo(): void { this.isVideoOpen = false; }
 
   // ── Navigation ──────────────────────────────────────────────────────────
 
@@ -323,13 +324,19 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
 
   private loadUserInfo(): void {
     this.userRole        = this.tokenService.getUserRole();
-    this.userRoleDisplay = this.userRole !== null
+    this.isDoctor        = this.tokenService.isDoctor();
+
+    const roleLabel = this.userRole !== null
       ? (Object.values(Role).find(r => r.id === this.userRole)?.label ?? '')
       : '';
+    // "Super Admin • Doctor" for someone who is both — the primary role keeps its place
+    // and wording, the capability is appended. A plain Doctor is not repeated.
+    this.userRoleDisplay = this.isDoctor && this.userRole !== Role.Doctor.id && roleLabel
+      ? `${roleLabel} • ${Role.Doctor.label}`
+      : roleLabel;
+
     this.userName        = this.tokenService.getUserId() ?? 'User';
-    this.access          = this.userRole !== null
-      ? (MODULE_ACCESS[this.userRole] ?? DEFAULT_ACCESS)
-      : DEFAULT_ACCESS;
+    this.access          = resolveModuleAccess(this.userRole, this.isDoctor);
   }
 
   private buildGreeting(): void {
@@ -356,7 +363,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-users',
         route: '/patients',
         color: 'indigo',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Super_Admin.id]
       },
       {
         title: 'Patient Tests',
@@ -364,7 +371,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-flask',
         route: '/patient-tests',
         color: 'blue',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Doctor.id, Role.Super_Admin.id]
       },
     ];
 
@@ -375,7 +382,7 @@ export class PathologyHomeComponent implements OnInit, OnDestroy {
         icon: 'fa-list-alt',
         route: '/manage-tests',
         color: 'teal',
-        roles: [Role.Admin.id, Role.User.id, Role.Assistant.id, Role.Super_Admin.id]
+        roles: [Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Super_Admin.id]
       },
       {
         title: 'Reports',

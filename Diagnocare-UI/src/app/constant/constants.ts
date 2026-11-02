@@ -395,7 +395,7 @@ export const profileMenu = {
   settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
   changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
   // Authenticator App is now a section inside Settings (see settings page).
-  help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
+  // help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
 };
 
 export const labOperationMenu = {
@@ -462,6 +462,13 @@ export const userOptions: Record<string, {
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {
   patientRegister:        { id: 'patient-register',        label: 'Patient Register',               icon: 'fa-users'        },
   referrerCollection:     { id: 'referrer-collection',     label: 'Referrer Collection',            icon: 'fa-users-cog'    },
+  // Collection grouped by the doctor who REPORTED the test, as opposed to the
+  // doctor who referred the patient (that is Referrer Collection, above).
+  // The route and the component for this have existed all along; the menu
+  // entry and the two config entries below had not, so the page was reachable
+  // only by typing the URL — and then it threw, because table-report looks its
+  // reportId up in reportConfigs and found nothing.
+  reportingDoctorWise:    { id: 'reporting-doctor-wise',   label: 'Reporting Doctor Wise',          icon: 'fa-user-doctor'  },
   discountAuthorityWise:  { id: 'discount-authority-wise', label: 'Discount Authority Wise',        icon: 'fa-percent'      },
   patientHistoryWise:     { id: 'patient-history-wise',    label: 'Patient History Wise',           icon: 'fa-history'      },
   worksheetReport:        { id: 'worksheet',               label: 'Worksheet Report',               icon: 'fa-tasks'        },
@@ -475,12 +482,17 @@ export const summaryReportMenu: { [key: string]: { id: string; label: string; ic
 
 export const summaryReportApiEndpoints: { [key: string]: string } = {
   patientRegister:      'patient-registrations',
-  // Legacy individual endpoints (kept for backward compatibility / output-to-file)
+  // Legacy individual endpoints. The Reports pages that called these were
+  // merged into referrer-collection and register-reports, but the API still
+  // serves them and table-report still resolves them by name, so they stay.
   doctorWiseCollection: 'doctor-wise-collection',
   panelCompanyWise:     'panel-company-wise',
   collectionBoysWise:   'collection-boys-wise',
   // Merged referrer report
   referrerCollection:   'referrer-collection',
+  // Served by SummaryReportController.GetReportingDoctorWise, which groups
+  // collection by the "ReportingDoctor" referrer type.
+  reportingDoctorWise:  'reporting-doctor-wise',
   discountAuthorityWise: 'discount-authority-wise',
   patientHistoryWise:   'patient-history-wise',
   worksheetReport:      'worksheet-report',
@@ -495,7 +507,7 @@ export const summaryReportApiEndpoints: { [key: string]: string } = {
   // The Master Test List report shows collection summarised by catalogue level
   // (group / sub-group / test), so it calls the hierarchy endpoint. The flat
   // 'master-test-list' catalogue endpoint is still served and still backs the
-  // output-to-file CSV export.
+  // CSV export from the report filter bar.
   masterTestList:       'master-test-collection',
   addressManagerReport: 'address-manager-report',
   tpaReport:            'tpa-report',
@@ -519,6 +531,9 @@ export const testHierarchyLevels: ReportLevelOption[] = [
 export const reportConfigs: { [key: string]: ReportConfig } = {
   patientRegister:        { id: 'patientRegister',        label: 'Patient Register',               icon: 'fa-users',        endpoint: summaryReportApiEndpoints['patientRegister'],        defaultChartType: 'bar', digitInfo: '1.0-0' },
   referrerCollection:     { id: 'referrerCollection',     label: 'Referrer Collection',            icon: 'fa-users-cog',    endpoint: summaryReportApiEndpoints['referrerCollection'],     defaultChartType: 'bar', digitInfo: '1.2-2' },
+  // Same response envelope as tpaReport (CollectionSummaryReportDto), so it
+  // takes the same chart type and money formatting.
+  reportingDoctorWise:    { id: 'reportingDoctorWise',    label: 'Reporting Doctor Wise',          icon: 'fa-user-doctor',  endpoint: summaryReportApiEndpoints['reportingDoctorWise'],    defaultChartType: 'bar', digitInfo: '1.2-2' },
   discountAuthorityWise:  { id: 'discountAuthorityWise',  label: 'Discount Authority Wise report', icon: 'fa-percent',      endpoint: summaryReportApiEndpoints['discountAuthorityWise'],  defaultChartType: 'doughnut', digitInfo: '1.2-2' },
   patientHistoryWise:     { id: 'patientHistoryWise',     label: 'Patient history wise',           icon: 'fa-history',      endpoint: summaryReportApiEndpoints['patientHistoryWise'],     defaultChartType: 'line', digitInfo: '1.2-2' },
   worksheetReport:        { id: 'worksheetReport',        label: 'Worksheet report',               icon: 'fa-tasks',        endpoint: summaryReportApiEndpoints['worksheetReport'],        defaultChartType: 'bar', digitInfo: '1.2-2' },
