@@ -111,6 +111,17 @@
 }
 .msg-error   { background: var(--color-error-bg); color: var(--color-error); border: 1px solid var(--color-error-border); }
 .msg-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid var(--color-success-border); }
+.msg-loading { background: var(--color-primary-subtle); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+
+/* Error message with an inline recovery action on the right. */
+.profile-error-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  flex-wrap: wrap;
+}
+.profile-error-actions { flex-shrink: 0; }
 
 /* ══════════════════════════════════════════════════════
    THEME OVERRIDES  (host-context beats component scope)

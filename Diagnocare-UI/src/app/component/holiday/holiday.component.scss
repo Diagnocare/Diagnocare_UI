@@ -23,68 +23,48 @@
 .year-label {
   font-size: 1.15em;
   font-weight: 700;
-  color: #fff;
   min-width: 4em;
   text-align: center;
 }
 
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.1em;
-  height: 2.1em;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,0.5);
-  background: transparent;
-  color: #fff;
-  cursor: pointer;
-  font-size: 0.85em;
-  transition: background 0.15s, border-color 0.15s;
-
-  &:hover:not(:disabled) {
-    background: rgba(255,255,255,0.18);
-    border-color: #fff;
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-}
-
+// ── View toggle ───────────────────────────────────────────────────
 // ── View toggle ───────────────────────────────────────────────────
 .view-toggle {
   display: flex;
-  border: 1.5px solid rgba(255,255,255,0.35);
+  border: 1px solid rgba(0, 0, 0, 0.18);
   border-radius: 0.5em;
   overflow: hidden;
+  flex-shrink: 0;
+  margin-left: 2em;
 }
 
 .toggle-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
-  padding: 0.4em 1em;
+  padding: 0.45em 1em;
   font-size: 0.85em;
   font-weight: 600;
   border: none;
-  background: transparent;
-  color: rgba(255,255,255,0.7);
+  background: var(--bg-white, #fff);
+  color: var(--text-secondary, var(--color-text-secondary));
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 
-  & + & { border-left: 1.5px solid rgba(255,255,255,0.25); }
+  & + & { border-left: 1px solid rgba(0, 0, 0, 0.12); }
+
+  &:hover:not(:disabled):not(.active) {
+    background: var(--color-surface-sunken);
+    color: var(--text-primary, var(--color-text-primary));
+  }
 
   &.active {
-    background: rgba(255,255,255,0.22);
+    background: var(--primary-color, var(--color-primary-ink));
     color: #fff;
+    font-weight: 700;
   }
 
-  &:hover:not(.active) {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-  }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 // ── Holiday count chip ────────────────────────────────────────────
@@ -297,8 +277,8 @@
   .col-date   { width: 10em; white-space: nowrap; }
   .col-day    { width: 9em; }
   .col-reason { width: 10em; }
-  .col-remark { color: var(--text-secondary, var(--color-text-secondary)); font-size: 0.875em; }
-  .col-action { width: 6em; text-align: center; }
+  .col-remark { font-size: 0.875em; }
+  .col-action { width: 8em; text-align: center; }
 
   // ── Alternating rows ────────────────────────────────────────────
   // Override the global data-table 0.03 opacity tints (basically invisible)

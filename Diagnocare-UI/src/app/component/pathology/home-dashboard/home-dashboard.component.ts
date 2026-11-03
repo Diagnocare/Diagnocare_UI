@@ -9,7 +9,7 @@ import { LicenceService } from 'src/app/services/licenceServices/licence.service
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { HomeSummary } from 'src/app/models/dashboard/home-summary';
 import { Role } from 'src/app/constant/enums';
-import { DEFAULT_ACCESS, MODULE_ACCESS, ModuleAccess } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, ModuleAccess, resolveModuleAccess } from 'src/app/constant/module-access';
 import { WORK_QUEUE_META, WORK_QUEUE_ORDER, WorkQueue, WorkQueueTone } from 'src/app/utilities/work-queue.util';
 
 /** A big "what do you want to do" button. */
@@ -111,8 +111,13 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const role = this.tokens.getUserRole();
-    this.access = role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
-    this.canVerify = role === Role.Admin.id || role === Role.Super_Admin.id || role === Role.Doctor.id;
+    const isDoctor = this.tokens.isDoctor();
+    this.access = resolveModuleAccess(role, isDoctor);
+    // Mirrors the API's ResultVerification policy (Super Admin, Admin, Doctor). Doctor
+    // is asked as the capability, not the role, so a Super Admin who also practises is
+    // recognised here the same way the server recognises them — they would already pass
+    // on Super Admin, but the next role given the capability will pass too.
+    this.canVerify = role === Role.Admin.id || role === Role.Super_Admin.id || isDoctor;
     this.canSeeWork = role !== Role.Collection_Boy.id && (this.access.labOps || this.access.patientTestsLink);
     this.userName = this.tokens.getUserId() ?? '';
     this.buildGreeting();

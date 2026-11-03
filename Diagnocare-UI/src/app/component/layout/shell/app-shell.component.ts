@@ -74,6 +74,7 @@ interface NavSection {
  */
 const NAV_STATE_KEY = 'dc.sidebar.collapsed';
 const RAIL_STATE_KEY = 'dc.sidebar.rail';
+const FOOT_STATE_KEY = 'dc.sidebar.foot';
 
 /**
  * AppShellComponent — the sidebar frame around every signed-in screen.
@@ -95,6 +96,9 @@ const RAIL_STATE_KEY = 'dc.sidebar.rail';
  *                  payroll and wants those five rows gone for good.
  *   Submenu fold   a long list inside a section shuts (business reports is
  *                  twelve entries, enough to push "Team" off a laptop screen).
+ *   Footer fold    the footer's own rows fold down to one compact row of
+ *                  icons, handing the menu back ~56px. The smallest of the
+ *                  four and the only one that is not about the menu at all.
  *   Rail           the entire sidebar narrows to its icons, giving the page
  *                  back ~176px. For wide tables on a small screen. Every
  *                  section keeps its own icon there, and clicking one opens
@@ -105,10 +109,22 @@ const RAIL_STATE_KEY = 'dc.sidebar.rail';
  * themselves — never close themselves — so the sidebar does not appear to
  * fight the person using it. See revealActive().
  *
- * The third is independent of the other two in both directions, and the rail
- * deliberately does not read their state: it is one icon per section, a
- * function of `sections` alone, so it is the same column before and after
- * every navigation. The route only moves the highlight inside the flyout.
+ * The last two are independent of the first two in both directions, and of
+ * each other. In particular the footer fold is NOT the rail: one folds a
+ * couple of rows at the bottom vertically, the other narrows the whole
+ * sidebar horizontally, and `toggleFoot` and `toggleRail` never write each
+ * other's field. The rail also deliberately does not read the fold state: it
+ * is one icon per section, a function of `sections` alone, so it is the same
+ * column before and after every navigation. The route only moves the
+ * highlight inside the flyout.
+ *
+ * LAYOUT
+ * ──────
+ * The sidebar is a 100vh flex column of three parts and only the middle one
+ * scrolls: a fixed brand row, the nav (`min-height: 0; overflow-y: auto`) and
+ * a fixed footer. Nothing here measures or sets a height for any of them —
+ * flexbox divides the viewport, so a menu of any length, with any number of
+ * sections expanded, scrolls instead of pushing the footer out of sight.
  *
  * It extends HeaderComponent rather than copying it, so access rules, badges,
  * the notification bell, licence banners and logout behave identically in both
@@ -188,6 +204,20 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     return this.railed && !this.narrow;
   }
 
+  /**
+   * Whether the sidebar footer shows its rows in full.
+   *
+   * The fourth and narrowest fold: it collapses the footer's own rows and
+   * nothing else. Deliberately not the rail — see the class comment. Folded,
+   * the footer keeps its actions as icon-only tiles (full sidebar) or leaves
+   * the chevron that brings them back (rail), so the fold buys height without
+   * ever becoming the thing that hid Help or "Show all sections".
+   *
+   * Open by default, like the sections: a frame shows too much before it
+   * shows too little.
+   */
+  footOpen = true;
+
   profileOpen = false;
   /** Below 980px the sidebar becomes a drawer. */
   drawerOpen = false;
@@ -237,7 +267,10 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     const a = this.access;
     const roleId = this.tokenRoleId();
     const isCollectionBoy = roleId === Role.Collection_Boy.id;
-    const isDoctor = roleId === Role.Doctor.id;
+    // The capability, not the role: a Super Admin who also practises gets the doctor's
+    // own queue link on top of everything Super Admin already gives them. Resolved in
+    // HeaderComponent.checkAdminPanelAccess() from the token's isdoc claim.
+    const isDoctor = this.isDoctor;
 
     this.canRegister = a.labOps;
     this.canFind = a.labOps || a.patientsLink;
@@ -246,15 +279,18 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     if (a.home)                    daily.push({ label: 'Home',             route: 'pathology',     icon: 'fa-house' });
     if (a.labOps && !isCollectionBoy)
                                    daily.push({ label: 'Work queue',       route: 'work',          icon: 'fa-list-check' });
+    // Not a duplicate of "Work queue" above, which opens the same page on a different
+    // queue: this is the doctor's own sign-off list. A doctor-capable Super Admin gets
+    // both, because they do both jobs.
     if (isDoctor)                  daily.push({ label: 'Reports to verify', route: 'work',         icon: 'fa-user-doctor', query: { queue: 'to-verify' } });
     if (a.labOps || a.patientsLink) daily.push({ label: 'Patients',        route: 'patients',      icon: 'fa-users' });
     if (a.labOps || a.patientTestsLink)
                                    daily.push({ label: 'Test reports',     route: 'patient-tests', icon: 'fa-file-medical' });
-    if (a.labOps)                  daily.push({ label: 'Bills & receipts', route: 'receipt',       icon: 'fa-receipt' });
+    if (a.labOps)                  daily.push({ label: 'Bills & Receipts', route: 'receipt',       icon: 'fa-receipt' });
     if (a.labOps)                  daily.push({ label: 'Test reminders',   route: 'test-reminders', icon: 'fa-bell' });
 
     const lab: NavItem[] = [];
-    if (a.labOps)    lab.push({ label: 'Tests & prices',    route: 'manage-tests', icon: 'fa-vials' });
+    if (a.labOps)    lab.push({ label: 'Tests & Prices',    route: 'manage-tests', icon: 'fa-vials' });
     if (a.labOps)    lab.push({ label: 'Doctors & Contacts', route: 'contacts',    icon: 'fa-address-book' });
     if (a.labSetup)  lab.push({ label: 'Lab profile',       route: 'lab-profile',  icon: 'fa-hospital' });
     if (a.labSetup)  lab.push({ label: 'Lab settings',      route: 'lab-setup',    icon: 'fa-sliders' });
@@ -383,8 +419,57 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     this.saveNavState();
   }
 
+  /**
+   * Fold every section shut — the mirror of expandAll(), and the quick way to
+   * a sidebar that is five headings and nothing else.
+   *
+   * Sections only, not the groups inside them. A group's fold is a preference
+   * about one list, and shutting the section around it already hides that
+   * list, so there is nothing to gain by overwriting it — and re-opening the
+   * section afterwards would otherwise hand back a submenu the person had
+   * chosen to keep open.
+   *
+   * Nothing here fights revealActive(): fold everything, open a page, and the
+   * section that page lives in comes back by itself. That is the sidebar's
+   * standing rule — folds only ever open themselves, never close themselves —
+   * and it is what keeps "hide everything" from being a way to lose the
+   * highlighted row.
+   */
+  collapseAll(): void {
+    for (const section of this.sections) this.collapsed.add(section.id);
+    this.saveNavState();
+  }
+
   get hasCollapsed(): boolean {
     return this.collapsed.size > 0;
+  }
+
+  /**
+   * Whether any section is still open — i.e. whether collapseAll() has
+   * anything left to do. Each footer button appears only while its own action
+   * would change something, so neither is ever a row that does nothing: open
+   * everything and only "Hide all" is there, fold everything and only "Show
+   * all" is, and in between both are.
+   */
+  get hasExpanded(): boolean {
+    return this.sections.some(s => this.isOpen(s.id));
+  }
+
+  /**
+   * Folds the sidebar footer.
+   *
+   * Touches `footOpen` and nothing else — not `railed`, not `collapsed`. The
+   * screenshot's footer chevron and the header's `<<` are two controls over
+   * two different axes, and either one doing the other's job would be a bug,
+   * not a convenience.
+   */
+  toggleFoot(): void {
+    this.footOpen = !this.footOpen;
+    try {
+      localStorage.setItem(FOOT_STATE_KEY, this.footOpen ? '1' : '0');
+    } catch {
+      /* See toggleRail(). */
+    }
   }
 
   toggleRail(): void {
@@ -441,11 +526,16 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
         }
       }
       this.railed = localStorage.getItem(RAIL_STATE_KEY) === '1';
+      // Read the other way round from the rail: anything but a stored '0' —
+      // including a missing key — leaves the footer open, so a first visit
+      // and an unreadable store both land on the fuller sidebar.
+      this.footOpen = localStorage.getItem(FOOT_STATE_KEY) !== '0';
     } catch {
       // Unreadable or corrupt — fall back to everything expanded, which is the
       // safe end of the range: a sidebar that shows too much, never too little.
       this.collapsed = new Set();
       this.railed = false;
+      this.footOpen = true;
     }
   }
 

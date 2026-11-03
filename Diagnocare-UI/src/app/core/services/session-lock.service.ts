@@ -149,6 +149,11 @@ export class SessionLockService implements OnDestroy {
     // Guard against a second prompt (e.g. visibilitychange + idle 'change'
     // firing back-to-back on unlock).
     if (this.pinPromptActive) return;
+
+    // The user is already on the Settings page configuring their PIN — don't
+    // interrupt that with the very modal that sent them there.
+    if (this.pinModalService.isPinSetupPending &&
+        this.router.url.split('?')[0].startsWith('/settings')) return;
     this.pinPromptActive = true;
     const releasePrompt = () => { this.pinPromptActive = false; };
 
@@ -187,10 +192,14 @@ export class SessionLockService implements OnDestroy {
 
     } else {
       // ── No PIN configured yet ───────────────────────────────────────────
+      // A missing PIN is a setup state, not an auth failure: navigating to
+      // Settings must leave the token, refresh token and user state untouched.
       this.pinModalService.requestPinSetup().pipe(take(1), finalize(releasePrompt)).subscribe(goToSettings => {
         if (goToSettings) {
-          this.router.navigate(['/settings']);
+          this.pinModalService.beginPinSetup();
+          this.router.navigate(['/settings'], { queryParams: { setupPin: '1' } });
         } else {
+          // Only an explicit "Log Out" ends the session.
           this.loginService.logout().subscribe();
           this.router.navigate(['/login'], { queryParams: { reason: 'no_pin' } });
         }

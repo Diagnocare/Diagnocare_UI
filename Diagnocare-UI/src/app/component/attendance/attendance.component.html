@@ -233,7 +233,8 @@
                 </div>
               </td>
 
-              <td *ngFor="let cell of row.cells; let ci = index; trackBy: trackByIndex" class="att-cell-td">
+              <td *ngFor="let cell of row.cells; let ci = index; trackBy: trackByIndex" class="att-cell-td"
+                  [class.col-today]="cell.isToday">
                 <button
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
@@ -357,7 +358,8 @@
                     </td>
 
                     <!-- cells 0–14 → column indices 0–14 -->
-                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index; trackBy: trackByIndex" class="att-cell-td">
+                    <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index; trackBy: trackByIndex" class="att-cell-td"
+                        [class.col-today]="cell.isToday">
                       <button
                         class="att-cell"
                         [ngClass]="cellClass(cell)"
@@ -471,7 +473,8 @@
                     </td>
 
                     <!-- cells 15..end → global column index = 15 + ci -->
-                    <td *ngFor="let cell of row.cells.slice(15); let ci = index; trackBy: trackByIndex" class="att-cell-td">
+                    <td *ngFor="let cell of row.cells.slice(15); let ci = index; trackBy: trackByIndex" class="att-cell-td"
+                        [class.col-today]="cell.isToday">
                       <button
                         class="att-cell"
                         [ngClass]="cellClass(cell)"

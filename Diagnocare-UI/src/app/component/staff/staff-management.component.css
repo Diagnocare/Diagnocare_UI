@@ -165,6 +165,16 @@
   border: 1px solid var(--color-info-border);
 }
 
+/* The additional Doctor capability, worn next to the role badge rather than in place
+   of it — a different colour so "Super Admin" and "Doctor" read as two things the one
+   person is, not as one compound role. Tokens only; see design-tokens.css. */
+.role-badge-doctor {
+  margin-left: 4px;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+
 /* ── Staff capacity badge ────────────────────────────────────────────────── */
 /* Sits beside the page title: "7 / 10 staff". Turns red once every slot is
    taken, matching the disabled state of the Add button. */

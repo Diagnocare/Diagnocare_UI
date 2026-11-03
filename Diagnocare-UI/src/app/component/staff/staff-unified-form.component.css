@@ -50,3 +50,63 @@
 .signature-existing-actions{
   gap:1em;
 }
+/* ── "Also a Doctor" capability toggle ──────────────────────────────────────
+   A capability, not a field: it changes what the account IS, and it reveals the
+   three doctor-profile rows below it. So it gets a boxed row of its own rather
+   than a bare checkbox in the grid, where it read as one more optional detail.
+   Colour comes from tokens only — see shared/design-tokens.css.
+
+   It keeps the global .form-group grid (130px label + 1fr control) rather than
+   overriding it to `display: block`. Block made the box span the full width and
+   start at the label gutter, so it sat 130px to the left of every input on the
+   screen — the one element in the form that did not line up. On narrow screens
+   the global rule collapses the grid to one column, so the box goes full width
+   there on its own. */
+.capability-group {
+  margin: 0.25rem 0 1rem;
+  /* The box is two lines tall; its label belongs on the first of them, not
+     centred against both. */
+  align-items: start;
+}
+
+/* Matches .form-label's own top offset so the label and the box's title sit on
+   the same baseline. It is a <span>, not a <label>: the box below already wraps
+   its checkbox, and a second associated label would compete with that. */
+.capability-group > .form-label {
+  padding-top: 0.95rem;
+}
+
+.capability-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-light);
+  cursor: pointer;
+}
+
+.capability-check:hover { border-color: var(--primary-color); }
+
+/* The box sits on the first text line, not centred against two lines of it. */
+.capability-check input[type="checkbox"] {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.capability-text { display: flex; flex-direction: column; gap: 0.15rem; }
+
+.capability-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.capability-title i { margin-right: 0.35rem; color: var(--primary-color); }
+
+/* The hint is a sentence, not a terse field note, so let it wrap normally. */
+.capability-check .form-hint { margin: 0; white-space: normal; }

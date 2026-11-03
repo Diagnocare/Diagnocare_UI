@@ -113,28 +113,30 @@
 .tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4em;
-  padding: 0.52em 1.2em;
-  font-size: 0.87em;
+  gap: 0.35em;
+  padding: 0.45em 1em;
+  font-size: 0.85em;
   font-weight: 600;
   border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  background: var(--bg-white, #fff);
+  color: var(--text-secondary, var(--color-text-secondary));
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.15s, color 0.15s;
 
-  & + & { border-left: 1.5px solid rgba(255, 255, 255, 0.25); }
+  & + & { border-left: 1px solid rgba(0, 0, 0, 0.12); }
 
-  &:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
+  &:hover:not(:disabled):not(.active) {
+    background: var(--color-surface-sunken);
+    color: var(--text-primary, var(--color-text-primary));
   }
 
   &.active {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--primary-color, var(--color-primary-ink));
+    background: var(--primary-color, var(--color-primary-ink));
+    color: #fff;
     font-weight: 700;
   }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 // ── Month navigation bar ──────────────────────────────────────────
@@ -153,7 +155,6 @@
   gap: 0.5em;
   font-size: 1.05em;
   font-weight: 700;
-  color: #fff;
   min-width: 12em;
   text-align: center;
   text-shadow: 0 1px 2px rgba(0,0,0,0.15);
@@ -164,32 +165,6 @@
   color: var(--primary-color, var(--color-primary-ink));
   opacity: 0.8;
 }
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2em;
-  height: 2.2em;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, transform 0.12s;
-  font-size: 0.85em;
-  backdrop-filter: blur(4px);
-
-  &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--primary-color, var(--color-primary-ink));
-    border-color: transparent;
-    transform: scale(1.08);
-  }
-
-  &:disabled { opacity: 0.35; cursor: not-allowed; }
-}
-
 .nav-spacer { flex: 1; }
 
 // ── Search box ────────────────────────────────────────────────────
@@ -536,15 +511,13 @@
 .config-title {
   font-size: 1.05em;
   font-weight: 700;
-  color: #fff;
   margin: 0 0 0.25em;
   text-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  i { margin-right: 0.35em; color: rgba(255,255,255,0.85); }
+  i { margin-right: 0.35em; }
 }
 
 .config-subtitle {
   font-size: 0.83em;
-  color: rgba(255, 255, 255, 0.75);
   margin-left: 0;   // was 28em — now correct
 }
 

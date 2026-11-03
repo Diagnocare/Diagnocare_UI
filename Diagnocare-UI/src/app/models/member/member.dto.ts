@@ -14,6 +14,25 @@ export interface MemberDto {
   /** Role/type — maps to Role.X.id (1=User, 2=Assistant, 3=Admin, 4=Super_Admin, 5=Collection_Boy, 6=Doctor) */
   typeUserId: number;
 
+  /**
+   * The additional Doctor capability — "this Super Admin is also a Doctor".
+   *
+   * Sits BESIDE `typeUserId`, which stays Super Admin: the member keeps every Super
+   * Admin permission and gains the doctor ones. Offered on the Super Admin role only;
+   * the API normalises it to false for anything else, so never infer a role from it.
+   *
+   * This is what the "Also a Doctor" checkbox binds to. Setting it here asks the server
+   * for the capability — what the member can actually DO comes from their next token.
+   */
+  isDoctor?: boolean;
+
+  /**
+   * Server-computed: is this member a doctor at all — by role (`typeUserId` 6) or by
+   * `isDoctor`. Read this for "show the doctor bits"; it saves every caller from
+   * re-deriving the OR and getting it wrong in one of the places.
+   */
+  isDoctorCapable?: boolean;
+
   // ── Login / account (User / Admin / Assistant) ────────────────────────────
   user_Name?:    string;
   /** Write-only — only sent on edit, never returned. */
