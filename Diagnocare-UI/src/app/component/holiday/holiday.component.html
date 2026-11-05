@@ -9,10 +9,10 @@
       </p>
     </div>
     <div class="header-actions" *ngIf="isAdmin">
-      <button class="btn btn-primary" (click)="openBulkAdd()">
+      <button class="dc-btn dc-btn--save" (click)="openBulkAdd()">
         <i class="fa fa-plus"></i> Bulk Add
       </button>
-      <button class="btn btn-primary" (click)="openAdd()">
+      <button class="dc-btn dc-btn--save" (click)="openAdd()">
         <i class="fa fa-plus"></i> Add Holiday
       </button>
     </div>
@@ -192,16 +192,16 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label required">Holiday Name</label>
-      <input type="text" class="form-control"
+      <label for="holiday-field1" class="form-label required">Holiday Name</label>
+      <input id="holiday-field1" type="text" class="form-control"
              [(ngModel)]="draft.holidayName"
              placeholder="e.g. Diwali, Republic Day, Christmas"
              maxlength="200" />
     </div>
 
     <div class="form-group">
-      <label class="form-label">Remark <span class="optional">(optional)</span></label>
-      <textarea class="form-control"
+      <label for="holiday-field2" class="form-label">Remark <span class="optional">(optional)</span></label>
+      <textarea id="holiday-field2" class="form-control"
                 [(ngModel)]="draft.remark"
                 rows="2"
                 placeholder="Any additional notes…"
@@ -214,7 +214,7 @@
     <button class="btn btn-cancel" (click)="closeModal()" [disabled]="isSaving">
       <i class="fa fa-times"></i> Cancel
     </button>
-    <button class="btn btn-primary" (click)="saveHoliday()"
+    <button class="dc-btn dc-btn--save" (click)="saveHoliday()"
             [disabled]="isSaving || !draft.holidayDate || !draft.holidayName.trim()">
       <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
       <span *ngIf="!isSaving">
@@ -292,7 +292,7 @@
 
         <!-- Holiday Name -->
         <div class="bulk-col-reason">
-          <input type="text" class="form-control"
+          <input aria-label="Holiday name" type="text" class="form-control"
                  [class.is-invalid]="bulkSubmitted && !row.holidayName.trim()"
                  [(ngModel)]="row.holidayName"
                  placeholder="Holiday name…"
@@ -301,7 +301,7 @@
 
         <!-- Remark -->
         <div class="bulk-col-remark">
-          <input type="text" class="form-control"
+          <input aria-label="Notes (optional)" type="text" class="form-control"
                  [(ngModel)]="row.remark"
                  placeholder="Notes… (optional)"
                  maxlength="500" />
@@ -336,7 +336,7 @@
     <button class="btn btn-cancel" (click)="closeBulkModal()" [disabled]="isBulkSaving">
       <i class="fa fa-times"></i> Cancel
     </button>
-    <button class="btn btn-primary" (click)="saveBulkHolidays()" [disabled]="isBulkSaving">
+    <button class="dc-btn dc-btn--save" (click)="saveBulkHolidays()" [disabled]="isBulkSaving">
       <span *ngIf="isBulkSaving"><i class="fa fa-spinner fa-spin"></i> Saving…</span>
       <span *ngIf="!isBulkSaving">
         <i class="fa fa-save"></i>

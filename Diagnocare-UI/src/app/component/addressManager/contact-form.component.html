@@ -14,8 +14,8 @@
         <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" appFormKeyboard [tabFields]="tabFields">
             <div class="form-grid">
             <div class="field form-group">
-                <label class="form-label">Institution Type <span class="req">*</span></label>
-                <select class="form-select" formControlName="institutionType"
+                <label for="contact-form-institutionType" class="form-label">Institution Type <span class="req">*</span></label>
+                <select id="contact-form-institutionType" class="form-select" formControlName="institutionType"
                         [class.is-error]="commonService.isControlInvalid(contactForm.get('institutionType'), submitted)">
                   <option [ngValue]="null" disabled>Select type</option>
                   <option *ngFor="let t of contactTypes" [ngValue]="t.value">{{ t.label }}</option>
@@ -28,8 +28,8 @@
             </div>
 
             <div class="field form-group">
-                <label class="form-label required">Name <span class="req">*</span></label>
-                <input class="form-control" formControlName="name"
+                <label for="contact-form-name" class="form-label required">Name <span class="req">*</span></label>
+                <input id="contact-form-name" class="form-control" formControlName="name"
                        [class.is-error]="commonService.isControlInvalid(contactForm.get('name'), submitted)" />
                 <app-field-error
                   [control]="contactForm.get('name')"
@@ -39,18 +39,18 @@
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Contact Person</label>
-                <input class="form-control" formControlName="contactPerson" />
+                <label for="contact-form-contactPerson" class="form-label">Contact Person</label>
+                <input id="contact-form-contactPerson" class="form-control" formControlName="contactPerson" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Contact Number</label>
-                <input class="form-control" formControlName="contactNumber" />
+                <label for="contact-form-contactNumber" class="form-label">Contact Number</label>
+                <input id="contact-form-contactNumber" class="form-control" formControlName="contactNumber" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Email</label>
-                <input class="form-control" formControlName="email" type="email"
+                <label for="contact-form-email" class="form-label">Email</label>
+                <input id="contact-form-email" class="form-control" formControlName="email" type="email"
                        [class.is-error]="commonService.isControlInvalid(contactForm.get('email'), submitted)" />
                 <app-field-error
                   [control]="contactForm.get('email')"
@@ -60,28 +60,28 @@
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Address Line 1</label>
-                <input class="form-control" formControlName="addressLine1" />
+                <label for="contact-form-addressLine1" class="form-label">Address Line 1</label>
+                <input id="contact-form-addressLine1" class="form-control" formControlName="addressLine1" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Address Line 2</label>
-                <input class="form-control" formControlName="addressLine2" />
+                <label for="contact-form-addressLine2" class="form-label">Address Line 2</label>
+                <input id="contact-form-addressLine2" class="form-control" formControlName="addressLine2" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">City</label>
-                <input class="form-control" formControlName="city" />
+                <label for="contact-form-city" class="form-label">City</label>
+                <input id="contact-form-city" class="form-control" formControlName="city" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">State</label>
-                <input class="form-control" formControlName="state" />
+                <label for="contact-form-state" class="form-label">State</label>
+                <input id="contact-form-state" class="form-control" formControlName="state" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Pin Code</label>
-                <input class="form-control" formControlName="pinCode" placeholder="6-digit pin code"
+                <label for="contact-form-pinCode" class="form-label">Pin Code</label>
+                <input id="contact-form-pinCode" class="form-control" formControlName="pinCode" placeholder="6-digit pin code"
                        [class.is-error]="commonService.isControlInvalid(contactForm.get('pinCode'), submitted)" />
                 <app-field-error
                   [control]="contactForm.get('pinCode')"
@@ -91,18 +91,18 @@
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Country</label>
-                <input class="form-control" formControlName="country" />
+                <label for="contact-form-country" class="form-label">Country</label>
+                <input id="contact-form-country" class="form-control" formControlName="country" />
             </div>
 
             <div class="field field-checkbox form-group">
-                <label class="form-label">Active</label>
-                <input type="checkbox" formControlName="isActive" />
+                <label for="contact-form-isActive" class="form-label">Active</label>
+                <input id="contact-form-isActive" type="checkbox" formControlName="isActive" />
             </div>
 
             <div class="field form-group">
-                <label class="form-label">Incentive (%)</label>
-                <input class="form-control" formControlName="commissionPercentage"
+                <label for="contact-form-commissionPercentage" class="form-label">Incentive (%)</label>
+                <input id="contact-form-commissionPercentage" class="form-control" formControlName="commissionPercentage"
                        type="number" min="0" max="100" step="0.01"
                        placeholder="e.g. 10.5"
                        [class.is-error]="commonService.isControlInvalid(contactForm.get('commissionPercentage'), submitted)" />
@@ -118,7 +118,7 @@
               <button type="button" (click)="onClear()" class="dc-btn dc-btn--clear">
                 <i class="fa fa-times"></i> Clear
               </button>
-              <button type="submit" [disabled]="isLoading" class="btn btn-primary">
+              <button type="submit" [disabled]="isLoading" class="btn dc-btn--save">
                 <i class="fa fa-save"></i> {{ isEdit ? 'Update' : 'Add' }}
               </button>
             </div>

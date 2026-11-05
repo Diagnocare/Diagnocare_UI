@@ -34,7 +34,7 @@
     <div class="card">
       <div class="card-body">
         <h3>Enter Patient ID</h3>
-        <input type="text" class="form-control" [(ngModel)]="enteredPatientId"
+        <input aria-label="Patient ID" type="text" class="form-control" [(ngModel)]="enteredPatientId"
                placeholder="Patient ID" (keyup.enter)="onPatientIdSubmit()">
         <button class="dc-btn dc-btn--search" (click)="onPatientIdSubmit()">Load</button>
       </div>

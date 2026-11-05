@@ -82,13 +82,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   // ── Per-step required field map ────────────────────────────────────────────
   // Only fields listed here are checked when deciding whether Next is enabled.
   private readonly stepFields: Record<number, string[]> = {
-    1: [], // All disabled / auto-filled — always passable
-    2: [
+    // 1 Patient · 2 Tests · 3 Collection · 4 Payment & Delivery
+    1: [
       'patient_Name', 'patient_DOB', 'patient_Age', 'patient_Age_Group',
-      'patient_Gender', 'patient_Marital_Status', 'patient_Address',
+      'patient_Gender', 'patient_Marital_Status',
       'relation', 'relative_Name', 'patient_Contact', 'patient_Email'
     ],
-    3: ['test_Name', 'test_Amount', 'referred_By_Type', 'referred_By'],
+    2: ['test_Name', 'test_Amount', 'referred_By_Type', 'referred_By'],
+    // Address is only required while Outside Collection is on (see syncCollectorRule).
+    3: ['patient_Address'],
     4: ['discount', 'discount_Reason', 'net_Amount', 'payment_Type', 'amount_Paid', 'amount_Pending', 'payment_Mode']
     // Note: TPA sub-fields are validated separately via isTpaValid getter (not in stepFields)
     // because they are conditionally required only when payment_Mode === 'TPA'
@@ -96,6 +98,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   currentStep = 1;
+  /** The optional "More details" block on the Patient step (marital status, guardian). */
+  showMoreDetails = false;
 
   /** Exposed for [tabFields] binding on the form element. */
   readonly tabFields = tabOrderAdd;
@@ -180,7 +184,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   /** Guards against an earlier, slower protocol response overwriting a later one. */
   private protocolRequestSeq = 0;
 
-  /** Protocols for everything in the basket, grouped by test, shown on the Test & Lab step. */
+  /** Protocols for everything in the basket, grouped by test, shown on the Tests step. */
   selectedTestProtocols: TestBookingProtocolsDto[] = [];
   selectedProtocolsLoading = false;
   /** Collapsed by default so selecting tests stays uncluttered; the operator opens it with the toggle. */
@@ -193,10 +197,10 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   
 
   steps = [
-    { id: 1, title: 'Basic Info',       description: 'Patient identification' },
-    { id: 2, title: 'Personal Details', description: 'Contact & demographics' },
-    { id: 3, title: 'Test & Lab',       description: 'Medical information'    },
-    { id: 4, title: 'Payment',          description: 'Billing details'        }
+    { id: 1, title: 'Patient',             description: 'Who is being registered'  },
+    { id: 2, title: 'Tests',               description: 'Tests & referral'         },
+    { id: 3, title: 'Collection',          description: 'Sample & urgency'         },
+    { id: 4, title: 'Payment & Delivery',  description: 'Billing & report'         }
   ];
 
   constructor(
@@ -469,12 +473,12 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   get isCurrentStepValid(): boolean {
-    // Test step: a WhatsApp report needs a number to send to (the field under the toggle).
-    if (this.currentStep === 3 && this.whatsAppNeedsNumber) return false;
-    // Outside collection needs a collection boy to send.
+    // Delivery: a WhatsApp report needs a number to send to (the field under the toggle).
+    if (this.currentStep === 4 && this.whatsAppNeedsNumber) return false;
+    // Collection: outside collection needs a collection boy to send.
     if (this.currentStep === 3 && this.collectorMissing) return false;
     let fields = this.stepFields[this.currentStep] ?? [];
-    if (fields.length === 0) return true;   // Step 1 — no user input required
+    if (fields.length === 0) return true;
     // NoPayment: payment_Mode is not required (no payment is collected now)
     if (this.currentStep === 4 && this.patientForm.get('payment_Type')?.value === paymentType.NoPayment) {
       fields = fields.filter(f => f !== 'payment_Mode');
@@ -573,8 +577,13 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     this.stepTouched[this.currentStep] = true;
     const fields = this.stepFields[this.currentStep] ?? [];
     fields.forEach(f => this.patientForm.get(f)?.markAsTouched());
-    if (this.currentStep === 3 && this.reportOnWhatsApp) {
+    if (this.currentStep === 4 && this.reportOnWhatsApp) {
       this.patientForm.get('whatsApp_Number')?.markAsTouched();
+    }
+    // A problem inside the collapsed block must not hide behind it.
+    if (this.currentStep === 1 && ['patient_Marital_Status', 'relation', 'relative_Name']
+          .some(f => this.patientForm.get(f)?.invalid)) {
+      this.showMoreDetails = true;
     }
   }
 
@@ -1044,7 +1053,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Loads protocols for everything in the basket, for the summary on the Test & Lab step. */
+  /** Loads protocols for everything in the basket, for the summary on the Tests step. */
   private loadSelectedProtocols(): void {
     const codes = this.selectedTests.map(t => t.testCode).filter(c => !!c);
     if (!codes.length) {

@@ -131,7 +131,7 @@
   cursor: not-allowed;
 }
 
-/* .btn-primary uses the app-wide button style — solid blue, inverts to white
+/* .dc-btn--save uses the app-wide button style — solid blue, inverts to white
    on hover — defined in styles.css → "UNIFIED PRIMARY BUTTON". */
 
 .btn-danger {

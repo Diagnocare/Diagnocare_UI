@@ -11,7 +11,7 @@
   <div *ngIf="loadFailed" class="load-failed">
     <i class="fa fa-triangle-exclamation"></i>
     <p>Couldn't load this request.</p>
-    <button class="btn btn-primary btn-sm" (click)="retry()"><i class="fa fa-rotate"></i> Retry</button>
+    <button class="btn dc-btn--save btn-sm" (click)="retry()"><i class="fa fa-rotate"></i> Retry</button>
   </div>
 
   <div *ngIf="!isLoading && request" class="detail-grid">
@@ -78,7 +78,7 @@
       <!-- Owner (User) actions — one "take it back" button whose label tells the user
            whether it happens now or goes for review. -->
       <div *ngIf="request.canEdit || (!isReviewer && request.canWithdraw)" class="owner-actions">
-        <button *ngIf="request.canEdit" class="btn btn-primary" (click)="editRequest()">
+        <button *ngIf="request.canEdit" class="btn dc-btn--save" (click)="editRequest()">
           <i class="fa fa-pen"></i> Edit
         </button>
         <button *ngIf="!isReviewer && request.canWithdraw" class="btn btn-danger" (click)="confirmMode = 'withdraw'">
@@ -129,8 +129,8 @@
       <ng-container *ngIf="isPending; else closedNote">
         <h3><i class="fa fa-gavel"></i> Decision</h3>
         <div class="form-group">
-          <label class="form-label">Attendance to apply</label>
-          <select class="form-select" [(ngModel)]="appliedStatus">
+          <label for="request-detail-field1" class="form-label">Attendance to apply</label>
+          <select id="request-detail-field1" class="form-select" [(ngModel)]="appliedStatus">
             <option *ngFor="let s of allStatuses" [ngValue]="s.value">{{ s.label }}</option>
           </select>
           <small *ngIf="statusChanged" class="override-note">
@@ -163,8 +163,8 @@
         to <strong>{{ statusLabel(appliedStatus) }}</strong>.
       </p>
       <div class="form-group">
-        <label class="form-label">Remarks <span class="optional">(optional)</span></label>
-        <textarea class="form-control" [(ngModel)]="approveRemarks" rows="2" maxlength="500" placeholder="Note for the employee…"></textarea>
+        <label for="request-detail-field2" class="form-label">Remarks <span class="optional">(optional)</span></label>
+        <textarea id="request-detail-field2" class="form-control" [(ngModel)]="approveRemarks" rows="2" maxlength="500" placeholder="Note for the employee…"></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
@@ -179,8 +179,8 @@
       <h3>Reject request</h3>
       <p>Attendance stays unchanged. Please explain why.</p>
       <div class="form-group">
-        <label class="form-label">Remarks <span class="req">*</span></label>
-        <textarea class="form-control" [(ngModel)]="rejectRemarks" rows="2" maxlength="500" placeholder="Reason for rejection…"></textarea>
+        <label for="request-detail-field3" class="form-label">Remarks <span class="req">*</span></label>
+        <textarea id="request-detail-field3" class="form-control" [(ngModel)]="rejectRemarks" rows="2" maxlength="500" placeholder="Reason for rejection…"></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
@@ -203,8 +203,8 @@
           <strong>Nothing changes until they approve it.</strong>
         </p>
         <div class="form-group">
-          <label class="form-label">Why should this be undone? <span class="req">*</span></label>
-          <textarea class="form-control" [(ngModel)]="withdrawReason" rows="2" maxlength="500"
+          <label for="request-detail-field4" class="form-label">Why should this be undone? <span class="req">*</span></label>
+          <textarea id="request-detail-field4" class="form-control" [(ngModel)]="withdrawReason" rows="2" maxlength="500"
                     placeholder="e.g. I picked the wrong date"></textarea>
         </div>
         <div class="modal-actions">
@@ -224,8 +224,8 @@
           <strong>{{ request.attendanceDate | date:'dd MMM yyyy' }}</strong> right afterwards.
         </p>
         <div class="form-group">
-          <label class="form-label">Note <span class="optional">(optional)</span></label>
-          <textarea class="form-control" [(ngModel)]="withdrawReason" rows="2" maxlength="500"
+          <label for="request-detail-field5" class="form-label">Note <span class="optional">(optional)</span></label>
+          <textarea id="request-detail-field5" class="form-control" [(ngModel)]="withdrawReason" rows="2" maxlength="500"
                     placeholder="e.g. wrong date"></textarea>
         </div>
         <div class="modal-actions">
@@ -249,8 +249,8 @@
         <strong>{{ request.currentStatusLabel || 'unmarked — the record will be removed' }}</strong>.
       </p>
       <div class="form-group">
-        <label class="form-label">Remarks <span class="optional">(optional)</span></label>
-        <textarea class="form-control" [(ngModel)]="withdrawDecisionRemarks" rows="2" maxlength="500"
+        <label for="request-detail-field6" class="form-label">Remarks <span class="optional">(optional)</span></label>
+        <textarea id="request-detail-field6" class="form-control" [(ngModel)]="withdrawDecisionRemarks" rows="2" maxlength="500"
                   placeholder="Note for the employee…"></textarea>
       </div>
       <div class="modal-actions">
@@ -268,8 +268,8 @@
       <h3>Refuse withdrawal</h3>
       <p>The approved attendance stands and the request returns to Approved. Please explain why.</p>
       <div class="form-group">
-        <label class="form-label">Remarks <span class="req">*</span></label>
-        <textarea class="form-control" [(ngModel)]="withdrawDecisionRemarks" rows="2" maxlength="500"
+        <label for="request-detail-field7" class="form-label">Remarks <span class="req">*</span></label>
+        <textarea id="request-detail-field7" class="form-control" [(ngModel)]="withdrawDecisionRemarks" rows="2" maxlength="500"
                   placeholder="Reason for refusing…"></textarea>
       </div>
       <div class="modal-actions">

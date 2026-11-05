@@ -5,11 +5,11 @@
       <p class="subtitle">Manage groups, subgroups, and test rates</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary" (click)="add()"><i class="fa fa-plus"></i> Add</button>
-      <button class="btn btn-primary" (click)="importFromExcel()"><i class="fa fa-upload"></i> Import from Excel</button>
-      <button class="btn btn-primary" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
-      <button class="btn btn-primary" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
-      <button class="btn btn-primary" (click)="manageTestProtocol()"><i class="fa fa-flask"></i> Manage Protocol</button>
+      <button class="dc-btn dc-btn--save" (click)="add()"><i class="fa fa-plus"></i> Add</button>
+      <button class="dc-btn dc-btn--save" (click)="importFromExcel()"><i class="fa fa-upload"></i> Import from Excel</button>
+      <button class="dc-btn dc-btn--save" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
+      <button class="dc-btn dc-btn--save" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
+      <button class="dc-btn dc-btn--save" (click)="manageTestProtocol()"><i class="fa fa-flask"></i> Manage Protocol</button>
       <button class="btn btn-danger" (click)="drop()"><i class="fa fa-trash"></i> Drop</button>
     </div>
   </div>
@@ -19,10 +19,10 @@
       <div class="search-section">
         <div class="search-row">
           <div class="filter-group">
-            <label class="filter-label"><i class="fa fa-vials"></i> Find a test</label>
+            <label for="manage-tests-field1" class="filter-label"><i class="fa fa-vials"></i> Find a test</label>
             <div class="input-icon-wrap">
               <i class="fa fa-search input-icon" aria-hidden="true"></i>
-              <input type="text" class="form-control"
+              <input id="manage-tests-field1" type="text" class="form-control"
                      placeholder="Group, subgroup or test name…" [(ngModel)]="query" />
             </div>
           </div>

@@ -56,15 +56,12 @@ import {
 } from 'src/app/models/path-test/protocol/test-protocol.model';
 
 // ── Simple UI kit ────────────────────────────────────────────────────────────
-// The new test picker and payment panel render instead of the catalogue and the
-// payment step when USE_NEW_UI is on. The old markup stays in the template
-// behind *ngIf="!useNewUi" so the two can be compared with the same patient.
+// The test picker and payment panel.
 import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
 import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
 // THE payment dialog, shared with Add New Patient, Patient Tests and
 // Bill / Receipt. This screen used to carry its own Bootstrap copy.
 import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
-import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
 import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
 
 @Component({
@@ -102,14 +99,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   // ── Test catalog state ────────────────────────────────────────────────────
   showTestCatalog = false;
-  query           = '';
-  groupedTests:   GroupSubGroupModel[] = [];
-  subGroupTests:  GroupSubGroupModel[] = [];
-  pathologyTest:  any[]                = [];
-  selectedTestGroup?:  GroupSubGroupModel;
-  selectedSubGroup?:   GroupSubGroupModel;
-  selectedGroupId:    string | null = null;
-  selectedSubGroupId: string | null = null;
   selectedTestIds = new Set<string>();
   selectedTests:  TestItem[] = [];
   focusedTestId:  string | null = null;
@@ -136,9 +125,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   showFocusedProtocol = false;
 
   // ── Simple UI kit ───────────────────────────────────────────────────────────
-  /** Flip in shared/simple/simple-ui.flags.ts to compare old and new. */
-  readonly useNewUi = USE_NEW_UI;
-
   /**
    * The whole catalogue, flat. The old picker loads tests one sub-group at a
    * time because that is all it can show; the new one searches everything, so
@@ -438,10 +424,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
    * the differ match what is already on screen instead of re-diffing a catalogue
    * that can run to hundreds of rows.
    */
-  trackByGroupId(_index: number, group: { testGroupId: number | string }): number | string {
-    return group.testGroupId;
-  }
-
   trackByTestCode(_index: number, test: { testCode: string }): string {
     return test.testCode;
   }
@@ -452,19 +434,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   trackByValue(_index: number, value: string): string {
     return value;
-  }
-
-  get filteredGroups():    GroupSubGroupModel[] {
-    const q = this.query.trim().toLowerCase();
-    return q ? this.groupedTests.filter(g => `${g.testGroupId} ${g.name}`.toLowerCase().includes(q)) : this.groupedTests;
-  }
-  get filteredSubGroups(): GroupSubGroupModel[] {
-    const q = this.query.trim().toLowerCase();
-    return q ? this.subGroupTests.filter(s => `${s.testGroupId} ${s.name}`.toLowerCase().includes(q)) : this.subGroupTests;
-  }
-  get filteredTests(): any[] {
-    const q = this.query.trim().toLowerCase();
-    return q ? this.pathologyTest.filter(t => `${t.testCode} ${t.testName}`.toLowerCase().includes(q)) : this.pathologyTest;
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -491,50 +460,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   openTestCatalog(event: Event): void {
     event.preventDefault();
 
-    // The new picker searches the whole catalogue, so it opens immediately and
+    // The picker searches the whole catalogue, so it opens immediately and
     // fills in as the list arrives — no group has to be chosen first.
-    if (this.useNewUi) {
-      this.showTestCatalog = true;
-      this.loadAllTests();
-      return;
-    }
-
-    this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.groupedTests = res ?? [];
-        this.selectedTestGroup = this.groupedTests[0];
-        this.selectedGroupId = this.selectedTestGroup?.testGroupId;
-        this.getSubGroupList(this.selectedTestGroup!);
-        this.showTestCatalog = true;
-      },
-      // Message shown centrally by ErrorInterceptor.
-      error: () => {
-        this.groupedTests = [];
-      },
-    });
-  }
-
-  getSubGroupList(tg: GroupSubGroupModel): void {
-    this.selectedTestGroup = tg;
-    this.selectedGroupId   = tg.testGroupId;
-    this._testService.getTestSubGroupList(tg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.subGroupTests    = res ?? [];
-        this.selectedSubGroup = this.subGroupTests[0];
-        this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
-        if (this.selectedSubGroup) this.getMedicalTestList(this.selectedSubGroup);
-      },
-      error: () => { this.subGroupTests = []; },   // message shown centrally by ErrorInterceptor
-    });
-  }
-
-  getMedicalTestList(sg: GroupSubGroupModel): void {
-    this.selectedSubGroup   = sg;
-    this.selectedSubGroupId = sg.testGroupId;
-    this._testService.getMedicalTestList(sg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: any[]) => { this.pathologyTest = res ?? []; },
-      error: () => { this.pathologyTest = []; },   // message shown centrally by ErrorInterceptor
-    });
+    this.showTestCatalog = true;
+    this.loadAllTests();
   }
 
   /**
@@ -1247,7 +1176,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.amountPaidError      = '';
     this.saveError            = '';
     this.isSaving             = false;
-    this.query                = '';
     this.selectedTestIds      = new Set<string>();
     this.selectedTests        = [];
     this.focusedTestId             = null;

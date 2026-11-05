@@ -33,7 +33,6 @@ export * from './dc-note.component';
 export * from './dc-save-bar.component';
 export * from './dc-test-picker.component';
 export * from './dc-payment-panel.component';
-export * from './simple-ui.flags';
 
 import { DcFieldComponent } from './dc-field.component';
 import { DcChoiceComponent } from './dc-choice.component';

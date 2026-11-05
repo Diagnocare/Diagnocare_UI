@@ -250,7 +250,7 @@ const sections = [
     title: 'Registering a patient',
     titleHi: 'नया मरीज़ रजिस्टर करना',
     meta: {
-      onScreen: 'The four-step registration wizard: Basic Info, then Personal Details.',
+      onScreen: 'The four-step registration wizard: Patient, Tests, Collection, then Payment & Delivery.',
       clicks: 'Add New Patient, Next, Patient Name, salutation, age, sex, relative, mobile.',
       highlight: 'System-issued identifiers; the name field capitalising itself as you type.',
       expect: 'A lower-case name is stored capitalised; step 2 is filled and valid.',

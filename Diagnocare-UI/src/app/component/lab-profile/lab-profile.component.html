@@ -132,14 +132,14 @@
           <div class="profile-card-body">
             <div class="field-grid">
               <div class="field field-span2">
-                <label class="field-label">Motto</label>
-                <input type="text" class="field-input" formControlName="path_Motto"
+                <label for="lab-profile-path_Motto" class="field-label">Motto</label>
+                <input id="lab-profile-path_Motto" type="text" class="field-input" formControlName="path_Motto"
                        placeholder="e.g. Precision Diagnostics for Better Health" />
                 <div class="field-hint">Printed under the lab name on reports</div>
               </div>
               <div class="field field-span2">
-                <label class="field-label">Short Tagline</label>
-                <input type="text" class="field-input" formControlName="path_Tagline"
+                <label for="lab-profile-path_Tagline" class="field-label">Short Tagline</label>
+                <input id="lab-profile-path_Tagline" type="text" class="field-input" formControlName="path_Tagline"
                        placeholder="e.g. Trusted. Accurate. Fast." />
               </div>
             </div>
@@ -158,15 +158,15 @@
           <div class="profile-card-body">
             <div class="field-grid">
               <div class="field">
-                <label class="field-label">Alternate Contact</label>
-                <input type="tel" class="field-input" formControlName="path_AltContactNo"
+                <label for="lab-profile-path_AltContactNo" class="field-label">Alternate Contact</label>
+                <input id="lab-profile-path_AltContactNo" type="tel" class="field-input" formControlName="path_AltContactNo"
                        placeholder="Secondary number" maxlength="10" inputmode="numeric"
                        [class.is-error]="isInvalid('path_AltContactNo')" />
                 <app-field-error [control]="form.get('path_AltContactNo')" label="Alternate Contact" [forceShow]="submitted"></app-field-error>
               </div>
               <div class="field">
-                <label class="field-label">Website</label>
-                <input type="url" class="field-input" formControlName="path_Website"
+                <label for="lab-profile-path_Website" class="field-label">Website</label>
+                <input id="lab-profile-path_Website" type="url" class="field-input" formControlName="path_Website"
                        placeholder="https://www.yourlab.com" />
               </div>
             </div>
@@ -185,20 +185,20 @@
           <div class="profile-card-body">
             <div class="field-grid">
               <div class="field">
-                <label class="field-label">GST Number</label>
-                <input type="text" class="field-input" formControlName="path_GSTNo" placeholder="e.g. 27AABCU9603R1ZX" />
+                <label for="lab-profile-path_GSTNo" class="field-label">GST Number</label>
+                <input id="lab-profile-path_GSTNo" type="text" class="field-input" formControlName="path_GSTNo" placeholder="e.g. 27AABCU9603R1ZX" />
               </div>
               <div class="field">
-                <label class="field-label">PAN Number</label>
-                <input type="text" class="field-input" formControlName="path_PANNo" placeholder="e.g. AABCU9603R" />
+                <label for="lab-profile-path_PANNo" class="field-label">PAN Number</label>
+                <input id="lab-profile-path_PANNo" type="text" class="field-input" formControlName="path_PANNo" placeholder="e.g. AABCU9603R" />
               </div>
               <div class="field">
-                <label class="field-label">Lab Registration No.</label>
-                <input type="text" class="field-input" formControlName="path_RegNo" placeholder="PCPNDT / State reg. number" />
+                <label for="lab-profile-path_RegNo" class="field-label">Lab Registration No.</label>
+                <input id="lab-profile-path_RegNo" type="text" class="field-input" formControlName="path_RegNo" placeholder="PCPNDT / State reg. number" />
               </div>
               <div class="field">
-                <label class="field-label">NABL Accreditation No.</label>
-                <input type="text" class="field-input" formControlName="path_NABLNo" placeholder="MC-XXXX (if applicable)" />
+                <label for="lab-profile-path_NABLNo" class="field-label">NABL Accreditation No.</label>
+                <input id="lab-profile-path_NABLNo" type="text" class="field-input" formControlName="path_NABLNo" placeholder="MC-XXXX (if applicable)" />
               </div>
             </div>
           </div>
@@ -216,12 +216,12 @@
           <div class="profile-card-body">
             <div class="field-grid">
               <div class="field">
-                <label class="field-label">Lab Director / Owner</label>
-                <input type="text" class="field-input" formControlName="path_DirectorName" placeholder="Dr. Full Name" />
+                <label for="lab-profile-path_DirectorName" class="field-label">Lab Director / Owner</label>
+                <input id="lab-profile-path_DirectorName" type="text" class="field-input" formControlName="path_DirectorName" placeholder="Dr. Full Name" />
               </div>
               <div class="field">
-                <label class="field-label">Lab In-Charge</label>
-                <input type="text" class="field-input" formControlName="path_LabInCharge" placeholder="In-charge / Manager name" />
+                <label for="lab-profile-path_LabInCharge" class="field-label">Lab In-Charge</label>
+                <input id="lab-profile-path_LabInCharge" type="text" class="field-input" formControlName="path_LabInCharge" placeholder="In-charge / Manager name" />
               </div>
             </div>
           </div>
@@ -239,20 +239,20 @@
           <div class="profile-card-body">
             <div class="field-grid">
               <div class="field field-span2">
-                <label class="field-label">Report Header</label>
-                <textarea class="field-input field-textarea" formControlName="path_ReportHeader" rows="3"
+                <label for="lab-profile-path_ReportHeader" class="field-label">Report Header</label>
+                <textarea id="lab-profile-path_ReportHeader" class="field-input field-textarea" formControlName="path_ReportHeader" rows="3"
                           placeholder="e.g. City Diagnostic Centre | ISO 9001:2015 Certified | 24/7 Emergency Services"></textarea>
                 <div class="field-hint">Appears at the top of every printed or PDF report</div>
               </div>
               <div class="field field-span2">
-                <label class="field-label">Report Footer</label>
-                <textarea class="field-input field-textarea" formControlName="path_ReportFooter" rows="3"
+                <label for="lab-profile-path_ReportFooter" class="field-label">Report Footer</label>
+                <textarea id="lab-profile-path_ReportFooter" class="field-input field-textarea" formControlName="path_ReportFooter" rows="3"
                           placeholder="e.g. Results are for physician reference only. Report queries: lab@example.com"></textarea>
                 <div class="field-hint">Appears at the bottom of every report</div>
               </div>
               <div class="field">
-                <label class="field-label">Default Signatory Name</label>
-                <input type="text" class="field-input" formControlName="path_SignatoryName"
+                <label for="lab-profile-path_SignatoryName" class="field-label">Default Signatory Name</label>
+                <input id="lab-profile-path_SignatoryName" type="text" class="field-input" formControlName="path_SignatoryName"
                        placeholder="Name printed under the signature line" />
               </div>
             </div>
@@ -271,13 +271,13 @@
           <div class="profile-card-body">
             <div class="field-grid">
               <div class="field">
-                <label class="field-label">Country Code</label>
-                <input type="text" class="field-input" formControlName="path_CountryCode" placeholder="+91" />
+                <label for="lab-profile-path_CountryCode" class="field-label">Country Code</label>
+                <input id="lab-profile-path_CountryCode" type="text" class="field-input" formControlName="path_CountryCode" placeholder="+91" />
                 <div class="field-hint">Used as the default dialling prefix for patient contacts</div>
               </div>
               <div class="field">
-                <label class="field-label">Currency</label>
-                <input type="text" class="field-input" formControlName="path_Currency" placeholder="INR" />
+                <label for="lab-profile-path_Currency" class="field-label">Currency</label>
+                <input id="lab-profile-path_Currency" type="text" class="field-input" formControlName="path_Currency" placeholder="INR" />
                 <div class="field-hint">Shown on bills and receipts (e.g. INR, USD, ₹)</div>
               </div>
             </div>

@@ -61,8 +61,7 @@ interface WeekBar {
  *                                   and the week's registrations.
  *
  * It reads the same two endpoints the app already has — the home summary and
- * the worklist counts — so it needs no API change. Replaces the hero home page
- * only while USE_SIDEBAR_SHELL is on (see app-routing.module.ts).
+ * the worklist counts — so it needs no API change.
  */
 @Component({
   selector: 'app-home-dashboard',
@@ -206,6 +205,11 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   /** The task buttons this role can actually use, in the order the day runs. */
   get tasks(): TaskTile[] {
     const t: TaskTile[] = [];
+    // Same destination as the sidebar's "My pickups" — the collection boy's day starts here.
+    if (this.access.myPickups) {
+      t.push({ label: 'My pickups', hint: 'Samples to collect and hand over to the lab',
+               icon: 'fa-motorcycle', route: '/my-pickups', count: null, tone: 'primary' });
+    }
     if (this.access.labOps) {
       t.push({ label: 'Register a patient', hint: 'New patient, book tests, take payment',
                icon: 'fa-user-plus', route: '/patients/add', count: null, tone: 'primary' });

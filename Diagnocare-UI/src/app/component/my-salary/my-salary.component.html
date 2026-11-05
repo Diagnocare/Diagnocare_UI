@@ -35,10 +35,10 @@
       </button>
 
       <div class="ms-period-selects">
-        <select class="ms-select" [(ngModel)]="currentMonth" (ngModelChange)="onPeriodChange()" title="Select month">
+        <select aria-label="Select month" class="ms-select" [(ngModel)]="currentMonth" (ngModelChange)="onPeriodChange()" title="Select month">
           <option *ngFor="let m of monthOptions" [ngValue]="m.value">{{ m.label }}</option>
         </select>
-        <select class="ms-select" [(ngModel)]="currentYear" (ngModelChange)="onPeriodChange()" title="Select year">
+        <select aria-label="Select year" class="ms-select" [(ngModel)]="currentYear" (ngModelChange)="onPeriodChange()" title="Select year">
           <option *ngFor="let y of availableYears" [ngValue]="y">{{ y }}</option>
         </select>
       </div>
@@ -59,7 +59,7 @@
         <div class="empty-icon error"><i class="fa fa-exclamation-triangle"></i></div>
         <h3>Couldn't Load Your Payments</h3>
         <p>Something went wrong while loading your payments.</p>
-        <button class="btn btn-primary" (click)="loadPayments()">
+        <button class="dc-btn dc-btn--save" (click)="loadPayments()">
           <i class="fa fa-redo"></i> Try Again
         </button>
       </div>

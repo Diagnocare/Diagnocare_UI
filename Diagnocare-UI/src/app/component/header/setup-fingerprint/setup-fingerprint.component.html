@@ -74,7 +74,7 @@
       </ul>
 
       <div class="fp-add-row">
-        <input class="form-input" type="text" maxlength="128"
+        <input aria-label="Add another device (optional name)" class="form-input" type="text" maxlength="128"
                placeholder="Add another device (optional name)" [(ngModel)]="deviceLabel" />
         <button class="dc-btn dc-btn--save dc-btn--sm" (click)="register()" [disabled]="registering">
           <i class="fa" [class.fa-plus]="!registering" [class.fa-spinner]="registering" [class.fa-spin]="registering"></i>
