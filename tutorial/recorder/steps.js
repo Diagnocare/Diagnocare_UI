@@ -217,7 +217,7 @@ const sections = [
         'क्रम सिर्फ़ तारीख़ से नहीं है। अर्जेंट मरीज़ हमेशा सबसे ऊपर रहते हैं, क्योंकि इस लिस्ट में अर्जेंट रिपोर्ट ही वह चीज़ है जो अपनी बारी का इंतज़ार नहीं कर सकती।');
       await d.clearFocus();
 
-      await d.focusOn(page.locator('th', { hasText: 'Urg Rep' }).first());
+      await d.focusOn(page.locator('th', { hasText: 'Status' }).first());
       await d.say(
         'This column is why. Within the urgent rows, and within the normal ones, whatever order you chose by sorting still applies.',
         'वजह यही कॉलम है। अर्जेंट वालों के अंदर और सामान्य वालों के अंदर, आपने सॉर्ट से जो क्रम चुना है वही लागू रहता है।');
@@ -354,7 +354,7 @@ const sections = [
         subtitleHi: 'वह कैटलॉग जिस पर बाक़ी पूरा ऐप्लिकेशन खड़ा है',
       });
 
-      await d.navigate('Lab setup', 'Tests & prices');
+      await d.navigate('Lab setup', 'Tests & Prices');
       await page.locator('.master-list-wrap').waitFor({ state: 'visible', timeout: 25000 });
       await d.wait(1300);
 
