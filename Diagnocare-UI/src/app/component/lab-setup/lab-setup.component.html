@@ -73,7 +73,7 @@
 
                 <!-- Edit mode -->
                 <ng-container *ngIf="editingSampling === loc">
-                  <input class="item-edit-input" type="text" [(ngModel)]="editSamplingName"
+                  <input aria-label="Edit sampling source name" class="item-edit-input" type="text" [(ngModel)]="editSamplingName"
                          (keyup.enter)="saveEditSampling()" (keyup.escape)="cancelEditSampling()" autofocus />
                   <div class="item-actions">
                     <button class="ibtn ibtn-save"   (click)="saveEditSampling()"   title="Save"><i class="fa fa-check"></i></button>
@@ -95,7 +95,7 @@
             <hr class="section-divider" />
             <p class="add-section-label"><i class="fa fa-plus"></i> Add new location</p>
             <div class="add-row">
-              <input class="add-input" type="text" placeholder="e.g. StarLab, City Diagnostics…"
+              <input aria-label="New sampling source name" class="add-input" type="text" placeholder="e.g. StarLab, City Diagnostics…"
                      [(ngModel)]="newSamplingName" (keyup.enter)="addSampling()" />
               <button class="btn-add" (click)="addSampling()" [disabled]="!newSamplingName.trim()">
                 <i class="fa fa-plus"></i> Add
@@ -156,7 +156,7 @@
 
                 <!-- Edit mode -->
                 <ng-container *ngIf="editingArea === area">
-                  <input class="item-edit-input" type="text" [(ngModel)]="editAreaName"
+                  <input aria-label="Edit area name" class="item-edit-input" type="text" [(ngModel)]="editAreaName"
                          (keyup.enter)="saveEditArea()" (keyup.escape)="cancelEditArea()" autofocus />
                   <div class="item-actions">
                     <button class="ibtn ibtn-save"   (click)="saveEditArea()"   title="Save"><i class="fa fa-check"></i></button>
@@ -178,7 +178,7 @@
             <hr class="section-divider" />
             <p class="add-section-label"><i class="fa fa-plus"></i> Add new area</p>
             <div class="add-row">
-              <input class="add-input" type="text" placeholder="e.g. Main Lab, Andheri, Camp…"
+              <input aria-label="New area name" class="add-input" type="text" placeholder="e.g. Main Lab, Andheri, Camp…"
                      [(ngModel)]="newAreaName" (keyup.enter)="addArea()" />
               <button class="btn-add" (click)="addArea()" [disabled]="!newAreaName.trim()">
                 <i class="fa fa-plus"></i> Add
@@ -239,7 +239,7 @@
 
                 <!-- Edit mode -->
                 <ng-container *ngIf="editingUnit === unit">
-                  <input class="item-edit-input" type="text" [(ngModel)]="editUnitName"
+                  <input aria-label="Edit unit name" class="item-edit-input" type="text" [(ngModel)]="editUnitName"
                          (keyup.enter)="saveEditUnit()" (keyup.escape)="cancelEditUnit()" autofocus />
                   <div class="item-actions">
                     <button class="ibtn ibtn-save"   (click)="saveEditUnit()"   title="Save"><i class="fa fa-check"></i></button>
@@ -261,7 +261,7 @@
             <hr class="section-divider" />
             <p class="add-section-label"><i class="fa fa-plus"></i> Add new unit</p>
             <div class="add-row">
-              <input class="add-input" type="text" placeholder="e.g. mg/dL, IU/L, %, mmol/L…"
+              <input aria-label="New unit name" class="add-input" type="text" placeholder="e.g. mg/dL, IU/L, %, mmol/L…"
                      [(ngModel)]="newUnitName" (keyup.enter)="addUnit()" />
               <button class="btn-add" (click)="addUnit()" [disabled]="!newUnitName.trim()">
                 <i class="fa fa-plus"></i> Add
@@ -339,7 +339,7 @@
                   <i class="fa fa-hourglass-half"></i> Grace buffer duration (minutes) — 0 to disable
                 </div>
                 <div class="token-input-row">
-                  <input
+                  <input aria-label="Grace buffer duration in minutes"
                     class="token-input"
                     type="number"
                     min="0"
@@ -398,7 +398,7 @@
                   <i class="fa fa-percent"></i> Maximum allowed discount (0–99%) — 0 means no discount
                 </div>
                 <div class="token-input-row">
-                  <input
+                  <input aria-label="Maximum allowed discount percent"
                     class="token-input"
                     type="number"
                     min="0"
@@ -462,7 +462,7 @@
                   <i class="fa fa-clock-o"></i> Screen lock threshold (minutes) — 0 to disable
                 </div>
                 <div class="token-input-row">
-                  <input
+                  <input aria-label="Screen lock threshold in minutes"
                     class="token-input"
                     type="number"
                     min="0"
@@ -526,7 +526,7 @@
                   <i class="fa fa-percent"></i> Maximum carry forward (0&ndash;100% of annual entitlement) &mdash; 0 to disable
                 </div>
                 <div class="token-input-row">
-                  <input
+                  <input aria-label="Maximum carry forward percent"
                     class="token-input"
                     type="number"
                     min="0"

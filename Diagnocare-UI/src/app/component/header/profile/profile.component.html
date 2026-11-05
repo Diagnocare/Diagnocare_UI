@@ -97,7 +97,7 @@
                   <div class="prof-input-row">
                     <div class="prof-input-wrap">
                       <i class="fas fa-envelope prof-input-icon"></i>
-                      <input type="email" class="form-control prof-input"
+                      <input aria-label="Enter new email address" type="email" class="form-control prof-input"
                              placeholder="Enter new email address"
                              [(ngModel)]="newEmail" name="newEmail">
                     </div>
@@ -122,7 +122,7 @@
 
                   <!-- 6-box OTP input -->
                   <div class="prof-otp-boxes" (paste)="onOtpDigitPaste($event)">
-                    <input *ngFor="let d of otpDigits; let i = index"
+                    <input [attr.aria-label]="'OTP digit ' + (i + 1)" *ngFor="let d of otpDigits; let i = index"
                            class="prof-otp-box" type="text" inputmode="numeric"
                            maxlength="1" [value]="d"
                            (input)="onOtpDigitInput(i, $event)"
@@ -193,7 +193,7 @@
                   <div class="prof-input-row">
                     <div class="prof-input-wrap">
                       <i class="fas fa-phone prof-input-icon"></i>
-                      <input type="tel" class="form-control prof-input"
+                      <input aria-label="Enter 10-digit phone number" type="tel" class="form-control prof-input"
                              placeholder="Enter 10-digit phone number"
                              maxlength="10" inputmode="numeric" appNumericOnly [(ngModel)]="newPhone" name="newPhone">
                     </div>
@@ -218,7 +218,7 @@
 
                   <!-- 6-box OTP input -->
                   <div class="prof-otp-boxes" (paste)="onOtpDigitPaste($event)">
-                    <input *ngFor="let d of otpDigits; let i = index"
+                    <input [attr.aria-label]="'OTP digit ' + (i + 1)" *ngFor="let d of otpDigits; let i = index"
                            class="prof-otp-box" type="text" inputmode="numeric"
                            maxlength="1" [value]="d"
                            (input)="onOtpDigitInput(i, $event)"

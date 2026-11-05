@@ -44,7 +44,7 @@
       </button>
 
       <!-- Save -->
-      <button class="btn btn-primary" (click)="saveAll()"
+      <button class="dc-btn dc-btn--save" (click)="saveAll()"
               [disabled]="isLoading || isSaving || dirtyCount === 0">
         <i class="fa fa-save"></i> Save Changes
       </button>
@@ -129,7 +129,7 @@
     <!-- User filter -->
     <div class="user-filter" *ngIf="rows.length > 0">
       <i class="fa fa-user filter-icon"></i>
-      <select class="user-select"
+      <select aria-label="Filter by staff member" class="user-select"
               [(ngModel)]="selectedUserId"
               (ngModelChange)="recalcTotals()"
               title="Filter by staff member">

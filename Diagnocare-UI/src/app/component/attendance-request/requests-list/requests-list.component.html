@@ -54,7 +54,7 @@
           </button>
 
           <div *ngIf="employeeMenuOpen" class="emp-menu">
-            <input #employeeSearch type="text" class="emp-search" placeholder="Search employee…"
+            <input aria-label="Search employee" #employeeSearch type="text" class="emp-search" placeholder="Search employee…"
                    [(ngModel)]="employeeQuery" name="employeeQuery" autocomplete="off"
                    (keydown.enter)="$event.preventDefault()" />
             <ul role="listbox" class="emp-options">
@@ -122,7 +122,7 @@
         <div class="empty-icon">⚠️</div>
         <h3>Couldn't load requests</h3>
         <p>{{ loadError }}</p>
-        <button class="btn btn-primary" (click)="load()"><i class="fa fa-rotate"></i> Retry</button>
+        <button class="btn dc-btn--save" (click)="load()"><i class="fa fa-rotate"></i> Retry</button>
       </div>
 
       <div *ngIf="!loadError && rows.length === 0" class="empty-state card">
@@ -130,7 +130,7 @@
         <ng-container *ngIf="hasActiveFilters; else noneAtAll">
           <h3>{{ isReviewer ? 'No attendance requests found' : 'Nothing matches these filters' }}</h3>
           <p>{{ isReviewer ? 'Try changing the employee or date filters.' : 'Try a different status.' }}</p>
-          <button class="btn btn-primary" (click)="resetFilters()">
+          <button class="btn dc-btn--save" (click)="resetFilters()">
             <i class="fa fa-rotate-left"></i> Clear filters
           </button>
         </ng-container>
@@ -140,7 +140,7 @@
           <p *ngIf="isReviewer && filter.bucket === 'needsaction'">There are no pending attendance requests requiring action.</p>
           <p *ngIf="isReviewer && filter.bucket === 'decided'">Requests you approve, reject or revert will be listed here.</p>
           <p *ngIf="isReviewer && filter.bucket === 'all'">No employee has raised a correction request yet.</p>
-          <button *ngIf="!isReviewer" class="btn btn-primary" (click)="newRequest()">
+          <button *ngIf="!isReviewer" class="btn dc-btn--save" (click)="newRequest()">
             <i class="fa fa-plus"></i> Create your first request
           </button>
         </ng-template>

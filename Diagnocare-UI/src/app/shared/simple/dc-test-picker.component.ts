@@ -245,10 +245,10 @@ export interface DcTestGroup {
         </div>
 
         <div class="dcp__buttons">
-          <button type="button" class="dcp__btn dcp__btn--back" (click)="cancelled.emit()">
+          <button type="button" class="dc-btn dc-btn--back" (click)="cancelled.emit()">
             {{ cancelLabel }}
           </button>
-          <button type="button" class="dcp__btn dcp__btn--go"
+          <button type="button" class="dc-btn dc-btn--save"
                   [disabled]="selected.length === 0"
                   (click)="confirmed.emit()">
             <i class="fa fa-check" aria-hidden="true"></i>
@@ -264,14 +264,14 @@ export interface DcTestGroup {
        background as the card it sits in, in every theme, with or without
        simple-ui.css imported. */
     :host {
-      --p-surface: var(--dc-surface,       var(--bg-white,        #ffffff));
-      --p-muted:   var(--dc-surface-muted, var(--bg-light,        #f8fafc));
-      --p-line:    var(--dc-line,          var(--border-color,    #eef1f8));
-      --p-ink:     var(--dc-ink,           var(--text-primary,    #234a57));
-      --p-soft:    var(--dc-ink-soft,      var(--text-secondary,  #6b7c93));
-      --p-brand:   var(--dc-brand,         var(--primary-color,   #1e5ba8));
-      --p-radius:  var(--dc-radius,        8px);
-      --p-touch:   var(--dc-touch,         3rem);
+      --p-surface: var(--color-surface);
+      --p-muted:   var(--color-surface-sunken);
+      --p-line:    var(--color-border);
+      --p-ink:     var(--color-text-primary);
+      --p-soft:    var(--color-text-secondary);
+      --p-brand:   var(--color-primary);
+      --p-radius:  var(--radius-md);
+      --p-touch:   var(--dc-touch, 3rem);
 
       display: block;
       background: transparent;      /* inherit the card behind it */
@@ -288,30 +288,32 @@ export interface DcTestGroup {
 
     /* ── Search ─────────────────────────────────────────────────────────── */
     .dcp__searchbar { margin-bottom: 1rem; }
+    /* Same box as the global .form-control: 2.5 x 14px tall, 2px border, radius-md. */
     .dcp__search {
       display: flex; align-items: center; gap: .6rem;
-      padding: 0 1rem; min-height: var(--dc-touch-lg, 3.25rem);
+      padding: 0 .9375rem; height: 2.5rem;
       background: var(--p-surface);
-      border: 2px solid var(--p-line);
+      border: .125rem solid var(--p-line);
       border-radius: var(--p-radius);
+      transition: all .3s ease;
     }
     .dcp__search:focus-within {
       border-color: var(--p-brand);
-      box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,.28));
+      box-shadow: var(--dc-focus);
     }
     .dcp__search > .fa { color: var(--p-soft); }
     .dcp__input {
       flex: 1 1 auto; min-width: 0; border: 0; outline: none; background: transparent;
-      color: var(--p-ink); font-family: inherit; font-size: var(--dc-text-lg, 1.05rem);
+      color: var(--p-ink); font-family: inherit; font-size: var(--dc-text-body);
     }
     .dcp__input::-webkit-search-cancel-button { display: none; }
     .dcp__clear {
-      width: 2.25rem; height: 2.25rem; border: 0; border-radius: 50%; cursor: pointer;
+      width: 1.75rem; height: 1.75rem; border: 0; border-radius: 50%; cursor: pointer;
       background: var(--p-muted); color: var(--p-soft);
     }
-    .dcp__clear:hover { background: var(--dc-danger-bg, #fee2e2); color: var(--dc-danger-ink, #b91c1c); }
+    .dcp__clear:hover { background: var(--dc-danger-bg); color: var(--dc-danger-ink); }
     .dcp__searchhint {
-      margin: .4rem 0 0; font-size: var(--dc-text-sm, .85rem); color: var(--p-soft);
+      margin: .4rem 0 0; font-size: var(--dc-text-meta); color: var(--p-soft);
     }
 
     .dcp__loading {
@@ -338,7 +340,7 @@ export interface DcTestGroup {
     .dcp__colhead {
       display: flex; align-items: baseline; justify-content: space-between; gap: .5rem;
       margin: 0; padding: .6rem .85rem;
-      font-family: inherit; font-size: .8rem; font-weight: 700;
+      font-family: inherit; font-size: var(--dc-text-micro); font-weight: 700;
       text-transform: uppercase; letter-spacing: .04em;
       color: var(--p-soft);
       background: var(--p-muted);
@@ -346,28 +348,28 @@ export interface DcTestGroup {
     }
     .dcp__colhint { font-size: .68rem; font-weight: 500; text-transform: none; letter-spacing: 0; }
     .dcp__collist { flex: 1 1 auto; max-height: 20rem; overflow-y: auto; padding: .4rem; }
-    .dcp__empty { margin: 0; padding: 1.25rem .75rem; text-align: center; font-size: .85rem; color: var(--p-soft); }
+    .dcp__empty { margin: 0; padding: 1.25rem .75rem; text-align: center; font-size: var(--dc-text-meta); color: var(--p-soft); }
 
     /* Group / sub-group rows */
     .dcp__node {
       display: flex; align-items: center; gap: .5rem; width: 100%; text-align: left;
       min-height: var(--p-touch); padding: .5rem .7rem; margin-bottom: .25rem;
-      font-family: inherit; font-size: .95rem;
+      font-family: inherit; font-size: var(--dc-text-body);
       background: transparent; color: var(--p-ink);
       border: 2px solid transparent; border-radius: var(--p-radius);
       cursor: pointer;
     }
     .dcp__node:hover { background: var(--p-muted); }
-    .dcp__node:focus-visible { outline: none; box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,.28)); }
+    .dcp__node:focus-visible { outline: none; box-shadow: var(--dc-focus); }
     .dcp__node--on {
-      background: var(--dc-info-bg, #e8f0fb);
+      background: var(--dc-info-bg);
       border-color: var(--p-brand);
-      color: var(--dc-info-ink, var(--primary-color, #1e5ba8));
+      color: var(--dc-info-ink);
       font-weight: 600;
     }
     .dcp__nodetext { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
     .dcp__nodename { line-height: 1.3; }
-    .dcp__nodemeta { font-size: .78rem; font-weight: 400; color: var(--p-soft); }
+    .dcp__nodemeta { font-size: var(--dc-text-micro); font-weight: 400; color: var(--p-soft); }
     .dcp__node--on .dcp__nodemeta { color: inherit; opacity: .8; }
     .dcp__node > .fa { flex: 0 0 auto; opacity: .45; font-size: .8rem; }
 
@@ -376,27 +378,27 @@ export interface DcTestGroup {
     .dcp__none {
       display: flex; align-items: flex-start; gap: .5rem; margin: 0;
       padding: .75rem 1rem; border-radius: var(--p-radius);
-      background: var(--dc-info-bg, #e8f0fb);
-      border: 1px solid var(--dc-info-line, #b9d2f2);
-      color: var(--dc-info-ink, var(--primary-color, #1e5ba8));
+      background: var(--dc-info-bg);
+      border: 1px solid var(--dc-info-line);
+      color: var(--dc-info-ink);
       font-weight: 600;
     }
 
     .dcp__row {
       display: flex; align-items: center; gap: .75rem; width: 100%; text-align: left;
       min-height: var(--p-touch); padding: .55rem .7rem; margin-bottom: .25rem;
-      font-family: inherit; font-size: .95rem;
+      font-family: inherit; font-size: var(--dc-text-body);
       background: var(--p-surface); color: var(--p-ink);
       border: 2px solid var(--p-line); border-radius: var(--p-radius);
       cursor: pointer;
     }
     .dcp__results .dcp__row { margin-bottom: 0; }
     .dcp__row:hover { border-color: var(--p-brand); background: var(--p-muted); }
-    .dcp__row:focus-visible { outline: none; box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,.28)); }
+    .dcp__row:focus-visible { outline: none; box-shadow: var(--dc-focus); }
     .dcp__row--on {
-      border-color: var(--dc-ok-line, #86efac);
-      background: var(--dc-ok-bg, #dcfce7);
-      color: var(--dc-ok-ink, #15803d);
+      border-color: var(--dc-ok-line);
+      background: var(--dc-ok-bg);
+      color: var(--dc-ok-ink);
     }
     .dcp__row--off { opacity: .65; cursor: default; }
     .dcp__row--off:hover { border-color: var(--p-line); background: var(--p-surface); }
@@ -411,13 +413,13 @@ export interface DcTestGroup {
       display: inline-flex; align-items: center; justify-content: center; font-size: .8rem;
     }
     .dcp__row--on .dcp__box {
-      background: var(--dc-ok-ink, #15803d); border-color: var(--dc-ok-ink, #15803d); color: #fff;
+      background: var(--dc-ok-ink); border-color: var(--dc-ok-ink); color: #fff;
     }
-    .dcp__row--off .dcp__box { color: var(--dc-danger-ink, #b91c1c); border-style: dashed; }
+    .dcp__row--off .dcp__box { color: var(--dc-danger-ink); border-style: dashed; }
 
     .dcp__rowtext { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
     .dcp__rowname { font-weight: 600; line-height: 1.3; }
-    .dcp__rowmeta { font-size: .78rem; font-weight: 400; color: var(--p-soft); }
+    .dcp__rowmeta { font-size: var(--dc-text-micro); font-weight: 400; color: var(--p-soft); }
     .dcp__row--on .dcp__rowmeta { color: inherit; opacity: .85; }
     .dcp__price { flex: 0 0 auto; margin-left: .25rem; font-weight: 700; white-space: nowrap; }
 
@@ -438,41 +440,28 @@ export interface DcTestGroup {
       box-shadow: 0 -6px 18px rgba(22, 45, 60, .07);
     }
     .dcp__sum { flex: 1 1 18rem; min-width: 0; }
-    .dcp__sumline { margin: 0; font-weight: 700; font-size: 1.02rem; }
-    .dcp__sumsub { margin: .1rem 0 0; font-size: .85rem; color: var(--p-soft); }
+    .dcp__sumline { margin: 0; font-weight: 700; font-size: var(--dc-text-body); }
+    .dcp__sumsub { margin: .1rem 0 0; font-size: var(--dc-text-meta); color: var(--p-soft); }
 
     .dcp__tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
     .dcp__tag {
       display: inline-flex; align-items: center; gap: .35rem;
       padding: .25rem .3rem .25rem .7rem; border-radius: 999px;
-      font-size: .82rem; font-weight: 600;
-      background: var(--dc-ok-bg, #dcfce7);
-      border: 1px solid var(--dc-ok-line, #86efac);
-      color: var(--dc-ok-ink, #15803d);
+      font-size: var(--dc-text-meta); font-weight: 600;
+      background: var(--dc-ok-bg);
+      border: 1px solid var(--dc-ok-line);
+      color: var(--dc-ok-ink);
     }
     .dcp__tag button {
       width: 1.5rem; height: 1.5rem; border: 0; border-radius: 50%; cursor: pointer;
       background: rgba(0,0,0,.06); color: inherit; font-size: .7rem;
     }
-    .dcp__tag button:hover { background: var(--dc-danger-ink, #b91c1c); color: #fff; }
+    .dcp__tag button:hover { background: var(--dc-danger-ink); color: #fff; }
 
     .dcp__buttons { display: flex; gap: .6rem; flex: 0 0 auto; }
-    .dcp__btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-      min-height: var(--dc-touch-lg, 3.25rem); padding: 0 1.5rem;
-      font-family: inherit; font-size: 1rem; font-weight: 600;
-      border-radius: var(--p-radius); border: 2px solid transparent; cursor: pointer;
-    }
-    .dcp__btn:focus-visible { outline: none; box-shadow: var(--dc-focus, 0 0 0 3px rgba(30,91,168,.28)); }
-    .dcp__btn:disabled { opacity: .45; cursor: not-allowed; }
-    .dcp__btn--go { background: #15803d; color: #fff; font-size: 1.05rem; }
-    .dcp__btn--back {
-      background: var(--dc-idle-bg, #f1f5f9); color: var(--dc-idle-ink, #475569);
-      border-color: var(--dc-idle-line, #cbd5e1);
-    }
     @media (max-width: 34rem) {
       .dcp__buttons { flex: 1 1 100%; }
-      .dcp__btn { flex: 1 1 auto; padding: 0 1rem; }
+      .dcp__buttons .dc-btn { flex: 1 1 auto; }
     }
   `]
 })

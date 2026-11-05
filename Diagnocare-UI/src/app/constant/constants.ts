@@ -318,6 +318,7 @@ export const validationMessages = {
 
 // Tab order for Add Patient form
    export const tabOrderAdd = [
+     // Step 1 · Patient
      'patient_Salutation',
      'patient_Name',
      'patient_DOB',
@@ -326,30 +327,33 @@ export const validationMessages = {
      'patient_Gender',
      '',
      '',
+     'patient_Contact',
+     'patient_Email',
      'patient_Marital_Status',
      '',
      'relation',
      'relative_Name',
-     'patient_Contact',
-     'patient_Email',
-     'patient_Address',
+     // Step 2 · Tests
      'test_Name',
-     'urgent_Report',
-     'report_On_WhatsApp',
      'test_Amount',
      'referred_By_Type',
      'referred_By',
+     // Step 3 · Collection
      'sampling_Done',
      'collected_Outside',
      'area',
      'collected_By',
+     'patient_Address',
+     'urgent_Report',
      'remark',
+     // Step 4 · Payment & Delivery
      'discount',
      'net_Amount',
      'payment_Type',
      'payment_Mode',
      'amount_Paid',
-     'amount_Pending'
+     'amount_Pending',
+     'report_On_WhatsApp'
    ]
 
    // Tab order for Edit Patient form (customize as needed)

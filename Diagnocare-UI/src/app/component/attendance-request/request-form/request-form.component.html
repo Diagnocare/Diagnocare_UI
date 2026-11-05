@@ -141,10 +141,10 @@
       </div>
 
       <div class="field">
-        <label class="field-label">Requested Status <span class="req">*</span></label>
+        <label for="request-form-requestedStatus" class="field-label">Requested Status <span class="req">*</span></label>
         <div class="input-icon" [class.invalid]="f['requestedStatus'].touched && f['requestedStatus'].invalid">
           <i class="fa fa-clipboard-check lead-icon"></i>
-          <select formControlName="requestedStatus" class="form-control has-icon">
+          <select id="request-form-requestedStatus" formControlName="requestedStatus" class="form-control has-icon">
             <option value="" disabled>Select status…</option>
             <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
           </select>
@@ -174,10 +174,10 @@
       </div>
 
       <div class="field">
-        <label class="field-label">Reason <span class="optional">(optional)</span></label>
+        <label for="request-form-reason" class="field-label">Reason <span class="optional">(optional)</span></label>
         <div class="input-icon textarea-wrap">
           <i class="fa fa-file-lines lead-icon top"></i>
-          <textarea formControlName="reason" rows="4" maxlength="500" class="form-control has-icon"
+          <textarea id="request-form-reason" formControlName="reason" rows="4" maxlength="500" class="form-control has-icon"
                     placeholder="e.g. I was present but forgot to check in."></textarea>
           <span class="char-count">{{ f['reason'].value?.length || 0 }}/500</span>
         </div>

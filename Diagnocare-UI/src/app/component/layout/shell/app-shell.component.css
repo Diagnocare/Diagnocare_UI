@@ -399,6 +399,13 @@
   background: var(--sh-sidebar-hover);
   color: var(--sh-sidebar-ink);
 }
+/* In the rail the section icon is all that is left of the menu, so it carries
+   "you are in here": a quiet marker for the section holding the current page,
+   weaker than the solid fill of an open flyout. */
+.sh-sidebar.is-railed .sh-nav-title.is-active {
+  color: var(--sh-sidebar-ink);
+  box-shadow: inset 3px 0 0 var(--sh-primary);
+}
 /* While its flyout is open the icon stays lit, so it is obvious which section
    the panel belongs to. */
 .sh-sidebar.is-railed .sh-section.has-flyout .sh-nav-title {

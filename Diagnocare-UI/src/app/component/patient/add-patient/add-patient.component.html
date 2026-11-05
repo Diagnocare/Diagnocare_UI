@@ -20,63 +20,42 @@
     <div class="registration-card" *ngIf="!showTestCatalog">
       <form [formGroup]="patientForm" (ngSubmit)="registerPatient()" appFormKeyboard [tabFields]="tabFields">
 
-        <!-- ═══════════════════════════════════════════════════════ STEP 1 -->
+        <!-- ═══════════════════════════════════════════════════════ STEP 1 · PATIENT -->
         <div *ngIf="currentStep === 1">
-          <div class="step-header step-header--1">
-            <div class="step-badge">1</div>
-            <div>
-              <h3>Basic Info</h3>
-              <p>System-generated registration identifiers</p>
-            </div>
+        <div class="step-header step-header--1">
+          <div class="step-badge">1</div>
+          <div>
+            <h3>Patient</h3>
+            <p>Who is being registered</p>
           </div>
+        </div>
 
           <div class="step-body">
-            <div class="info-banner">
-              <i class="fa fa-info-circle"></i>
-              These fields are automatically populated by the system.
-            </div>
-
-            <div class="form-row">
+            <!-- System-generated identifiers: nothing to type, so one quiet row. -->
+            <div class="form-row form-row--ids">
               <div class="form-group">
                 <label class="form-label">Registration Date</label>
                 <app-date-picker formControlName="patient_Reg_Date" inputClass="form-control" [max]="todayIso"></app-date-picker>
               </div>
-            </div>
-
-            <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Serial Number</label>
-                <input class="form-control" formControlName="serial_Number" readonly />
+                <label for="add-patient-serial_Number" class="form-label">Serial Number</label>
+                <input id="add-patient-serial_Number" class="form-control" formControlName="serial_Number" readonly />
               </div>
               <div class="form-group">
-                <label class="form-label">Patient ID</label>
-                <input class="form-control" formControlName="patient_Id" readonly />
+                <label for="add-patient-patient_Id" class="form-label">Patient ID</label>
+                <input id="add-patient-patient_Id" class="form-control" formControlName="patient_Id" readonly />
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- ═══════════════════════════════════════════════════════ STEP 2 -->
-        <div *ngIf="currentStep === 2">
-          <div class="step-header step-header--2">
-            <div class="step-badge">2</div>
-            <div>
-              <h3>Personal Details</h3>
-              <p>Patient demographics and contact information</p>
-            </div>
-          </div>
-
-          <div class="step-body">
-            <!-- Name -->
             <div class="form-section-label">Identity</div>
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label required">Patient Name</label>
+                <label for="add-patient-patient_Salutation" class="form-label required">Patient Name</label>
                 <div class="input-combo" [class.is-invalid]="isFieldInvalid('patient_Name')">
-                  <select formControlName="patient_Salutation" class="combo-prefix" [attr.tabindex]="getTabIndex('patient_Salutation')">
+                  <select id="add-patient-patient_Salutation" formControlName="patient_Salutation" class="combo-prefix" [attr.tabindex]="getTabIndex('patient_Salutation')">
                     <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
                   </select>
-                      <input class="combo-input" appCapitalizedName formControlName="patient_Name" placeholder="Full Name"
+                      <input aria-label="Full Name" class="combo-input" appCapitalizedName formControlName="patient_Name" placeholder="Full Name"
                         [class.is-invalid]="isFieldInvalid('patient_Name')" [attr.tabindex]="getTabIndex('patient_Name')" />
                 </div>
                 <app-field-error [control]="patientForm.get('patient_Name')" label="Patient Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
@@ -86,10 +65,10 @@
             <!-- DOB / Age -->
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Date of Birth</label>
+                <label for="add-patient-patient_DOB" class="form-label">Date of Birth</label>
                 <div class="dob-input-wrap" [class.is-invalid]="isFieldInvalid('patient_DOB')">
                   <!-- Masked text entry (dd/mm/yyyy) -->
-                  <input
+                  <input id="add-patient-patient_DOB"
                     type="text"
                     class="form-control dob-text"
                     formControlName="patient_DOB"
@@ -146,16 +125,14 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Age Group</label>
-                <input type="text" class="form-control" formControlName="patient_Age_Group"
+                <label for="add-patient-patient_Age_Group" class="form-label required">Age Group</label>
+                <input id="add-patient-patient_Age_Group" type="text" class="form-control" formControlName="patient_Age_Group"
                   placeholder="From age" readonly
                   [class.is-invalid]="isFieldInvalid('patient_Age_Group')" [attr.tabindex]="getTabIndex('patient_Age_Group')" />
                 <app-field-error [control]="patientForm.get('patient_Age_Group')" label="Age Group" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
 
-            <!-- Gender / Marital -->
-            <div class="form-section-label">Demographics</div>
             <div class="form-row">
               <div class="form-group">
 
@@ -169,7 +146,44 @@
                 </div>
                 <app-field-error [control]="patientForm.get('patient_Gender')" label="Gender" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
+            </div>
 
+            <div class="form-section-label">Contact</div>
+            <div class="form-row">
+
+              <div class="form-group">
+                <label for="add-patient-country_Code" class="form-label">Mobile Number</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <select id="add-patient-country_Code" class="form-select" formControlName="country_Code" style="max-width: 30%;" [attr.tabindex]="getTabIndex('country_Code')">
+                    <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
+                  </select>
+                  <input aria-label="10-digit mobile number" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
+                    appNumericOnly class="form-control" formControlName="patient_Contact"
+                    placeholder="10-digit mobile number"
+                    [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
+                </div>
+                <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+              </div>
+
+              <div class="form-group">
+                <label for="add-patient-patient_Email" class="form-label">Email</label>
+                  <input id="add-patient-patient_Email" type="text" class="form-control" formControlName="patient_Email"
+                    placeholder="patient@example.com"
+                    [class.is-invalid]="isFieldInvalid('patient_Email')" [attr.tabindex]="getTabIndex('patient_Email')" />
+                <app-field-error [control]="patientForm.get('patient_Email')" label="Email" [forceShow]="stepTouched[currentStep]"></app-field-error>
+              </div>
+            </div>
+
+            <!-- Rarely needed at the desk: out of the way until asked for. -->
+            <div class="form-section-label">
+              More details
+              <button type="button" class="ap-protocol-toggle" (click)="showMoreDetails = !showMoreDetails">
+                <i class="fa" [class.fa-chevron-up]="showMoreDetails" [class.fa-chevron-down]="!showMoreDetails"></i>
+                {{ showMoreDetails ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <div *ngIf="showMoreDetails">
+              <div class="form-row">
               <div class="form-group">
 
                 <label class="form-label">Marital Status</label>
@@ -182,14 +196,11 @@
                 </div>
                 <app-field-error [control]="patientForm.get('patient_Marital_Status')" label="Marital Status" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
-            </div>
-
-            <!-- Relation / Relative -->
-            <div class="form-section-label">Guardian / Relative</div>
+              </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Relation</label>
-                <select formControlName="relation" class="form-select"
+                <label for="add-patient-relation" class="form-label">Relation</label>
+                <select id="add-patient-relation" formControlName="relation" class="form-select"
                   [class.is-invalid]="isFieldInvalid('relation')" [attr.tabindex]="getTabIndex('relation')">
                   <option value="">-- Select --</option>
                   <option *ngFor="let r of relations" [value]="r">{{ r }}</option>
@@ -199,68 +210,33 @@
 
               <div class="form-group">
                 <label class="form-label">Relative Name</label>
-                  <input type="text" class="form-control" formControlName="relative_Name"
+                  <input aria-label="Relative's full name" type="text" class="form-control" formControlName="relative_Name"
                     placeholder="Relative's full name"
                     [class.is-invalid]="isFieldInvalid('relative_Name')" [attr.tabindex]="getTabIndex('relative_Name')" />
                 <app-field-error [control]="patientForm.get('relative_Name')" label="Relative Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
-
-            <!-- Contact -->
-            <div class="form-section-label">Contact</div>
-            <div class="form-row">
-
-              <div class="form-group">
-                <label class="form-label">Mobile Number</label>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                  <select class="form-select" formControlName="country_Code" style="max-width: 30%;" [attr.tabindex]="getTabIndex('country_Code')">
-                    <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
-                  </select>
-                  <input type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
-                    appNumericOnly class="form-control" formControlName="patient_Contact"
-                    placeholder="10-digit mobile number"
-                    [class.is-invalid]="isFieldInvalid('patient_Contact')" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;" />
-                </div>
-                <app-field-error [control]="patientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Email</label>
-                  <input type="text" class="form-control" formControlName="patient_Email"
-                    placeholder="patient@example.com"
-                    [class.is-invalid]="isFieldInvalid('patient_Email')" [attr.tabindex]="getTabIndex('patient_Email')" />
-                <app-field-error [control]="patientForm.get('patient_Email')" label="Email" [forceShow]="stepTouched[currentStep]"></app-field-error>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group form-group--wide">
-                <label class="form-label">Address<span class="text-danger" *ngIf="patientForm.get('collected_Outside')?.value"> *</span></label>
-                  <input type="text" class="form-control" formControlName="patient_Address"
-                    placeholder="Full address"
-                    [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
-                <app-field-error [control]="patientForm.get('patient_Address')" label="Address" [forceShow]="stepTouched[currentStep]"></app-field-error>
-              </div>
             </div>
           </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ STEP 3 -->
-        <div *ngIf="currentStep === 3">
-          <div class="step-header step-header--3">
-            <div class="step-badge">3</div>
-            <div>
-              <h3>Test &amp; Lab</h3>
-              <p>Select tests and specify lab preferences</p>
-            </div>
+        <!-- ═══════════════════════════════════════════════════════ STEP 2 · TESTS -->
+        <div *ngIf="currentStep === 2">
+        <div class="step-header step-header--2">
+          <div class="step-badge">2</div>
+          <div>
+            <h3>Tests</h3>
+            <p>Choose the tests and who referred them</p>
           </div>
+        </div>
+
           <div class="step-body" *ngIf="showOtherTestDetails">
             <div class="form-section-label">Test Selection</div>
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label required">Test Name(s)</label>
+                <label for="add-patient-test_Name" class="form-label required">Test Name(s)</label>
                 <div class="test-input-wrap">
-                      <input type="text" class="form-control" formControlName="test_Name"
+                      <input id="add-patient-test_Name" type="text" class="form-control" formControlName="test_Name"
                         placeholder="Click to browse and select tests..."
                         (click)="openTestForm($event)" readonly
                         [class.is-invalid]="isFieldInvalid('test_Name')" [attr.tabindex]="getTabIndex('test_Name')" />
@@ -269,65 +245,25 @@
                 <app-field-error [control]="patientForm.get('test_Name')" label="Test Name" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
               </div>
-              <div class="form-row">
-              <div class="form-group form-group--narrow">
-                <label class="form-label form-group--narrow">Urgent Report</label>
-                <div class="toggle-wrap">
-                  <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="urgentReport" [attr.tabindex]="getTabIndex('urgent_Report')" />
-                  <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
-                </div>
-              </div>
-
-              <div class="form-group form-group--narrow">
-                <label class="form-label form-group--narrow">Report on WhatsApp</label>
-                <div class="toggle-wrap">
-                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
-                  <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>
-                </div>
-              </div>
-            </div>
-
-            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
-                 patient's mobile; change it to send the report to someone else. A different
-                 number is kept on this booking only. -->
-            <div class="form-row" *ngIf="reportOnWhatsApp">
-              <div class="form-group">
-                <label class="form-label required" for="whatsAppNumber">Send report to (WhatsApp number)</label>
-                <input type="number" appNumericOnly class="form-control" id="whatsAppNumber" formControlName="whatsApp_Number"
-                  placeholder="10-digit mobile number"
-                  [class.is-invalid]="isFieldInvalid('whatsApp_Number')" />
-                <app-field-error [control]="patientForm.get('whatsApp_Number')" label="WhatsApp Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
-                <small class="whatsapp-hint" *ngIf="!patientForm.get('patient_Contact')?.value">
-                  The patient has no mobile number, so this will also be saved as their mobile.
-                </small>
-                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && whatsAppIsPatientNumber">
-                  The patient's own mobile. Change it to send this report to another number.
-                </small>
-                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && !whatsAppIsPatientNumber">
-                  Different from the patient's mobile ({{ patientForm.get('patient_Contact')?.value }}). Used for this booking only.
-                  <button type="button" class="whatsapp-link" (click)="usePatientMobileForWhatsApp()">Use the patient's mobile</button>
-                </small>
-              </div>
-            </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Test Amount (₹)</label>
-                  <input type="text" class="form-control" formControlName="test_Amount"
+                <label for="add-patient-test_Amount" class="form-label required">Test Amount (₹)</label>
+                  <input id="add-patient-test_Amount" type="text" class="form-control" formControlName="test_Amount"
                     placeholder="Auto-filled from test selection" readonly
                     [class.is-invalid]="isFieldInvalid('test_Amount')" [attr.tabindex]="getTabIndex('test_Amount')" />
                 <app-field-error [control]="patientForm.get('test_Amount')" label="Test Amount" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Referred By</label>
+                <label for="add-patient-referred_By_Type" class="form-label required">Referred By</label>
                 <div class="input-combo" [class.is-invalid]="isFieldInvalid('referred_By')">
-                    <select formControlName="referred_By_Type" class="combo-prefix combo-prefix--md"
+                    <select id="add-patient-referred_By_Type" formControlName="referred_By_Type" class="combo-prefix combo-prefix--md"
                       (change)="onReferredByTypeChange()" [attr.tabindex]="getTabIndex('referred_By_Type')">
                     <option *ngFor="let entry of referredByTypeOptions" [value]="entry">{{ entry }}</option>
                   </select>
                   <div class="referred-by-input-wrap combo-input-wrap">
-                    <input
+                    <input aria-label="Name / source"
                       type="text"
                       class="combo-input"
                       formControlName="referred_By"
@@ -411,12 +347,25 @@
 
               </ng-container>
             </div>
+          </div>
+        </div>
 
+        <!-- ═══════════════════════════════════════════════════════ STEP 3 · COLLECTION -->
+        <div *ngIf="currentStep === 3">
+        <div class="step-header step-header--3">
+          <div class="step-badge">3</div>
+          <div>
+            <h3>Collection</h3>
+            <p>Where and how the sample is taken</p>
+          </div>
+        </div>
+
+          <div class="step-body">
             <div class="form-section-label">Sample Collection</div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Sampling Done At</label>
-                <select formControlName="sampling_Done" class="form-select" [attr.tabindex]="getTabIndex('sampling_Done')">
+                <label for="add-patient-sampling_Done" class="form-label">Sampling Done At</label>
+                <select id="add-patient-sampling_Done" formControlName="sampling_Done" class="form-select" [attr.tabindex]="getTabIndex('sampling_Done')">
                   <option *ngFor="let entry of samplingDoneAt" [value]="entry">{{ entry }}</option>
                 </select>
               </div>
@@ -467,21 +416,41 @@
 
             <div class="form-row">
               <div class="form-group form-group--wide">
-                <label class="form-label">Remark</label>
-                <textarea class="form-control" formControlName="remark"
+                <label class="form-label">Address<span class="text-danger" *ngIf="patientForm.get('collected_Outside')?.value"> *</span></label>
+                  <input aria-label="Full address" type="text" class="form-control" formControlName="patient_Address"
+                    placeholder="Full address"
+                    [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
+                <app-field-error [control]="patientForm.get('patient_Address')" label="Address" [forceShow]="stepTouched[currentStep]"></app-field-error>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group form-group--narrow">
+                <label for="urgentReport" class="form-label form-group--narrow">Urgent Report</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="urgent_Report" id="urgentReport" [attr.tabindex]="getTabIndex('urgent_Report')" />
+                  <label for="urgentReport" class="toggle-label">Mark as Urgent</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group form-group--wide">
+                <label for="add-patient-remark" class="form-label">Remark</label>
+                <textarea id="add-patient-remark" class="form-control" formControlName="remark"
                           rows="2" placeholder="Optional notes or remarks..." [attr.tabindex]="getTabIndex('remark')"></textarea>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ STEP 4 -->
+        <!-- ═══════════════════════════════════════════════════════ STEP 4 · PAYMENT &amp; DELIVERY -->
         <div *ngIf="currentStep === 4">
           <div class="step-header step-header--4">
             <div class="step-badge">4</div>
             <div>
-              <h3>Payment</h3>
-              <p>Review amounts and complete billing</p>
+              <h3>Payment &amp; Delivery</h3>
+              <p>Bill, payment and how the report reaches the patient</p>
             </div>
           </div>
 
@@ -505,12 +474,12 @@
             <div class="form-section-label">Amount Breakdown</div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Test Amount (₹)</label>
-                <input type="text" class="form-control" formControlName="test_Amount" readonly [attr.tabindex]="getTabIndex('test_Amount')" />
+                <label for="add-patient-test_Amount-1" class="form-label">Test Amount (₹)</label>
+                <input id="add-patient-test_Amount-1" type="text" class="form-control" formControlName="test_Amount" readonly [attr.tabindex]="getTabIndex('test_Amount')" />
               </div>
               <div class="form-group">
-                <label class="form-label">Discount (%)</label>
-                  <input type="number" class="form-control" formControlName="discount"
+                <label for="add-patient-discount" class="form-label">Discount (%)</label>
+                  <input id="add-patient-discount" type="number" class="form-control" formControlName="discount"
                     (input)="calculateNetAmount($any($event.target).value)" placeholder="0"
                     min="0" [max]="absoluteMaxDiscount" step="0.01"
                     [class.is-invalid]="!!patientForm.get('discount')?.invalid"
@@ -545,8 +514,8 @@
             </div>
             <div class="form-row" *ngIf="isDiscountOverLimit">
               <div class="form-group" style="flex: 1 1 100%;">
-                <label class="form-label" [class.required]="needsDiscountApproval">Reason for Discount</label>
-                <textarea class="form-control" formControlName="discount_Reason" rows="2" maxlength="500"
+                <label for="add-patient-discount_Reason" class="form-label" [class.required]="needsDiscountApproval">Reason for Discount</label>
+                <textarea id="add-patient-discount_Reason" class="form-control" formControlName="discount_Reason" rows="2" maxlength="500"
                   placeholder="e.g. Staff family, senior citizen camp, repeat test…"
                   [class.is-invalid]="isFieldInvalid('discount_Reason')"></textarea>
                 <app-field-error [control]="patientForm.get('discount_Reason')" label="Reason for Discount" [forceShow]="stepTouched[currentStep]"></app-field-error>
@@ -555,8 +524,8 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Net Amount (₹)</label>
-                  <input type="text" class="form-control" formControlName="net_Amount"
+                <label for="add-patient-net_Amount" class="form-label required">Net Amount (₹)</label>
+                  <input id="add-patient-net_Amount" type="text" class="form-control" formControlName="net_Amount"
                     (input)="calculateDiscount($any($event.target).value)"
                     [class.is-invalid]="isFieldInvalid('net_Amount')" [attr.tabindex]="getTabIndex('net_Amount')" />
                 <small class="text-danger"
@@ -582,8 +551,8 @@
 
             <div class="form-row" *ngIf="patientForm.get('payment_Type')?.value !== 'No Payment'">
               <div class="form-group">
-                <label class="form-label required">Payment Mode</label>
-                <select formControlName="payment_Mode" class="form-select"
+                <label for="add-patient-payment_Mode" class="form-label required">Payment Mode</label>
+                <select id="add-patient-payment_Mode" formControlName="payment_Mode" class="form-select"
                   [class.is-invalid]="isFieldInvalid('payment_Mode')" [attr.tabindex]="getTabIndex('payment_Mode')"
                   (change)="onPaymentModeChange()">
                   <option *ngFor="let entry of paymentMode" [value]="entry">{{ entry }}</option>
@@ -593,11 +562,11 @@
 
               <!-- Amount Paid: locked after partial payment is confirmed, editable (auto) for Full -->
               <div class="form-group">
-                <label class="form-label required">
+                <label for="add-patient-amount_Paid" class="form-label required">
                   Amount Paid (₹)
                   <span *ngIf="paymentConfirmed" class="payment-lock-icon" title="Confirmed — locked">🔒</span>
                 </label>
-                <input
+                <input id="add-patient-amount_Paid"
                   type="text"
                   class="form-control"
                   [class.payment-locked-input]="paymentConfirmed"
@@ -611,11 +580,11 @@
 
               <!-- Amount Pending: always readonly, locked after confirmation -->
               <div class="form-group">
-                <label class="form-label required">
+                <label for="add-patient-amount_Pending" class="form-label required">
                   Amount Pending (₹)
                   <span *ngIf="paymentConfirmed" class="payment-lock-icon" title="Confirmed — locked">🔒</span>
                 </label>
-                <input
+                <input id="add-patient-amount_Pending"
                   type="text"
                   class="form-control"
                   [class.payment-locked-input]="paymentConfirmed"
@@ -712,6 +681,42 @@
               <button type="button" class="btn-edit-payment" (click)="editPaymentDetails()">
                 <i class="fa fa-pencil-alt"></i> Edit
               </button>
+            </div>
+
+            <div class="form-section-label">Report Delivery</div>
+            <div class="form-row">
+              <div class="form-group form-group--narrow">
+                <label for="reportOnWhatsApp" class="form-label form-group--narrow">Report on WhatsApp</label>
+                <div class="toggle-wrap">
+                  <input type="checkbox" class="form-check-input" formControlName="report_On_WhatsApp" id="reportOnWhatsApp" [attr.tabindex]="getTabIndex('report_On_WhatsApp')" />
+                  <label for="reportOnWhatsApp" class="toggle-label"><i class="fa fa-whatsapp whatsapp-icon" aria-hidden="true"></i> Send report on WhatsApp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp: the number this booking's report goes to. Pre-filled with the
+                 patient's mobile; change it to send the report to someone else. A different
+                 number is kept on this booking only. -->
+            <div class="wa-number-slot">
+            <div class="form-row" *ngIf="reportOnWhatsApp">
+              <div class="form-group">
+                <label class="form-label required" for="whatsAppNumber">Send report to (WhatsApp number)</label>
+                <input type="number" appNumericOnly class="form-control" id="whatsAppNumber" formControlName="whatsApp_Number"
+                  placeholder="10-digit mobile number"
+                  [class.is-invalid]="isFieldInvalid('whatsApp_Number')" />
+                <app-field-error [control]="patientForm.get('whatsApp_Number')" label="WhatsApp Number" [forceShow]="stepTouched[currentStep]"></app-field-error>
+                <small class="whatsapp-hint" *ngIf="!patientForm.get('patient_Contact')?.value">
+                  The patient has no mobile number, so this will also be saved as their mobile.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && whatsAppIsPatientNumber">
+                  The patient's own mobile. Change it to send this report to another number.
+                </small>
+                <small class="whatsapp-hint" *ngIf="patientForm.get('patient_Contact')?.value && !whatsAppIsPatientNumber">
+                  Different from the patient's mobile ({{ patientForm.get('patient_Contact')?.value }}). Used for this booking only.
+                  <button type="button" class="whatsapp-link" (click)="usePatientMobileForWhatsApp()">Use the patient's mobile</button>
+                </small>
+              </div>
+            </div>
             </div>
           </div>
         </div>
