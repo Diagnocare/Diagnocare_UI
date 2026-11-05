@@ -6,8 +6,8 @@
 
       <!-- Year (hidden for static/non-date-filtered reports) -->
       <div class="rfb-group" *ngIf="showDateFilters">
-        <label class="rfb-label">Year</label>
-        <!-- Custom dropdown: the native <select> popup flashes black on Windows -->
+        <label for="report-filter-bar-field1" class="rfb-label">Year</label>
+        <!-- Custom dropdown: the native <select id="report-filter-bar-field1"> popup flashes black on Windows -->
         <div class="rfb-dropdown">
           <button type="button" class="rfb-select"
                   (click)="toggleYearMenu($event)"

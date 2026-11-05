@@ -186,8 +186,7 @@ class Driver {
   /**
    * Clicks a link in the sidebar, opening its section first if it is folded.
    *
-   * This is the sidebar shell (USE_SIDEBAR_SHELL in simple-ui.flags.ts), not the
-   * old header: there are no hover dropdowns to dwell on. Sections are
+   * This is the sidebar shell: there are no hover dropdowns to dwell on. Sections are
    * click-to-fold disclosures and most of them start open, so the section
    * heading is only pressed when the link is not already on screen — pressing
    * it unconditionally would *close* an open section and the link would vanish.

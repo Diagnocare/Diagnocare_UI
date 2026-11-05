@@ -16,9 +16,7 @@ who are not comfortable with computers.
 | Palette tokens + calmer look for existing pages inside the shell | `src/app/shared/simple/shell-tokens.css` |
 | `/patients?search=` support (used by the top-bar search) | `patients-list.component.ts` |
 
-Everything is behind one switch, `USE_SIDEBAR_SHELL` in
-`src/app/shared/simple/simple-ui.flags.ts`. Set it to `false` to get the old
-header and old home page back. No API changes are needed: the home page reads
+The old header and hero home page have been removed; there is no switch. No API changes are needed: the home page reads
 the existing `Dashboard/GetHomeSummary` and `Worklist/GetWorklist` endpoints.
 
 The sidebar is built from the same `MODULE_ACCESS` rules as the old header, so

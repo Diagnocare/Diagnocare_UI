@@ -1,7 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Directive, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
 import { Role, RoleId } from 'src/app/constant/enums';
 import { ModuleAccess, DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
@@ -9,7 +7,6 @@ import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { CommonService } from 'src/app/shared/common.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { LoginService } from 'src/app/services/loginServices/login.service';
-import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { LicenceService } from 'src/app/services/licenceServices/licence.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
@@ -22,13 +19,12 @@ import {
 import { Subscription, interval, fromEvent } from 'rxjs';
 import { debounceTime, filter, throttleTime } from 'rxjs/operators';
 
-@Component({
-  selector: 'app-header',
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css'],
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent]
-})
+/**
+ * Shared state and behaviour behind the sidebar shell: access rules, badges, the
+ * notification bell, licence/PIN notices and logout. It has no template of its own —
+ * AppShellComponent extends it and supplies the markup.
+ */
+@Directive()
 
 export class HeaderComponent implements OnInit, OnDestroy {
   // Named handler so the profile-updated listener can be removed on destroy
