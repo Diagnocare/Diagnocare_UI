@@ -14,7 +14,7 @@
         <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" appFormKeyboard [tabFields]="tabFields">
             <div class="form-grid">
             <div class="field form-group">
-                <label for="contact-form-institutionType" class="form-label">Institution Type <span class="req">*</span></label>
+                <label for="contact-form-institutionType" class="form-label required">Institution Type</label>
                 <select id="contact-form-institutionType" class="form-select" formControlName="institutionType"
                         [class.is-error]="commonService.isControlInvalid(contactForm.get('institutionType'), submitted)">
                   <option [ngValue]="null" disabled>Select type</option>
@@ -28,7 +28,7 @@
             </div>
 
             <div class="field form-group">
-                <label for="contact-form-name" class="form-label required">Name <span class="req">*</span></label>
+                <label for="contact-form-name" class="form-label required">Name</label>
                 <input id="contact-form-name" class="form-control" formControlName="name"
                        [class.is-error]="commonService.isControlInvalid(contactForm.get('name'), submitted)" />
                 <app-field-error
