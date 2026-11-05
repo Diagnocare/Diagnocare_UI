@@ -85,9 +85,6 @@ html[data-dc-size="large"] {
    Scoped to .sh-content. A page with its own component-scoped gradient keeps it until that
    page is migrated.
    ══════════════════════════════════════════════════════════════════════════════ */
-.sh-content {
-  --primary-gradient: var(--sh-bg);
-}
 .sh-content .page-container {
   min-height: 0;
   background: var(--sh-bg);
