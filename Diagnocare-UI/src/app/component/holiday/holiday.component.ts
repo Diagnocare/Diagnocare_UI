@@ -92,8 +92,8 @@ export class HolidayComponent implements OnInit, OnDestroy {
 
   // ── Getters ────────────────────────────────────────────────────────────────
 
-  get minDate(): string { return `${this.selectedYear}-01-01`; }
-  get maxDate(): string { return `${this.selectedYear}-12-31`; }
+  get minDate(): string { return `${this.selectedYear - 5}-01-01`; }
+  get maxDate(): string { return `${this.selectedYear + 1}-12-31`; }
 
   get draftDayOfWeek(): string {
     return this.draft.holidayDate ? dayOfWeek(this.draft.holidayDate) : '';
