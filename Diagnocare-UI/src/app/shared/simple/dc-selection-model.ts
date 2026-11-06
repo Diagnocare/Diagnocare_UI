@@ -5,14 +5,16 @@ import { BookingPackageRef } from 'src/app/models/promotion/promotion.model';
  * DcPickableTest / DcTestGroup, restated here so this file imports nothing from the component.
  */
 export interface SelTest { code: string; name: string; price: number; bookable: boolean; }
-export interface SelSubGroup { id: string; name: string; tests: SelTest[]; }
-export interface SelGroup { id: string; name: string; subGroups: SelSubGroup[]; }
+export interface SelSubGroup { id: string; name: string; price?: number; tests: SelTest[]; }
+export interface SelGroup { id: string; name: string; price?: number; subGroups: SelSubGroup[]; }
 
 /** A group or sub-group, with every test beneath it. */
 export interface SelUnit {
   type: 'Group' | 'SubGroup';
   id: string;
   name: string;
+  /** Package price (0 = none set, so the price is the sum of the tests). */
+  price: number;
   tests: SelTest[];
   children: SelUnit[];
 }
@@ -29,10 +31,10 @@ export const unitKey = (type: string, id: string) => `${type}:${id}`;
 export function buildUnits(groups: SelGroup[]): SelUnit[] {
   return groups.map(g => {
     const children: SelUnit[] = g.subGroups.map(s => ({
-      type: 'SubGroup' as const, id: s.id, name: s.name, tests: s.tests, children: [],
+      type: 'SubGroup' as const, id: s.id, name: s.name, price: Number(s.price || 0), tests: s.tests, children: [],
     }));
     return {
-      type: 'Group' as const, id: g.id, name: g.name,
+      type: 'Group' as const, id: g.id, name: g.name, price: Number(g.price || 0),
       tests: children.reduce<SelTest[]>((all, c) => all.concat(c.tests), []), children,
     };
   });
@@ -49,11 +51,9 @@ export function buildUnits(groups: SelGroup[]): SelUnit[] {
  *   none → unchecked. So ticking every test one by one checks the sub-group, with no extra state.
  *
  * WHAT A TICK DOES
- *   Ticking a group/sub-group records it as a package when that gives the right price: it has an
- *   offer of its own, or nothing inside it has one. Otherwise (a test or sub-group inside has the
- *   offer, or a test cannot be booked) it is expanded into the smaller pieces, so each keeps its own
- *   offer and the bill is never higher than ticking by hand would give. The API still works out the
- *   final price; this only decides what to send.
+ *   Ticking a group/sub-group records it as a package, which is charged its package price rather
+ *   than the sum of its tests. Only when a test inside cannot be booked is it expanded into the
+ *   smaller pieces. The API still works out the final price; this only decides what to send.
  *
  * WHAT AN UNTICK DOES
  *   Removes the unit's tests from whatever chose them. A package that covered them is replaced by
@@ -152,21 +152,13 @@ export class SelectionModel {
     return this.units.reduce<SelTest[]>((all, g) => all.concat(g.tests), []);
   }
 
-  private hasOffer(type: string, id: string) { return this.offers.has(unitKey(type, id)); }
-
-  /** An offer on the unit's tests, or on any sub-group inside it. */
-  private offerInside(unit: SelUnit): boolean {
-    return unit.tests.some(t => this.offers.has(unitKey('Test', t.code))) ||
-           unit.children.some(c => this.hasOffer(c.type, c.id) || this.offerInside(c));
-  }
-
-  /** Choose as much of `unit` as is wanted, as a package where that prices correctly, else piece by piece. */
+  /** Choose as much of `unit` as is wanted: as a package when all of it is wanted, else piece by piece. */
   private addUnit(unit: SelUnit, exclude: ReadonlySet<string>, ops: SelOp[]): void {
     const wanted = unit.tests.filter(t => t.bookable && !exclude.has(t.code));
     if (wanted.length === 0) return;
 
     const whole = unit.tests.every(t => t.bookable && !exclude.has(t.code));
-    if (whole && (this.hasOffer(unit.type, unit.id) || !this.offerInside(unit))) {
+    if (whole) {
       if (!this.pkgs.some(p => p.type === unit.type && p.id === unit.id)) this.addPackage(unit, ops);
       return;
     }

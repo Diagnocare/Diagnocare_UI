@@ -238,6 +238,9 @@ export class PatientTestListComponent implements OnInit {
   /** Booking whose Smart Health Report is being generated (button spinner). */
   openingSmartReportFor: patientTest['patient_Test_Id'] | null = null;
   /** Booking whose Smart Report link is being prepared for WhatsApp (button spinner). */
+  /** Message in the Smart Report banner when generation fails; null = no error. */
+  smartReportError: string | null = null;
+  private smartReportRetryTest: patientTest | null = null;
   sendingSmartWhatsAppFor: patientTest['patient_Test_Id'] | null = null;
 
   hasSamplingLocation(test: patientTest): boolean {
@@ -304,21 +307,42 @@ export class PatientTestListComponent implements OnInit {
    */
   openSmartReport(test: patientTest, event?: Event): void {
     event?.stopPropagation();
+    if (this.openingSmartReportFor !== null) { return; } // already generating
     this.openingSmartReportFor = test.patient_Test_Id;
+    this.smartReportError = null;
+    this.smartReportRetryTest = test;
     this.testReportGenerationService.generateSmartReport(Number(test.patient_Test_Id)).subscribe({
       next: (html: string) => {
         this.openingSmartReportFor = null;
         if (!html || !html.trim()) {
-          this.toastr.warning('The Smart Report came back empty.', 'Warning');
+          this.smartReportError = 'The Smart Report came back empty.';
           return;
         }
+        this.smartReportRetryTest = null;
         this.openHtmlReportTab(html, undefined, `${this.patientName || 'Patient'} | Smart Health Report`);
       },
-      error: (err: unknown) => {
+      error: (err: any) => {
         this.openingSmartReportFor = null;
         console.error('generateSmartReport error:', err);
+        this.smartReportError = this.smartReportErrorText(err);
       },
     });
+  }
+
+  retrySmartReport(): void {
+    if (this.smartReportRetryTest) { this.openSmartReport(this.smartReportRetryTest); }
+  }
+
+  dismissSmartReportError(): void {
+    this.smartReportError = null;
+    this.smartReportRetryTest = null;
+  }
+
+  private smartReportErrorText(err: any): string {
+    const e = err?.error;
+    const msg = (typeof e === 'string' && e.length < 200 ? e : e?.message || e?.error) || err?.message;
+    return typeof msg === 'string' && msg && !msg.startsWith('Http failure')
+      ? msg : 'The Smart Report could not be generated. Please try again.';
   }
 
   ngOnInit(): void {

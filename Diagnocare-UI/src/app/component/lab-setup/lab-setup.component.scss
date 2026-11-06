@@ -19,12 +19,13 @@
 // ── Tab switcher ──────────────────────────────────────────────────
 .tab-switcher {
   display: flex;
-  border: 1.5px solid rgba(255,255,255,0.35);
-  border-radius: 0.55em;
-  overflow: hidden;
-  background: rgba(255,255,255,0.12);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  flex-wrap: wrap;
+  gap: 0.25em;
+  padding: 0.25em;
+  border: 1.5px solid var(--color-border);
+  border-radius: 0.65em;
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   margin-bottom: 1.25em;
   width: fit-content;
 }
@@ -34,21 +35,27 @@
   align-items: center;
   gap: 0.45em;
   padding: 0.55em 1.2em;
-  border: none;
+  border: 1.5px solid transparent;
+  border-radius: 0.5em;
   background: transparent;
-  color: rgba(255,255,255,0.75);
+  color: var(--color-text-primary);
   font-size: 0.9em;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 
   &.active {
-    background: rgba(255,255,255,0.25);
+    background: linear-gradient(135deg, var(--color-primary-ink), var(--color-primary));
     color: #fff;
   }
   &:not(.active):hover {
-    background: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.9);
+    background: var(--color-primary-subtle);
+    border-color: var(--color-primary);
+    color: var(--color-primary-ink);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
@@ -422,28 +429,6 @@
   }
 
   &:disabled { background: var(--color-surface-sunken); opacity: 0.7; cursor: not-allowed; }
-}
-
-.btn-token-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  background: linear-gradient(135deg, var(--color-info), var(--color-info));
-  color: #fff;
-  border: none;
-  border-radius: 0.45em;
-  padding: 0.55em 1.2em;
-  font-size: 0.9em;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: filter 0.15s, transform 0.1s;
-
-  &:hover:not(:disabled) {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
-  &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 
 .token-success {

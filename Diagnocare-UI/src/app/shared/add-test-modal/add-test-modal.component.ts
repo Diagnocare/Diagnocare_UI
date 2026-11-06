@@ -731,7 +731,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
             catchError(() => of([] as GroupSubGroupModel[])),
             switchMap((subs: GroupSubGroupModel[]) => {
               if (!subs || subs.length === 0) {
-                return of({ id: group.testGroupId, name: group.name, subGroups: [] } as DcTestGroup);
+                return of({ id: group.testGroupId, name: group.name, price: Number(group.price || 0), subGroups: [] } as DcTestGroup);
               }
               return forkJoin(subs.map(sub =>
                 this._testService.getMedicalTestList(sub.testGroupId).pipe(
@@ -739,6 +739,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
                   map((tests: any[]) => ({
                     id:    sub.testGroupId,
                     name:  sub.name,
+                    price: Number(sub.price || 0),
                     tests: (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
                     rawTests: (tests ?? []) as TestItem[],
                   })),
@@ -746,7 +747,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
               )).pipe(map(subGroups => ({
                 id:        group.testGroupId,
                 name:      group.name,
-                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
+                price:     Number(group.price || 0),
+                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, price: sg.price, tests: sg.tests })),
                 rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
               })));
             }),
@@ -757,7 +759,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     ).subscribe({
       next: (groups: any[]) => {
         this.testGroups = (groups ?? []).map(g => ({
-          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
+          id: g.id, name: g.name, price: g.price, subGroups: g.subGroups ?? [],
         }));
 
         // Flat view, de-duplicated: a test can appear under more than one
