@@ -6,7 +6,8 @@ import { filter, Subscription } from 'rxjs';
 import { HeaderComponent } from '../../header/header-menu/header.component';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
-import { NavItem, NavSection, activeNavKey, activeSectionId, buildNavSections } from './shell-nav';
+import { activeNavKey, activeSectionId, buildNavSections } from './shell-nav';
+import { NavItem, NavSection } from '../../../models/layout/shell-nav.model';
 
 /**
  * Where the sidebar's open/closed state is remembered.

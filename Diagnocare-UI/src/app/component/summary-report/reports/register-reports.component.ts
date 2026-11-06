@@ -1,14 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableReportComponent } from '../table-report/table-report.component';
-
-type RegisterTab = 'billRegister' | 'receiptRegister' | 'refundRegister';
-
-interface TabDef {
-  id: RegisterTab;
-  label: string;
-  icon: string;
-}
+import { RegisterTab, TabDef } from '../../../models/summaryReport/register-reports.model';
 
 @Component({
   selector: 'app-register-reports',

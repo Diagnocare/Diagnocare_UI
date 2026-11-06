@@ -4,7 +4,7 @@
         <h1>{{ isEdit ? 'Edit Contact' : 'Add Contact' }}</h1>
         </div>
         <div class="header-actions">
-        <button class="btn btn-back" (click)="goBack()">
+        <button class="dc-btn dc-btn--back" (click)="goBack()">
             <i class="fa fa-arrow-left"></i> Back to List
         </button>
         </div>
@@ -118,7 +118,7 @@
               <button type="button" (click)="onClear()" class="dc-btn dc-btn--clear">
                 <i class="fa fa-times"></i> Clear
               </button>
-              <button type="submit" [disabled]="isLoading" class="btn dc-btn--save">
+              <button type="submit" [disabled]="isLoading" class="dc-btn dc-btn--save">
                 <i class="fa fa-save"></i> {{ isEdit ? 'Update' : 'Add' }}
               </button>
             </div>

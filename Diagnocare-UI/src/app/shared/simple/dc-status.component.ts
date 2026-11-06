@@ -1,8 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** The five meanings a status can carry. Everything maps onto one of these. */
-export type DcTone = 'ok' | 'wait' | 'info' | 'danger' | 'idle';
+import { DcTone } from '../../models/common/dc-primitives.model';
 
 /**
  * Known statuses from across the app, mapped to a tone and a glyph once, here,

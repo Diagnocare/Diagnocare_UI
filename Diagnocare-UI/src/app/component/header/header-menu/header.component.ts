@@ -2,7 +2,7 @@ import { Directive, ElementRef, HostListener, OnDestroy, OnInit } from '@angular
 import { Router } from '@angular/router';
 import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
 import { Role, RoleId } from 'src/app/constant/enums';
-import { ModuleAccess, DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { CommonService } from 'src/app/shared/common.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
@@ -18,6 +18,7 @@ import {
 } from 'src/app/models/notification/user-notification.model';
 import { Subscription, interval, fromEvent } from 'rxjs';
 import { debounceTime, filter, throttleTime } from 'rxjs/operators';
+import { ModuleAccess } from '../../../models/auth/module-access.model';
 
 /**
  * Shared state and behaviour behind the sidebar shell: access rules, badges, the
@@ -87,7 +88,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private badgeSubs = new Subscription();
   /**
    * How often every badge re-checks — ONE timer for all of them. Live push was
-   * removed on purpose (see services/sessionSignalR/session-signalr.service.ts).
+   * removed on purpose (the SignalR session service was retired).
    *
    * PERF-021 — this was 60 s, and a tick costs up to three API calls for a Super
    * Admin. Against an HTTP/1.1 origin capped at six connections (PERF-009) those

@@ -112,42 +112,6 @@
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.84rem;
-  font-weight: 500;
-  transition: all 0.22s ease;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 /* .dc-btn--save uses the app-wide button style — solid blue, inverts to white
    on hover — defined in styles.css → "UNIFIED PRIMARY BUTTON". */
-
-.btn-danger {
-  background: linear-gradient(135deg, #f44336, #d32f2f);
-  color: #fff;
-}
-.btn-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d32f2f, #c62828);
-  box-shadow: 0 3px 8px rgba(244, 67, 54, 0.35);
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background: var(--color-text-secondary);
-  color: #fff;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #5a6268;
-}
+

@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import Modal from 'bootstrap/js/dist/modal';
-import { ConfirmModalService, ConfirmOptions } from './confirm-modal.service';
+import { ConfirmModalService } from './confirm-modal.service';
+import { ConfirmOptions } from '../../models/common/confirm-modal.model';
 
 @Component({
   selector: 'app-confirm-modal',

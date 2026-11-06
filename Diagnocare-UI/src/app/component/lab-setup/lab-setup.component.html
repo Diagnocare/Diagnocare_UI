@@ -97,7 +97,7 @@
             <div class="add-row">
               <input aria-label="New sampling source name" class="add-input" type="text" placeholder="e.g. StarLab, City Diagnostics…"
                      [(ngModel)]="newSamplingName" (keyup.enter)="addSampling()" />
-              <button class="btn-add" (click)="addSampling()" [disabled]="!newSamplingName.trim()">
+              <button class="dc-btn dc-btn--add" (click)="addSampling()" [disabled]="!newSamplingName.trim()">
                 <i class="fa fa-plus"></i> Add
               </button>
             </div>
@@ -180,7 +180,7 @@
             <div class="add-row">
               <input aria-label="New area name" class="add-input" type="text" placeholder="e.g. Main Lab, Andheri, Camp…"
                      [(ngModel)]="newAreaName" (keyup.enter)="addArea()" />
-              <button class="btn-add" (click)="addArea()" [disabled]="!newAreaName.trim()">
+              <button class="dc-btn dc-btn--add" (click)="addArea()" [disabled]="!newAreaName.trim()">
                 <i class="fa fa-plus"></i> Add
               </button>
             </div>
@@ -263,7 +263,7 @@
             <div class="add-row">
               <input aria-label="New unit name" class="add-input" type="text" placeholder="e.g. mg/dL, IU/L, %, mmol/L…"
                      [(ngModel)]="newUnitName" (keyup.enter)="addUnit()" />
-              <button class="btn-add" (click)="addUnit()" [disabled]="!newUnitName.trim()">
+              <button class="dc-btn dc-btn--add" (click)="addUnit()" [disabled]="!newUnitName.trim()">
                 <i class="fa fa-plus"></i> Add
               </button>
             </div>

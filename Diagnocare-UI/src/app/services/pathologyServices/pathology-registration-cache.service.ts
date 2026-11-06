@@ -1,14 +1,6 @@
 import { Injectable } from '@angular/core';
 import { PathologyPublicInfoDto } from 'src/app/models/pathology/pathology-public-info.dto';
-
-/** The only two fields the home navbar needs in order to decide Login vs Register. */
-export type RegistrationSnapshot = Pick<PathologyPublicInfoDto, 'isRegistered' | 'date_of_Expiry'>;
-
-interface CachedSnapshot {
-  data: RegistrationSnapshot;
-  /** Epoch ms when this entry was written. */
-  fetchedAt: number;
-}
+import { CachedSnapshot, RegistrationSnapshot } from '../../models/pathology/pathology-cache.model';
 
 /**
  * Client-side cache for "is this install registered, and when does its licence expire?" —

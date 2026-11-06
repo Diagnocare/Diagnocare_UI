@@ -33,6 +33,9 @@ export * from './dc-note.component';
 export * from './dc-save-bar.component';
 export * from './dc-test-picker.component';
 export * from './dc-payment-panel.component';
+// The kit's interfaces live in models/ (not in the components); re-exported so
+// `import { DcChoiceOption } from '…/shared/simple'` keeps working.
+export * from '../../models/common/dc-primitives.model';
 
 import { DcFieldComponent } from './dc-field.component';
 import { DcChoiceComponent } from './dc-choice.component';

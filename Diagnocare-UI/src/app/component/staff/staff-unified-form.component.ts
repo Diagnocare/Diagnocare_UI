@@ -24,8 +24,7 @@ import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.comp
 import { Role, RoleId, RoleLabel } from 'src/app/constant/enums';
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { isMemberActive } from 'src/app/shared/member-utils';
-
-export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
+import { UnifiedFormType } from '../../models/staff/staff-form.model';
 
 @Component({
   selector: 'app-staff-unified-form',

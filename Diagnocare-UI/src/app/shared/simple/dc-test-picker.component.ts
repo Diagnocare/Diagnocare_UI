@@ -3,36 +3,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-/**
- * One test as the picker needs it. Deliberately not `TestItem` — the picker
- * knows nothing about the API, which is what lets it be previewed with sample
- * data and unit-tested without a backend.
- */
-export interface DcPickableTest {
-  /** Unique code — the identity used everywhere in this component. */
-  code: string;
-  name: string;
-  price: number;
-  /** False when the test has no parameters configured, so it cannot be booked. */
-  bookable: boolean;
-  /** Group name, shown as context on a search result. */
-  group?: string;
-}
-
-/** A sub-group and the tests inside it. */
-export interface DcTestSubGroup {
-  id: string;
-  name: string;
-  tests: DcPickableTest[];
-}
-
-/** A top-level group and its sub-groups. */
-export interface DcTestGroup {
-  id: string;
-  name: string;
-  subGroups: DcTestSubGroup[];
-}
+import {
+  ActivePromotion, BookingPackageRef, PricingPlan, SelectionType,
+} from 'src/app/models/promotion/promotion.model';
+import { CheckState, SelectionModel, SelOp, SelUnit, buildUnits, unitKey } from './dc-selection-model';
+import { DcPickableTest, DcTestGroup, DcTestSubGroup } from '../../models/common/dc-primitives.model';
 
 /**
  * DcTestPickerComponent — browse the catalogue by group, or search across all of it.
@@ -123,16 +98,20 @@ export interface DcTestGroup {
           <h4 class="dcp__colhead">Group</h4>
           <div class="dcp__collist">
             <p class="dcp__empty" *ngIf="groups.length === 0">No groups found</p>
-            <button type="button" class="dcp__node"
-                    *ngFor="let group of groups"
-                    [class.dcp__node--on]="group.id === openGroupId"
-                    (click)="openGroup(group)">
-              <span class="dcp__nodetext">
-                <span class="dcp__nodename">{{ group.name }}</span>
-                <span class="dcp__nodemeta">{{ group.subGroups.length }} sub-group{{ group.subGroups.length === 1 ? '' : 's' }}</span>
-              </span>
-              <i class="fa fa-chevron-right" aria-hidden="true"></i>
-            </button>
+            <div class="dcp__nodewrap" *ngFor="let group of groups">
+              <ng-container *ngTemplateOutlet="unitCheck; context: { type: 'Group', id: group.id, name: group.name }"></ng-container>
+              <button type="button" class="dcp__node"
+                      [class.dcp__node--on]="group.id === openGroupId"
+                      (click)="openGroup(group)">
+                <span class="dcp__nodetext">
+                  <span class="dcp__nodename">{{ group.name }}</span>
+                  <span class="dcp__nodemeta">{{ group.subGroups.length }} sub-group{{ group.subGroups.length === 1 ? '' : 's' }}</span>
+                  <ng-container *ngTemplateOutlet="offerLine; context: { type: 'Group', id: group.id }"></ng-container>
+                </span>
+                <span class="dcp__price">₹{{ regularOf('Group', group.id) | number:'1.0-2' }}</span>
+                <i class="fa fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -141,19 +120,23 @@ export interface DcTestGroup {
           <h4 class="dcp__colhead">Sub-group</h4>
           <div class="dcp__collist">
             <p class="dcp__empty" *ngIf="openSubGroups.length === 0">Choose a group first</p>
-            <button type="button" class="dcp__node"
-                    *ngFor="let sub of openSubGroups"
-                    [class.dcp__node--on]="sub.id === openSubGroupId"
-                    (click)="openSubGroup(sub)">
-              <span class="dcp__nodetext">
-                <span class="dcp__nodename">{{ sub.name }}</span>
-                <span class="dcp__nodemeta">
-                  {{ sub.tests.length }} test{{ sub.tests.length === 1 ? '' : 's' }}
-                  <ng-container *ngIf="countChosenIn(sub) > 0"> · {{ countChosenIn(sub) }} chosen</ng-container>
+            <div class="dcp__nodewrap" *ngFor="let sub of openSubGroups">
+              <ng-container *ngTemplateOutlet="unitCheck; context: { type: 'SubGroup', id: sub.id, name: sub.name }"></ng-container>
+              <button type="button" class="dcp__node"
+                      [class.dcp__node--on]="sub.id === openSubGroupId"
+                      (click)="openSubGroup(sub)">
+                <span class="dcp__nodetext">
+                  <span class="dcp__nodename">{{ sub.name }}</span>
+                  <span class="dcp__nodemeta">
+                    {{ sub.tests.length }} test{{ sub.tests.length === 1 ? '' : 's' }}
+                    <ng-container *ngIf="countChosenIn(sub) > 0"> · {{ countChosenIn(sub) }} chosen</ng-container>
+                  </span>
+                  <ng-container *ngTemplateOutlet="offerLine; context: { type: 'SubGroup', id: sub.id }"></ng-container>
                 </span>
-              </span>
-              <i class="fa fa-chevron-right" aria-hidden="true"></i>
-            </button>
+                <span class="dcp__price">₹{{ regularOf('SubGroup', sub.id) | number:'1.0-2' }}</span>
+                <i class="fa fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -183,11 +166,38 @@ export interface DcTestGroup {
         </ng-container>
       </div>
 
+      <!-- ── Checkbox beside a group / sub-group name. Same box as a test row; its state is
+           worked out from the tests beneath it (all / some / none). It is a separate button from
+           the one that opens the node, so tapping a name never changes the selection. ───────── -->
+      <ng-template #unitCheck let-type="type" let-id="id" let-name="name">
+        <button type="button" class="dcp__check"
+                role="checkbox"
+                [attr.aria-checked]="checkState(type, id) === 'all' ? 'true' : checkState(type, id) === 'some' ? 'mixed' : 'false'"
+                [attr.aria-label]="'Select all of ' + name"
+                [disabled]="!hasEligible(type, id)"
+                [title]="hasEligible(type, id) ? '' : 'None of these tests can be booked yet'"
+                (click)="toggleUnit(type, id)">
+          <span class="dcp__box"
+                [class.dcp__box--on]="checkState(type, id) === 'all'"
+                [class.dcp__box--some]="checkState(type, id) === 'some'" aria-hidden="true">
+            <i class="fa" [ngClass]="checkState(type, id) === 'some' ? 'fa-minus' : 'fa-check'"></i>
+          </span>
+        </button>
+      </ng-template>
+
+      <!-- The offer on a group / sub-group, shown under its name. -->
+      <ng-template #offerLine let-type="type" let-id="id">
+        <span class="dcp__nodeoffer" *ngIf="promoFor(type, id) as promo">
+          Promotional price: <b>₹{{ promo.promoPrice | number:'1.0-2' }}</b> (Save ₹{{ promo.savings | number:'1.0-2' }})
+          <span class="dcp__offer">{{ promo.title }}</span>
+        </span>
+      </ng-template>
+
       <!-- ── One row, used by both views ─────────────────────────────────── -->
       <ng-template #testRow let-test let-showGroup="showGroup">
         <button type="button" class="dcp__row"
                 *ngIf="test.bookable"
-                [class.dcp__row--on]="isSelected(test.code)"
+                [class.dcp__row--on]="isCovered(test.code)"
                 [class.dcp__row--focus]="protocolSlot && focusedTest?.code === test.code"
                 (click)="pick(test)">
           <span class="dcp__box" aria-hidden="true"><i class="fa fa-check"></i></span>
@@ -195,10 +205,17 @@ export interface DcTestGroup {
             <span class="dcp__rowname">{{ test.name }}</span>
             <span class="dcp__rowmeta">
               {{ isSelected(test.code) ? 'Added — tap to remove'
+                 : coveredBy(test.code) ? 'Included in ' + coveredBy(test.code) + ' — tap to remove'
                  : (showGroup && test.group ? test.group + ' · ' : '') + test.code }}
             </span>
           </span>
-          <span class="dcp__price">₹{{ test.price }}</span>
+          <span class="dcp__price">
+            <ng-container *ngIf="promoFor('Test', test.code) as tp; else regularPrice">
+              <s class="dcp__was">₹{{ test.price }}</s> ₹{{ tp.promoPrice | number:'1.0-2' }}
+              <span class="dcp__offer">{{ tp.title }}</span>
+            </ng-container>
+            <ng-template #regularPrice>₹{{ test.price }}</ng-template>
+          </span>
         </button>
 
         <!-- Not a button: it cannot be chosen, and it says so in words. -->
@@ -224,14 +241,29 @@ export interface DcTestGroup {
 
       <!-- ── Chosen tests + total, pinned ────────────────────────────────── -->
       <div class="dcp__basket">
-        <div class="dcp__sum">
+        <div class="dcp__sum" aria-live="polite">
           <p class="dcp__sumline">
-            <ng-container *ngIf="selected.length === 0">No tests chosen yet</ng-container>
-            <ng-container *ngIf="selected.length > 0">
+            <ng-container *ngIf="!hasAnything">No tests chosen yet</ng-container>
+            <ng-container *ngIf="hasAnything && plan?.success">
+              {{ plan!.totalTests }} test{{ plan!.totalTests === 1 ? '' : 's' }} · you pay ₹{{ plan!.payableAfterPromotion | number:'1.0-2' }}
+            </ng-container>
+            <ng-container *ngIf="hasAnything && !plan?.success && !planRequired">
               {{ selected.length }} test{{ selected.length === 1 ? '' : 's' }} · ₹{{ total }}
             </ng-container>
+            <ng-container *ngIf="hasAnything && !plan?.success && planRequired && !quoting">
+              Price not available yet
+            </ng-container>
+            <i class="fa fa-spinner fa-spin dcp__quoting" *ngIf="quoting" aria-label="Working out the price"></i>
           </p>
-          <div class="dcp__tags" *ngIf="selected.length > 0">
+
+          <div class="dcp__tags" *ngIf="hasAnything">
+            <span class="dcp__tag dcp__tag--pkg" *ngFor="let pkg of packages">
+              <i class="fa fa-cubes" aria-hidden="true"></i>
+              <span>{{ pkg.name }} <small>({{ pkg.type === 'Group' ? 'whole group' : 'sub-group' }})</small></span>
+              <button type="button" [attr.aria-label]="'Remove ' + pkg.name" (click)="packageToggled.emit(pkg)">
+                <i class="fa fa-times" aria-hidden="true"></i>
+              </button>
+            </span>
             <span class="dcp__tag" *ngFor="let test of selected">
               <span>{{ test.name }}</span>
               <button type="button" [attr.aria-label]="'Remove ' + test.name" (click)="toggled.emit(test)">
@@ -239,8 +271,42 @@ export interface DcTestGroup {
               </button>
             </span>
           </div>
-          <p class="dcp__sumsub" *ngIf="selected.length === 0">
-            Browse the groups above, or search for a test by name.
+
+          <!-- What you are buying, and why it costs this. The server wrote every figure. -->
+          <div class="dcp__bill" *ngIf="plan?.success && hasAnything">
+            <div class="dcp__billline" *ngFor="let line of plan!.lines" [class.dcp__billline--inc]="line.alreadyIncluded">
+              <span class="dcp__billname">
+                {{ line.name }}
+                <small>{{ line.type === 'Group' ? 'whole group' : line.type === 'SubGroup' ? 'sub-group' : 'test' }}</small>
+                <small class="dcp__billtests" *ngIf="line.type !== 'Test' && line.tests.length">
+                  Includes {{ line.tests.length }}: {{ testNames(line) }}
+                </small>
+                <small class="dcp__billtests" *ngIf="line.alreadyIncluded">Already included above, so not charged again</small>
+              </span>
+              <span class="dcp__billamt">
+                <s class="dcp__was" *ngIf="line.savings > 0">₹{{ line.regularPrice | number:'1.0-2' }}</s>
+                ₹{{ line.chargedPrice | number:'1.0-2' }}
+              </span>
+            </div>
+            <div class="dcp__billtotal">
+              <div><span>Regular price</span><span>₹{{ plan!.regularTotal | number:'1.0-2' }}</span></div>
+              <div class="dcp__save" *ngIf="plan!.promotionDiscount > 0">
+                <span>Promotional discount</span><span>−₹{{ plan!.promotionDiscount | number:'1.0-2' }}</span>
+              </div>
+              <div class="dcp__final"><span>Final price</span><span>₹{{ plan!.payableAfterPromotion | number:'1.0-2' }}</span></div>
+              <p class="dcp__saved" *ngIf="plan!.promotionDiscount > 0">
+                <i class="fa fa-tag" aria-hidden="true"></i> You save ₹{{ plan!.promotionDiscount | number:'1.0-2' }}
+              </p>
+            </div>
+          </div>
+
+          <ul class="dcp__notes" *ngIf="plan?.notices?.length">
+            <li *ngFor="let note of plan!.notices"><i class="fa fa-info-circle" aria-hidden="true"></i> {{ note }}</li>
+          </ul>
+
+          <p class="dcp__sumsub dcp__sumsub--err" *ngIf="planRequired && !plan?.success && plan?.error">{{ plan!.error }}</p>
+          <p class="dcp__sumsub" *ngIf="!hasAnything">
+            Search for a test, or browse the groups and tick a box to take a test, a sub-group or a whole group.
           </p>
         </div>
 
@@ -249,7 +315,7 @@ export interface DcTestGroup {
             {{ cancelLabel }}
           </button>
           <button type="button" class="dc-btn dc-btn--save"
-                  [disabled]="selected.length === 0"
+                  [disabled]="!canConfirm"
                   (click)="confirmed.emit()">
             <i class="fa fa-check" aria-hidden="true"></i>
             <span>{{ confirmLabel }}</span>
@@ -428,6 +494,32 @@ export interface DcTestGroup {
        two sources of margin here is how panels end up with uneven gaps. */
     .dcp__slot { display: block; }
 
+    /* ── Whole-group / sub-group actions and offers ─────────────────────── */
+    .dcp__nodewrap { display: flex; align-items: flex-start; gap: .35rem; }
+    .dcp__nodewrap .dcp__node { flex: 1 1 auto; min-width: 0; }
+    .dcp__check {
+      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+      min-width: var(--p-touch); min-height: var(--p-touch); padding: 0;
+      background: transparent; border: 0; border-radius: var(--p-radius); cursor: pointer;
+    }
+    .dcp__check:hover:not(:disabled) { background: var(--p-muted); }
+    .dcp__check:focus-visible { outline: none; box-shadow: var(--dc-focus); }
+    .dcp__check:disabled { opacity: .45; cursor: not-allowed; }
+    .dcp__box--on { background: var(--dc-ok-ink); border-color: var(--dc-ok-ink); color: #fff; }
+    .dcp__box--some { background: var(--p-surface); border-color: var(--dc-ok-ink); color: var(--dc-ok-ink); }
+    .dcp__nodeoffer {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; margin-top: .15rem;
+      font-size: var(--dc-text-micro); color: var(--dc-ok-ink); font-weight: 600;
+    }
+    .dcp__was { font-weight: 400; color: var(--p-soft); }
+    .dcp__offer {
+      display: inline-block; padding: .05rem .45rem; border-radius: 999px;
+      font-size: var(--dc-text-micro); font-weight: 700; font-style: normal;
+      background: var(--dc-warn-bg, var(--dc-info-bg)); color: var(--dc-warn-ink, var(--dc-info-ink));
+      border: 1px solid var(--dc-warn-line, var(--dc-info-line));
+    }
+    .dcp__quoting { margin-left: .4rem; color: var(--p-soft); }
+
     /* ── Basket ─────────────────────────────────────────────────────────── */
     .dcp__basket {
       position: sticky; bottom: 0; margin-top: 1rem;
@@ -438,6 +530,8 @@ export interface DcTestGroup {
       border: 2px solid var(--p-line);
       border-radius: var(--p-radius);
       box-shadow: 0 -6px 18px rgba(22, 45, 60, .07);
+      /* A long breakdown scrolls inside the bar instead of covering the whole screen on a phone. */
+      max-height: 55vh; overflow-y: auto;
     }
     .dcp__sum { flex: 1 1 18rem; min-width: 0; }
     .dcp__sumline { margin: 0; font-weight: 700; font-size: var(--dc-text-body); }
@@ -458,6 +552,39 @@ export interface DcTestGroup {
     }
     .dcp__tag button:hover { background: var(--dc-danger-ink); color: #fff; }
 
+    .dcp__tag--pkg { background: var(--dc-info-bg); border-color: var(--dc-info-line); color: var(--dc-info-ink); }
+    .dcp__tag small { font-weight: 400; opacity: .8; }
+
+    /* ── Price breakdown ────────────────────────────────────────────────── */
+    .dcp__bill {
+      margin-top: .7rem; border: 1px solid var(--p-line); border-radius: var(--p-radius);
+      background: var(--p-muted); overflow: hidden;
+    }
+    .dcp__billline {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem;
+      padding: .5rem .75rem; border-bottom: 1px solid var(--p-line);
+      font-size: var(--dc-text-meta);
+    }
+    .dcp__billline--inc { opacity: .7; }
+    .dcp__billname { display: flex; flex-direction: column; min-width: 0; font-weight: 600; }
+    .dcp__billname small { font-weight: 400; color: var(--p-soft); }
+    .dcp__billtests { overflow-wrap: anywhere; }
+    .dcp__billamt { flex: 0 0 auto; font-weight: 700; white-space: nowrap; }
+    .dcp__billtotal { padding: .5rem .75rem; font-size: var(--dc-text-meta); }
+    .dcp__billtotal > div { display: flex; justify-content: space-between; gap: 1rem; padding: .1rem 0; }
+    .dcp__save { color: var(--dc-ok-ink); font-weight: 600; }
+    .dcp__final {
+      margin-top: .25rem; padding-top: .35rem !important; border-top: 1px solid var(--p-line);
+      font-size: var(--dc-text-body); font-weight: 700;
+    }
+    .dcp__saved { margin: .35rem 0 0; color: var(--dc-ok-ink); font-weight: 700; }
+    .dcp__notes { list-style: none; margin: .6rem 0 0; padding: 0; display: grid; gap: .3rem; }
+    .dcp__notes li {
+      padding: .4rem .6rem; border-radius: var(--p-radius); font-size: var(--dc-text-meta);
+      background: var(--dc-info-bg); border: 1px solid var(--dc-info-line); color: var(--dc-info-ink);
+    }
+    .dcp__sumsub--err { color: var(--dc-danger-ink); font-weight: 600; }
+
     .dcp__buttons { display: flex; gap: .6rem; flex: 0 0 auto; }
     @media (max-width: 34rem) {
       .dcp__buttons { flex: 1 1 100%; }
@@ -471,6 +598,27 @@ export class DcTestPickerComponent implements OnChanges {
 
   /** Codes of the tests currently chosen. The caller owns the list. */
   @Input() selectedCodes: string[] = [];
+
+  /** Offers open today (from the API), used only to DISPLAY them; the API prices the booking. */
+  @Input() promos: ActivePromotion[] = [];
+
+  /** Whole groups / sub-groups currently chosen. The caller owns the list. */
+  @Input() packages: BookingPackageRef[] = [];
+
+  /** The server's price for the current choice. Null until it has answered. */
+  @Input() plan: PricingPlan | null = null;
+
+  /** True while a price is being worked out. */
+  @Input() quoting = false;
+
+  /**
+   * When true the host prices everything on the server, so Done stays disabled until a
+   * price has come back. Left false (the preview app), the picker prices tests locally.
+   */
+  @Input() planRequired = false;
+
+  /** A whole group or sub-group was tapped (to add or remove). */
+  @Output() packageToggled = new EventEmitter<BookingPackageRef>();
 
   /** True while the catalogue is still being fetched. */
   @Input() loading = false;
@@ -509,7 +657,16 @@ export class DcTestPickerComponent implements OnChanges {
   /** Last row tapped — drives the slot's context and the row marker. */
   focusedTest: DcPickableTest | null = null;
 
+  private units: SelUnit[] = [];
+  private model = new SelectionModel([], [], [], new Set());
+  private offerKeys = new Set<string>();
+
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['groups']) this.units = buildUnits(this.groups);
+    if (changes['promos']) this.offerKeys = new Set(this.promos.map(p => unitKey(p.targetType, p.targetId)));
+    // Rebuilt on every input change: it is cheap, and the checkboxes are read from it.
+    this.model = new SelectionModel(this.units, this.selectedCodes, this.packages, this.offerKeys);
+
     // Open the first group and sub-group as soon as the catalogue arrives, so
     // the Tests column shows something instead of "select a group".
     if (changes['groups'] && this.groups.length && !this.openGroupId) {
@@ -526,7 +683,45 @@ export class DcTestPickerComponent implements OnChanges {
   pick(test: DcPickableTest): void {
     this.focusedTest = test;
     this.focused.emit(test);
+    // A test that is only ticked because its group / sub-group is: unticking it must break the
+    // package up rather than add the test a second time.
+    if (!this.isSelected(test.code) && this.model.packageCovering(test.code)) {
+      this.apply(this.model.planUnselect([test.code]));
+      return;
+    }
     this.toggled.emit(test);
+  }
+
+  /** Carries out a plan from the selection model using the events the host already handles. */
+  private apply(ops: SelOp[]): void {
+    for (const op of ops) {
+      if (op.kind === 'package') this.packageToggled.emit(op.ref);
+      else this.toggled.emit(op.test as DcPickableTest);
+    }
+  }
+
+  // ── Group / sub-group checkboxes ───────────────────────────────────────────
+
+  private unitOf(type: SelectionType, id: string): SelUnit | undefined {
+    return this.model.unit(type as 'Group' | 'SubGroup', id);
+  }
+
+  checkState(type: SelectionType, id: string): CheckState {
+    const unit = this.unitOf(type, id);
+    return unit ? this.model.state(unit.tests) : 'none';
+  }
+
+  hasEligible(type: SelectionType, id: string): boolean {
+    return !!this.unitOf(type, id)?.tests.some(t => t.bookable);
+  }
+
+  /** Tick or untick a group / sub-group. Ticked → untick; anything less → tick everything. */
+  toggleUnit(type: SelectionType, id: string): void {
+    const unit = this.unitOf(type, id);
+    if (!unit || !this.hasEligible(type, id)) return;
+    this.apply(this.checkState(type, id) === 'all'
+      ? this.model.planUnselect(unit.tests.map(t => t.code))
+      : this.model.planSelect(unit));
   }
 
   openGroup(group: DcTestGroup): void {
@@ -571,14 +766,20 @@ export class DcTestPickerComponent implements OnChanges {
       test.code.toLowerCase().indexOf(term) > -1);
   }
 
+  /** Chosen on its own. */
   isSelected(code: string): boolean {
     return this.selectedCodes.indexOf(code) > -1;
+  }
+
+  /** Chosen on its own or through a chosen group / sub-group. */
+  isCovered(code: string): boolean {
+    return this.model.covered(code);
   }
 
   /** How many tests in this sub-group are already chosen — shown on its row so
    *  the operator can see where their selection came from without re-opening. */
   countChosenIn(sub: DcTestSubGroup): number {
-    return sub.tests.filter(test => this.isSelected(test.code)).length;
+    return sub.tests.filter(test => this.isCovered(test.code)).length;
   }
 
   get selected(): DcPickableTest[] {
@@ -590,5 +791,40 @@ export class DcTestPickerComponent implements OnChanges {
 
   get total(): number {
     return this.selected.reduce((sum, test) => sum + Number(test.price || 0), 0);
+  }
+
+  // ── Whole groups and sub-groups ───────────────────────────────────────────
+
+  get hasAnything(): boolean {
+    return this.selected.length > 0 || this.packages.length > 0;
+  }
+
+  get canConfirm(): boolean {
+    if (!this.hasAnything || this.quoting) return false;
+    return this.planRequired ? !!this.plan?.success : this.plan ? this.plan.success : true;
+  }
+
+  /**
+   * Catalogue price of a group / sub-group: the sum of its tests' prices, which is the rule the
+   * API uses for the regular price (see PromotionPricing.cs). Shown beside the name so the price
+   * is visible before anything is ticked; an offer, when there is one, is shown under it.
+   */
+  regularOf(type: SelectionType, id: string): number {
+    const unit = this.unitOf(type, id);
+    return unit ? unit.tests.reduce((sum, test) => sum + Number(test.price || 0), 0) : 0;
+  }
+
+  /** The offer open today for exactly this test, group or sub-group, if any. */
+  promoFor(type: SelectionType, id: string): ActivePromotion | undefined {
+    return this.promos.find(p => p.targetType === type && p.targetId === id);
+  }
+
+  /** Name of the chosen group/sub-group that includes this test, if any. */
+  coveredBy(code: string): string {
+    return this.model.packageCovering(code)?.name ?? '';
+  }
+
+  testNames(line: { tests: { name: string }[] }): string {
+    return line.tests.map(t => t.name).join(', ');
   }
 }

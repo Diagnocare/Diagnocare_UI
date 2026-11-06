@@ -117,7 +117,7 @@
         <!-- ── Card footer ─────────────────────────────────── -->
         <div class="template-footer">
           <button
-            class="btn btn-danger btn-sm footer-btn"
+            class="dc-btn dc-btn--delete dc-btn--sm footer-btn"
             [disabled]="isDownloading"
             (click)="downloadDirect(t, 'pdf', $event)"
             title="Download as PDF"
@@ -154,7 +154,7 @@
 
         <!-- Download as PDF -->
         <button
-          class="btn btn-danger btn-sm"
+          class="dc-btn dc-btn--delete dc-btn--sm"
           [disabled]="previewLoading || !activeDetail || isDownloading"
           (click)="downloadFromModal('pdf')"
           title="Download as PDF"

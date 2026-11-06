@@ -5,7 +5,7 @@
       <p class="subtitle">This action cannot be undone</p>
     </div>
     <div class="header-actions">
-      <button (click)="cancel()" class="btn btn-back">
+      <button (click)="cancel()" class="dc-btn dc-btn--back">
         <i class="fa fa-arrow-left"></i> Back
       </button>
     </div>
@@ -20,10 +20,10 @@
       <p class="delete-hint">Once deleted, the contact record will be permanently removed and cannot be recovered.</p>
       <app-loading-spinner [isLoading]="isLoading" message="Deleting..."></app-loading-spinner>
       <div class="form-actions" *ngIf="!isLoading">
-        <button (click)="cancel()" class="btn btn-cancel">
+        <button (click)="cancel()" class="dc-btn dc-btn--cancel">
           <i class="fa fa-times"></i> Cancel
         </button>
-        <button (click)="confirmDelete()" [disabled]="isLoading" class="btn btn-danger">
+        <button (click)="confirmDelete()" [disabled]="isLoading" class="dc-btn dc-btn--delete">
           <i class="fa fa-trash"></i> Yes, Delete
         </button>
       </div>

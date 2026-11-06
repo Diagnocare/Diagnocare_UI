@@ -36,6 +36,7 @@ const PATIENT_SORT_KEYS: Partial<Record<SortPatientField, string>> = {
   status: 'status',
 };
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
+import { DcEmptyComponent } from 'src/app/shared/simple';
 
 /**
  * sessionStorage key for the Status filter on the patients list.
@@ -58,7 +59,7 @@ const PATIENTS_STATUS_FILTER_VALUES = ['active', 'Pending', 'Partial', 'Complete
   selector: 'app-patients-list',
   templateUrl: './patients-list.component.html',
   styleUrls: ['./patients-list.component.scss'],
-  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent],
+  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent, DcEmptyComponent],
   encapsulation: ViewEncapsulation.None,
   standalone: true
 })
