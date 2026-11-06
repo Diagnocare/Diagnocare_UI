@@ -1,4 +1,4 @@
-import { WorkQueue } from 'src/app/utilities/work-queue.util';
+import { WorkQueue } from './work-queue.model';
 
 /**
  * One unit of work: a single test inside a single booking.

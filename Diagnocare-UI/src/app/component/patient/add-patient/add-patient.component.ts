@@ -39,18 +39,22 @@ import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/pa
 // Patient Tests and Bill / Receipt open, configured to collect only the figure
 // this step cannot (how much is being paid now) and to save nothing, because
 // the payment is written with the booking in registerPatient().
-import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
+import { PaymentModalComponent } from 'src/app/shared/payment-modal/payment-modal.component';
 import { TokenService }              from 'src/app/core/interceptors/token.service';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
+import { PromotionService } from 'src/app/services/promotionServices/promotion.service';
+import { BookingSelectionState } from 'src/app/shared/booking/booking-selection.state';
+import { BookingSummaryComponent } from 'src/app/shared/booking/booking-summary.component';
+import { BookingPackageRef } from 'src/app/models/promotion/promotion.model';
 // The catalogue itself. Shared with AddTestModalComponent so registration and
 // Add New Test are the same screen rather than two look-alikes that drift.
-import {
-  DcTestPickerComponent, DcPickableTest, DcTestGroup,
-} from 'src/app/shared/simple/dc-test-picker.component';
+import { DcTestPickerComponent } from 'src/app/shared/simple/dc-test-picker.component';
 import {
   TestBookingProtocolsDto,
   TestProtocolDto,
 } from 'src/app/models/path-test/protocol/test-protocol.model';
+import { PaymentModalResult } from '../../../models/receipt/payment.model';
+import { DcPickableTest, DcTestGroup } from '../../../models/common/dc-primitives.model';
 
 @Component({
   selector: 'app-patient-registration',
@@ -70,6 +74,7 @@ import {
     PaymentModalComponent,
     TestProtocolPanelComponent,
     DcTestPickerComponent,
+    BookingSummaryComponent,
   ],
   providers: [],
   standalone: true,
@@ -167,6 +172,15 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   selectedTestIds = new Set<string>();
   selectedTests: TestItem[] = [];
+
+  /** Whole groups / sub-groups chosen, the offers on show, and the server's price. */
+  booking!: BookingSelectionState;
+
+  /**
+   * Rupees off from offers on the confirmed selection (set from the server's quote when the
+   * picker is confirmed). The manual discount % applies to the amount AFTER this.
+   */
+  promotionDiscount = 0;
   focusedTestId: string | null = null;
 
   // ── Sample collection protocols ────────────────────────────────────────────
@@ -217,7 +231,9 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     private _contactService:  ContactAddressService,
     private _token:           TokenService,
     private _sampleLabelService: SampleLabelService,
+    private _promotions: PromotionService,
   ) {
+    this.booking = new BookingSelectionState(this._promotions, () => this.cdr.markForCheck());
     this.patientForm = this.fb.group({
       country_Code:      ['+91', Validators.required],
       patient_Reg_Date:     new FormControl({ value: new Date().toISOString().split('T')[0], disabled: true }),
@@ -885,7 +901,46 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   // ── Tests ──────────────────────────────────────────────────────────────────
 
-  get totalAmount(): number { return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0); }
+  get totalAmount(): number {
+    // Regular price of everything that will be booked, as the API worked it out.
+    if (this.booking?.plan?.success) return this.booking.plan.regularTotal;
+    return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0);
+  }
+
+  /** Test amount less offers: what the manual discount % applies to. */
+  get payableBase(): number {
+    return Math.max(0, this.toNumber(this.patientForm.get('test_Amount')?.value) - this.promotionDiscount);
+  }
+
+  // ── Whole groups / sub-groups and promotional pricing ─────────────────────
+  // The API prices everything: this screen shows what /api/Promotion/Quote returns and
+  // sends back what was picked. The booking is priced again, from scratch, when it is saved.
+
+  /** Codes of the individually chosen tests (not the ones inside a chosen group). */
+  get individualCodes(): string[] {
+    return this.selectedTests.map(t => t.testCode).filter(c => !!c);
+  }
+
+  /**
+   * Codes of every test that will be booked: the API's expansion of the chosen tests,
+   * groups and sub-groups, each test once. Falls back to the individual picks until the
+   * first quote arrives.
+   */
+  get bookedCodes(): string[] {
+    return this.booking.ready ? this.booking.bookedCodes : this.individualCodes;
+  }
+
+  /** Asks the API what the current choice costs, and why. */
+  refreshPrice(): void {
+    this.booking.refresh(this.individualCodes);
+  }
+
+  /** A whole group or sub-group was tapped in the picker. */
+  onPackageToggled(ref: BookingPackageRef): void {
+    this.booking.togglePackage(ref);
+    this.refreshPrice();
+  }
+
 
   /** Codes of the chosen tests, in pick order — what the picker highlights. */
   get selectedTestCodes(): string[] {
@@ -896,6 +951,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   openTestForm(_event?: Event): void {
     this.showTestCatalog = true;
     this.loadAllTests();
+    this.booking.loadPromos();
   }
 
   /** Back out without touching the selection — the form is exactly as it was. */
@@ -1055,7 +1111,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
 
   /** Loads protocols for everything in the basket, for the summary on the Tests step. */
   private loadSelectedProtocols(): void {
-    const codes = this.selectedTests.map(t => t.testCode).filter(c => !!c);
+    const codes = this.bookedCodes;
     if (!codes.length) {
       this.selectedTestProtocols = [];
       this.selectedProtocolsLoading = false;
@@ -1126,6 +1182,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
     }
+    this.refreshPrice();
   }
 
   /** Applies the basket to the form and returns to the step. */
@@ -1139,9 +1196,18 @@ export class AddPatientComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // The price comes from the API. Without it there is nothing safe to put on the bill.
+    if (!this.booking.ready) {
+      this.toastr.error(
+        this.booking.error ?? 'The price is still being worked out. Please wait a moment and try again.',
+        'Price not ready');
+      return;
+    }
+    const plan = this.booking.plan!;
+    this.promotionDiscount = plan.promotionDiscount;
     this.patientForm.patchValue({
-      test_Name:   this.selectedTests.map(t => t.testName).join(', '),
-      test_Amount: this.totalAmount
+      test_Name:   plan.tests.map(t => t.name).join(', '),
+      test_Amount: plan.regularTotal
     });
     this.showTestCatalog = false;
     this.calculateNetAmount();
@@ -1359,7 +1425,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * calculateDiscount().
    */
   calculateNetAmount(typed?: string | number) {
-    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const testAmount = this.payableBase;   // offers come off first; the discount % applies to the rest
     // Prefer the value from the input event: a template (input) handler can run
     // before the form control's own value accessor, so the control may still
     // hold the previous keystroke's value here.
@@ -1385,7 +1451,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
    * stores is a sane percentage.
    */
   calculateDiscount(typed?: string | number) {
-    const testAmount = this.toNumber(this.patientForm.get('test_Amount')?.value);
+    const testAmount = this.payableBase;   // offers come off first; the discount % applies to the rest
     const rawNet     = String(typed ?? this.patientForm.get('net_Amount')?.value ?? '').trim();
 
     if (testAmount <= 0) return;
@@ -1694,10 +1760,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     const f = this.patientForm.getRawValue();
     const sentForApproval = this.needsDiscountApproval;
 
-    // ── Build test IDs comma string ────────────────────────────────────
-    let testIds = '';
-    this.selectedTestIds.forEach(id => (testIds += id + ','));
-    testIds = testIds.slice(0, -1);
+    // ── Every test that will be booked, once each (the API re-derives this) ──
+    const testIds = this.bookedCodes.join(',');
 
     // ── Determine final paid / pending amounts ─────────────────────────
     const netAmt      = f.net_Amount ?? 0;
@@ -1738,6 +1802,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     // ── Nested Test — matches backend AddPatientTestDTO ────────────────
     const test = {
       test_Id:          testIds,
+      // What was actually picked: tests, sub-groups, whole groups. The API prices these.
+      selections:       this.booking.selections(this.individualCodes),
       test_Name:         f.test_Name,
       urgent_Report:     f.urgent_Report    ?? false,
       report_On_WhatsApp: !!f.report_On_WhatsApp,
@@ -1872,6 +1938,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.booking?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }

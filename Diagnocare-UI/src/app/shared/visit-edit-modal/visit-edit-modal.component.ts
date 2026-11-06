@@ -12,14 +12,7 @@ import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.comp
 import { VisitScheduleGetDto, VisitCalendarDayDto } from 'src/app/models/visitSchedule/visit-schedule.dto';
 import { AppValidators }       from 'src/app/shared/validators/app-validators';
 import { TimePartsPicker } from 'src/app/shared/time-slots/time-slots';
-
-export interface VisitEditData {
-  assignedMemberId: number;
-  visitDate:        string;
-  visitTime:        string;
-  /** Set when the admin confirmed moving the visit onto a holiday. */
-  overrideHoliday?: boolean;
-}
+import { VisitEditData } from '../../models/visitSchedule/visit-modal.model';
 
 @Component({
   selector:    'app-visit-edit-modal',

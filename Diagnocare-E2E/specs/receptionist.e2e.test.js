@@ -107,7 +107,7 @@ describe('Receptionist workflow', () => {
       // ── Outcome: back on the list, and the API got the right bill ───────────────
       await page.waitForURL(/\/patients$/);
       const sent = wb.state.requests.filter(r => r.method === 'POST' && r.path.endsWith('/api/patient/Add')).at(-1).body;
-      assert.equal(sent.patient_Name, 'Mr. Kavita sharma', 'name is trimmed and capitalised before it is saved');
+      assert.equal(sent.patient_Name, 'Mr. Kavita Sharma', 'name is trimmed and capitalised before it is saved');
       assert.equal(sent.test.test_Id, 'T0001,T0002');
       assert.deepEqual(
         { testAmount: sent.receipt.testAmount, discount: sent.receipt.discount, netAmount: sent.receipt.netAmount,

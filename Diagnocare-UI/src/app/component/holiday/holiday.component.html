@@ -211,7 +211,7 @@
   </div>
 
   <div class="modal-footer">
-    <button class="btn btn-cancel" (click)="closeModal()" [disabled]="isSaving">
+    <button class="dc-btn dc-btn--cancel" (click)="closeModal()" [disabled]="isSaving">
       <i class="fa fa-times"></i> Cancel
     </button>
     <button class="dc-btn dc-btn--save" (click)="saveHoliday()"
@@ -333,7 +333,7 @@
         {{ bulkDrafts.length }} row{{ bulkDrafts.length !== 1 ? 's' : '' }}
       </span>
     </div>
-    <button class="btn btn-cancel" (click)="closeBulkModal()" [disabled]="isBulkSaving">
+    <button class="dc-btn dc-btn--cancel" (click)="closeBulkModal()" [disabled]="isBulkSaving">
       <i class="fa fa-times"></i> Cancel
     </button>
     <button class="dc-btn dc-btn--save" (click)="saveBulkHolidays()" [disabled]="isBulkSaving">

@@ -9,7 +9,7 @@
       <p class="subtitle">{{ isEdit ? 'Update existing record' : 'Register a new member' }}</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-back" (click)="goBack()">
+      <button class="dc-btn dc-btn--back" (click)="goBack()">
         <i class="fa fa-arrow-left"></i> Back to List
       </button>
     </div>
@@ -278,7 +278,7 @@
             <i class="fa" [ngClass]="isEdit ? 'fa-save' : 'fa-plus'"></i>
             {{ isEdit ? 'Save Changes' : 'Add ' + formTypeLabel }}
           </button>
-          <button type="button" class="btn btn-cancel" (click)="goBack()">Cancel</button>
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="goBack()">Cancel</button>
         </div>
 
       </form>
@@ -311,7 +311,7 @@
           <button type="button" class="btn btn-warning btn-sm" (click)="onSelectNewSignature()">
             <i class="fa fa-pencil"></i> Change
           </button>
-          <button type="button" class="btn btn-danger btn-sm" (click)="onRemoveSignature()">
+          <button type="button" class="dc-btn dc-btn--delete dc-btn--sm" (click)="onRemoveSignature()">
             <i class="fa fa-trash"></i> Remove
           </button>
         </div>
@@ -345,7 +345,7 @@
           <i class="fa fa-eye"></i> Preview
         </button>
         <button *ngIf="isEdit && showSignatureInput" type="button"
-                class="btn btn-cancel btn-sm" (click)="cancelSignatureChange()">
+                class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancelSignatureChange()">
           <i class="fa fa-times"></i> Cancel
         </button>
       </div>

@@ -4,7 +4,7 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 
-import { MemberService, StaffCapacity } from 'src/app/services/memberService/member.service';
+import { MemberService } from 'src/app/services/memberService/member.service';
 import { ConfirmModalService }   from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
@@ -15,16 +15,8 @@ import { MemberDto }   from 'src/app/models/member/member.dto';
 import { Role }        from 'src/app/constant/enums';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { isMemberActive, filterActiveMembers, filterInactiveMembers } from 'src/app/shared/member-utils';
-
-export type SectionType = 'user' | 'collection-boy' | 'doctor';
-
-interface Section {
-  type:    SectionType;
-  title:   string;
-  icon:    string;
-  loading: boolean;
-  loaded:  boolean;
-}
+import { StaffCapacity } from '../../models/member/staff-capacity.model';
+import { Section, SectionType } from '../../models/staff/staff-section.model';
 
 @Component({
   selector: 'app-staff-management',

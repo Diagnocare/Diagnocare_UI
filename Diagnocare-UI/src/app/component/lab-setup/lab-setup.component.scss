@@ -327,30 +327,6 @@
   }
 }
 
-.btn-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  background: linear-gradient(135deg, var(--color-info), var(--color-info));
-  color: #fff;
-  border: none;
-  border-radius: 0.45em;
-  padding: 0.52em 1.1em;
-  font-size: 0.88em;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: filter 0.15s, transform 0.1s;
-
-  i { font-size: 0.85em; }
-
-  &:hover:not(:disabled) {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-  }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-}
-
 // ── Reset row ─────────────────────────────────────────────────────
 .reset-row { margin-top: 0.9em; }
 

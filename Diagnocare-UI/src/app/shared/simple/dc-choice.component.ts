@@ -1,21 +1,7 @@
 import { Component, EventEmitter, Input, Output, forwardRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-
-/** One option in a <dc-choice>. */
-export interface DcChoiceOption {
-  /** The value written to the form control. */
-  value: any;
-  /** What the user reads. Keep it to one or two words. */
-  label: string;
-  /** Optional second line: when to pick this one. */
-  hint?: string;
-  /** Optional Font Awesome glyph, e.g. 'fa-mars'. Decoration only — never the
-   *  only way to tell two options apart. */
-  icon?: string;
-  /** Greys the option out and blocks selection. */
-  disabled?: boolean;
-}
+import { DcChoiceOption } from '../../models/common/dc-primitives.model';
 
 /**
  * DcChoiceComponent — big tappable cards instead of a dropdown.

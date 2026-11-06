@@ -17,26 +17,9 @@ import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/pa
 // ── Simple UI kit ────────────────────────────────────────────────────────────
 // The new panel asks how much, then how, then (for cash) what was handed over,
 // all on one screen.
-import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
-
-/**
- * What the operator settled on, handed back to a caller that saves the payment
- * as part of its own record rather than as a receipt of its own.
- *
- * Field names match the form controls every payment-carrying form in the app
- * already uses (payment_Type, payment_Mode, amount_Paid, amount_Pending), so a
- * caller usually only has to patch its form with these four values.
- */
-export interface PaymentModalResult {
-  paymentType: string;
-  paymentMode: string;
-  amountPaid: number;
-  amountPending: number;
-  /** Cash handed over, when the operator filled it in. Null otherwise. */
-  cashGiven: number | null;
-  /** Change to give back. 0 when not applicable. */
-  changeDue: number;
-}
+import { DcPaymentPanelComponent } from 'src/app/shared/simple/dc-payment-panel.component';
+import { DcPaymentDecision } from '../../models/common/dc-primitives.model';
+import { PaymentModalResult } from '../../models/receipt/payment.model';
 
 /**
  * THE payment dialog.

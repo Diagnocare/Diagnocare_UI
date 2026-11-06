@@ -13,7 +13,6 @@
  * uses — so no source file is touched and no build flag is needed.
  */
 
-const http = require('node:http');
 const { chromium } = require('playwright');
 const { createLabApi } = require('../lab-api/server.js');
 
@@ -21,12 +20,15 @@ const APP_URL = (process.env.APP_URL || 'http://localhost:4200').replace(/\/$/, 
 const HEADED = process.env.HEADED === '1';
 const SLOW_MO = Number(process.env.SLOW_MO || 0);
 
-function probe(url) {
-  return new Promise(resolve => {
-    const req = http.get(url, res => { res.resume(); resolve(res.statusCode); });
-    req.on('error', () => resolve(null));
-    req.setTimeout(20000, () => { req.destroy(); resolve(null); });
-  });
+/** Resolves the HTTP status, or null. Retries: a busy dev server drops the odd request. */
+async function probe(url) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      return res.status;
+    } catch { /* try again */ }
+  }
+  return null;
 }
 
 class Workbench {

@@ -30,7 +30,6 @@
       "src/app/*":           ["../Diagnocare-UI/src/app/*"],
       "src/environments/*":  ["../Diagnocare-UI/src/environments/*"],
       "@angular/*":          ["./node_modules/@angular/*"],
-      "@auth0/auth0-spa-js": ["./node_modules/@auth0/auth0-spa-js"],
       "rxjs":                ["./node_modules/rxjs"],
       "rxjs/*":              ["./node_modules/rxjs/*"],
       "zone.js":             ["./node_modules/zone.js"],

@@ -9,8 +9,7 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { TemplateService } from 'src/app/services/templateServices/template.service';
 import { TemplateListDTO } from 'src/app/models/template/template-list.dto';
 import { TemplateDetailDTO } from 'src/app/models/template/template-detail.dto';
-
-export type DownloadFormat = 'pdf' | 'docx';
+import { DownloadFormat } from '../../models/template/download-format.model';
 
 // ── CDN libraries (loaded on demand, not bundled) ────────────────────────────
 const CDN_HTML2CANVAS = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';

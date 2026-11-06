@@ -12,28 +12,7 @@ import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
-
-/** Calendar cell: one day in the monthly mini-grid. */
-interface CalendarCell {
-  date:    Date;
-  inMonth: boolean;
-  holiday: HolidayDTO | null;
-}
-
-/** One month in the full-year calendar. */
-interface MonthGrid {
-  name:  string;
-  year:  number;
-  month: number;   // 1-based
-  weeks: CalendarCell[][];
-}
-
-/** One row in the bulk-add form. */
-interface BulkDraft {
-  holidayDate: string;
-  holidayName: string;
-  remark:      string;
-}
+import { BulkDraft, CalendarCell, MonthGrid } from '../../models/holiday/holiday-calendar.model';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
