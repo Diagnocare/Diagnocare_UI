@@ -419,6 +419,8 @@ export const labOperationMenu = {
 export const labSetupMenu = {
     labProfile: { id: 'labProfile', label: 'Lab Profile',        route: 'lab-profile', icon: 'fa-hospital-alt', description: 'Logo, motto, legal details, report branding & more' },
     labConfig:  { id: 'labConfig',  label: 'Lab Configuration',  route: 'lab-setup',   icon: 'fa-sliders-h',    description: 'Sampling locations, areas & more' },
+    // Route guard (Admin + Super Admin) is unchanged; only the menu location moved.
+    reportTemplate: { id: 'reportTemplate', label: 'Report Template', route: 'template', icon: 'fa-file-alt', description: 'Manage report layouts' },
 }
 /**
  * Admin Panel navigation items.
@@ -444,7 +446,7 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
+  // Report Template moved to Lab Setup (see labSetupMenu).
 };
 
 /**

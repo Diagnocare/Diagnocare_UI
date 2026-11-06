@@ -37,7 +37,6 @@ function dedupe(items: NavItem[], seen: Set<string>): NavItem[] {
 function friendlyAdminLabel(id: string, fallback: string): string {
   switch (id) {
     case 'userDetails': return 'Staff';
-    case 'template':    return 'Report layouts';
     default:            return fallback;
   }
 }
@@ -78,6 +77,8 @@ export function buildNavSections(ctx: NavContext): NavSection[] {
   if (a.labOps)   lab.push(item('Doctors & Contacts', 'contacts',     'fa-address-book'));
   if (a.labSetup) lab.push(item('Lab profile',        'lab-profile',  'fa-hospital'));
   if (a.labSetup) lab.push(item('Lab settings',       'lab-setup',    'fa-sliders'));
+  // Same audience as before (Admin + Super Admin, matching the 'template' route guard).
+  if (a.adminPanel) lab.push(item('Report Template',  'template',     'fa-file-alt'));
 
   const team: NavItem[] = [];
   if (a.adminPanel) {

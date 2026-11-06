@@ -805,13 +805,15 @@ export class DcTestPickerComponent implements OnChanges {
   }
 
   /**
-   * Catalogue price of a group / sub-group: the sum of its tests' prices, which is the rule the
-   * API uses for the regular price (see PromotionPricing.cs). Shown beside the name so the price
-   * is visible before anything is ticked; an offer, when there is one, is shown under it.
+   * Price of a group / sub-group: its package price, which is what the API charges (see
+   * PromotionPricing.cs); the sum of its tests only when no package price is set. Shown beside the
+   * name so the price is visible before anything is ticked; an offer, when there is one, is shown
+   * under it.
    */
   regularOf(type: SelectionType, id: string): number {
     const unit = this.unitOf(type, id);
-    return unit ? unit.tests.reduce((sum, test) => sum + Number(test.price || 0), 0) : 0;
+    if (!unit) return 0;
+    return unit.price > 0 ? unit.price : unit.tests.reduce((sum, test) => sum + Number(test.price || 0), 0);
   }
 
   /** The offer open today for exactly this test, group or sub-group, if any. */

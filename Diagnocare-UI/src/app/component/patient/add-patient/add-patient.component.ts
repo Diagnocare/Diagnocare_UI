@@ -982,8 +982,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
             switchMap((subs: GroupSubGroupModel[]) => {
               if (!subs || subs.length === 0) {
                 return of({
-                  id: group.testGroupId, name: group.name,
-                  subGroups: [] as { id: string; name: string; tests: DcPickableTest[] }[],
+                  id: group.testGroupId, name: group.name, price: Number(group.price || 0),
+                  subGroups: [] as { id: string; name: string; price?: number; tests: DcPickableTest[] }[],
                   rawTests:  [] as TestItem[],
                 });
               }
@@ -993,6 +993,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
                   map((tests: any[]) => ({
                     id:       sub.testGroupId,
                     name:     sub.name,
+                    price:    Number(sub.price || 0),
                     tests:    (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
                     rawTests: (tests ?? []) as TestItem[],
                   })),
@@ -1000,7 +1001,8 @@ export class AddPatientComponent implements OnInit, OnDestroy {
               )).pipe(map(subGroups => ({
                 id:        group.testGroupId,
                 name:      group.name,
-                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
+                price:     Number(group.price || 0),
+                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, price: sg.price, tests: sg.tests })),
                 rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
               })));
             }),
@@ -1011,7 +1013,7 @@ export class AddPatientComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (groups: any[]) => {
         this.testGroups = (groups ?? []).map((g: any) => ({
-          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
+          id: g.id, name: g.name, price: g.price, subGroups: g.subGroups ?? [],
         })) as DcTestGroup[];
 
         // A test can sit under more than one sub-group, and the picker hands
