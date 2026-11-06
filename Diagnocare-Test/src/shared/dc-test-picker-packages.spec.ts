@@ -127,10 +127,10 @@ describe('DcTestPickerComponent: group and sub-group checkboxes', () => {
     expect(pkgEvents).toEqual([pkg('SubGroup', 'LFT-ENZ', 'Liver Enzymes')]);
   });
 
-  it('a group with no offer of its own is split so each sub-group keeps its own offer', () => {
+  it('ticking a group books the group as one package even when a sub-group inside has an offer', () => {
     render({ promos: [{ ...PROMO, targetType: 'SubGroup', targetId: 'LFT-ENZ', title: 'Enzyme week' }] });
     checks()[GROUP_LFT].click();
-    expect(pkgEvents.map(e => e.id)).toEqual(['LFT-ENZ', 'LFT-BIL']);
+    expect(pkgEvents.map(e => e.id)).toEqual(['LFT']);
   });
 
   it('tapping a group or sub-group NAME opens it and never changes the selection', () => {
