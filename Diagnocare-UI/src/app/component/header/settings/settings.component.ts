@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { AuthType } from 'src/app/constant/enums';
-import { ThemeService, Theme } from 'src/app/services/themeServices/theme.service';
+import { ThemeService } from 'src/app/services/themeServices/theme.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
 import { OtpMfaDialogComponent } from 'src/app/shared/otp-mfa/otp-mfa-dialog.component';
 import { SetupMfaComponent } from '../setup-mfa/setup-mfa.component';
@@ -18,6 +18,7 @@ import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.dir
 import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { LoginService } from 'src/app/services/loginServices/login.service';
+import { Theme } from '../../../models/common/theme.model';
 
 /**
  * Shown when the account details cannot be fetched. Deliberately generic —

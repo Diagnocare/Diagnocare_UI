@@ -1,12 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {Component, Input, OnInit} from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-
-interface Step {
-  id: number;
-  title: string;
-  description?: string;
-}
+import { Step } from '../../../models/common/stepper.model';
 
 @Component({
   selector: 'app-stepper',

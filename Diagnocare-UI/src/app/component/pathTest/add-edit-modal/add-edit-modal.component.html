@@ -769,7 +769,7 @@
 
   <!-- ══ MODAL FOOTER ════════════════════════════════════════════════ -->
   <div class="modal-footer">
-    <button class="btn btn-cancel" (click)="close()">
+    <button class="dc-btn dc-btn--cancel" (click)="close()">
       <i class="fa fa-times"></i> Cancel
     </button>
 
@@ -782,7 +782,7 @@
           (click)="submit()">
           <i class="fa fa-check"></i> Create Group
         </button>
-        <button class="btn dc-btn--save"
+        <button class="dc-btn dc-btn--save"
           [disabled]="!formData.group.name || formData.group.price <= 0"
           (click)="next()">
           Add SubGroup <i class="fa fa-arrow-right"></i>
@@ -796,7 +796,7 @@
           (click)="submit()">
           <i class="fa fa-check"></i> Create SubGroup
         </button>
-        <button class="btn dc-btn--save"
+        <button class="dc-btn dc-btn--save"
           [disabled]="!isSubGroupStepValid"
           (click)="next()">
           Add Test <i class="fa fa-arrow-right"></i>
@@ -804,7 +804,7 @@
       </ng-container>
 
       <!-- All other last-step cases -->
-      <button class="btn dc-btn--save"
+      <button class="dc-btn dc-btn--save"
         *ngIf="selected && step && isLastStep && !(selected === 'group' && step === 1) && !(selected === 'subgroup' && step === 1)"
         (click)="submit()"
         [disabled]="
@@ -817,7 +817,7 @@
       </button>
 
       <!-- Next button — excluded for group/subgroup step 1 (handled above) -->
-      <button class="btn dc-btn--save"
+      <button class="dc-btn dc-btn--save"
         *ngIf="(!isLastStep || step === 0) && !(selected === 'group' && step === 1) && !(selected === 'subgroup' && step === 1)"
         [disabled]="
           (!selected && step === 0) ||
@@ -831,7 +831,7 @@
 
     <!-- Edit mode -->
     <ng-container *ngIf="mode === 'edit'">
-      <button class="btn dc-btn--save" *ngIf="isLastEditStep"
+      <button class="dc-btn dc-btn--save" *ngIf="isLastEditStep"
         [disabled]="
           !selected ||
           (selected === 'group'    && updatedFormData.group.price <= 0) ||
@@ -841,7 +841,7 @@
         (click)="submit()">
         <i class="fa fa-save"></i> Update
       </button>
-      <button class="btn dc-btn--save" *ngIf="!isLastEditStep"
+      <button class="dc-btn dc-btn--save" *ngIf="!isLastEditStep"
         [disabled]="!selected"
         (click)="next()">
         Next <i class="fa fa-arrow-right"></i>

@@ -289,7 +289,7 @@
                  Directly above the sampling fields: this is the moment the operator decides
                  how the sample gets taken, and the last moment they can tell the patient to
                  come back fasting. Mirrors AddTestModalComponent. -->
-            <div class="form-section-label" *ngIf="selectedTests.length > 0">
+            <div class="form-section-label" *ngIf="bookedCodes.length > 0">
               Sample Collection Protocol
               <button type="button" class="ap-protocol-toggle"
                       (click)="showSelectedProtocols = !showSelectedProtocols">
@@ -303,7 +303,7 @@
               </span>
             </div>
 
-            <div class="ap-protocol-block" *ngIf="selectedTests.length > 0 && showSelectedProtocols">
+            <div class="ap-protocol-block" *ngIf="bookedCodes.length > 0 && showSelectedProtocols">
 
               <div class="ap-protocol-loading" *ngIf="selectedProtocolsLoading">
                 <i class="fa fa-spinner fa-spin"></i> Loading sample collection requirements…
@@ -470,6 +470,8 @@
                 <span class="amount-value">₹{{ patientForm.get('net_Amount')?.value || 0 }}</span>
               </div>
             </div>
+
+            <dc-booking-summary [plan]="booking.plan" [discountPercent]="+(patientForm.get('discount')?.value || 0)"></dc-booking-summary>
 
             <div class="form-section-label">Amount Breakdown</div>
             <div class="form-row">
@@ -777,6 +779,12 @@
       <dc-test-picker
         [groups]="testGroups"
         [selectedCodes]="selectedTestCodes"
+        [promos]="booking.promos"
+        [packages]="booking.packages"
+        [plan]="booking.plan"
+        [quoting]="booking.quoting"
+        [planRequired]="true"
+        (packageToggled)="onPackageToggled($event)"
         [loading]="isLoadingAllTests"
         (toggled)="onPickerToggled($event)"
         (focused)="onPickerFocused($event)"

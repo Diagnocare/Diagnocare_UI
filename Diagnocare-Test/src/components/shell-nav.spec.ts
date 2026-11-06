@@ -1,9 +1,8 @@
 import { Role } from 'src/app/constant/enums';
 import { resolveModuleAccess } from 'src/app/constant/module-access';
 import { adminOptions, profileMenu, summaryReportMenu, userOptions } from 'src/app/constant/constants';
-import {
-  NavContext, NavSection, activeNavKey, activeSectionId, buildNavSections,
-} from 'src/app/component/layout/shell/shell-nav';
+import { activeNavKey, activeSectionId, buildNavSections } from 'src/app/component/layout/shell/shell-nav';
+import { NavContext, NavSection } from 'src/app/models/layout/shell-nav.model';
 
 /** Mirrors what HeaderComponent hands the shell for a given role. */
 function ctxFor(roleId: number | null, isDoctor = false): NavContext {

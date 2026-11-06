@@ -7,14 +7,7 @@ import { SampleCollectionService } from 'src/app/services/sampleCollectionServic
 import { CollectionStage, Pickup } from 'src/app/models/sampleCollection/sample-collection.model';
 import { waitingLabel } from 'src/app/utilities/work-queue.util';
 import { CollectionBriefComponent } from 'src/app/shared/collection-brief/collection-brief.component';
-
-interface PickupGroup {
-  stage: CollectionStage;
-  title: string;
-  hint: string;
-  icon: string;
-  items: Pickup[];
-}
+import { PickupGroup } from '../../models/sampleCollection/pickup-group.model';
 
 /**
  * The collection boy's day: samples to collect, samples to hand over at the

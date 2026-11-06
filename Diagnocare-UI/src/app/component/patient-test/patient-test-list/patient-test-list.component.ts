@@ -15,7 +15,7 @@ import { TestReportGenerationServices } from 'src/app/services/patientTestReport
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
 import { PaymentModalComponent } from 'src/app/shared/payment-modal/payment-modal.component';
 import { AddTestModalComponent }  from 'src/app/shared/add-test-modal/add-test-modal.component';
-import { CancelBookingModalComponent, CancelConfirmPayload } from 'src/app/shared/cancel-booking-modal/cancel-booking-modal.component';
+import { CancelBookingModalComponent } from 'src/app/shared/cancel-booking-modal/cancel-booking-modal.component';
 import { ProtocolViewModalComponent } from 'src/app/shared/protocol-view-modal/protocol-view-modal.component';
 import { TestRunModalComponent } from 'src/app/shared/test-run-modal/test-run-modal.component';
 import { TestRunService } from 'src/app/services/testRunServices/test-run.service';
@@ -43,42 +43,10 @@ import {
   getPaymentBadgeLabel as paymentBadgeLabel,
   getPaymentStatusClass as paymentStatusClass
 } from 'src/app/utilities/patient-status.util';
+import { CancelConfirmPayload } from '../../../models/patientTest/cancel-booking.model';
+import { VisitStep, VisitView } from '../../../models/patientTest/patient-test-visit.model';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** One step of a visit's progress bar. */
-export interface VisitStep {
-  label: string;
-  state: 'done' | 'current' | 'todo';
-}
-
-/**
- * Everything the page says about one booking, in plain words, computed once per
- * load rather than on every change-detection pass.
- */
-export interface VisitView {
-  /** Test names on the booking (codes where a name is unknown). */
-  names: string[];
-  isToday: boolean;
-  /** "27 Sep 2026" */
-  dateLabel: string;
-  /** "Sunday, 27 September 2026" */
-  dayLabel: string;
-  /** "Today", "15 days ago" */
-  relLabel: string;
-  /** "SEPTEMBER 2026" — the past-visits group header */
-  monthLabel: string;
-  steps: VisitStep[];
-  /** What the big button does. */
-  next: 'sampling' | 'results' | 'payment' | 'reports' | 'none';
-  nextText: string;
-  statusText: string;
-  statusTone: 'ok' | 'warn' | 'muted';
-  paymentText: string;
-  paymentTone: 'ok' | 'due' | 'hold' | 'none';
-  due: number;
-  cancelled: boolean;
-}
 
 @Component({
   selector: 'app-patient-test-list',

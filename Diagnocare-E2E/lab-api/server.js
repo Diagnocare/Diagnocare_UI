@@ -91,9 +91,11 @@ function createLabApi() {
     if (!booking.samplingDoneAt) return 'to-collect';
     const total = paramsOf(code).length;
     if (total === 0) return 'needs-attention';
+    // Sent back by a verifier: the bench redoes it before it can be verified again.
+    if (state.returned.has(key)) return 'returned';
     const saved = savedCount(booking.testRegId, code);
-    if (saved === 0) return state.returned.has(key) ? 'returned' : 'awaiting-results';
-    if (saved < total) return state.returned.has(key) ? 'returned' : 'partly-entered';
+    if (saved === 0) return 'awaiting-results';
+    if (saved < total) return 'partly-entered';
     return 'to-verify';
   }
 
@@ -378,6 +380,8 @@ function createLabApi() {
       const key = `${Number(r.testRegId)}:${r.testCode}`;
       if (!state.results.has(key)) state.results.set(key, new Map());
       state.results.get(key).set(r.parameterId, { id: state.nextResultId++, value: r.obtainedValue });
+      state.returned.delete(key); // re-entering results answers the verifier's note
+      state.returned.delete(key); // re-entering results answers the verifier's note
     }
     return { success: true, message: 'Saved' };
   };

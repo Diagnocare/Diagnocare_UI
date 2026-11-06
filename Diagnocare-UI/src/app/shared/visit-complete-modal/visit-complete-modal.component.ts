@@ -3,12 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule }  from '@angular/forms';
-
-export interface VisitCompletionData {
-  remark:      string;
-  location:    string;
-  photoBase64: string | null;
-}
+import { VisitCompletionData } from '../../models/visitSchedule/visit-modal.model';
 
 @Component({
   selector:    'app-visit-complete-modal',

@@ -279,6 +279,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/discount-approvals/discount-approvals.component').then(m => m.DiscountApprovalsComponent),
         canActivate: [roleGuard(Role.Super_Admin.id)] },
 
+      // Offers (promotional prices) — Admin and Super Admin (API: AdminOrSuperAdmin).
+      { path: 'promotions', title: 'Offers',
+        loadComponent: () => import('./component/promotions/promotions.component').then(m => m.PromotionsComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
+
       // Attendance Requests — ONE shared surface for every authenticated role.
       // The components branch on TokenService.isAdmin(): users see/manage their own
       // requests; admins see all requests and can approve/reject. Order matters:

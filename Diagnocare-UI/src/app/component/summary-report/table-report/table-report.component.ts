@@ -11,17 +11,11 @@ import { Chart } from 'chart.js';
 import { SummaryReportService }    from 'src/app/services/summaryServices/summary-report.service';
 import { ChartService }            from 'src/app/services/summaryServices/chart.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
-import { ReportFilterBarComponent, FilterChartOption } from 'src/app/shared/report-filter-bar/report-filter-bar.component';
+import { ReportFilterBarComponent } from 'src/app/shared/report-filter-bar/report-filter-bar.component';
 import { reportConfigs, chartDisplayOptions, CHART_COLORS } from 'src/app/constant/constants';
 import { ReportConfig }            from 'src/app/models/summaryReport/summaryReportModel';
-
-/** Describes one derived column. */
-interface ColDef {
-  key:   string;
-  label: string;
-  kind:  'currency' | 'number' | 'date' | 'badge' | 'text';
-  align: 'left' | 'right' | 'center';
-}
+import { FilterChartOption } from '../../../models/summaryReport/report-filter.model';
+import { ColDef } from '../../../models/summaryReport/table-report.model';
 
 @Component({
   selector:    'app-table-report',

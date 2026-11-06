@@ -7,7 +7,7 @@
       <p class="subtitle">Complete your pathology details — used across reports, billing, and the patient portal</p>
     </div>
     <div class="header-actions" *ngIf="loadState === 'loaded'">
-      <button type="button" class="btn-refresh" (click)="refresh()" [disabled]="isRefreshing"
+      <button type="button" class="dc-btn dc-btn--search" (click)="refresh()" [disabled]="isRefreshing"
               title="Re-fetch the latest identity and license info now">
         <i class="fas fa-sync-alt" [class.fa-spin]="isRefreshing"></i>
         {{ isRefreshing ? 'Refreshing…' : 'Refresh' }}
@@ -286,7 +286,7 @@
 
         <!-- ── Save bar ── -->
         <div class="save-bar">
-          <button type="submit" class="btn-save" [disabled]="isSaving">
+          <button type="submit" class="dc-btn dc-btn--save" [disabled]="isSaving">
             <ng-container *ngIf="!isSaving">
               <i class="fas fa-save"></i> Save Lab Profile
             </ng-container>

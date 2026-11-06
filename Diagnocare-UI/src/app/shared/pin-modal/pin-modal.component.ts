@@ -5,10 +5,11 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import Modal from 'bootstrap/js/dist/modal';
 
-import { PinModalService, PinModalMode } from './pin-modal.service';
+import { PinModalService } from './pin-modal.service';
 import { PinService }      from 'src/app/services/pinServices/pin.service';
 import { TokenService }    from 'src/app/core/interceptors/token.service';
 import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
+import { PinModalMode } from '../../models/auth/pin-modal.model';
 
 const MAX_ATTEMPTS     = 3;
 const MODAL_TIMEOUT_S  = 300; // 5 minutes

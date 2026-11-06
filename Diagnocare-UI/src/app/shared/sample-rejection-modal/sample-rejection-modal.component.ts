@@ -14,19 +14,8 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { SampleRejectionService } from 'src/app/services/sampleRejectionServices/sample-rejection.service';
-import {
-  OTHER_REASON_CODE,
-  SampleRejectionDto,
-  SampleRejectionHistoryDto,
-  SampleRejectionReasonDto,
-  SampleRejectionStatus,
-} from 'src/app/models/sample-rejection/sample-rejection.model';
-
-/** The reasons for one cause, as the picker groups them. */
-interface ReasonGroup {
-  categoryLabel: string;
-  reasons: SampleRejectionReasonDto[];
-}
+import { OTHER_REASON_CODE, SampleRejectionDto, SampleRejectionHistoryDto, SampleRejectionStatus } from 'src/app/models/sample-rejection/sample-rejection.model';
+import { ReasonGroup } from '../../models/sample-rejection/reason-group.model';
 
 /**
  * Why a collected sample could not be used, and whether a fresh one is still awaited.

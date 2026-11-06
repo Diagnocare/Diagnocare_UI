@@ -1,6 +1,6 @@
 <div class="ar-page" [class.embedded]="embedded">
   <div *ngIf="!embedded" class="ar-hero">
-    <button class="btn btn-back" (click)="back()"><i class="fa fa-arrow-left"></i> Back to requests</button>
+    <button class="dc-btn dc-btn--back" (click)="back()"><i class="fa fa-arrow-left"></i> Back to requests</button>
     <div class="ar-hero-text">
       <h1><i class="fa fa-clipboard-list"></i> Request Details</h1>
     </div>
@@ -11,7 +11,7 @@
   <div *ngIf="loadFailed" class="load-failed">
     <i class="fa fa-triangle-exclamation"></i>
     <p>Couldn't load this request.</p>
-    <button class="btn dc-btn--save btn-sm" (click)="retry()"><i class="fa fa-rotate"></i> Retry</button>
+    <button class="dc-btn dc-btn--save dc-btn--sm" (click)="retry()"><i class="fa fa-rotate"></i> Retry</button>
   </div>
 
   <div *ngIf="!isLoading && request" class="detail-grid">
@@ -78,10 +78,10 @@
       <!-- Owner (User) actions — one "take it back" button whose label tells the user
            whether it happens now or goes for review. -->
       <div *ngIf="request.canEdit || (!isReviewer && request.canWithdraw)" class="owner-actions">
-        <button *ngIf="request.canEdit" class="btn dc-btn--save" (click)="editRequest()">
+        <button *ngIf="request.canEdit" class="dc-btn dc-btn--save" (click)="editRequest()">
           <i class="fa fa-pen"></i> Edit
         </button>
-        <button *ngIf="!isReviewer && request.canWithdraw" class="btn btn-danger" (click)="confirmMode = 'withdraw'">
+        <button *ngIf="!isReviewer && request.canWithdraw" class="dc-btn dc-btn--delete" (click)="confirmMode = 'withdraw'">
           <i class="fa fa-rotate-left"></i>
           {{ request.withdrawalNeedsApproval ? 'Request withdrawal' : 'Withdraw' }}
         </button>
@@ -119,7 +119,7 @@
           <button class="btn btn-success" (click)="confirmMode = 'withdrawApprove'">
             <i class="fa fa-check"></i> Grant
           </button>
-          <button class="btn btn-danger" (click)="confirmMode = 'withdrawReject'">
+          <button class="dc-btn dc-btn--delete" (click)="confirmMode = 'withdrawReject'">
             <i class="fa fa-xmark"></i> Refuse
           </button>
         </div>
@@ -140,7 +140,7 @@
         </div>
         <div class="btn-row">
           <button class="btn btn-success" (click)="confirmMode = 'approve'"><i class="fa fa-check"></i> Approve</button>
-          <button class="btn btn-danger" (click)="confirmMode = 'reject'"><i class="fa fa-xmark"></i> Reject</button>
+          <button class="dc-btn dc-btn--delete" (click)="confirmMode = 'reject'"><i class="fa fa-xmark"></i> Reject</button>
         </div>
       </ng-container>
       <ng-template #closedNote>
@@ -167,7 +167,7 @@
         <textarea id="request-detail-field2" class="form-control" [(ngModel)]="approveRemarks" rows="2" maxlength="500" placeholder="Note for the employee…"></textarea>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="dc-btn dc-btn--cancel" (click)="closeConfirm()">Cancel</button>
         <button class="btn btn-success" [disabled]="isSaving" (click)="doApprove()">{{ isSaving ? 'Approving…' : 'Confirm Approve' }}</button>
       </div>
     </div>
@@ -183,8 +183,8 @@
         <textarea id="request-detail-field3" class="form-control" [(ngModel)]="rejectRemarks" rows="2" maxlength="500" placeholder="Reason for rejection…"></textarea>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
-        <button class="btn btn-danger" [disabled]="isSaving || !rejectRemarks.trim()" (click)="doReject()">{{ isSaving ? 'Rejecting…' : 'Confirm Reject' }}</button>
+        <button class="dc-btn dc-btn--cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="dc-btn dc-btn--delete" [disabled]="isSaving || !rejectRemarks.trim()" (click)="doReject()">{{ isSaving ? 'Rejecting…' : 'Confirm Reject' }}</button>
       </div>
     </div>
   </div>
@@ -208,8 +208,8 @@
                     placeholder="e.g. I picked the wrong date"></textarea>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-cancel" (click)="closeConfirm()">Never mind</button>
-          <button class="btn btn-danger" [disabled]="isSaving || !withdrawReason.trim()" (click)="doWithdraw()">
+          <button class="dc-btn dc-btn--cancel" (click)="closeConfirm()">Never mind</button>
+          <button class="dc-btn dc-btn--delete" [disabled]="isSaving || !withdrawReason.trim()" (click)="doWithdraw()">
             {{ isSaving ? 'Sending…' : 'Send request' }}
           </button>
         </div>
@@ -229,8 +229,8 @@
                     placeholder="e.g. wrong date"></textarea>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-cancel" (click)="closeConfirm()">Keep it</button>
-          <button class="btn btn-danger" [disabled]="isSaving" (click)="doWithdraw()">
+          <button class="dc-btn dc-btn--cancel" (click)="closeConfirm()">Keep it</button>
+          <button class="dc-btn dc-btn--delete" [disabled]="isSaving" (click)="doWithdraw()">
             {{ isSaving ? 'Withdrawing…' : 'Withdraw' }}
           </button>
         </div>
@@ -254,7 +254,7 @@
                   placeholder="Note for the employee…"></textarea>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="dc-btn dc-btn--cancel" (click)="closeConfirm()">Cancel</button>
         <button class="btn btn-success" [disabled]="isSaving" (click)="doApproveWithdrawal()">
           {{ isSaving ? 'Reverting…' : 'Confirm' }}
         </button>
@@ -273,8 +273,8 @@
                   placeholder="Reason for refusing…"></textarea>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-cancel" (click)="closeConfirm()">Cancel</button>
-        <button class="btn btn-danger" [disabled]="isSaving || !withdrawDecisionRemarks.trim()" (click)="doRejectWithdrawal()">
+        <button class="dc-btn dc-btn--cancel" (click)="closeConfirm()">Cancel</button>
+        <button class="dc-btn dc-btn--delete" [disabled]="isSaving || !withdrawDecisionRemarks.trim()" (click)="doRejectWithdrawal()">
           {{ isSaving ? 'Saving…' : 'Confirm refuse' }}
         </button>
       </div>
