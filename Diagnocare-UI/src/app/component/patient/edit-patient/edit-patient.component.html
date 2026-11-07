@@ -138,8 +138,9 @@
 
           <div class="form-group">
             <label for="edit-patient-patient_Address" class="form-label">Address</label>
-            <input id="edit-patient-patient_Address" type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Address')"
-                   formControlName="patient_Address" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('patient_Address')">
+            <textarea id="edit-patient-patient_Address" rows="4" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Address')"
+                   formControlName="patient_Address" placeholder="Enter complete address" autocomplete="street-address"
+                   [attr.tabindex]="getTabIndex('patient_Address')"></textarea>
             <app-field-error [control]="editPatientForm.get('patient_Address')" label="Address" [forceShow]="formSubmitted"></app-field-error>
           </div>
 
