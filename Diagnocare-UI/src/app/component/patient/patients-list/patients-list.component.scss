@@ -803,6 +803,7 @@ input[type="radio"] {
 .pd-body { margin: 0; padding: 14px 16px; display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; }
 .pd-body dt { font-weight: 600; font-size: 13px; color: var(--color-text-secondary); }
 .pd-body dd { margin: 0; word-break: break-word; }
+.pd-body .pd-address { white-space: pre-line; }
 .pd-action { display: inline-block; margin-left: 8px; font-size: 13px; }
 
 @media (prefers-color-scheme: dark) {
