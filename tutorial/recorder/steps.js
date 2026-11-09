@@ -217,10 +217,12 @@ const sections = [
         'क्रम सिर्फ़ तारीख़ से नहीं है। अर्जेंट मरीज़ हमेशा सबसे ऊपर रहते हैं, क्योंकि इस लिस्ट में अर्जेंट रिपोर्ट ही वह चीज़ है जो अपनी बारी का इंतज़ार नहीं कर सकती।');
       await d.clearFocus();
 
-      await d.focusOn(page.locator('th', { hasText: 'Urg Rep' }).first());
+      // There is no longer an "Urg Rep" column: urgency is a flag beside the name. Fall
+      // back to the Status header if no urgent patient is on the page.
+      await d.focusOn(page.locator('.urgent-flag, th:has-text("Status")').first());
       await d.say(
-        'This column is why. Within the urgent rows, and within the normal ones, whatever order you chose by sorting still applies.',
-        'वजह यही कॉलम है। अर्जेंट वालों के अंदर और सामान्य वालों के अंदर, आपने सॉर्ट से जो क्रम चुना है वही लागू रहता है।');
+        'That urgent flag is why. Within the urgent rows, and within the normal ones, whatever order you chose by sorting still applies.',
+        'वजह यही अर्जेंट फ़्लैग है। अर्जेंट वालों के अंदर और सामान्य वालों के अंदर, आपने सॉर्ट से जो क्रम चुना है वही लागू रहता है।');
       await d.clearFocus();
 
       await d.focusOn(page.locator('.search-section'));
@@ -279,21 +281,22 @@ const sections = [
       await d.wait(900);
 
       await d.say(
-        'Registration is a wizard in four steps — identifiers, then the patient\'s details, then the tests they need, then payment.',
-        'रजिस्ट्रेशन चार चरणों में होता है — पहचान संख्या, फिर मरीज़ की जानकारी, फिर ज़रूरी टेस्ट, और आख़िर में भुगतान।');
+        'Registration is a wizard in four steps — the patient, then the tests they need, then sample collection, then payment and delivery.',
+        'रजिस्ट्रेशन चार चरणों में होता है — मरीज़, फिर ज़रूरी टेस्ट, फिर सैंपल कलेक्शन, और आख़िर में भुगतान व डिलीवरी।');
 
       await d.focusOn(page.locator('input[formControlName="patient_Id"]'));
       await d.say(
-        'The first step is entirely system-generated. The serial number and patient identifier are issued here and cannot be typed over, so two desks can never mint the same identifier.',
+        'The top of the first step is system-generated. The serial number and patient identifier are issued here and cannot be typed over, so two desks can never mint the same identifier.',
         'पहला चरण पूरी तरह सिस्टम बनाता है। सीरियल नंबर और पेशेंट ID यहीं जारी होते हैं और इन्हें बदला नहीं जा सकता, ताकि दो काउंटर कभी एक ही ID न बना दें।');
       await d.clearFocus();
 
-      await d.click(page.locator('.dc-btn--save').first(), { settle: 2200 });
+      // The patient's own details now share step one with the identifiers, so there is
+      // no Next to press before the name field.
       await page.locator('input[formControlName="patient_Name"]').waitFor({ state: 'visible', timeout: 20000 });
       await d.wait(700);
       await d.say(
-        'Step two is the patient themselves.',
-        'दूसरा चरण ख़ुद मरीज़ की जानकारी है।');
+        'Just below the identifiers are the patient themselves.',
+        'पहचान संख्या के ठीक नीचे ख़ुद मरीज़ की जानकारी है।');
 
       // Typed in lower case on purpose — the field capitalises itself, which is the point.
       await d.type(page.locator('input[formControlName="patient_Name"]'), 'anita raghunathan', { settle: 1100 });
@@ -320,6 +323,8 @@ const sections = [
         'Sex is recorded here because most reference ranges depend on it.',
         'लिंग यहाँ दर्ज होता है क्योंकि ज़्यादातर नॉर्मल रेंज इसी पर निर्भर करती हैं।');
 
+      // Relative name lives under "More details", collapsed by default.
+      await d.click(page.locator('.ap-protocol-toggle'), { settle: 700 });
       await d.type(page.locator('input[formControlName="relative_Name"]'), 'Ramesh Raghunathan', { settle: 700 });
       await d.type(page.locator('input[formControlName="patient_Contact"]'), '9876501234', { settle: 900 });
       await d.say(
@@ -328,8 +333,8 @@ const sections = [
 
       await d.focusOn(page.locator('input[formControlName="patient_Contact"]'));
       await d.say(
-        'From here the remaining two steps book the tests and take the payment, so one pass over one wizard finishes the whole front-desk job.',
-        'आगे के दो चरणों में टेस्ट बुक होते हैं और भुगतान लिया जाता है — यानी एक ही फ़ॉर्म में रिसेप्शन का पूरा काम निपट जाता है।');
+        'From here the remaining steps book the tests, record the sample and take the payment, so one pass over one wizard finishes the whole front-desk job.',
+        'आगे के चरणों में टेस्ट बुक होते हैं, सैंपल दर्ज होता है और भुगतान लिया जाता है — यानी एक ही फ़ॉर्म में रिसेप्शन का पूरा काम निपट जाता है।');
       await d.clearFocus();
     },
   },
@@ -354,7 +359,7 @@ const sections = [
         subtitleHi: 'वह कैटलॉग जिस पर बाक़ी पूरा ऐप्लिकेशन खड़ा है',
       });
 
-      await d.navigate('Lab setup', 'Tests & prices');
+      await d.navigate('Lab setup', 'Tests & Prices');
       await page.locator('.master-list-wrap').waitFor({ state: 'visible', timeout: 25000 });
       await d.wait(1300);
 
