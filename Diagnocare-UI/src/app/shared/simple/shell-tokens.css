@@ -82,13 +82,9 @@ html[data-dc-size="large"] {
    with a translucent white-text header (.page-header). Inside the shell that
    reads as a second app inside the first. These rules calm it down to the
    shell's page colour and a plain dark heading, without editing 28 templates.
-   Scoped to .sh-content, so the classic frame (USE_SIDEBAR_SHELL = false) is
-   untouched. A page with its own component-scoped gradient keeps it until that
+   Scoped to .sh-content. A page with its own component-scoped gradient keeps it until that
    page is migrated.
    ══════════════════════════════════════════════════════════════════════════════ */
-.sh-content {
-  --primary-gradient: var(--sh-bg);
-}
 .sh-content .page-container {
   min-height: 0;
   background: var(--sh-bg);

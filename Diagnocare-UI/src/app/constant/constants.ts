@@ -54,6 +54,8 @@ export const controllerEndpoints = {
   sample: 'api/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
+  /** Promotional prices for tests, sub-groups and groups; also the price quote used by the booking screens. */
+  promotion: 'api/Promotion/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/TestReminder/',
   worklist: 'api/Worklist/',
@@ -318,6 +320,7 @@ export const validationMessages = {
 
 // Tab order for Add Patient form
    export const tabOrderAdd = [
+     // Step 1 · Patient
      'patient_Salutation',
      'patient_Name',
      'patient_DOB',
@@ -326,30 +329,33 @@ export const validationMessages = {
      'patient_Gender',
      '',
      '',
+     'patient_Contact',
+     'patient_Email',
      'patient_Marital_Status',
      '',
      'relation',
      'relative_Name',
-     'patient_Contact',
-     'patient_Email',
-     'patient_Address',
+     // Step 2 · Tests
      'test_Name',
-     'urgent_Report',
-     'report_On_WhatsApp',
      'test_Amount',
      'referred_By_Type',
      'referred_By',
+     // Step 3 · Collection
      'sampling_Done',
      'collected_Outside',
      'area',
      'collected_By',
+     'patient_Address',
+     'urgent_Report',
      'remark',
+     // Step 4 · Payment & Delivery
      'discount',
      'net_Amount',
      'payment_Type',
      'payment_Mode',
      'amount_Paid',
-     'amount_Pending'
+     'amount_Pending',
+     'report_On_WhatsApp'
    ]
 
    // Tab order for Edit Patient form (customize as needed)
@@ -413,6 +419,8 @@ export const labOperationMenu = {
 export const labSetupMenu = {
     labProfile: { id: 'labProfile', label: 'Lab Profile',        route: 'lab-profile', icon: 'fa-hospital-alt', description: 'Logo, motto, legal details, report branding & more' },
     labConfig:  { id: 'labConfig',  label: 'Lab Configuration',  route: 'lab-setup',   icon: 'fa-sliders-h',    description: 'Sampling locations, areas & more' },
+    // Route guard (Admin + Super Admin) is unchanged; only the menu location moved.
+    reportTemplate: { id: 'reportTemplate', label: 'Report Template', route: 'template', icon: 'fa-file-alt', description: 'Manage report layouts' },
 }
 /**
  * Admin Panel navigation items.
@@ -432,11 +440,13 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
   // Discounts above the lab limit wait here for the owner's decision.
   discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
+  // Promotional prices for tests, sub-groups and whole groups.
+  promotions:    { id: 'promotions',    label: 'Offers',             route: 'promotions',      icon: 'fa-tag' },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
+  // Report Template moved to Lab Setup (see labSetupMenu).
 };
 
 /**

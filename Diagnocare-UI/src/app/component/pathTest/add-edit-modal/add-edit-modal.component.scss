@@ -566,7 +566,7 @@ select.form-control {
   }
 
   .modal-footer {
-    .btn { flex: 1; justify-content: center; }
+    .btn, .dc-btn { flex: 1; justify-content: center; }
   }
 
   .auto-code-field {

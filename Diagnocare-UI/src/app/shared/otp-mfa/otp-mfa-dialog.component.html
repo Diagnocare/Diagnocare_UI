@@ -225,7 +225,7 @@
           <div class="otp-boxes" formArrayName="digits"
                role="group" aria-label="One time password">
             <ng-container *ngFor="let _ of digits.controls; let i = index">
-              <input
+              <input [attr.aria-label]="'OTP digit ' + (i + 1)"
                 class="otp-box"
                 type="text"
                 [appMasked]="!otpVisible"

@@ -61,12 +61,12 @@
 
         <div class="search-box">
           <i class="fa fa-search search-icon"></i>
-          <input type="text" class="search-input" placeholder="Search employee…" [(ngModel)]="searchTerm" />
+          <input aria-label="Search employee" type="text" class="search-input" placeholder="Search employee…" [(ngModel)]="searchTerm" />
           <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''">
             <i class="fa fa-times"></i>
           </button>
         </div>
-        <!-- <button class="btn btn-primary" (click)="generateSalary()" [disabled]="isGenerating || isLoading">
+        <!-- <button class="dc-btn dc-btn--save" (click)="generateSalary()" [disabled]="isGenerating || isLoading">
           <span *ngIf="isGenerating"><i class="fa fa-spinner fa-spin"></i> Generating…</span>
           <span *ngIf="!isGenerating"><i class="fa fa-bolt"></i> Generate Salary</span>
         </button> -->
@@ -180,7 +180,7 @@
               <td class="col-action">
                 <div class="action-btns">
                   <button
-                    class="btn btn-sm btn-primary"
+                    class="dc-btn dc-btn--save dc-btn--sm"
                     (click)="openPanel(rec)"
                     [disabled]="rec.salaryId === 0"
                     [title]="rec.salaryId === 0 ? 'Generate salary first' : 'View payments'"
@@ -264,7 +264,7 @@
             <div class="dropdown-wrapper">
               <div class="dropdown-trigger" (click)="openDropdown()" [class.open]="isDropdownOpen">
                 <i class="fa fa-search dropdown-trigger-icon"></i>
-                <input
+                <input aria-label="Search employee"
                   *ngIf="isDropdownOpen"
                   class="dropdown-search"
                   type="text"
@@ -304,7 +304,7 @@
               <div class="config-view-title">
                 <i class="fa fa-check-circle cv-icon"></i> Salary Configuration
               </div>
-              <button class="btn btn-sm btn-primary" (click)="startEditConfig()">
+              <button class="dc-btn dc-btn--save dc-btn--sm" (click)="startEditConfig()">
                 <i class="fa fa-edit"></i> Edit
               </button>
             </div>
@@ -429,9 +429,9 @@
                   <span class="scc-active-badge" *ngIf="hasFixedComponent">Active</span>
                 </div>
                 <div class="scc-body">
-                  <label class="form-label">Base Salary (₹)</label>
+                  <label for="salary-field1" class="form-label">Base Salary (₹)</label>
                   <div class="input-with-suffix">
-                    <input type="number" class="form-input" [(ngModel)]="configDraft.baseSalary"
+                    <input id="salary-field1" type="number" class="form-input" [(ngModel)]="configDraft.baseSalary"
                       min="0" placeholder="e.g. 25000" />
                     <span class="input-suffix">₹</span>
                   </div>
@@ -455,9 +455,9 @@
                   <span class="scc-active-badge" *ngIf="hasPercentComponent">Active</span>
                 </div>
                 <div class="scc-body">
-                  <label class="form-label">Revenue Percentage</label>
+                  <label for="salary-field2" class="form-label">Revenue Percentage</label>
                   <div class="input-with-suffix">
-                    <input type="number" class="form-input" [(ngModel)]="configDraft.revenuePercentage"
+                    <input id="salary-field2" type="number" class="form-input" [(ngModel)]="configDraft.revenuePercentage"
                       min="0" max="100" step="0.1" placeholder="e.g. 10" />
                     <span class="input-suffix">%</span>
                   </div>
@@ -471,23 +471,23 @@
             <div class="config-form-grid">
 
               <div class="form-group">
-                <label class="form-label">Travel Allowance (₹)</label>
-                <input type="number" class="form-input" [(ngModel)]="configDraft.travelAllowance"
+                <label for="salary-field3" class="form-label">Travel Allowance (₹)</label>
+                <input id="salary-field3" type="number" class="form-input" [(ngModel)]="configDraft.travelAllowance"
                   min="0" placeholder="0" />
                 <div class="field-hint">Monthly travel reimbursement (PF-exempt)</div>
               </div>
 
               <div class="form-group">
-                <label class="form-label">Other Allowance (₹)</label>
-                <input type="number" class="form-input" [(ngModel)]="configDraft.otherAllowance"
+                <label for="salary-field4" class="form-label">Other Allowance (₹)</label>
+                <input id="salary-field4" type="number" class="form-input" [(ngModel)]="configDraft.otherAllowance"
                   min="0" placeholder="0" />
                 <div class="field-hint">Any additional recurring allowance (PF-exempt)</div>
               </div>
 
               <div class="form-group">
-                <label class="form-label">PF Percentage <span class="req">*</span></label>
+                <label for="salary-field5" class="form-label">PF Percentage <span class="req">*</span></label>
                 <div class="input-with-suffix">
-                  <input type="number" class="form-input" [(ngModel)]="configDraft.pfPercentage"
+                  <input id="salary-field5" type="number" class="form-input" [(ngModel)]="configDraft.pfPercentage"
                     min="0" max="100" step="0.5" placeholder="12" />
                   <span class="input-suffix">%</span>
                 </div>
@@ -495,12 +495,12 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label">
+                <label for="salary-field6" class="form-label">
                   <i class="fa fa-umbrella-beach form-label-icon"></i>
                   Allowed Leaves / Month
                 </label>
                 <div class="input-with-suffix">
-                  <input
+                  <input id="salary-field6"
                     type="number"
                     class="form-input"
                     [(ngModel)]="configDraft.allowedLeavesPerMonth"
@@ -519,7 +519,7 @@
 
             <div class="config-form-actions">
               <button
-                class="btn btn-primary"
+                class="dc-btn dc-btn--save"
                 (click)="saveConfig()"
                 [disabled]="isSavingConfig || (!hasFixedComponent && !hasPercentComponent)"
               >
@@ -529,7 +529,7 @@
                   {{ isNewConfig ? 'Add Configuration' : 'Save Changes' }}
                 </span>
               </button>
-              <button class="btn btn-cancel" (click)="cancelEditConfig()" [disabled]="isSavingConfig">
+              <button class="dc-btn dc-btn--cancel" (click)="cancelEditConfig()" [disabled]="isSavingConfig">
                 Cancel
               </button>
             </div>
@@ -849,14 +849,14 @@
     <div class="pm-grid">
 
       <div class="pm-field">
-        <label class="pm-label">
+        <label for="salary-field7" class="pm-label">
           Amount (₹) <span class="req">*</span>
           <span class="pm-locked-badge" *ngIf="isFullPaymentAmountLocked">
             <i class="fa fa-calculator"></i> Auto-calculated
           </span>
         </label>
         <div class="pm-amount-wrap">
-          <input
+          <input id="salary-field7"
             type="number"
             class="pm-input"
             [class.pm-input-error]="paymentAmountError"
@@ -921,12 +921,12 @@
 
       <!-- Transaction reference — required for every traceable mode -->
       <div class="pm-field">
-        <label class="pm-label">
+        <label for="salary-field8" class="pm-label">
           Reference / Transaction No.
           <span class="req" *ngIf="isReferenceRequired">*</span>
           <span class="pm-optional" *ngIf="!isReferenceRequired">(optional)</span>
         </label>
-        <input
+        <input id="salary-field8"
           type="text"
           class="pm-input"
           [class.pm-input-error]="transactionRefError"
@@ -945,8 +945,8 @@
 
       <!-- Payment status — bookkeeping only, never changes the amounts -->
       <div class="pm-field">
-        <label class="pm-label">Payment Status</label>
-        <select class="pm-input" [(ngModel)]="paymentForm.paymentStatus">
+        <label for="salary-field9" class="pm-label">Payment Status</label>
+        <select id="salary-field9" class="pm-input" [(ngModel)]="paymentForm.paymentStatus">
           <option *ngFor="let opt of paymentStatusOptions" [ngValue]="opt.value">{{ opt.label }}</option>
         </select>
         <div class="pm-hint">
@@ -957,11 +957,11 @@
 
       <!-- Payment proof — screenshot / receipt -->
       <div class="pm-field pm-field-full">
-        <label class="pm-label">
+        <label for="salary-field10" class="pm-label">
           Payment Proof <span class="pm-optional">(optional)</span>
         </label>
 
-        <input
+        <input id="salary-field10"
           #proofInputRef
           type="file"
           [accept]="proofAccept"
@@ -1008,8 +1008,8 @@
 
       <!-- Remarks -->
       <div class="pm-field pm-field-full">
-        <label class="pm-label">Remarks <span class="pm-optional">(optional)</span></label>
-        <textarea
+        <label for="salary-field11" class="pm-label">Remarks <span class="pm-optional">(optional)</span></label>
+        <textarea id="salary-field11"
           class="pm-input pm-textarea"
           [(ngModel)]="paymentForm.remarks"
           rows="2"

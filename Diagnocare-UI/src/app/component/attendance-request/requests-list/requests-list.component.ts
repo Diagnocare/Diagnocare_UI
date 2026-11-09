@@ -19,9 +19,7 @@ import {
   REQUEST_BUCKETS,
   USER_STATUS_FILTERS,
 } from 'src/app/models/attendanceRequest/attendance-request.model';
-
-/** One row of the employee dropdown. */
-interface EmployeeOption { id: number; name: string; detail: string; }
+import { EmployeeOption } from '../../../models/attendanceRequest/requests-list.model';
 
 /** Shared empty result for collapsed history — see historyRows(). */
 const NO_HISTORY: AttendanceRequestDTO[] = [];

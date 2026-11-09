@@ -4,7 +4,7 @@
       <h1>Import tests from Excel</h1>
       <p class="subtitle">Add many groups, subgroups, tests and parameters at once. Nothing is saved until you press Import.</p>
     </div>
-    <button type="button" class="btn btn-back" (click)="goToManageTests()">
+    <button type="button" class="dc-btn dc-btn--back" (click)="goToManageTests()">
       <i class="fa fa-arrow-left" aria-hidden="true"></i> Back to Manage Tests
     </button>
   </header>
@@ -22,7 +22,7 @@
       <div class="it-count" *ngIf="result.updated.total > 0"><strong>{{ result.updated.total }}</strong><span>existing records updated</span></div>
     </div>
     <div class="it-actions">
-      <button type="button" class="btn btn-primary" (click)="goToManageTests()">
+      <button type="button" class="dc-btn dc-btn--save" (click)="goToManageTests()">
         <i class="fa fa-list" aria-hidden="true"></i> Open Manage Tests
       </button>
       <button type="button" class="btn btn-outline-secondary" (click)="startOver()">
@@ -86,11 +86,11 @@
 
         <div class="it-toolbar">
           <div class="it-filters" role="group" aria-label="Show rows">
-            <button type="button" class="btn btn-sm" [ngClass]="filter === 'all' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('all')">All {{ preview.totalRows }}</button>
-            <button type="button" class="btn btn-sm" [ngClass]="filter === 'problems' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('problems')" [disabled]="problemRows === 0">Problems {{ problemRows }}</button>
-            <button type="button" class="btn btn-sm" [ngClass]="filter === 'New' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('New')">New {{ preview.newRows }}</button>
-            <button type="button" class="btn btn-sm" [ngClass]="filter === 'Update' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('Update')">Changes {{ preview.updateRows }}</button>
-            <button type="button" class="btn btn-sm" [ngClass]="filter === 'Unchanged' ? 'btn-primary' : 'btn-outline-secondary'" (click)="setFilter('Unchanged')">Already there {{ preview.unchangedRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'all' ? 'dc-btn--save' : 'btn-outline-secondary'" (click)="setFilter('all')">All {{ preview.totalRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'problems' ? 'dc-btn--save' : 'btn-outline-secondary'" (click)="setFilter('problems')" [disabled]="problemRows === 0">Problems {{ problemRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'New' ? 'dc-btn--save' : 'btn-outline-secondary'" (click)="setFilter('New')">New {{ preview.newRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'Update' ? 'dc-btn--save' : 'btn-outline-secondary'" (click)="setFilter('Update')">Changes {{ preview.updateRows }}</button>
+            <button type="button" class="btn btn-sm" [ngClass]="filter === 'Unchanged' ? 'dc-btn--save' : 'btn-outline-secondary'" (click)="setFilter('Unchanged')">Already there {{ preview.unchangedRows }}</button>
           </div>
           <button type="button" class="btn btn-sm btn-outline-danger" *ngIf="problemRows > 0 && preview.importToken"
                   (click)="downloadErrorReport()" [disabled]="downloadingReport">
@@ -171,7 +171,7 @@
       </dc-note>
 
       <div class="it-actions">
-        <button type="button" class="btn btn-primary btn-lg" (click)="commit()" [disabled]="!!blockReason || committing">
+        <button type="button" class="btn btn-lg dc-btn--save" (click)="commit()" [disabled]="!!blockReason || committing">
           <i class="fa" [ngClass]="committing ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
           Import {{ changesForMode }} record{{ changesForMode === 1 ? '' : 's' }}
         </button>

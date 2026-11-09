@@ -7,7 +7,7 @@
       <p class="subtitle">Test-wise payment history &amp; balance summary</p>
     </div>
     <div class="header-actions-group">
-      <button class="btn btn-back" (click)="goBack()">
+      <button class="dc-btn dc-btn--back" (click)="goBack()">
         <i class="fa fa-arrow-left"></i> Back
       </button>
     </div>
@@ -38,7 +38,7 @@
       </div>
       <h2 class="not-found-title">No Receipts Found</h2>
       <p>No records found for <strong>{{ inputSearchValue }}</strong></p>
-      <button class="btn btn-back" (click)="goBack()">
+      <button class="dc-btn dc-btn--back" (click)="goBack()">
         <i class="fa fa-arrow-left"></i> Try Again
       </button>
     </div>
@@ -49,9 +49,9 @@
     <div class="card">
       <div class="card-body">
         <h3>Enter Patient ID or Test ID</h3>
-        <input type="text" class="form-control" [(ngModel)]="inputSearchValue"
+        <input aria-label="Patient ID or Patient Test ID" type="text" class="form-control" [(ngModel)]="inputSearchValue"
           placeholder="Patient ID or Patient Test ID" (keyup.enter)="onSearchSubmit()">
-        <button class="btn btn-primary" (click)="onSearchSubmit()">Load</button>
+        <button class="dc-btn dc-btn--save" (click)="onSearchSubmit()">Load</button>
       </div>
     </div>
   </div>

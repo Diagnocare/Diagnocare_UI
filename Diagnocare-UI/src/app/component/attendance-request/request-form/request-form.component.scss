@@ -77,7 +77,7 @@
 .optional { color: var(--color-text-muted); font-weight: 500; }
 
 // Icon-in-field wrapper
-.input-icon {
+.ar-input {
   position: relative;
   display: flex;
   align-items: center;
@@ -117,7 +117,7 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.input-icon .form-control.has-icon {
+.ar-input .form-control.has-icon {
   @extend %field-control;
   padding: 0.7rem 2.6rem 0.7rem 2.6rem;
   appearance: none;
@@ -150,7 +150,7 @@ select.form-control.has-icon { cursor: pointer; }
   &:hover, &:focus { border-color: var(--color-accent) !important; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14) !important; }
 }
 .ar-datefield.invalid ::ng-deep .dp-trigger { border-color: var(--color-error) !important; }
-.input-icon.invalid .form-control.has-icon { border-color: var(--color-error); }
+.ar-input.invalid .form-control.has-icon { border-color: var(--color-error); }
 
 .textarea-wrap .char-count {
   position: absolute;

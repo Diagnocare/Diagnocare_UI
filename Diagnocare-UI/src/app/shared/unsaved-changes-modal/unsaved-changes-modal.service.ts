@@ -1,15 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-
-/** What the user chose in the unsaved-changes dialog. */
-export type UnsavedChangesResult = 'save' | 'discard' | 'cancel';
-
-export interface UnsavedChangesOptions {
-  /** Number of dirty changes — shown in the dialog body. */
-  changeCount: number;
-  /** Optional extra context line, e.g. "for this week". */
-  context?: string;
-}
+import { UnsavedChangesOptions } from '../../models/common/unsaved-changes.model';
+import { UnsavedChangesResult } from '../../models/common/unsaved-changes.model';
 
 @Injectable({ providedIn: 'root' })
 export class UnsavedChangesModalService {

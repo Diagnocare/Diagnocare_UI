@@ -11,12 +11,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** Which subtitle track the viewer has asked for. */
-export type TutorialSubtitleChoice = 'off' | 'en' | 'hi';
-
-/** Which narration the viewer has asked for. */
-export type TutorialAudioChoice = 'en' | 'hi';
+import { TutorialAudioChoice, TutorialSubtitleChoice } from '../../models/common/tutorial-video.model';
 
 /**
  * How Hindi narration can be reached in *this* browser, worked out once the

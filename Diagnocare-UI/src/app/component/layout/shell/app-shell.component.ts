@@ -3,65 +3,11 @@ import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
-import { Role } from 'src/app/constant/enums';
 import { HeaderComponent } from '../../header/header-menu/header.component';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
-
-/** One link in the sidebar. */
-interface NavItem {
-  label: string;
-  /** Absolute app route, without the leading slash. */
-  route: string;
-  icon: string;
-  /** Optional query string, e.g. a pre-selected work queue. */
-  query?: Record<string, string>;
-}
-
-/**
- * A collapsible submenu inside a section — the second level of folding.
- *
- * NOTHING BUILDS ONE ANY MORE. Business reports was the only group, and its
- * twelve entries are now direct items of the Reports section, so every
- * section ships `groups: []` and the group row, the .sh-subnav list and the
- * flyout's group headings are all unreachable. The type and the code paths
- * are kept for the next list long enough to want a fold of its own; delete
- * them with the template and CSS that serve them if that never comes.
- */
-interface NavGroup {
-  /** Stable key. Used for the open/closed memory, so it must not change. */
-  id: string;
-  label: string;
-  icon: string;
-  items: NavItem[];
-  /**
-   * Route prefix that means "the active page is inside this group", e.g.
-   * 'reports'. Used to open the group automatically on a deep link.
-   */
-  activePrefix: string;
-}
-
-/**
- * A titled block of the sidebar — the first level of folding.
- *
- * A section holds direct links and/or submenu groups. Both levels fold
- * independently and both remember their state, so someone who never touches
- * payroll can shut "Team" once and keep it shut.
- */
-interface NavSection {
-  /** Stable key. Used for the open/closed memory, so it must not change. */
-  id: string;
-  title: string;
-  /**
-   * The section's own icon. In the full sidebar it sits beside the heading;
-   * in rail mode it IS the section — the only thing left of it — and clicking
-   * it opens the section's links as a flyout. So this must read clearly at
-   * 16px with no text beside it.
-   */
-  icon: string;
-  items: NavItem[];
-  groups: NavGroup[];
-}
+import { activeNavKey, activeSectionId, buildNavSections } from './shell-nav';
+import { NavItem, NavSection } from '../../../models/layout/shell-nav.model';
 
 /**
  * Where the sidebar's open/closed state is remembered.
@@ -126,9 +72,9 @@ const FOOT_STATE_KEY = 'dc.sidebar.foot';
  * flexbox divides the viewport, so a menu of any length, with any number of
  * sections expanded, scrolls instead of pushing the footer out of sight.
  *
- * It extends HeaderComponent rather than copying it, so access rules, badges,
- * the notification bell, licence banners and logout behave identically in both
- * frames. Only the template differs. Toggle with USE_SIDEBAR_SHELL.
+ * It extends HeaderComponent, the shared base for access rules, badges, the
+ * notification bell, licence banners and logout. HeaderComponent has no template
+ * of its own.
  */
 @Component({
   selector: 'app-shell',
@@ -143,6 +89,10 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
   private navSub?: Subscription;
 
   sections: NavSection[] = [];
+
+  /** Key of the one highlighted item, and the section holding it (lights the rail icon). */
+  activeKey: string | null = null;
+  activeSection: string | null = null;
 
   /**
    * Ids of the sections and groups the person has folded shut.
@@ -243,6 +193,7 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
         // A deep link or a jump from a banner can land on a page whose section
         // the person had folded shut. Open it, so the sidebar always shows
         // where you are rather than hiding the highlighted row.
+        this.updateActive();
         this.revealActive();
         this.drawerOpen = false;
         this.profileOpen = false;
@@ -261,98 +212,32 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
   /**
    * Builds the sidebar from the same ModuleAccess flags the old header used, so
    * a role sees exactly the screens its route guards allow — never a link that
-   * lands on Access Denied.
+   * lands on Access Denied. The rules live in shell-nav.ts as a pure function.
    */
   private buildNav(): void {
     const a = this.access;
-    const roleId = this.tokenRoleId();
-    const isCollectionBoy = roleId === Role.Collection_Boy.id;
-    // The capability, not the role: a Super Admin who also practises gets the doctor's
-    // own queue link on top of everything Super Admin already gives them. Resolved in
-    // HeaderComponent.checkAdminPanelAccess() from the token's isdoc claim.
-    const isDoctor = this.isDoctor;
-
     this.canRegister = a.labOps;
     this.canFind = a.labOps || a.patientsLink;
 
-    const daily: NavItem[] = [];
-    if (a.home)                    daily.push({ label: 'Home',             route: 'pathology',     icon: 'fa-house' });
-    if (a.labOps && !isCollectionBoy)
-                                   daily.push({ label: 'Work queue',       route: 'work',          icon: 'fa-list-check' });
-    // Not a duplicate of "Work queue" above, which opens the same page on a different
-    // queue: this is the doctor's own sign-off list. A doctor-capable Super Admin gets
-    // both, because they do both jobs.
-    if (isDoctor)                  daily.push({ label: 'Reports to verify', route: 'work',         icon: 'fa-user-doctor', query: { queue: 'to-verify' } });
-    if (a.labOps || a.patientsLink) daily.push({ label: 'Patients',        route: 'patients',      icon: 'fa-users' });
-    if (a.labOps || a.patientTestsLink)
-                                   daily.push({ label: 'Test reports',     route: 'patient-tests', icon: 'fa-file-medical' });
-    if (a.labOps)                  daily.push({ label: 'Bills & Receipts', route: 'receipt',       icon: 'fa-receipt' });
-    if (a.labOps)                  daily.push({ label: 'Test reminders',   route: 'test-reminders', icon: 'fa-bell' });
+    this.sections = buildNavSections({
+      access: a,
+      roleId: this.tokenRoleId(),
+      // The capability, not the role: see HeaderComponent.checkAdminPanelAccess().
+      isDoctor: this.isDoctor,
+      isSuperAdmin: this.isSuperAdmin,
+      adminOptions: this.adminOptions,
+      userOptions: this.visibleUserOptions,
+      reports: this.summaryReportMenu,
+      accountItems: this.profileMenu.filter(p => p.id === 'profile' || p.id === 'changePassword'),
+    });
+    this.updateActive();
+  }
 
-    const lab: NavItem[] = [];
-    if (a.labOps)    lab.push({ label: 'Tests & Prices',    route: 'manage-tests', icon: 'fa-vials' });
-    if (a.labOps)    lab.push({ label: 'Doctors & Contacts', route: 'contacts',    icon: 'fa-address-book' });
-    if (a.labSetup)  lab.push({ label: 'Lab profile',       route: 'lab-profile',  icon: 'fa-hospital' });
-    if (a.labSetup)  lab.push({ label: 'Lab settings',      route: 'lab-setup',    icon: 'fa-sliders' });
-
-    const team: NavItem[] = [];
-    if (a.adminPanel) {
-      for (const item of this.adminOptions) {
-        if (item.superAdminOnly && !this.isSuperAdmin) continue;
-        team.push({
-          label: this.friendlyAdminLabel(item.id, item.label),
-          route: item.route,
-          icon: item.icon ?? 'fa-circle',
-        });
-      }
-    }
-
-    const mine: NavItem[] = this.visibleUserOptions.map(item => ({
-      label: item.label,
-      route: item.route,
-      icon: item.icon ?? 'fa-circle',
-    }));
-
-    // Attendance requests. ModuleAccess has carried an `attendanceRequests`
-    // flag — true for all six roles — since the feature was built, but nothing
-    // ever read it, so /attendance-requests had no nav entry in either frame.
-    // It was reachable only by typing the URL, or from a button on the admin
-    // Attendance page that the staff who actually raise requests cannot open.
-    //
-    // One surface, two jobs, so it is filed by what the role does with it
-    // rather than duplicated: admins review everyone's, everyone else raises
-    // and tracks their own.
-    if (a.attendanceRequests) {
-      const requests: NavItem = {
-        label: a.adminPanel ? 'Attendance requests' : 'My attendance requests',
-        route: 'attendance-requests',
-        icon: 'fa-calendar-plus',
-      };
-      (a.adminPanel ? team : mine).push(requests);
-    }
-
-    // The reports themselves, straight into the Reports section.
-    //
-    // These used to sit behind a "Business reports" submenu inside it, which
-    // meant two clicks and two disclosure levels to reach a report, and a
-    // heading whose name said no more than the section's own. The section
-    // already folds as one, so the submenu was buying nothing the fold did
-    // not already do.
-    const reports: NavItem[] = a.summaryReports
-      ? this.summaryReportMenu.map(r => ({
-          label: r.label,
-          route: 'reports/' + r.id,
-          icon: r.icon ?? 'fa-circle',
-        }))
-      : [];
-
-    this.sections = [
-      { id: 'daily',   title: 'Daily work', icon: 'fa-bolt',         items: daily, groups: [] },
-      { id: 'reports', title: 'Reports',    icon: 'fa-chart-column', items: reports, groups: [] },
-      { id: 'lab',     title: 'Lab setup',  icon: 'fa-flask',        items: lab,   groups: [] },
-      { id: 'team',    title: 'Team',       icon: 'fa-users-gear',   items: team,  groups: [] },
-      { id: 'mine',    title: 'My things',  icon: 'fa-circle-user',  items: mine,  groups: [] },
-    ].filter(s => s.items.length > 0 || s.groups.length > 0);
+  /** Recomputed on every navigation; the template just compares keys. */
+  private updateActive(): void {
+    const url = this.router.url;
+    this.activeKey = activeNavKey(url, this.sections);
+    this.activeSection = activeSectionId(url, this.sections);
   }
 
   // ── Folding ───────────────────────────────────────────────────────────────
@@ -553,15 +438,6 @@ export class AppShellComponent extends HeaderComponent implements OnInit, OnDest
     if (admin) return this.badgeFor(admin);
     const user = this.visibleUserOptions.find(o => o.route === item.route);
     return user ? this.badgeFor(user) : 0;
-  }
-
-  /** Plainer words for the admin items, without touching the shared constants. */
-  private friendlyAdminLabel(id: string, fallback: string): string {
-    switch (id) {
-      case 'userDetails': return 'Staff';
-      case 'template':    return 'Report layouts';
-      default:            return fallback;
-    }
   }
 
   private tokenRoleId(): number | null {

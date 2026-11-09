@@ -25,6 +25,8 @@
    rule, and the tokens have to be defined before the theme blocks override them.
    ────────────────────────────────────────────────────────────────────────────── */
 @import './app/shared/simple/simple-ui.css';
+/* Canonical class vocabulary: dc-input, dc-select, dc-table, dc-card, dc-dialog. */
+@import './app/shared/simple/dc-primitives.css';
 /* Sidebar shell + home dashboard palette (see the file header). */
 @import './app/shared/simple/shell-tokens.css';
 
@@ -497,6 +499,13 @@ html[data-theme="warm"]     .msg-success { background: #f0fdf4 !important; color
 html[data-theme="dark"]     .pagination-btn { background: var(--color-surface) !important; border-color: var(--color-border) !important; color: var(--color-text-primary) !important; }
 html[data-theme="midnight"] .pagination-btn { background: var(--color-surface) !important; border-color: var(--color-border) !important; color: var(--color-text-primary) !important; }
 html[data-theme="warm"]     .pagination-btn { background: var(--color-surface) !important; border-color: var(--color-border) !important; color: var(--color-text-primary) !important; }
+/* Selected page (and its hover) must stay visibly selected, with readable text, in every dark-ish theme. */
+html[data-theme="dark"]     .pagination-btn.active,
+html[data-theme="midnight"] .pagination-btn.active,
+html[data-theme="warm"]     .pagination-btn.active { background: var(--color-primary) !important; border-color: var(--color-primary) !important; color: var(--text-light) !important; }
+html[data-theme="dark"]     .pagination-btn.active:hover:not(:disabled),
+html[data-theme="midnight"] .pagination-btn.active:hover:not(:disabled),
+html[data-theme="warm"]     .pagination-btn.active:hover:not(:disabled) { background: var(--color-primary-hover) !important; border-color: var(--color-primary-hover) !important; color: var(--text-light) !important; }
 
 /* ── Hint row ─────────────────────────────────────────────────────────────── */
 html[data-theme="dark"]     .hint-row { background: var(--color-surface) !important; border-color: var(--color-border) !important; color: var(--color-primary-ink) !important; }
@@ -583,6 +592,8 @@ html[data-theme="midnight"] input.ng-invalid.ng-touched { border-left-color: var
   html[data-theme="system"] .msg-error      { background: #2d1515 !important; color: var(--color-error) !important; border-color: var(--color-error) !important; }
   html[data-theme="system"] .msg-success    { background: rgba(34,197,94,0.14) !important; color: var(--color-success-border) !important; border-color: rgba(34,197,94,0.4) !important; }
   html[data-theme="system"] .pagination-btn { background: var(--color-surface) !important; border-color: var(--color-border) !important; color: var(--color-text-primary) !important; }
+  html[data-theme="system"] .pagination-btn.active { background: var(--color-primary) !important; border-color: var(--color-primary) !important; color: var(--text-light) !important; }
+  html[data-theme="system"] .pagination-btn.active:hover:not(:disabled) { background: var(--color-primary-hover) !important; border-color: var(--color-primary-hover) !important; color: var(--text-light) !important; }
   html[data-theme="system"] .hint-row       { background: var(--color-surface) !important; border-color: var(--color-border) !important; color: var(--color-primary-ink) !important; }
   html[data-theme="system"] .ng-select .ng-dropdown-panel { background-color: var(--color-surface) !important; border-color: var(--color-border) !important; }
   html[data-theme="system"] .ng-select .ng-option         { color: var(--color-text-primary) !important; }
@@ -595,7 +606,7 @@ html[data-theme="midnight"] input.ng-invalid.ng-touched { border-left-color: var
    covered by the card/table/input global overrides above.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* ── Dashboard (pathology-home) ──────────────────────────────────────────── */
+/* ── Dashboard ──────────────────────────────────────────── */
 html[data-theme="dark"]     .dashboard                  { background: var(--color-background) !important; }
 html[data-theme="midnight"] .dashboard                  { background: var(--color-background) !important; }
 html[data-theme="warm"]     .dashboard                  { background: var(--color-background) !important; }
@@ -1128,18 +1139,6 @@ body:has(#pinAuthModal.show) .spinner-container {
   cursor: not-allowed;
 }
 
-/* Primary */
-.btn-primary {
-  background: var(--btn-primary);
-  color: var(--text-light);
-  border: none;
-}
-.btn-primary:hover:not(:disabled) {
-  background: var(--btn-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 0.25em 0.75em rgba(33, 150, 243, 0.4);
-}
-
 /* Success */
 .btn-success {
   background: var(--btn-success);
@@ -1229,7 +1228,7 @@ body:has(#pinAuthModal.show) .spinner-container {
  * buttons would not match after all. Both classes are required in the markup
  * anyway, as above.
  *
- * Pairing rule:  [← Back]  btn-back   next to   [Save]  btn-primary / btn-success
+ * Pairing rule:  [← Back]  btn-back   next to   [Save]  dc-btn--save / btn-success
  */
 .btn.btn-back,
 .dc-btn.dc-btn--back {
@@ -1297,7 +1296,7 @@ body:has(#pinAuthModal.show) .spinner-container {
  * Neutral grey — clearly "exit" without competing with the red reserved for
  * destructive Delete actions (.btn-danger / .dc-btn--delete).
  *
- * Pairing rule:  [Cancel / Close]  btn-cancel   +   [Save / Submit]  btn-primary
+ * Pairing rule:  [Cancel / Close]  btn-cancel   +   [Save / Submit]  dc-btn--save
  *                [Yes, Delete]     btn-danger   +   [Cancel]         btn-cancel
  */
 .btn-cancel {
@@ -1413,20 +1412,20 @@ body:has(#pinAuthModal.show) .spinner-container {
 .dc-btn--confirm:hover:not(:disabled),
 .dc-btn--add:hover:not(:disabled) {
   filter: brightness(1.08);
-  box-shadow: 0 3px 10px rgba(30, 91, 168, 0.35);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--color-primary) 35%, transparent);
   transform: translateY(-1px);
 }
 
 /* ── Delete / Remove — solid red + white ─────────────────────────────────── */
 .dc-btn--delete,
 .dc-btn--remove {
-  background: #dc3545;
-  color: #fff;
+  background: var(--color-error);
+  color: var(--color-error-contrast);
 }
 .dc-btn--delete:hover:not(:disabled),
 .dc-btn--remove:hover:not(:disabled) {
-  background: #c02333;
-  box-shadow: 0 3px 10px rgba(220, 53, 69, 0.35);
+  filter: brightness(0.92);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--color-error) 35%, transparent);
   transform: translateY(-1px);
 }
 
@@ -1440,8 +1439,8 @@ body:has(#pinAuthModal.show) .spinner-container {
 .dc-btn--search:hover:not(:disabled),
 .dc-btn--apply:hover:not(:disabled),
 .dc-btn--filter:hover:not(:disabled) {
-  background: #184a89;
-  box-shadow: 0 3px 10px rgba(30, 91, 168, 0.3);
+  background: var(--color-primary-active);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--color-primary) 30%, transparent);
   transform: translateY(-1px);
 }
 
@@ -1506,119 +1505,15 @@ html[data-theme="warm"] .dc-btn--reset {
   border-color: var(--color-border);
 }
 
-/* ── The Add New Test picker's footer, brought onto .dc-btn ───────────────────
-   <dc-test-picker> ships its own basket footer with two buttons of its own: a
-   solid-green "Done — add these tests" and a grey "Back". Its radius and
-   borders can be retuned through the --dc-* layer, but that green is
-   `background: var(--color-success)` written straight into the component, and its buttons
-   are a size larger (3.5rem min-height, 1.05rem text) than every other button
-   in the app. So the Add New Test flow showed three different primary buttons:
-   this card's green, the form card's blue .dc-btn--save, and the payment
-   panel's own.
-
-   These rules restate the .dc-btn appearance on those two buttons. They live
-   here rather than in the modal's stylesheet for two reasons: a component
-   stylesheet could only reach a child component through the deprecated
-   ::ng-deep, and every html[data-theme] rule in this app lives in this file.
-   This is the same thing the Modals / overlays block above does for .pm-modal
-   and .otp-card.
-
-   Scoped to the two cards that embed the picker — .atm-catalog-card in Add New
-   Test and .ap-catalog-card in Add New Patient — so both screens get the same
-   footer and nothing else is touched. The real fix is still to give the
-   component a token for its confirm colour; until then this block is the one
-   place the two screens share it.
-
-   .registration-card is named as well, and :is() is used rather than two full
-   selectors, for a reason worth keeping: `.atm-catalog-card .dcp__btn` and the
-   component's own shimmed `.dcp__btn[_ngcontent-x]` are both specificity
-   (0,2,0), and Angular appends a component's styles to <head> after this
-   bundle — so on a tie the component wins and these rules would silently do
-   nothing. :is() takes the specificity of its most specific argument, so this
-   lands at (0,3,0) and is settled on specificity, not load order.
-   ──────────────────────────────────────────────────────────────────────────── */
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn {
-  gap: 0.45em;
-  min-height: 0;                /* the kit sets 3.5rem */
-  padding: 0.6em 1.2em;
-  font-size: 0.9rem;
-  font-weight: 600;
-  line-height: 1.1;
-  border: 1.5px solid transparent;
-  border-radius: 0.5em;
-  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease,
-              box-shadow 0.15s ease, transform 0.15s ease;
-}
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn i { font-size: 0.95em; }
-
-/* The strip those buttons sit in. Every other card in the app closes with a
-   tinted footer band (see .registration-card .form-actions); the kit's basket
-   was a white panel with a 2px outline, so even once the buttons matched, the
-   bar around them still read as a panel from somewhere else. Surface and
-   border only — the sticky positioning and the inset are what keep the running
-   total reachable while scrolling a long catalogue, so they stay. */
+/* ── The catalogue picker's footer ────────────────────────────────────────────
+   <dc-test-picker>'s Back / Done buttons are plain .dc-btn--back / .dc-btn--save
+   in its template, so they follow the app's one button definition (and its theme
+   rules) with nothing restated here. What is left is the strip they sit in: every
+   other card closes with a tinted footer band, so the basket takes the same
+   surface and border. Scoped to the two cards that embed the picker. */
 .registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__basket {
-  background: var(--bg-light, #fafbff);
-  border: 1.5px solid var(--border-color, #f0f4fb);
-}
-
-/* Confirm — .dc-btn--save / --confirm: the brand blue gradient, not green. */
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--go {
-  background: linear-gradient(135deg, var(--color-primary-ink), var(--color-primary));
-  color: #fff;
-  font-size: 0.9rem;            /* the kit sets 1.05rem on this one button */
-}
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--go:hover:not(:disabled) {
-  filter: brightness(1.08);
-  box-shadow: 0 3px 10px rgba(30, 91, 168, 0.35);
-  transform: translateY(-1px);
-}
-
-/* Back — .dc-btn--cancel / --back. The kit already lands on this palette via
-   --dc-idle-*; only the border tone and the hover were missing. */
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back {
   background: var(--color-surface-sunken);
-  color: var(--color-border-strong);
-  border-color: var(--color-text-primary);
-}
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back:hover:not(:disabled) {
-  background: var(--color-text-primary);
-  border-color: var(--color-text-primary);
-  color: var(--color-border);
-}
-
-/* .dc-btn's disabled treatment — a muted version of the same button, never a
-   ghost. The kit's own 0.45 sat a shade fainter than the rest of the app. */
-.registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
-  filter: none;
-}
-
-/* The same theme overrides .dc-btn--cancel gets above — without these, Back
-   would stay light grey on a dark card while every other cancel button in the
-   app went dark. */
-/* "system" is deliberately absent, exactly as it is on .dc-btn--cancel above:
-   that theme follows the OS, so it only goes dark inside a
-   prefers-color-scheme media query. Listed unconditionally it would paint the
-   button dark on a machine set to light. */
-html[data-theme="dark"]     .registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back,
-html[data-theme="midnight"] .registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back {
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  border-color: var(--color-border);
-}
-html[data-theme="dark"]     .registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back:hover:not(:disabled),
-html[data-theme="midnight"] .registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back:hover:not(:disabled) {
-  background: var(--color-border);
-  color: var(--color-text-primary);
-}
-html[data-theme="warm"] .registration-card:is(.atm-catalog-card, .ap-catalog-card) .dcp__btn--back {
-  background: #fdf8f0;
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
+  border: 1.5px solid var(--color-border);
 }
 
 /* ── Delete / Confirm pages ─────────────────────────────────────────────── */
@@ -2062,8 +1957,7 @@ input.ng-invalid.ng-touched {
   justify-content: flex-end;
 }
 
-.search-section .dc-btn--search,
-.search-section .btn-search {
+.search-section .dc-btn--search {
   width: 100%;
   min-height: 38px;
 }
@@ -2097,8 +1991,7 @@ input.ng-invalid.ng-touched {
 
   .filter-group.search-btn-group .filter-label { display: none; }
 
-  .search-section .dc-btn--search,
-  .search-section .btn-search {
+  .search-section .dc-btn--search {
     width: auto;
     min-width: 120px;
   }
@@ -2109,8 +2002,7 @@ input.ng-invalid.ng-touched {
   .filter-group.date-range { grid-column: auto; }
   .filter-group.search-btn-group { grid-column: auto; }
 
-  .search-section .dc-btn--search,
-  .search-section .btn-search { width: 100%; }
+  .search-section .dc-btn--search { width: 100%; }
 }
 
 /* ── Pagination ───────────────────────────────────────────────────────────── */
@@ -2133,8 +2025,8 @@ input.ng-invalid.ng-touched {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  border-color: var(--secondary-color);
-  color: var(--secondary-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .pagination-btn:disabled {
@@ -2143,14 +2035,18 @@ input.ng-invalid.ng-touched {
 }
 
 .pagination-btn.active {
-  background: var(--secondary-color);
-  border-color: var(--secondary-color);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: var(--text-light);
 }
-  .pagination-btn.active:hover {
-    background: var(--btn-primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 0.25em 0.75em rgba(33, 150, 243, 0.4);
+  .pagination-btn.active:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    /* Selected page stays in the brand green and only darkens on hover, like the
+       other buttons. The generic :hover rule above recolours text/border, so pin both. */
+    border-color: var(--color-primary-hover);
+    color: var(--text-light);
+    transform: none;
+    box-shadow: none;
   }
 
 .pagination-info {
@@ -2533,9 +2429,9 @@ input.ng-invalid.ng-touched {
 ng-select { width: 100%; font-size: 14px; }
 
 .ng-select .ng-dropdown-panel {
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  background-color: var(--color-surface);
   width: 95%;
 }
 
@@ -2544,7 +2440,7 @@ ng-select { width: 100%; font-size: 14px; }
   font-size: 13px;
 }
 
-.ng-select .ng-option:hover { background-color: #f0f0f0; }
+.ng-select .ng-option:hover { background-color: var(--color-surface-hover); }
 
 /* Force toastr container to viewport top-right and above every modal/overlay */
 .toast-container,
@@ -2874,7 +2770,8 @@ td .action-buttons,
   .pagination,
   .search-section,
   .form-actions,
-  app-header {
+  .sh-sidebar,
+  .sh-topbar {
     display: none !important;
   }
 
@@ -2949,27 +2846,34 @@ td .action-buttons,
 
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   UNIFIED PRIMARY BUTTON  —  ONE style for every action button, app-wide
+   UNIFIED PRIMARY BUTTON  —  ONE style for every action button,
+app-wide
    ──────────────────────────────────────────────────────────────────────────────
    THE RULE
      Every primary / action button is SOLID BRAND BLUE with a white label,
-     and INVERTS TO WHITE with a blue label and a blue border on hover.
-     Same size, same radius, same weight, same motion — on every page, in
-     every panel, inside the gradient page-header, and in every theme.
+and INVERTS TO WHITE with a blue label and a blue border on hover.
+     Same size,
+same radius,
+same weight,
+same motion — on every page,
+in
+     every panel,
+inside the gradient page-header,
+and in every theme.
 
    WHY THIS BLOCK IS LAST
      It is the single source of truth. It sits at the end of the file and uses
      !important so it also wins over Angular component styles (those are scoped
      with an [_ngcontent-*] attribute, which otherwise outranks a plain global
      class). Do NOT restyle these classes in a component .css/.scss file — if a
-     button needs to look different, it is a different KIND of button, so give
+     button needs to look different,
+it is a different KIND of button,
+so give
      it the right intent class below instead.
 
    WHICH CLASSES THIS COVERS (all render identically)
      .dc-btn--save  --update  --submit  --confirm  --add          (canonical)
      .dc-btn--search  --apply  --filter                           (canonical)
-     .btn-primary  .btn-search  .btn-add  .btn-save  .btn-submit   (legacy)
-     .btn-update  .btn-apply  .btn-filter  .btn-refresh            (legacy)
 
    NOT COVERED — these keep their own meaning on purpose
      .btn-danger / .dc-btn--delete   destructive        → red
@@ -2993,10 +2897,14 @@ td .action-buttons,
 }
 
 /* ── Shape: identical geometry for every action button ────────────────────── */
-.dc-btn--save,  .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add,
-.dc-btn--search, .dc-btn--apply, .dc-btn--filter,
-.btn-primary,   .btn-search,     .btn-add,        .btn-save,
-.btn-submit,    .btn-update,     .btn-apply,      .btn-filter,     .btn-refresh {
+.dc-btn--save,
+.dc-btn--update,
+.dc-btn--submit,
+.dc-btn--confirm,
+.dc-btn--add,
+.dc-btn--search,
+.dc-btn--apply,
+.dc-btn--filter {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -3022,33 +2930,32 @@ td .action-buttons,
 .dc-btn--add:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
 .dc-btn--search:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
 .dc-btn--apply:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.dc-btn--filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-primary:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-search:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-add:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-save:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-submit:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-update:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-apply:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg),
-.btn-refresh:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg) {
+.dc-btn--filter:not(.dc-btn--sm):not(.btn-sm):not(.btn-xs):not(.btn-lg) {
   padding: 0.6em 1.2em !important;
   /* rem for the same reason as the base .dc-btn rule above. */
   font-size: 0.9rem !important;
 }
 
-/* ── Resting state: solid brand blue, white label ─────────────────────────── */
+/* ── Resting state: solid brand blue,
+white label ─────────────────────────── */
 /*
  * The border is white rather than transparent on purpose: against a white page
- * it is invisible (so the button reads as a plain blue pill), while inside the
+ * it is invisible (so the button reads as a plain blue pill),
+while inside the
  * blue→purple .page-header gradient it gives the button a crisp edge — which
- * is what the old white-pill override was really solving. One rule, both
- * backgrounds, no per-context special case.
+ * is what the old white-pill override was really solving. One rule,
+both
+ * backgrounds,
+no per-context special case.
  */
-.dc-btn--save,  .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add,
-.dc-btn--search, .dc-btn--apply, .dc-btn--filter,
-.btn-primary,   .btn-search,     .btn-add,        .btn-save,
-.btn-submit,    .btn-update,     .btn-apply,      .btn-filter,     .btn-refresh {
+.dc-btn--save,
+.dc-btn--update,
+.dc-btn--submit,
+.dc-btn--confirm,
+.dc-btn--add,
+.dc-btn--search,
+.dc-btn--apply,
+.dc-btn--filter {
   background: var(--dc-action-blue) !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.85) !important;
@@ -3057,24 +2964,28 @@ td .action-buttons,
   transform: none;
 }
 
-/* Icons and labels inside follow the button, never the page text colour. */
-.dc-btn--save *,  .dc-btn--update *, .dc-btn--submit *, .dc-btn--confirm *, .dc-btn--add *,
-.dc-btn--search *, .dc-btn--apply *, .dc-btn--filter *,
-.btn-primary *,   .btn-search *,     .btn-add *,        .btn-save *,
-.btn-submit *,    .btn-update *,     .btn-apply *,      .btn-filter *,     .btn-refresh * {
+/* Icons and labels inside follow the button,
+never the page text colour. */
+.dc-btn--save *,
+.dc-btn--update *,
+.dc-btn--submit *,
+.dc-btn--confirm *,
+.dc-btn--add *,
+.dc-btn--search *,
+.dc-btn--apply *,
+.dc-btn--filter * {
   color: inherit !important;
 }
 
 /* ── Hover: inverts to white with a blue label and a blue border ──────────── */
-.dc-btn--save:hover:not(:disabled),   .dc-btn--update:hover:not(:disabled),
-.dc-btn--submit:hover:not(:disabled), .dc-btn--confirm:hover:not(:disabled),
-.dc-btn--add:hover:not(:disabled),    .dc-btn--search:hover:not(:disabled),
-.dc-btn--apply:hover:not(:disabled),  .dc-btn--filter:hover:not(:disabled),
-.btn-primary:hover:not(:disabled),    .btn-search:hover:not(:disabled),
-.btn-add:hover:not(:disabled),        .btn-save:hover:not(:disabled),
-.btn-submit:hover:not(:disabled),     .btn-update:hover:not(:disabled),
-.btn-apply:hover:not(:disabled),      .btn-filter:hover:not(:disabled),
-.btn-refresh:hover:not(:disabled) {
+.dc-btn--save:hover:not(:disabled),
+.dc-btn--update:hover:not(:disabled),
+.dc-btn--submit:hover:not(:disabled),
+.dc-btn--confirm:hover:not(:disabled),
+.dc-btn--add:hover:not(:disabled),
+.dc-btn--search:hover:not(:disabled),
+.dc-btn--apply:hover:not(:disabled),
+.dc-btn--filter:hover:not(:disabled) {
   background: #ffffff !important;
   color: var(--dc-action-blue) !important;
   border-color: var(--dc-action-blue) !important;
@@ -3082,57 +2993,58 @@ td .action-buttons,
   filter: none !important;
   transform: none !important;
 }
-.dc-btn--save:hover:not(:disabled) *,   .dc-btn--update:hover:not(:disabled) *,
-.dc-btn--submit:hover:not(:disabled) *, .dc-btn--confirm:hover:not(:disabled) *,
-.dc-btn--add:hover:not(:disabled) *,    .dc-btn--search:hover:not(:disabled) *,
-.dc-btn--apply:hover:not(:disabled) *,  .dc-btn--filter:hover:not(:disabled) *,
-.btn-primary:hover:not(:disabled) *,    .btn-search:hover:not(:disabled) *,
-.btn-add:hover:not(:disabled) *,        .btn-save:hover:not(:disabled) *,
-.btn-submit:hover:not(:disabled) *,     .btn-update:hover:not(:disabled) *,
-.btn-apply:hover:not(:disabled) *,      .btn-filter:hover:not(:disabled) *,
-.btn-refresh:hover:not(:disabled) * {
+.dc-btn--save:hover:not(:disabled) *,
+.dc-btn--update:hover:not(:disabled) *,
+.dc-btn--submit:hover:not(:disabled) *,
+.dc-btn--confirm:hover:not(:disabled) *,
+.dc-btn--add:hover:not(:disabled) *,
+.dc-btn--search:hover:not(:disabled) *,
+.dc-btn--apply:hover:not(:disabled) *,
+.dc-btn--filter:hover:not(:disabled) * {
   color: var(--dc-action-blue) !important;
 }
 
 /* Keyboard focus gets the same inverted look plus a visible ring. */
-.dc-btn--save:focus-visible,   .dc-btn--update:focus-visible,
-.dc-btn--submit:focus-visible, .dc-btn--confirm:focus-visible,
-.dc-btn--add:focus-visible,    .dc-btn--search:focus-visible,
-.dc-btn--apply:focus-visible,  .dc-btn--filter:focus-visible,
-.btn-primary:focus-visible,    .btn-search:focus-visible,
-.btn-add:focus-visible,        .btn-save:focus-visible,
-.btn-submit:focus-visible,     .btn-update:focus-visible,
-.btn-apply:focus-visible,      .btn-filter:focus-visible,
-.btn-refresh:focus-visible {
+.dc-btn--save:focus-visible,
+.dc-btn--update:focus-visible,
+.dc-btn--submit:focus-visible,
+.dc-btn--confirm:focus-visible,
+.dc-btn--add:focus-visible,
+.dc-btn--search:focus-visible,
+.dc-btn--apply:focus-visible,
+.dc-btn--filter:focus-visible {
   outline: 2px solid var(--dc-action-blue) !important;
   outline-offset: 2px !important;
 }
 
 /* ── Active / pressed ─────────────────────────────────────────────────────── */
-.dc-btn--save:active:not(:disabled),   .dc-btn--update:active:not(:disabled),
-.dc-btn--submit:active:not(:disabled), .dc-btn--confirm:active:not(:disabled),
-.dc-btn--add:active:not(:disabled),    .dc-btn--search:active:not(:disabled),
-.dc-btn--apply:active:not(:disabled),  .dc-btn--filter:active:not(:disabled),
-.btn-primary:active:not(:disabled),    .btn-search:active:not(:disabled),
-.btn-add:active:not(:disabled),        .btn-save:active:not(:disabled),
-.btn-submit:active:not(:disabled),     .btn-update:active:not(:disabled),
-.btn-apply:active:not(:disabled),      .btn-filter:active:not(:disabled),
-.btn-refresh:active:not(:disabled) {
+.dc-btn--save:active:not(:disabled),
+.dc-btn--update:active:not(:disabled),
+.dc-btn--submit:active:not(:disabled),
+.dc-btn--confirm:active:not(:disabled),
+.dc-btn--add:active:not(:disabled),
+.dc-btn--search:active:not(:disabled),
+.dc-btn--apply:active:not(:disabled),
+.dc-btn--filter:active:not(:disabled) {
   background: var(--color-surface-sunken) !important;
   color: var(--dc-action-blue-dark) !important;
   border-color: var(--dc-action-blue-dark) !important;
   box-shadow: none !important;
 }
 
-/* ── Disabled: a muted version of the SAME button, never a ghost ──────────── */
-.dc-btn--save:disabled,   .dc-btn--update:disabled,  .dc-btn--submit:disabled,
-.dc-btn--confirm:disabled, .dc-btn--add:disabled,    .dc-btn--search:disabled,
-.dc-btn--apply:disabled,  .dc-btn--filter:disabled,
-.btn-primary:disabled,    .btn-search:disabled,      .btn-add:disabled,
-.btn-save:disabled,       .btn-submit:disabled,      .btn-update:disabled,
-.btn-apply:disabled,      .btn-filter:disabled,      .btn-refresh:disabled,
-.dc-btn--save.disabled,   .dc-btn--add.disabled,     .dc-btn--search.disabled,
-.btn-primary.disabled,    .btn-search.disabled {
+/* ── Disabled: a muted version of the SAME button,
+never a ghost ──────────── */
+.dc-btn--save:disabled,
+.dc-btn--update:disabled,
+.dc-btn--submit:disabled,
+.dc-btn--confirm:disabled,
+.dc-btn--add:disabled,
+.dc-btn--search:disabled,
+.dc-btn--apply:disabled,
+.dc-btn--filter:disabled,
+.dc-btn--save.disabled,
+.dc-btn--add.disabled,
+.dc-btn--search.disabled {
   background: #93aecf !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
@@ -3149,46 +3061,46 @@ td .action-buttons,
  * inversion becomes the theme's surface colour so the blue label stays
  * readable. Warm uses its own accent so the button belongs to that palette.
  */
-html[data-theme="dark"]     :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled),
-html[data-theme="midnight"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled),
-html[data-theme="system"]   :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled) {
+html[data-theme="dark"]     :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter):hover:not(:disabled),
+html[data-theme="midnight"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter):hover:not(:disabled),
+html[data-theme="system"]   :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter):hover:not(:disabled) {
   background: #e8eef7 !important;
   color: #17457f !important;
   border-color: #17457f !important;
 }
-html[data-theme="dark"]     :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) *,
-html[data-theme="midnight"] :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) *,
-html[data-theme="system"]   :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) * {
+html[data-theme="dark"]     :is(.dc-btn--save, .dc-btn--add, .dc-btn--search):hover:not(:disabled) *,
+html[data-theme="midnight"] :is(.dc-btn--save, .dc-btn--add, .dc-btn--search):hover:not(:disabled) *,
+html[data-theme="system"]   :is(.dc-btn--save, .dc-btn--add, .dc-btn--search):hover:not(:disabled) * {
   color: #17457f !important;
 }
 
-html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):not(:disabled):not(.disabled) {
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter):not(:disabled):not(.disabled) {
   background: var(--color-primary) !important;
   border-color: rgba(255, 255, 255, 0.85) !important;
 }
 /* Warm disabled — the same muted-button idea in the warm palette. */
-html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):is(:disabled, .disabled) {
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter):is(:disabled, .disabled) {
   background: #c9a488 !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
   cursor: not-allowed !important;
 }
-html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter, .btn-primary, .btn-search, .btn-add, .btn-save, .btn-submit, .btn-update, .btn-apply, .btn-filter, .btn-refresh):hover:not(:disabled) {
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--update, .dc-btn--submit, .dc-btn--confirm, .dc-btn--add, .dc-btn--search, .dc-btn--apply, .dc-btn--filter):hover:not(:disabled) {
   background: var(--color-surface) !important;
   color: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
 }
-html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search, .btn-add, .btn-save):hover:not(:disabled) * {
+html[data-theme="warm"] :is(.dc-btn--save, .dc-btn--add, .dc-btn--search):hover:not(:disabled) * {
   color: var(--color-primary) !important;
 }
 
 /* The blanket per-theme `span` / `h1…h6` text rules near the top of this file
    would otherwise repaint the label of a hovered button in the banner. Action
    buttons opt out so the label follows the button's own colour. */
-html[data-theme="dark"]     .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) *,
-html[data-theme="midnight"] .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) *,
-html[data-theme="warm"]     .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) *,
-html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search, .btn-primary, .btn-search) * {
+html[data-theme="dark"]     .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search) *,
+html[data-theme="midnight"] .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search) *,
+html[data-theme="warm"]     .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search) *,
+html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-btn--search) * {
   color: inherit !important;
 }
 
@@ -3491,7 +3403,7 @@ html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-bt
   background: var(--bg-white);
   color: var(--text-primary, #1a2e4a);
 }
-.registration-card .combo-input::placeholder { color: #aab5c6; }
+.registration-card .combo-input::placeholder { color: var(--color-text-secondary, #6b7a90); opacity: 1; }
 .registration-card .combo-input.is-invalid { background: #fff5f5; }
 
 .registration-card .combo-input-wrap {
@@ -3530,16 +3442,27 @@ html[data-theme="system"]   .page-header :is(.dc-btn--save, .dc-btn--add, .dc-bt
   list-style: none;
 }
 .registration-card .referred-by-suggestions li {
-  padding: 8px 12px;
+  padding: 10px 14px;
   cursor: pointer;
-  font-size: 0.92rem;
-  color: var(--color-background);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary, #1a2e4a);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.registration-card .referred-by-suggestions li + li {
+  border-top: 1px solid var(--color-border);
 }
 .registration-card .referred-by-suggestions li:hover,
 .registration-card .referred-by-suggestions li:focus {
-  background: #eef2ff;
+  background: var(--color-primary-subtle, #eef2ff);
   color: var(--color-primary-ink);
+}
+.registration-card .combo-prefix option {
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #1a2e4a);
 }
 
 /* ── Radio pills ──────────────────────────────────────────────────────────── */

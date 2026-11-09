@@ -9,7 +9,7 @@
       <p class="subtitle">{{ isEdit ? 'Update existing record' : 'Register a new member' }}</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-back" (click)="goBack()">
+      <button class="dc-btn dc-btn--back" (click)="goBack()">
         <i class="fa fa-arrow-left"></i> Back to List
       </button>
     </div>
@@ -39,16 +39,16 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">First Name</label>
-              <input class="form-control" formControlName="first_Name"
+              <label for="staff-unified-form-first_Name" class="form-label required">First Name</label>
+              <input id="staff-unified-form-first_Name" class="form-control" formControlName="first_Name"
                      [class.is-invalid]="isInvalid('first_Name')"
                      placeholder="Enter first name"
                      (blur)="onNameBlur()" />
               <app-field-error [control]="form.get('first_Name')" label="First Name" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label required">Last Name</label>
-              <input class="form-control" formControlName="last_Name"
+              <label for="staff-unified-form-last_Name" class="form-label required">Last Name</label>
+              <input id="staff-unified-form-last_Name" class="form-control" formControlName="last_Name"
                      [class.is-invalid]="isInvalid('last_Name')"
                      placeholder="Enter last name"
                      (blur)="onNameBlur()" />
@@ -58,17 +58,17 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Username</label>
-              <input class="form-control" formControlName="user_Name"
+              <label for="staff-unified-form-user_Name" class="form-label required">Username</label>
+              <input id="staff-unified-form-user_Name" class="form-control" formControlName="user_Name"
                      [class.is-invalid]="isInvalid('user_Name')"
                      placeholder="Auto-generated or custom" />
               <app-field-error [control]="form.get('user_Name')" label="Username" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label required">Role</label>
+              <label for="staff-unified-form-typeUserId" class="form-label required">Role</label>
               <!-- A Super Admin's role is fixed: nobody changes their own, and the API
                    refuses it. The select still shows it so the owner can see what they are. -->
-              <select class="form-select" formControlName="typeUserId"
+              <select id="staff-unified-form-typeUserId" class="form-select" formControlName="typeUserId"
                       [attr.disabled]="editingSuperAdmin ? '' : null"
                       [class.is-invalid]="isInvalid('typeUserId')">
                 <option value="" disabled>-- Select Role --</option>
@@ -81,15 +81,15 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Email ID</label>
-              <input class="form-control" type="email" formControlName="email"
+              <label for="staff-unified-form-email" class="form-label required">Email ID</label>
+              <input id="staff-unified-form-email" class="form-control" type="email" formControlName="email"
                      [class.is-invalid]="isInvalid('email')"
                      placeholder="Enter email address" />
               <app-field-error [control]="form.get('email')" label="Email" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Contact Phone</label>
-              <input class="form-control" formControlName="contactPhone" type="text" inputmode="numeric" maxlength="10" appNumericOnly
+              <label for="staff-unified-form-contactPhone" class="form-label">Contact Phone</label>
+              <input id="staff-unified-form-contactPhone" class="form-control" formControlName="contactPhone" type="text" inputmode="numeric" maxlength="10" appNumericOnly
                      [class.is-invalid]="isInvalid('contactPhone')"
                      placeholder="10-digit number" />
               <app-field-error [control]="form.get('contactPhone')" label="Contact Phone" [forceShow]="submitted"></app-field-error>
@@ -129,15 +129,15 @@
           <ng-container *ngIf="showDoctorProfile">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label required">Qualification</label>
-                <input class="form-control" formControlName="qualification"
+                <label for="staff-unified-form-qualification" class="form-label required">Qualification</label>
+                <input id="staff-unified-form-qualification" class="form-control" formControlName="qualification"
                        [class.is-invalid]="isInvalid('qualification')"
                        placeholder="e.g. MBBS, MD" />
                 <app-field-error [control]="form.get('qualification')" label="Qualification" [forceShow]="submitted"></app-field-error>
               </div>
               <div class="form-group">
-                <label class="form-label required">Position</label>
-                <input class="form-control" formControlName="position"
+                <label for="staff-unified-form-position" class="form-label required">Position</label>
+                <input id="staff-unified-form-position" class="form-control" formControlName="position"
                        [class.is-invalid]="isInvalid('position')"
                        placeholder="e.g. Pathologist" />
                 <app-field-error [control]="form.get('position')" label="Position" [forceShow]="submitted"></app-field-error>
@@ -179,16 +179,16 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">First Name</label>
-              <input class="form-control" formControlName="first_Name"
+              <label for="staff-unified-form-first_Name-1" class="form-label required">First Name</label>
+              <input id="staff-unified-form-first_Name-1" class="form-control" formControlName="first_Name"
                      [class.is-invalid]="isInvalid('first_Name')"
                      placeholder="Enter first name"
                      (blur)="onNameBlur()" />
               <app-field-error [control]="form.get('first_Name')" label="First Name" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label required">Last Name</label>
-              <input class="form-control" formControlName="last_Name"
+              <label for="staff-unified-form-last_Name-2" class="form-label required">Last Name</label>
+              <input id="staff-unified-form-last_Name-2" class="form-control" formControlName="last_Name"
                      [class.is-invalid]="isInvalid('last_Name')"
                      placeholder="Enter last name"
                      (blur)="onNameBlur()" />
@@ -197,8 +197,8 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label required">Username</label>
-            <input class="form-control" formControlName="user_Name"
+            <label for="staff-unified-form-user_Name-3" class="form-label required">Username</label>
+            <input id="staff-unified-form-user_Name-3" class="form-control" formControlName="user_Name"
                    [class.is-invalid]="isInvalid('user_Name')"
                    placeholder="Auto-generated or custom" />
             <!-- Username-taken async error shown separately -->
@@ -211,15 +211,15 @@
           <!-- Login contact (both roles sign in; password is emailed) -->
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Email ID</label>
-              <input class="form-control" type="email" formControlName="email"
+              <label for="staff-unified-form-email-4" class="form-label required">Email ID</label>
+              <input id="staff-unified-form-email-4" class="form-control" type="email" formControlName="email"
                      [class.is-invalid]="isInvalid('email')"
                      placeholder="Enter email address" />
               <app-field-error [control]="form.get('email')" label="Email" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Contact Phone</label>
-              <input class="form-control" formControlName="contactPhone" type="text" inputmode="numeric" maxlength="10" appNumericOnly
+              <label for="staff-unified-form-contactPhone-5" class="form-label">Contact Phone</label>
+              <input id="staff-unified-form-contactPhone-5" class="form-control" formControlName="contactPhone" type="text" inputmode="numeric" maxlength="10" appNumericOnly
                      [class.is-invalid]="isInvalid('contactPhone')"
                      placeholder="10-digit number" />
             </div>
@@ -227,15 +227,15 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" [class.required]="formType === 'doctor'">Qualification</label>
-              <input class="form-control" formControlName="qualification"
+              <label for="staff-unified-form-qualification-6" class="form-label" [class.required]="formType === 'doctor'">Qualification</label>
+              <input id="staff-unified-form-qualification-6" class="form-control" formControlName="qualification"
                      [class.is-invalid]="isInvalid('qualification')"
                      [placeholder]="formType === 'doctor' ? 'e.g. MBBS, MD' : 'Optional'" />
               <app-field-error [control]="form.get('qualification')" label="Qualification" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label" [class.required]="formType === 'doctor'">Position</label>
-              <input class="form-control" formControlName="position"
+              <label for="staff-unified-form-position-7" class="form-label" [class.required]="formType === 'doctor'">Position</label>
+              <input id="staff-unified-form-position-7" class="form-control" formControlName="position"
                      [class.is-invalid]="isInvalid('position')"
                      [placeholder]="formType === 'doctor' ? 'e.g. Pathologist' : 'Optional'" />
               <app-field-error [control]="form.get('position')" label="Position" [forceShow]="submitted"></app-field-error>
@@ -274,11 +274,11 @@
 
         <!-- Form Actions -->
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+          <button type="submit" class="dc-btn dc-btn--save" [disabled]="isLoading">
             <i class="fa" [ngClass]="isEdit ? 'fa-save' : 'fa-plus'"></i>
             {{ isEdit ? 'Save Changes' : 'Add ' + formTypeLabel }}
           </button>
-          <button type="button" class="btn btn-cancel" (click)="goBack()">Cancel</button>
+          <button type="button" class="dc-btn dc-btn--cancel" (click)="goBack()">Cancel</button>
         </div>
 
       </form>
@@ -311,7 +311,7 @@
           <button type="button" class="btn btn-warning btn-sm" (click)="onSelectNewSignature()">
             <i class="fa fa-pencil"></i> Change
           </button>
-          <button type="button" class="btn btn-danger btn-sm" (click)="onRemoveSignature()">
+          <button type="button" class="dc-btn dc-btn--delete dc-btn--sm" (click)="onRemoveSignature()">
             <i class="fa fa-trash"></i> Remove
           </button>
         </div>
@@ -345,7 +345,7 @@
           <i class="fa fa-eye"></i> Preview
         </button>
         <button *ngIf="isEdit && showSignatureInput" type="button"
-                class="btn btn-cancel btn-sm" (click)="cancelSignatureChange()">
+                class="dc-btn dc-btn--cancel dc-btn--sm" (click)="cancelSignatureChange()">
           <i class="fa fa-times"></i> Cancel
         </button>
       </div>
