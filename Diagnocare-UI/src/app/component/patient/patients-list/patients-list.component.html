@@ -263,7 +263,7 @@
             <dt><i class="fa fa-map-marker-alt"></i> Address</dt>
             <dd>
                 <ng-container *ngIf="p.patient_Address; else pdNone">
-                    {{ p.patient_Address }}
+                    <span class="pd-address">{{ p.patient_Address }}</span>
                     <a *ngIf="mapHref(p) as map" class="pd-action" [href]="map" target="_blank" rel="noopener"><i class="fa fa-directions"></i> Directions</a>
                 </ng-container>
             </dd>

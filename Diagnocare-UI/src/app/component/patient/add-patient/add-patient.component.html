@@ -417,9 +417,9 @@
             <div class="form-row">
               <div class="form-group form-group--wide">
                 <label class="form-label">Address<span class="text-danger" *ngIf="patientForm.get('collected_Outside')?.value"> *</span></label>
-                  <input aria-label="Full address" type="text" class="form-control" formControlName="patient_Address"
-                    placeholder="Full address"
-                    [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')" />
+                  <textarea aria-label="Full address" rows="4" class="form-control" formControlName="patient_Address"
+                    placeholder="Enter complete address" autocomplete="street-address"
+                    [class.is-invalid]="isFieldInvalid('patient_Address')" [attr.tabindex]="getTabIndex('patient_Address')"></textarea>
                 <app-field-error [control]="patientForm.get('patient_Address')" label="Address" [forceShow]="stepTouched[currentStep]"></app-field-error>
               </div>
             </div>
