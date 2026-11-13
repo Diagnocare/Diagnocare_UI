@@ -14,7 +14,13 @@
        the flex child with `min-height: 0; overflow-y: auto`. So the menu can
        be any length, with any number of sections expanded, and the head and
        the footer stay where they are. See the component's CSS — the reasoning
-       lives next to the declarations that carry it. -->
+       lives next to the declarations that carry it.
+
+       The .sh-sidebar-col wrapper is what makes the sidebar as tall as the
+       page: as a flex item it stretches to the full height of .sh-app (the
+       main column's height) and paints the sidebar colour all the way down,
+       while the sticky <aside> inside stays one viewport tall. -->
+  <div class="sh-sidebar-col">
   <aside class="sh-sidebar" [class.is-open]="drawerOpen" [class.is-railed]="railed"
          aria-label="Main menu">
     <!-- ══ Fixed head ══ -->
@@ -220,6 +226,7 @@
       </button>
     </footer>
   </aside>
+  </div>
 
   <div class="sh-scrim" *ngIf="drawerOpen" (click)="drawerOpen = false" aria-hidden="true"></div>
 

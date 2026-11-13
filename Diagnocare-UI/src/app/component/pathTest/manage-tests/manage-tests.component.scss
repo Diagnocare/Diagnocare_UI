@@ -51,7 +51,44 @@
 /* The header is .page-header from styles.css now, lifted out of
    .content-container so it is a full-bleed band like every other page's.
    The .header rule that stood here was a copy of it. */
-.page-header .header-actions { flex-wrap: wrap; }
+/* ── Six actions on one line ─────────────────────────────────────────────────
+   The title block and the six buttons share the header row. At a typical
+   laptop width the buttons were ~50px too wide for what the title left them,
+   so Drop alone wrapped to a second line — and any 1px change in available
+   width (a dialog opening, a scrollbar) re-flowed it.
+
+   1. The buttons are a little tighter (padding + gap), so the row is ~80px
+      narrower and fits beside the title at common widths.
+   2. The title block gives way first: it shrinks (its subtitle wraps) before
+      the buttons are touched.
+   3. The header itself wraps, so the button group moves as ONE unit: if it
+      cannot fit beside the title it drops below it as a single full row,
+      rather than splitting one button off. The group only wraps internally
+      when the screen is genuinely narrower than the six buttons (phones).
+
+   This component uses ViewEncapsulation.None, so every rule is scoped under
+   .mtl-page (the page root) or it would restyle every page's header. */
+.mtl-page .page-header {
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+.mtl-page .page-header .header-left {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.mtl-page .page-header .header-left h1 { white-space: nowrap; }
+.mtl-page .page-header .header-actions {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+/* The global `.dc-btn--save:not(…)×4 { padding … !important }` has the
+   specificity of 5 classes; this has 6, so its !important wins. Only the
+   horizontal padding changes; height and font size stay app-standard. */
+.mtl-page .page-header .header-actions .dc-btn:not(.dc-btn--sm):not(.btn-sm) {
+  padding-left: 0.85em !important;
+  padding-right: 0.85em !important;
+}
 /* List layout customizations */
 /* The search bar is .search-section / .search-row / .filter-group from
    styles.css. What stood here was a flex row with a pill-shaped input — the

@@ -35,6 +35,16 @@
    (no scrollbar) and a tall page (scrollbar). */
 html { overflow-y: scroll; }
 
+/* …which means opening a modal must not compensate for a scrollbar that never
+   goes away. Bootstrap's modal measures the gutter (innerWidth − clientWidth,
+   always ~17px here because of the rule above), sets `overflow: hidden` on
+   <body> — which does not remove <html>'s scrollbar — and then adds that width
+   as inline `padding-right` on <body>. The page got 17px narrower while any
+   dialog was open, so wrapped rows such as the Master Test List header actions
+   reflowed behind the dialog and jumped back when it closed. Bootstrap writes
+   the padding inline without priority, so !important here wins. */
+body.modal-open { padding-right: 0 !important; }
+
 /* Suppress the browser's native password reveal ("eye") and clear ("×") icons.
    Edge/IE add these to password inputs automatically; since the app renders its
    own eye-toggle button, the native one would appear as a duplicate. */
@@ -2771,6 +2781,7 @@ td .action-buttons,
   .search-section,
   .form-actions,
   .sh-sidebar,
+  .sh-sidebar-col,
   .sh-topbar {
     display: none !important;
   }
