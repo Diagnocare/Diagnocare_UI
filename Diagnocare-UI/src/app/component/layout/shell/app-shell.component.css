@@ -9,6 +9,19 @@
   color: var(--sh-ink);
 }
 
+/* ── Sidebar column ──────────────────────────────────────────────────────
+   The sidebar is one viewport tall (below), but the page is often taller.
+   This column is the flex item beside the main column, so the default
+   `align-items: stretch` makes it exactly as tall as the page (never shorter,
+   never longer) and it paints the sidebar colour that whole way. It is also
+   the sticky sidebar's containing block, so the sidebar stays pinned to the
+   viewport for the full scroll instead of ending at 100vh.
+   No width of its own: it is as wide as the sidebar, railed or not. */
+.sh-sidebar-col {
+  flex-shrink: 0;
+  background: var(--sh-sidebar);
+}
+
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 /* THE SIDEBAR ITSELF NEVER SCROLLS.
    ─────────────────────────────────
@@ -726,6 +739,8 @@
     height: 100dvh;
     max-height: 100dvh;
   }
+  /* The sidebar is an off-canvas drawer here, so the column is empty. */
+  .sh-sidebar-col { background: none; }
   .sh-sidebar.is-open { left: 0; box-shadow: 8px 0 28px rgba(0, 0, 0, 0.3); }
 
   /* The drawer is already an overlay that costs the page nothing, so a rail
