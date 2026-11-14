@@ -34,7 +34,7 @@
     <div class="card">
       <div class="card-body">
         <h3>Enter Patient ID</h3>
-        <input type="text" class="form-control" [(ngModel)]="enteredPatientId"
+        <input aria-label="Patient ID" type="text" class="form-control" [(ngModel)]="enteredPatientId"
                placeholder="Patient ID" (keyup.enter)="onPatientIdSubmit()">
         <button class="dc-btn dc-btn--search" (click)="onPatientIdSubmit()">Load</button>
       </div>
@@ -198,14 +198,14 @@
         <strong *ngIf="!vm(test).cancelled">Next:</strong> {{ vm(test).nextText }}
       </p>
       <div class="ptl-actions">
-        <button class="dc-btn dc-btn--clear" type="button"
+        <button class="dc-btn dc-btn--add" type="button"
                 *ngIf="!vm(test).cancelled && hasSamplingLocation(test)"
                 (click)="printBarcode(test, $event)"
                 [disabled]="printingLabelFor === test.patient_Test_Id">
           <i class="fa" [ngClass]="printingLabelFor === test.patient_Test_Id ? 'fa-spinner fa-spin' : 'fa-barcode'"></i>
           {{ printingLabelFor === test.patient_Test_Id ? 'Loading…' : 'Print barcode' }}
         </button>
-        <button class="dc-btn dc-btn--clear" type="button"
+        <button class="dc-btn dc-btn--add" type="button"
                 *ngIf="!vm(test).cancelled && vm(test).paymentTone === 'due' && vm(test).next !== 'payment'"
                 (click)="openPaymentModal(test, $event)">
           <i class="fa fa-inr"></i> Take payment
@@ -388,10 +388,15 @@
         <div class="ptl-table-wrap">
           <table class="ptl-table">
             <thead>
+              <!-- Column widths are fixed in CSS (table-layout: fixed), as on
+                   the parameter table. They must not be sized by the data:
+                   with auto layout the columns only settled once the rows had
+                   loaded, so the header text and the table width moved between
+                   the loading and the loaded state. -->
               <tr>
                 <th scope="col">Test</th>
-                <th scope="col">Sample</th>
-                <th scope="col">Result</th>
+                <th scope="col" class="ptl-table__col--sample">Sample</th>
+                <th scope="col" class="ptl-table__col--result">Result</th>
                 <th scope="col" class="ptl-table__act">What to do</th>
               </tr>
             </thead>
@@ -990,3 +995,19 @@
      `isLoadingParameters` is this screen's in-flight flag, so Save & Continue
      shows its spinner while the save is actually running. -->
 <app-unsaved-changes-modal [saving]="isLoadingParameters"></app-unsaved-changes-modal>
+
+<!-- Smart Report progress / failure. Driven by the real request: shown while
+     generateSmartReport is in flight, replaced by the error + Retry if it fails. -->
+<div class="ptl-sr-toast" *ngIf="openingSmartReportFor !== null || smartReportError"
+     [class.ptl-sr-toast--error]="smartReportError" [attr.role]="smartReportError ? 'alert' : 'status'" aria-live="polite">
+  <ng-container *ngIf="openingSmartReportFor !== null; else srFailed">
+    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+    <span>Generating Smart Report, please wait...</span>
+  </ng-container>
+  <ng-template #srFailed>
+    <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+    <span>{{ smartReportError }}</span>
+    <button type="button" class="dc-btn dc-btn--clear" (click)="retrySmartReport()">Retry</button>
+    <button type="button" class="ptl-sr-toast__close" aria-label="Dismiss" (click)="dismissSmartReportError()">&times;</button>
+  </ng-template>
+</div>

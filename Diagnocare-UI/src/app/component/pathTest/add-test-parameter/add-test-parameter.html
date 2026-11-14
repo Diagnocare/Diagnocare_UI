@@ -13,11 +13,11 @@
       <div class="card-header">
         <h3>Parameters</h3>
         <div class="header-actions">
-          <button type="button" class="btn btn-primary btn-sm" (click)="addRow()">
+          <button type="button" class="dc-btn dc-btn--save dc-btn--sm" (click)="addRow()">
             <i class="fa fa-plus"></i>
             <span class="btn-label"> Add Parameter</span>
           </button>
-          <button type="button" class="btn btn-back btn-sm" (click)="closeAndGoToManageTest()">
+          <button type="button" class="dc-btn dc-btn--back dc-btn--sm" (click)="closeAndGoToManageTest()">
             <i class="fa fa-arrow-left"></i>
             <span class="btn-label"> Back</span>
           </button>
@@ -43,20 +43,20 @@
                 <tr *ngFor="let group of parameters.controls; let i = index" [formGroupName]="i">
                   <input type="hidden" formControlName="parameterId" />
                   <td class="col-name">
-                    <input
+                    <input aria-label="Parameter Name"
                       type="text"
                       class="form-control"
                       formControlName="parameterName"
                       placeholder="Parameter Name" />
                   </td>
                   <td class="col-unit">
-                    <select class="form-select" formControlName="parameterUnit">
+                    <select aria-label="Parameter unit" class="form-select" formControlName="parameterUnit">
                       <option value="" disabled selected>Select Unit</option>
                       <option *ngFor="let unit of parameterUnits" [value]="unit">{{unit}}</option>
                     </select>
                   </td>
                   <td class="col-range">
-                    <input
+                    <input aria-label="Low"
                       type="number"
                       class="form-control"
                       formControlName="parameterRangeLow"
@@ -64,7 +64,7 @@
                       step="any" />
                   </td>
                   <td class="col-range">
-                    <input
+                    <input aria-label="High"
                       type="number"
                       class="form-control"
                       formControlName="parameterRangeHigh"
@@ -93,10 +93,10 @@
 
     <!-- Footer actions -->
     <div class="form-actions">
-      <button type="button" class="btn btn-cancel" (click)="closeAndGoToManageTest()">
+      <button type="button" class="dc-btn dc-btn--cancel" (click)="closeAndGoToManageTest()">
         <i class="fa fa-times"></i> Cancel
       </button>
-      <button type="submit" class="btn btn-primary" (click)="submit()">
+      <button type="submit" class="dc-btn dc-btn--save" (click)="submit()">
         <i class="fa fa-save"></i> Save Parameters
       </button>
     </div>

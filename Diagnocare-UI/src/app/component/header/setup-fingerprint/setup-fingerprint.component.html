@@ -26,6 +26,13 @@
       <i class="fa fa-spinner fa-spin"></i> Loading fingerprint status…
     </div>
 
+    <!-- Feature switched off (authFeatures.fingerprint) -->
+    <div *ngIf="state === 'disabled'" class="fp-note fp-note--warn">
+      <i class="fa fa-info-circle"></i>
+      <span>Fingerprint sign-in isn't available yet. Use your email, mobile, or the
+      Authenticator App as your login method.</span>
+    </div>
+
     <!-- Unsupported browser / device -->
     <div *ngIf="state === 'unsupported'" class="fp-note fp-note--warn">
       <i class="fa fa-exclamation-triangle"></i>
@@ -67,7 +74,7 @@
       </ul>
 
       <div class="fp-add-row">
-        <input class="form-input" type="text" maxlength="128"
+        <input aria-label="Add another device (optional name)" class="form-input" type="text" maxlength="128"
                placeholder="Add another device (optional name)" [(ngModel)]="deviceLabel" />
         <button class="dc-btn dc-btn--save dc-btn--sm" (click)="register()" [disabled]="registering">
           <i class="fa" [class.fa-plus]="!registering" [class.fa-spinner]="registering" [class.fa-spin]="registering"></i>

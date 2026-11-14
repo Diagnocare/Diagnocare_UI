@@ -16,6 +16,12 @@ export interface OtpResponse {
   success: boolean;
   message: string;
   token?: string;
+  /**
+   * Machine-readable error code on failure — matches Diagnocare_API ErrorCodes.
+   * 'EMAIL_SEND_FAILED' means the verification email never left the server, so no
+   * code is on its way and the OTP entry screen must not be shown.
+   */
+  code?: string;
 }
 
 export interface OtpCacheEntry {

@@ -1,15 +1,12 @@
-import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Directive, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { labOperationMenu, summaryReportMenu, labSetupMenu, profileMenu, adminOptions, userOptions } from 'src/app/constant/constants';
 import { Role, RoleId } from 'src/app/constant/enums';
-import { ModuleAccess, MODULE_ACCESS, DEFAULT_ACCESS } from 'src/app/constant/module-access';
+import { DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
 import { HeaderService } from 'src/app/services/headerServices/header-service';
 import { CommonService } from 'src/app/shared/common.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { LoginService } from 'src/app/services/loginServices/login.service';
-import { ConfirmModalComponent } from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { LicenceService } from 'src/app/services/licenceServices/licence.service';
 import { PinService } from 'src/app/services/pinServices/pin.service';
@@ -21,14 +18,14 @@ import {
 } from 'src/app/models/notification/user-notification.model';
 import { Subscription, interval, fromEvent } from 'rxjs';
 import { debounceTime, filter, throttleTime } from 'rxjs/operators';
+import { ModuleAccess } from '../../../models/auth/module-access.model';
 
-@Component({
-  selector: 'app-header',
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css'],
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent]
-})
+/**
+ * Shared state and behaviour behind the sidebar shell: access rules, badges, the
+ * notification bell, licence/PIN notices and logout. It has no template of its own —
+ * AppShellComponent extends it and supplies the markup.
+ */
+@Directive()
 
 export class HeaderComponent implements OnInit, OnDestroy {
   // Named handler so the profile-updated listener can be removed on destroy
@@ -61,7 +58,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isAdmin = false;
   /** True only for Super Admin — hides owner-level items (payroll) from Admin. */
   isSuperAdmin = false;
-  /** Human-readable role label shown in the profile dropdown. */
+  /**
+   * True when this user is a doctor — by role, or as the additional capability a Super
+   * Admin can hold. Shows the doctor-specific nav ALONGSIDE whatever the role already
+   * grants; it never takes anything away. Gate doctor features on this, not on
+   * `getUserRole() === Role.Doctor.id`.
+   */
+  isDoctor = false;
+  /**
+   * Human-readable role label shown in the profile dropdown. Reads "Super Admin • Doctor"
+   * for someone who is both.
+   */
   roleLabel = '';
 
   mobileNavOpen = false;
@@ -81,7 +88,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private badgeSubs = new Subscription();
   /**
    * How often every badge re-checks — ONE timer for all of them. Live push was
-   * removed on purpose (see services/sessionSignalR/session-signalr.service.ts).
+   * removed on purpose (the SignalR session service was retired).
    *
    * PERF-021 — this was 60 s, and a tick costs up to three API calls for a Super
    * Admin. Against an HTTP/1.1 origin capped at six connections (PERF-009) those
@@ -235,14 +242,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
    */
   checkAdminPanelAccess(): void {
     const role = this.tokenService.getUserRole();
-    this.access      = role !== null ? (MODULE_ACCESS[role] ?? DEFAULT_ACCESS) : DEFAULT_ACCESS;
+    // The capability as the server issued it in the token — see TokenService.isDoctor.
+    this.isDoctor     = this.tokenService.isDoctor();
+    this.access       = resolveModuleAccess(role, this.isDoctor);
     this.isAdmin      = this.tokenService.isAdmin();
     this.isSuperAdmin = this.tokenService.isSuperAdmin();
 
     // Derive the readable role label directly from the Role config
-    this.roleLabel = role !== null
+    const primaryLabel = role !== null
       ? (Object.values(Role).find(r => r.id === role)?.label ?? '')
       : '';
+
+    // Someone who is both shows both — "Super Admin • Doctor". The primary role stays
+    // first and keeps its own wording; the capability is appended, never substituted, so
+    // nobody's badge changes identity just because they also practise. A plain Doctor
+    // already reads "Doctor", so it is not repeated.
+    this.roleLabel = this.isDoctor && role !== Role.Doctor.id && primaryLabel
+      ? `${primaryLabel} • ${Role.Doctor.label}`
+      : primaryLabel;
 
     // Filter the full User Panel item list down to what this role's ModuleAccess
     // flags allow. Was never computed, so the User Panel dropdown always rendered

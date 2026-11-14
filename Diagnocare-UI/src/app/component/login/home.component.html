@@ -156,6 +156,41 @@
   </div>
 </section>
 
+<!-- ── Product walkthrough ───────────────────────────────────────────
+     High on the public page and before sign-in, because the people this is
+     for — someone evaluating DiagnoCare, or a new member of lab staff on
+     their first morning — do not have an account yet. The video ships with
+     the application, so this works on a lab's LAN with no internet. -->
+<section class="dc-tutorial" id="tutorial">
+  <div class="dc-tutorial-inner">
+    <div class="dc-tutorial-text">
+      <p class="dc-tutorial-eyebrow">
+        <i class="fa fa-play-circle" aria-hidden="true"></i> Product walkthrough
+      </p>
+      <h2 class="dc-tutorial-title">See a lab's whole day in 15 minutes</h2>
+      <p class="dc-tutorial-sub">
+        Signing in, the patient list, registering a patient, and the test catalogue
+        everything else is built on. English and हिन्दी captions throughout.
+      </p>
+      <button type="button" class="dc-tutorial-btn" (click)="tutorialOpen = true">
+        <i class="fa fa-play" aria-hidden="true"></i>
+        <span>Watch tutorial video</span>
+      </button>
+    </div>
+
+    <button type="button" class="dc-tutorial-poster" (click)="tutorialOpen = true"
+            aria-label="Watch the tutorial video">
+      <span class="dc-tutorial-play"><i class="fa fa-play" aria-hidden="true"></i></span>
+      <span class="dc-tutorial-chapters">
+        <span>1 · Signing in</span>
+        <span>2 · The patient list</span>
+        <span>3 · Registering a patient</span>
+        <span>4 · The Master Test List</span>
+      </span>
+    </button>
+  </div>
+</section>
+
 <!-- ── Features ──────────────────────────────────────────────────── -->
 <section class="dc-features" id="features">
   <div class="dc-section-header">
@@ -264,3 +299,7 @@
     <i class="fa fa-life-ring"></i> Help &amp; Contact Us
   </a>
 </footer>
+
+<!-- Outside every section so the overlay is never clipped by a section's own
+     stacking context or overflow. -->
+<app-tutorial-video [open]="tutorialOpen" (closed)="tutorialOpen = false"></app-tutorial-video>

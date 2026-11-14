@@ -26,11 +26,11 @@
     </div>
 
     <div class="header-right">
-      <a class="request-btn" routerLink="/attendance-requests"
+      <a class="dc-btn dc-btn--save" routerLink="/attendance-requests"
          title="See your correction requests or raise a new one">
         <i class="fa fa-pen-to-square"></i> Request Correction
       </a>
-      <a class="request-btn" routerLink="/attendance-requests/new" [queryParams]="{ type: 'leave' }"
+      <a class="dc-btn dc-btn--save" routerLink="/attendance-requests/new" [queryParams]="{ type: 'leave' }"
          title="Apply for leave (past 7 days up to next week)">
         <i class="fa fa-calendar-plus"></i> Apply Leave
       </a>
@@ -139,7 +139,8 @@
                 </div>
               </td>
 
-              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td">
+              <td *ngFor="let cell of row.cells; let ci = index" class="att-cell-td"
+                  [class.col-today]="cell.isToday">
                 <span
                   class="att-cell"
                   [ngClass]="cellClass(cell)"
@@ -214,7 +215,8 @@
                     </div>
                   </td>
 
-                  <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td">
+                  <td *ngFor="let cell of row.cells.slice(0, 15); let ci = index" class="att-cell-td"
+                      [class.col-today]="cell.isToday">
                     <span
                       class="att-cell"
                       [ngClass]="cellClass(cell)"
@@ -282,7 +284,8 @@
                     </div>
                   </td>
 
-                  <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td">
+                  <td *ngFor="let cell of row.cells.slice(15); let ci = index" class="att-cell-td"
+                      [class.col-today]="cell.isToday">
                     <span
                       class="att-cell"
                       [ngClass]="cellClass(cell)"

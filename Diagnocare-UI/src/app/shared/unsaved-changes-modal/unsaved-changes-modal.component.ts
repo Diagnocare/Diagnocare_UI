@@ -1,10 +1,8 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
-import {
-  UnsavedChangesModalService,
-  UnsavedChangesOptions,
-} from './unsaved-changes-modal.service';
+import { UnsavedChangesModalService } from './unsaved-changes-modal.service';
+import { UnsavedChangesOptions } from '../../models/common/unsaved-changes.model';
 
 /**
  * Reusable "unsaved changes" guard dialog.

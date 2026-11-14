@@ -30,7 +30,7 @@
         {{ showingInactive ? 'Show Active' : 'Show Inactive' }}
         <span class="toggle-count" *ngIf="!showingInactive && inactiveCount">{{ inactiveCount }}</span>
       </button>
-      <button class="btn btn-primary"
+      <button class="dc-btn dc-btn--save"
               [disabled]="!canAddStaff"
               [title]="addDisabledReason"
               (click)="add(activeSection.type)">
@@ -83,19 +83,29 @@
                 <span class="badge-inactive" *ngIf="!isMemberActive(u)">Inactive</span>
               </td>
               <td>{{ u.user_Name }}</td>
-              <td><span class="role-badge">{{ getRoleLabel(u.typeUserId) }}</span></td>
+              <td>
+                <span class="role-badge">{{ getRoleLabel(u.typeUserId) }}</span>
+                <!-- The additional Doctor capability, shown beside the role rather than
+                     instead of it: this member is both. -->
+                <span class="role-badge role-badge-doctor"
+                      *ngIf="isAlsoDoctor(u)"
+                      title="Also a Doctor — appears on test reports as a signing doctor">
+                  <i class="fa fa-user-md"></i> {{ doctorLabel }}
+                </span>
+              </td>
               <td>{{ u.email }}</td>
               <td>{{ u.contactPhone }}</td>
               <td class="action-buttons">
-                <ng-container *ngIf="!isProtectedUser(u)">
-                  <ng-container *ngIf="isMemberActive(u); else inactiveUserActions">
-                    <app-action-btn type="edit"   title="Edit User"       (clicked)="editUser(u.id)"></app-action-btn>
-                    <app-action-btn type="delete" title="Deactivate User" (clicked)="deactivateMember('user', u.id)"></app-action-btn>
-                  </ng-container>
-                  <ng-template #inactiveUserActions>
-                    <app-action-btn type="reactivate"  title="Reactivate User" (clicked)="reactivateMember('user', u.id)"></app-action-btn>
-                  </ng-template>
+                <ng-container *ngIf="isMemberActive(u); else inactiveUserActions">
+                  <app-action-btn *ngIf="canEdit(u)"
+                                  type="edit"   title="Edit User"       (clicked)="editUser(u.id)"></app-action-btn>
+                  <app-action-btn *ngIf="canDeactivate(u)"
+                                  type="delete" title="Deactivate User" (clicked)="deactivateMember('user', u.id)"></app-action-btn>
                 </ng-container>
+                <ng-template #inactiveUserActions>
+                  <app-action-btn *ngIf="canDeactivate(u)"
+                                  type="reactivate" title="Reactivate User" (clicked)="reactivateMember('user', u.id)"></app-action-btn>
+                </ng-template>
               </td>
             </tr>
           </tbody>
@@ -172,6 +182,13 @@
             <tr *ngFor="let doc of visibleDoctors">
               <td>
                 {{ doc.first_Name }} {{ doc.last_Name }}
+                <!-- This list is "everyone who is a doctor", so it also carries members
+                     who are a doctor by capability rather than by role — a Super Admin
+                     who also practises. Their own role is named here so the row is not
+                     mistaken for a doctor-only account. -->
+                <span class="role-badge role-badge-doctor" *ngIf="isAlsoDoctor(doc)">
+                  {{ getRoleLabel(doc.typeUserId) }}
+                </span>
                 <span class="badge-inactive" *ngIf="!isMemberActive(doc)">Inactive</span>
               </td>
               <td>{{ doc.user_Name || '—' }}</td>
@@ -190,12 +207,18 @@
                 </ng-template>
               </td>
               <td class="action-buttons">
+                <!-- Edit opens the form for the member's OWN role, not the Doctor form.
+                     Opening a doctor-capable Super Admin as a doctor would submit
+                     typeUserId=Doctor and demote the lab's owner. See editMember. -->
                 <ng-container *ngIf="isMemberActive(doc); else inactiveDocActions">
-                  <app-action-btn type="edit"   title="Edit Doctor"       (clicked)="editStaff('doctor', doc.id)"></app-action-btn>
-                  <app-action-btn type="delete" title="Deactivate Doctor" (clicked)="deactivateMember('doctor', doc.id)"></app-action-btn>
+                  <app-action-btn *ngIf="canEdit(doc)"
+                                  type="edit"   title="Edit Doctor"       (clicked)="editMember(doc)"></app-action-btn>
+                  <app-action-btn *ngIf="canDeactivate(doc)"
+                                  type="delete" title="Deactivate Doctor" (clicked)="deactivateMember('doctor', doc.id)"></app-action-btn>
                 </ng-container>
                 <ng-template #inactiveDocActions>
-                  <app-action-btn type="reactivate"  title="Reactivate Doctor" (clicked)="reactivateMember('doctor', doc.id)"></app-action-btn>
+                  <app-action-btn *ngIf="canDeactivate(doc)"
+                                  type="reactivate" title="Reactivate Doctor" (clicked)="reactivateMember('doctor', doc.id)"></app-action-btn>
                 </ng-template>
               </td>
             </tr>

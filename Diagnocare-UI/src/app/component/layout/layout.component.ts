@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { HeaderComponent } from '../header/header-menu/header.component';
+import { AppShellComponent } from './shell/app-shell.component';
 
 /** How close the deadline is. Drives colour, icon and wording together. */
 type ExpiryTone = 'info' | 'soon' | 'urgent';
@@ -9,7 +9,7 @@ type ExpiryTone = 'info' | 'soon' | 'urgent';
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterModule, CommonModule, HeaderComponent],
+  imports: [RouterModule, CommonModule, AppShellComponent],
   templateUrl: './layout.component.html',
   styles: [`
     /* Colours chain kit tokens → the app's theme variables → literals, so the

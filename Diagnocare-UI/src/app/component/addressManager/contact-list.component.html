@@ -1,33 +1,45 @@
 <div class="page-container"><div class="contact-list-container">
     <div class="page-header">
-      <div>
-        <h2 style="margin:0;">Contact Address Book</h2>
+      <div class="header-left">
+        <h2>Contact Address Book</h2>
       </div>
-      <div style="display: flex; gap: 0.5rem;">
-      <button (click)="goBack()" class="btn btn-back"><i class="fa fa-arrow-left"></i> Back</button>
-      <button (click)="addContact()" class="btn btn-primary">
-        <i class="fa fa-plus"></i> Add Contact
-      </button>
-    </div>
+      <div class="header-actions">
+        <button class="dc-btn dc-btn--back" (click)="goBack()">
+          <i class="fa fa-arrow-left"></i> Back
+        </button>
+        <button class="dc-btn dc-btn--save" (click)="addContact()">
+          <i class="fa fa-plus"></i> Add Contact
+        </button>
+      </div>
     </div>
 
-    <div class="search-section page-margin">
+    <!-- Every screen in the app is .page-header + .content-container: the
+         column, its gutters and the top/bottom inset all come from there, at
+         every breakpoint. This page used to inset its blocks by a flat 3em
+         instead, which matched neither the header above them nor any other
+         screen. -->
+    <div class="content-container">
+
+    <div class="search-section">
       <div class="search-row">
-        <div class="form-group">
-          <label class="form-label">Search</label>
-          <input placeholder="Search by name or city" class="search-input form-control" (input)="onSearch($event.target.value)" />
+        <div class="filter-group">
+          <label for="contact-list-field1" class="filter-label"><i class="fa fa-address-book"></i> Search</label>
+          <div class="input-icon-wrap">
+            <i class="fa fa-search input-icon" aria-hidden="true"></i>
+            <input id="contact-list-field1" placeholder="Name or city…" class="form-control" (input)="onSearch($event.target.value)" />
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Type</label>
-          <select class="form-select" (change)="onFilterChange($any($event.target).value)">
+        <div class="filter-group">
+          <label for="contact-list-field2" class="filter-label"><i class="fa fa-filter"></i> Type</label>
+          <select id="contact-list-field2" class="form-select" (change)="onFilterChange($any($event.target).value)">
             <option value="">All Types</option>
             <option *ngFor="let t of contactTypes" [value]="t.value">{{ t.label }}</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Page Size</label>
-          <select class="form-select" (change)="changePageSize(+$any($event.target).value)">
-            <option *ngFor="let s of pageSizeOptions" [value]="s">{{ s }} / page</option>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fa fa-list-ol"></i> Page Size</label>
+          <select aria-label="Rows per page" class="form-select" (change)="changePageSize(+$any($event.target).value)">
+            <option *ngFor="let s of pageSizeOptions" [value]="s" [selected]="s === pageSize">{{ s }} / page</option>
           </select>
         </div>
       </div>
@@ -36,7 +48,7 @@
     <app-loading-spinner [isLoading]="isLoading" message="Loading contacts..."></app-loading-spinner>
 
     <!-- ── Tabbed panel (tab bar + table fused into one card) ───────────────── -->
-    <div class="tab-panel page-margin" *ngIf="!isLoading">
+    <div class="tab-panel" *ngIf="!isLoading">
 
       <!-- Tab bar -->
       <div class="tab-bar">
@@ -99,4 +111,6 @@
     </div>
 
     </div><!-- /tab-panel -->
+
+    </div><!-- /content-container -->
 </div></div>

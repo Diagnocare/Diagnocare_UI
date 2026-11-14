@@ -7,15 +7,7 @@ import { LoginService } from 'src/app/services/loginServices/login.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
 import { AppValidators } from 'src/app/shared/validators/app-validators';
 import { MaskedInputDirective } from 'src/app/shared/directives/masked-input.directive';
-
-export interface MethodDef {
-  key:        string;               // internal key used for routing
-  label:      string;               // display name
-  icon:       string;               // fa icon class
-  iconClass:  string;               // colour class on .otp-method-icon
-  sub:        string;               // sub-label shown on card
-  authType:   number;               // maps to backend AuthType enum
-}
+import { MethodDef } from '../../models/auth/otp-mfa-method.model';
 
 @Component({
   selector: 'app-otp-mfa-dialog',
@@ -104,6 +96,12 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   pendingMethod   = '';
   resendRemaining = 0;
   isSendingOtp    = false;
+  /**
+   * Message shown when the backend could not send the code (e.g. SMTP down —
+   * code 'EMAIL_SEND_FAILED'). Without this the dialog just stopped, leaving the user
+   * on a screen with no code, no error and no explanation.
+   */
+  sendError       = '';
   /** Masks the entered code (like a password); the eye toggle reveals it. */
   otpVisible      = false;
   private timerId: any = null;
@@ -343,6 +341,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
     this.showMethodPicker    = true;
     this.unavailableTitle    = '';
     this.unavailableMessage  = '';
+    this.sendError           = '';
   }
 
   // ── OTP send ──────────────────────────────────────────────────────
@@ -350,6 +349,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   sendOtpRequest(): void {
     if (this.isLocked || !this.userId || !this.selectedMethod || this.isSendingOtp) return;
     this.isSendingOtp = true;
+    this.sendError    = '';
     const sender$ = this.sendOtpFn
       ? this.sendOtpFn(this.selectedMethod)
       : this.loginService.generateOtp(this.userId, this.selectedMethod, this.purpose);
@@ -359,15 +359,34 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
         if (resp?.success === false) {
           if (this.isLockoutResponse(resp)) {
             this.applyBackendLockout();
+            return;
           }
-          // OTP not sent — leave showOtpInput = false and don't start the timer
+          // Nothing was sent — stay on this step, keep showOtpInput = false, don't start
+          // the timer, and say why so the user can retry rather than wait for a code
+          // that is not coming.
+          this.sendError = this.describeSendFailure(resp);
           return;
         }
         this.showOtpInput = true;
         this.startResendTimer();
       },
-      error: () => { this.isSendingOtp = false; },
+      error: () => {
+        this.isSendingOtp = false;
+        this.sendError = 'We couldn\'t send the verification code. Please try again.';
+      },
     });
+  }
+
+  /**
+   * Picks the text for a failed send. The backend's own message is preferred — it is
+   * already written for the user and carries no SMTP detail — with a fallback for
+   * transport errors that never reached the application.
+   */
+  private describeSendFailure(resp: any): string {
+    if (resp?.message) return resp.message;
+    return resp?.code === 'EMAIL_SEND_FAILED'
+      ? 'We couldn\'t send the verification code. Please try again.'
+      : 'We couldn\'t send the verification code right now. Please try again.';
   }
 
   // ── Getters ───────────────────────────────────────────────────────
@@ -434,6 +453,7 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
   onResend(): void {
     if (this.isLocked || !this.userId || !this.selectedMethod || this.isSendingOtp) return;
     this.isSendingOtp = true;
+    this.sendError    = '';
     this.clearDigits();
     this.focusInput(0);
     const sender$ = this.sendOtpFn
@@ -446,14 +466,20 @@ export class OtpMfaDialogComponent implements OnInit, OnDestroy {
           if (this.isLockoutResponse(resp)) {
             // Account locked — enter lockout view; DO NOT start the resend timer
             this.applyBackendLockout();
+            return;
           }
-          // OTP not sent — don't start timer regardless
+          // OTP not sent — don't start the timer, and show why. Resend stays enabled so
+          // the user can try again once the problem clears.
+          this.sendError = this.describeSendFailure(resp);
           return;
         }
         // OTP sent successfully — start the cooldown timer
         this.startResendTimer();
       },
-      error: () => { this.isSendingOtp = false; },
+      error: () => {
+        this.isSendingOtp = false;
+        this.sendError = 'We couldn\'t send the verification code. Please try again.';
+      },
     });
   }
 

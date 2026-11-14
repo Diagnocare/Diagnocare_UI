@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import Modal from 'bootstrap/js/dist/modal';
-import { ConfirmModalService, ConfirmOptions } from './confirm-modal.service';
+import { ConfirmModalService } from './confirm-modal.service';
+import { ConfirmOptions } from '../../models/common/confirm-modal.model';
 
 @Component({
   selector: 'app-confirm-modal',
@@ -39,7 +40,9 @@ export class ConfirmModalComponent implements OnInit, OnDestroy {
         this.message = options.message;
         this.confirmText = options.confirmText ?? 'Confirm';
         this.cancelText = options.cancelText ?? 'Cancel';
-        this.hideCancelButton = options.hideCancelButton ?? false;
+        // A blank cancelText is how callers ask for a single-button alert. '' is not nullish, so
+        // it survives the ?? above and would otherwise render an unlabelled button next to Confirm.
+        this.hideCancelButton = options.hideCancelButton ?? !this.cancelText.trim();
         this.showLoadingOnConfirm = options.showLoadingOnConfirm ?? false;
         this.showReasonInput = options.showReasonInput ?? false;
         this.reasonLabel = options.reasonLabel ?? 'Reason';

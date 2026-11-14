@@ -174,15 +174,6 @@ export class BillReceipt implements OnInit {
     this.receiptFilter[group.patientTestId] = '';
   }
 
-  /** Enter / Space on a focused receipt row opens its PDF — same as a click.
-   *  Keys pressed on nested controls (e.g. TPA Details) are left to those controls. */
-  onReceiptRowKeydown(receipt: Receipt, event: Event, kind: 'payment' | 'refund'): void {
-    if (event.target !== event.currentTarget) return;
-    event.preventDefault();
-    if (kind === 'refund') this.onRefundRowClick(receipt, event);
-    else this.onReceiptClick(receipt, event);
-  }
-
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -253,13 +244,21 @@ export class BillReceipt implements OnInit {
 
   // ── Receipt / Refund PDF (backend-generated) ──────────────────────────
 
-  onReceiptClick(receipt: Receipt, event: Event): void {
+  /** The row's Download button — the only way to download a receipt.
+   *
+   *  The receipt row used to be a `role="button"` that downloaded on click as
+   *  well, so the same PDF had two triggers and a click on the button ran the
+   *  download twice over. The row is now inert; stopPropagation() stays as the
+   *  guard that keeps this click off any ancestor handler (the card header and
+   *  the group row both have their own). */
+  downloadReceiptPdf(receipt: Receipt, event: Event): void {
     event.stopPropagation();
     this.openReceiptPdf(receipt.receiptId, 'Payment receipt');
   }
 
-  /** Clicking the refund row generates the same PDF (which now includes the refund section). */
-  onRefundRowClick(receipt: Receipt, event: Event): void {
+  /** The refund row's Download button. Generates the same PDF, which includes
+   *  the refund section. */
+  downloadRefundPdf(receipt: Receipt, event: Event): void {
     event.stopPropagation();
     this.openReceiptPdf(receipt.receiptId, 'Refund receipt');
   }

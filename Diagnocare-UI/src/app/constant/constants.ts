@@ -61,7 +61,9 @@ export const controllerEndpoints = {
    */
   sample: 'api/v1/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
-  discountApproval: 'api/v1/DiscountApproval/',
+  discountApproval: 'api/DiscountApproval/',
+  /** Promotional prices for tests, sub-groups and groups; also the price quote used by the booking screens. */
+  promotion: 'api/Promotion/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
   testReminder: 'api/v1/TestReminder/',
   worklist: 'api/v1/Worklist/',
@@ -326,6 +328,7 @@ export const validationMessages = {
 
 // Tab order for Add Patient form
    export const tabOrderAdd = [
+     // Step 1 · Patient
      'patient_Salutation',
      'patient_Name',
      'patient_DOB',
@@ -334,30 +337,33 @@ export const validationMessages = {
      'patient_Gender',
      '',
      '',
+     'patient_Contact',
+     'patient_Email',
      'patient_Marital_Status',
      '',
      'relation',
      'relative_Name',
-     'patient_Contact',
-     'patient_Email',
-     'patient_Address',
+     // Step 2 · Tests
      'test_Name',
-     'urgent_Report',
-     'report_On_WhatsApp',
      'test_Amount',
      'referred_By_Type',
      'referred_By',
+     // Step 3 · Collection
      'sampling_Done',
      'collected_Outside',
      'area',
      'collected_By',
+     'patient_Address',
+     'urgent_Report',
      'remark',
+     // Step 4 · Payment & Delivery
      'discount',
      'net_Amount',
      'payment_Type',
      'payment_Mode',
      'amount_Paid',
-     'amount_Pending'
+     'amount_Pending',
+     'report_On_WhatsApp'
    ]
 
    // Tab order for Edit Patient form (customize as needed)
@@ -403,7 +409,7 @@ export const profileMenu = {
   settings:       { id: 'settings',       label: 'Settings',        route: 'settings',        icon: 'cog' },
   changePassword: { id: 'changePassword', label: 'Change Password', route: 'change-password', icon: 'lock' },
   // Authenticator App is now a section inside Settings (see settings page).
-  help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
+  // help:           { id: 'help',           label: 'Help & Contact',  route: 'help',            icon: 'life-ring' },
 };
 
 export const labOperationMenu = {
@@ -421,6 +427,8 @@ export const labOperationMenu = {
 export const labSetupMenu = {
     labProfile: { id: 'labProfile', label: 'Lab Profile',        route: 'lab-profile', icon: 'fa-hospital-alt', description: 'Logo, motto, legal details, report branding & more' },
     labConfig:  { id: 'labConfig',  label: 'Lab Configuration',  route: 'lab-setup',   icon: 'fa-sliders-h',    description: 'Sampling locations, areas & more' },
+    // Route guard (Admin + Super Admin) is unchanged; only the menu location moved.
+    reportTemplate: { id: 'reportTemplate', label: 'Report Template', route: 'template', icon: 'fa-file-alt', description: 'Manage report layouts' },
 }
 /**
  * Admin Panel navigation items.
@@ -440,11 +448,13 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
   // Discounts above the lab limit wait here for the owner's decision.
   discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
+  // Promotional prices for tests, sub-groups and whole groups.
+  promotions:    { id: 'promotions',    label: 'Offers',             route: 'promotions',      icon: 'fa-tag' },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
+  // Report Template moved to Lab Setup (see labSetupMenu).
 };
 
 /**
@@ -470,6 +480,13 @@ export const userOptions: Record<string, {
 export const summaryReportMenu: { [key: string]: { id: string; label: string; icon: string } } = {
   patientRegister:        { id: 'patient-register',        label: 'Patient Register',               icon: 'fa-users'        },
   referrerCollection:     { id: 'referrer-collection',     label: 'Referrer Collection',            icon: 'fa-users-cog'    },
+  // Collection grouped by the doctor who REPORTED the test, as opposed to the
+  // doctor who referred the patient (that is Referrer Collection, above).
+  // The route and the component for this have existed all along; the menu
+  // entry and the two config entries below had not, so the page was reachable
+  // only by typing the URL — and then it threw, because table-report looks its
+  // reportId up in reportConfigs and found nothing.
+  reportingDoctorWise:    { id: 'reporting-doctor-wise',   label: 'Reporting Doctor Wise',          icon: 'fa-user-doctor'  },
   discountAuthorityWise:  { id: 'discount-authority-wise', label: 'Discount Authority Wise',        icon: 'fa-percent'      },
   patientHistoryWise:     { id: 'patient-history-wise',    label: 'Patient History Wise',           icon: 'fa-history'      },
   worksheetReport:        { id: 'worksheet',               label: 'Worksheet Report',               icon: 'fa-tasks'        },
@@ -483,12 +500,17 @@ export const summaryReportMenu: { [key: string]: { id: string; label: string; ic
 
 export const summaryReportApiEndpoints: { [key: string]: string } = {
   patientRegister:      'patient-registrations',
-  // Legacy individual endpoints (kept for backward compatibility / output-to-file)
+  // Legacy individual endpoints. The Reports pages that called these were
+  // merged into referrer-collection and register-reports, but the API still
+  // serves them and table-report still resolves them by name, so they stay.
   doctorWiseCollection: 'doctor-wise-collection',
   panelCompanyWise:     'panel-company-wise',
   collectionBoysWise:   'collection-boys-wise',
   // Merged referrer report
   referrerCollection:   'referrer-collection',
+  // Served by SummaryReportController.GetReportingDoctorWise, which groups
+  // collection by the "ReportingDoctor" referrer type.
+  reportingDoctorWise:  'reporting-doctor-wise',
   discountAuthorityWise: 'discount-authority-wise',
   patientHistoryWise:   'patient-history-wise',
   worksheetReport:      'worksheet-report',
@@ -503,7 +525,7 @@ export const summaryReportApiEndpoints: { [key: string]: string } = {
   // The Master Test List report shows collection summarised by catalogue level
   // (group / sub-group / test), so it calls the hierarchy endpoint. The flat
   // 'master-test-list' catalogue endpoint is still served and still backs the
-  // output-to-file CSV export.
+  // CSV export from the report filter bar.
   masterTestList:       'master-test-collection',
   addressManagerReport: 'address-manager-report',
   tpaReport:            'tpa-report',
@@ -527,6 +549,9 @@ export const testHierarchyLevels: ReportLevelOption[] = [
 export const reportConfigs: { [key: string]: ReportConfig } = {
   patientRegister:        { id: 'patientRegister',        label: 'Patient Register',               icon: 'fa-users',        endpoint: summaryReportApiEndpoints['patientRegister'],        defaultChartType: 'bar', digitInfo: '1.0-0' },
   referrerCollection:     { id: 'referrerCollection',     label: 'Referrer Collection',            icon: 'fa-users-cog',    endpoint: summaryReportApiEndpoints['referrerCollection'],     defaultChartType: 'bar', digitInfo: '1.2-2' },
+  // Same response envelope as tpaReport (CollectionSummaryReportDto), so it
+  // takes the same chart type and money formatting.
+  reportingDoctorWise:    { id: 'reportingDoctorWise',    label: 'Reporting Doctor Wise',          icon: 'fa-user-doctor',  endpoint: summaryReportApiEndpoints['reportingDoctorWise'],    defaultChartType: 'bar', digitInfo: '1.2-2' },
   discountAuthorityWise:  { id: 'discountAuthorityWise',  label: 'Discount Authority Wise report', icon: 'fa-percent',      endpoint: summaryReportApiEndpoints['discountAuthorityWise'],  defaultChartType: 'doughnut', digitInfo: '1.2-2' },
   patientHistoryWise:     { id: 'patientHistoryWise',     label: 'Patient history wise',           icon: 'fa-history',      endpoint: summaryReportApiEndpoints['patientHistoryWise'],     defaultChartType: 'line', digitInfo: '1.2-2' },
   worksheetReport:        { id: 'worksheetReport',        label: 'Worksheet report',               icon: 'fa-tasks',        endpoint: summaryReportApiEndpoints['worksheetReport'],        defaultChartType: 'bar', digitInfo: '1.2-2' },

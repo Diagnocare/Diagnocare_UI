@@ -21,6 +21,11 @@ import { Role } from 'src/app/constant/enums';
 /**
  * Maps a sortable column to the API's sort key (see PatientRepository.PatientSortMap).
  * Sorting runs on the server across all patients, not just the visible page.
+ *
+ * Urgent patients lead the list. That ordering is the API's too (PatientSortMap's
+ * PrimaryBy), applied before paging, so the rows arrive urgent-first and the table
+ * renders them in the order they came in — nothing is re-sorted here. Sorting by
+ * the Urgent column itself is the one case that overrides it, server-side.
  */
 const PATIENT_SORT_KEYS: Partial<Record<SortPatientField, string>> = {
   patient_Reg_Date: 'regDate',
@@ -31,6 +36,7 @@ const PATIENT_SORT_KEYS: Partial<Record<SortPatientField, string>> = {
   status: 'status',
 };
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
+import { DcEmptyComponent } from 'src/app/shared/simple';
 
 /**
  * sessionStorage key for the Status filter on the patients list.
@@ -49,28 +55,16 @@ const PATIENTS_STATUS_FILTER_KEY = 'dc.patientsList.statusFilter';
 /** Status values the dropdown offers — anything else in storage is ignored. */
 const PATIENTS_STATUS_FILTER_VALUES = ['active', 'Pending', 'Partial', 'Completed', 'deactivated'];
 
-// ── Simple UI kit ────────────────────────────────────────────────────────────
-// Labelled action buttons, one shared status vocabulary, and an empty state
-// that says what to do next. The originals stay behind *ngIf="!useNewUi".
-// import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
-// import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
-// import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
-// import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
-
-
 @Component({
   selector: 'app-patients-list',
   templateUrl: './patients-list.component.html',
   styleUrls: ['./patients-list.component.scss'],
-  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent],
+  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent, DcEmptyComponent],
   encapsulation: ViewEncapsulation.None,
   standalone: true
 })
 
 export class PatientsListComponent implements OnInit, OnDestroy {
-
-  /** Simple-UI rollout flag — see shared/simple/simple-ui.flags.ts. */
-  // readonly useNewUi = USE_NEW_UI;
 
   private destroy$ = new Subject<void>();
 
@@ -87,12 +81,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   // Search and filter properties
   searchTerm: string = '';
-  /**
-   * Starts the search input as readonly so Chrome/Edge won't autofill it with
-   * the saved login userId. Readonly is lifted on focus (see template) so the
-   * user can type normally, then reinstated on blur to keep autofill suppressed.
-   */
-  searchReadonly: boolean = true;
   dateFrom: string = '';
   dateTo: string = '';
   /**
@@ -170,7 +158,19 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     this.dateTo = "";
     // Restore the Status filter chosen earlier in this session (see key doc above).
     this.statusFilter = this.readStoredStatusFilter() ?? this.statusFilter;
-    this.loadPatients();
+
+    // `?search=` is how the sidebar shell's "Find a patient" box lands here. A
+    // subscription rather than a snapshot: searching again from the top bar while
+    // already on this page reuses the component and only changes the query param.
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const term = (params.get('search') ?? '').trim();
+      if (term.length >= 2) {
+        this.searchTerm = term;
+        this.searchPatients();
+      } else {
+        this.loadPatients();
+      }
+    });
   }
 
   /**
@@ -242,6 +242,22 @@ export class PatientsListComponent implements OnInit, OnDestroy {
    * present — "41y", "6m 30d", "12d" — which is enough to tell an adult from an
    * infant at a glance without wrapping the cell.
    */
+  /**
+   * Registration date as "Today" / "Yesterday" / the original dd-MM-yyyy.
+   * The API sends the date only (no time of day), so no clock time is shown.
+   */
+  getRegDateLabel(regDate: string): string {
+    const m = (regDate || '').match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (!m) return regDate || '—';
+    const reg = new Date(+m[3], +m[2] - 1, +m[1]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((today.getTime() - reg.getTime()) / 86_400_000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return regDate;
+  }
+
   getDisplayAge(age: string): string {
     if (!age) return '—';
 
@@ -283,13 +299,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
         this.totalItems = response.item1;
         this.totalPages = Math.ceil(this.totalItems / this.pageSize);
 
-        // isUrgent is already normalised in mapPatient(); override only if
-        // lstPatientTests carries a positive urgent_Report flag.
-        this.filteredPatients.forEach((patient) => {
-          if (patient.lstPatientTests?.urgent_Report === true) {
-            patient.isUrgent = 'Yes';
-          }
-        });
         this.isLoading = false;
         this.updatePagination();
         this.cdr.detectChanges();
@@ -517,9 +526,9 @@ export class PatientsListComponent implements OnInit, OnDestroy {
     return 0;
   }
 
-  navigateToAddPatient() {
-    this.router.navigate(['/patients/add']);
-  }
+  // navigateToAddPatient() {
+  //   this.router.navigate(['/patients/add']);
+  // }
 
   refreshList() {
     this.loadPatients();

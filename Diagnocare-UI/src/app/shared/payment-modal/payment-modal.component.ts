@@ -16,28 +16,10 @@ import { PaymentCalculatorComponent } from 'src/app/shared/payment-calculator/pa
 
 // ── Simple UI kit ────────────────────────────────────────────────────────────
 // The new panel asks how much, then how, then (for cash) what was handed over,
-// all on one screen. The original form stays behind *ngIf="!useNewUi".
-import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
-import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
-
-/**
- * What the operator settled on, handed back to a caller that saves the payment
- * as part of its own record rather than as a receipt of its own.
- *
- * Field names match the form controls every payment-carrying form in the app
- * already uses (payment_Type, payment_Mode, amount_Paid, amount_Pending), so a
- * caller usually only has to patch its form with these four values.
- */
-export interface PaymentModalResult {
-  paymentType: string;
-  paymentMode: string;
-  amountPaid: number;
-  amountPending: number;
-  /** Cash handed over, when the operator filled it in. Null otherwise. */
-  cashGiven: number | null;
-  /** Change to give back. 0 when not applicable. */
-  changeDue: number;
-}
+// all on one screen.
+import { DcPaymentPanelComponent } from 'src/app/shared/simple/dc-payment-panel.component';
+import { DcPaymentDecision } from '../../models/common/dc-primitives.model';
+import { PaymentModalResult } from '../../models/receipt/payment.model';
 
 /**
  * THE payment dialog.
@@ -163,10 +145,6 @@ export class PaymentModalComponent implements OnChanges {
   form: FormGroup;
   isSaving = false;
   saveError = '';
-
-  // ── Simple UI kit ───────────────────────────────────────────────────────────
-  /** Flip in shared/simple/simple-ui.flags.ts to compare old and new. */
-  readonly useNewUi = USE_NEW_UI;
 
   /** True once the new panel has everything it needs to save. */
   newUiComplete = false;
@@ -406,9 +384,7 @@ export class PaymentModalComponent implements OnChanges {
         return;
       }
 
-      // No panel decision: USE_NEW_UI is off and the figures came from the
-      // form below. Collect-only has to work on both paths or flipping that
-      // flag would quietly stop Add New Patient from taking a payment.
+      // No panel decision yet: fall back to the figures held on the form.
       const paid = this._currentAmountPaid || +(this.form.get('amount_Paid')?.value) || 0;
       if (paid <= 0) return;
 

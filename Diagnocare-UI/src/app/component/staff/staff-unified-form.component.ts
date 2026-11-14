@@ -21,11 +21,10 @@ import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-
 import { SignaturePreviewModalComponent } from 'src/app/shared/signature-preview-modal/signature-preview-modal.component';
 import { DatePickerComponent } from 'src/app/shared/date-picker/date-picker.component';
 
-import { Role } from 'src/app/constant/enums';
+import { Role, RoleId, RoleLabel } from 'src/app/constant/enums';
 import { MemberDto } from 'src/app/models/member/member.dto';
 import { isMemberActive } from 'src/app/shared/member-utils';
-
-export type UnifiedFormType = 'user' | 'collection-boy' | 'doctor';
+import { UnifiedFormType } from '../../models/staff/staff-form.model';
 
 @Component({
   selector: 'app-staff-unified-form',
@@ -53,17 +52,70 @@ export class StaffUnifiedFormComponent implements OnInit {
   /** Tab order varies by form type — user has contactPhone/typeUserId, doctor has qualification/position. */
   get tabFields(): string[] {
     const common = ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'effectiveFrom', 'deactivatedAt'];
-    if (this.formType === 'user')           return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'typeUserId', 'effectiveFrom', 'deactivatedAt'];
+    if (this.formType === 'user') {
+      // The doctor-profile fields only exist in the tab order while the capability is
+      // actually on, so tabbing never stops on a row that is not on screen.
+      //
+      // The checkbox itself is keyed off whether it is VISIBLE, not whether it is
+      // ticked. FormKeyboardDirective assigns positive tabindexes to the names listed
+      // here, and an element left out keeps tabindex 0 — which the browser orders
+      // AFTER every positive one. So an unticked checkbox used to be reachable only by
+      // tabbing past the end of the form, in exactly the state where someone is trying
+      // to reach it in order to tick it.
+      const doctorFields = [
+        ...(this.showDoctorCapability ? ['isDoctor'] : []),
+        ...(this.showDoctorProfile ? ['qualification', 'position'] : []),
+      ];
+      return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'typeUserId',
+              ...doctorFields, 'effectiveFrom', 'deactivatedAt'];
+    }
     if (this.formType === 'doctor')         return ['user_Name', 'first_Name', 'last_Name', 'email', 'contactPhone', 'qualification', 'position', 'effectiveFrom', 'deactivatedAt'];
     return common; // collection-boy
   }
 
-  /** Role options shown in the User type selector */
-  userRoleOptions = [
-    { id: Role.User.id,       label: Role.User.label       },
+  /**
+   * Role options shown in the User type selector.
+   *
+   * Super Admin is deliberately absent: there is exactly one owner account, created when
+   * the lab registered, and the API refuses to mint another from here anyway. When an
+   * existing Super Admin is opened for edit, `loadRecord` appends it so their own role
+   * still shows correctly in the select — see `editingSuperAdmin`.
+   */
+  userRoleOptions: { id: RoleId; label: RoleLabel }[] = [
+    { id: Role.Receptionist.id,       label: Role.Receptionist.label       },
     { id: Role.Assistant.id,  label: Role.Assistant.label  },
     { id: Role.Admin.id,      label: Role.Admin.label      },
   ];
+
+  /**
+   * True while editing an account whose role is Super Admin. The role select is then
+   * locked — nobody changes their own role, and the API refuses it (RejectIfChangingOwnRole).
+   */
+  editingSuperAdmin = false;
+
+  /**
+   * Whether the "Also a Doctor" checkbox is on screen.
+   *
+   * The capability is offered on the Super Admin role only, matching the API's
+   * ResolveDoctorCapability, which drops a `true` sent for any other role. There is no
+   * point offering it on the Doctor form either — that account already is a doctor.
+   */
+  get showDoctorCapability(): boolean {
+    return this.formType === 'user' && this.editingSuperAdmin;
+  }
+
+  /**
+   * Whether the doctor profile fields (qualification, position, signature) are on screen.
+   *
+   * The Doctor form always shows them. For a Super Admin they appear the moment "Also a
+   * Doctor" is ticked, because that is the information their name carries onto a report
+   * — and the API refuses to grant the capability without qualification and position
+   * (RejectIfDoctorProfileIncomplete), the same rule the Doctor form has always had.
+   */
+  get showDoctorProfile(): boolean {
+    return this.formType === 'doctor'
+        || (this.showDoctorCapability && !!this.form?.get('isDoctor')?.value);
+  }
 
   // Signature (doctors only)
   selectedSignatureFile: File | null = null;
@@ -117,9 +169,23 @@ export class StaffUnifiedFormComponent implements OnInit {
         email:         ['', [Validators.required, Validators.email]],
         contactPhone:  ['', [AppValidators.contactNumber()]],
         typeUserId:    ['', Validators.required],
+        // ── Doctor capability (Super Admin only) ───────────────────────────────
+        // One account, two jobs: the lab owner who also practises. Only rendered for a
+        // Super Admin (showDoctorCapability) and only honoured for one by the API, so
+        // these three sit harmlessly unused for every other role.
+        isDoctor:      [false],
+        qualification: [''],
+        position:      [''],
+        signature:     [''],
         effectiveFrom: [null, Validators.required],
         deactivatedAt: [null],
       });
+
+      // Qualification and Position print beside the doctor's name on a report, so they
+      // are required exactly while the capability is on — the same rule the Doctor form
+      // has always applied, and the one the API enforces on save. Toggling the box off
+      // clears the requirement so an unrelated edit is never blocked by it.
+      this.form.get('isDoctor')!.valueChanges.subscribe(() => this.syncDoctorProfileValidators());
 
     } else {
       // Doctor / Collection Boy — same fields as User but with qualification/position.
@@ -159,6 +225,26 @@ export class StaffUnifiedFormComponent implements OnInit {
       return null;
     };
     this.form.setValidators(deactivationAfterEffective);
+  }
+
+  /**
+   * Makes Qualification and Position required while the Doctor capability is on, and
+   * optional again when it is off. Only touches the user form — on the Doctor form both
+   * are required unconditionally at build time.
+   *
+   * `emitEvent: false` because this runs from a valueChanges subscription; re-emitting
+   * would loop.
+   */
+  private syncDoctorProfileValidators(): void {
+    if (this.formType !== 'user') return;
+
+    const required = this.showDoctorProfile;
+    for (const name of ['qualification', 'position']) {
+      const ctrl = this.form.get(name);
+      if (!ctrl) continue;
+      ctrl.setValidators(required ? [Validators.required] : []);
+      ctrl.updateValueAndValidity({ emitEvent: false });
+    }
   }
 
   /** Converts dd-mm-yyyy or ISO yyyy-mm-dd to the picker's yyyy-mm-dd internal format. */
@@ -218,15 +304,32 @@ export class StaffUnifiedFormComponent implements OnInit {
           return;
         }
 
+        // A Super Admin is not in userRoleOptions — the list is for roles that can be
+        // assigned, and theirs cannot be. Append it so the select shows their actual
+        // role rather than falling back to the "-- Select Role --" placeholder, which
+        // would read as though the owner had no role at all.
+        this.editingSuperAdmin = data.typeUserId === Role.Super_Admin.id;
+        if (this.editingSuperAdmin && !this.userRoleOptions.some(r => r.id === Role.Super_Admin.id)) {
+          this.userRoleOptions = [
+            ...this.userRoleOptions,
+            { id: Role.Super_Admin.id, label: Role.Super_Admin.label },
+          ];
+        }
+
         this.form.patchValue({
           ...data,
           // Staff created before email/phone were collected have phone 0 — show blank.
           contactPhone:  data.contactPhone || '',
+          // The server's answer, not a guess: false unless this account was actually
+          // granted the capability. Existing Super Admins load with the box unticked.
+          isDoctor:      !!data.isDoctor,
           signature:     data.signatureImage || data.signatureBase64 || '',
           effectiveFrom: data.effectiveFrom ? this.toPickerDate(data.effectiveFrom as string) : null,
           deactivatedAt: data.deactivatedAt ? this.toPickerDate(data.deactivatedAt as string) : null,
         });
         this.isLoading = false;
+        // patchValue above does not re-run the conditional required rules on its own.
+        this.syncDoctorProfileValidators();
         // Ensure cross-field validation runs after patching values
         this.form.updateValueAndValidity({ onlySelf: false, emitEvent: false });
       },
@@ -259,7 +362,7 @@ export class StaffUnifiedFormComponent implements OnInit {
 
   private saveMember(): void {
     const v = this.form.getRawValue();
-    const typeUserId = this.formType === 'user'           ? (v.typeUserId || Role.User.id)
+    const typeUserId = this.formType === 'user'           ? (v.typeUserId || Role.Receptionist.id)
                      : this.formType === 'collection-boy' ? Role.Collection_Boy.id
                      :                                      Role.Doctor.id;
 
@@ -268,6 +371,9 @@ export class StaffUnifiedFormComponent implements OnInit {
       typeUserId,
       contactPhone:  v.contactPhone ? Number(v.contactPhone) : undefined,
       signatureImage: v.signature || undefined,
+      // Only ever sent where the checkbox was actually offered. The API normalises it
+      // for the role regardless, so this is tidiness rather than the control.
+      isDoctor: this.showDoctorCapability ? !!v.isDoctor : undefined,
       // Empty string from a cleared date input must become null, not ""
       // — the backend's DateOnly? cannot deserialise an empty string.
       effectiveFrom: v.effectiveFrom || null,
@@ -279,7 +385,21 @@ export class StaffUnifiedFormComponent implements OnInit {
       : this.memberService.add({ ...payload, id: 0 });
 
     request$.subscribe({
-      next:  () => { this.isLoading = false; this.goBack(); },
+      next:  (res: any) => {
+        this.isLoading = false;
+        // A user's capabilities travel in their JWT, which was minted at login. A Super
+        // Admin who just granted the Doctor capability to THEMSELVES is still holding a
+        // token that says otherwise, so the doctor menus will not appear until a fresh
+        // one is issued. The API tells us when that is the case; say so, rather than
+        // leaving them to conclude the save did not work and press it again.
+        if (res?.requiresReLogin) {
+          this.toastr.info(
+            'Sign out and sign in again for your own doctor features to appear.',
+            'Saved'
+          );
+        }
+        this.goBack();
+      },
       error: () => { this.isLoading = false; }
     });
   }

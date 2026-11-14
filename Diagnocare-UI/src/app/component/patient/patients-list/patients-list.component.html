@@ -5,11 +5,11 @@
             <h2>Patient Management System</h2>
             <p class="subtitle">Manage patient records and reports</p>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-primary" *ngIf="!isCollectionBoy" (click)="navigateToAddPatient()">
+        <!-- <div class="header-actions">
+            <button class="dc-btn dc-btn--save" *ngIf="!isCollectionBoy" (click)="navigateToAddPatient()">
                 <i class="fa fa-plus"></i> Add New Patient
             </button>
-        </div>
+        </div> -->
     </div>
     <div class="content-container">
 
@@ -18,14 +18,13 @@
         <div class="search-row">
 
             <div class="search-group">
-                <label class="filter-label">
+                <label for="patients-list-field1" class="filter-label">
                     <i class="fa fa-user-circle"></i> Patient Search
                 </label>
                 <div class="input-icon-wrap">
-                    <input type="text" [(ngModel)]="searchTerm" name="patientSearch"
-                        autocomplete="off" [readonly]="searchReadonly"
-                        (focus)="searchReadonly = false" (blur)="searchReadonly = true"
-                        placeholder="Name or ID…" class="form-control">
+                    <input id="patients-list-field1" type="search" [(ngModel)]="searchTerm" name="patientSearch"
+                        autocomplete="off" (keyup.enter)="searchPatients()"
+                        placeholder="Name or ID…" class="dc-input">
                 </div>
             </div>
 
@@ -36,14 +35,14 @@
                 <div class="date-inputs">
                     <app-date-picker
                         [(ngModel)]="dateFrom"
-                        inputClass="form-control"
+                        inputClass="dc-input"
                         placeholder="From"
                         [max]="todayIso">
                     </app-date-picker>
                     <span class="date-sep"><i class="fa fa-long-arrow-alt-right"></i></span>
                     <app-date-picker
                         [(ngModel)]="dateTo"
-                        inputClass="form-control"
+                        inputClass="dc-input"
                         placeholder="To"
                         [min]="dateFrom"
                         [max]="todayIso">
@@ -52,10 +51,10 @@
             </div>
 
             <div class="filter-group">
-                <label class="filter-label">
+                <label for="patients-list-field2" class="filter-label">
                     <i class="fa fa-filter"></i> Status
                 </label>
-                <select [(ngModel)]="statusFilter" (ngModelChange)="onStatusFilter()" class="form-select">
+                <select id="patients-list-field2" [(ngModel)]="statusFilter" (ngModelChange)="onStatusFilter()" class="dc-select">
                     <option value="active">Active (Pending + Partial)</option>
                     <option value="Pending">Pending</option>
                     <option value="Partial">Partial</option>
@@ -80,15 +79,16 @@
         <app-loading-spinner [isLoading]="isLoading" message="Loading patients..."></app-loading-spinner>
         <!-- No Data Message -->
         <div *ngIf="filteredPatients.length === 0 && !isLoading">
-            <div *ngIf="isTodayDateRange(); else otherNoData" class="no-data">
-                <i class="fa fa-info-circle"></i>
-                <p>No patient registered for today</p>
-            </div>
+            <dc-empty *ngIf="isTodayDateRange(); else otherNoData"
+                      icon="fa-user-plus"
+                      title="No patient registered for today"
+                      message="Patients you register today will appear here.">
+            </dc-empty>
             <ng-template #otherNoData>
-                <div class="no-data">
-                    <i class="fa fa-info-circle"></i>
-                    <p>No patients found matching your criteria.</p>
-                </div>
+                <dc-empty icon="fa-search"
+                          title="No patients match your search"
+                          message="Check the spelling, widen the date range, or change the status filter.">
+                </dc-empty>
             </ng-template>
         </div>
         <table *ngIf="!isLoading && filteredPatients.length > 0" class="patients-table">
@@ -103,19 +103,12 @@
                     Patient Name / Father Name
                     <i class="sort-icon" [class]="getSortIcon('patient_Name')"></i>
                     </th>
-                    <th (click)="sort('patient_DOB')" class="sortable">
-                    Date Of Birth
-                    <i class="sort-icon" [class]="getSortIcon('patient_DOB')"></i>
-                    </th>
-                    <th (click)="sort('patient_Age')" class="sortable">
-                    Age/Sex
-                    <i class="sort-icon" [class]="getSortIcon('patient_Age')"></i>
-                    </th>
+                    <!-- DOB and relative live in the details popup (click the name). -->
                     <!-- <th (click)="sort('receipt')" class="sortable">
                     Receipt
                     <i class="sort-icon" [class]="getSortIcon('receipt')"></i>
                     </th>-->
-                    <th>Urg Rep</th>
+
                     <!--<th (click)="sort('total_Amount')" class="sortable">
                     Total Amt
                     <i class="sort-icon" [class]="getSortIcon('total_Amount')"></i>
@@ -136,7 +129,7 @@
         <tr *ngFor="let patient of filteredPatients; let i = index; trackBy: trackByPatientId" 
             [class]="getRowClass(patient)">
             
-            <td data-label="Reg Date">{{patient.patient_Reg_Date}}</td>
+            <td data-label="Registered" class="col-reg" [title]="patient.patient_Reg_Date">{{ getRegDateLabel(patient.patient_Reg_Date) }}</td>
             <td data-label="Patient ID" class="col-patient-id">
                 <span class="patient-id-chip" *ngIf="patient.patient_Id; else noPatientId">
                     <span class="patient-id-text" [title]="patient.patient_Id">{{ patient.patient_Id }}</span>
@@ -153,24 +146,11 @@
             <td data-label="Patient">
                 <div class="patient-info">
                     <strong>
-                        <a href="javascript:void(0)" class="patient-name-link" title="View patient details"
-                           (click)="openDetails(patient); $event.preventDefault()">{{patient.patient_Name}}</a>
+                        <button type="button" class="patient-name-link" title="View patient details"
+                           (click)="openDetails(patient)">{{patient.patient_Name}}</button>
                     </strong>
-                    <small>{{patient.relative_Name}}</small>
+                    <small>{{ getDisplayAge(patient.patient_Age) }} / {{ patient.patient_Gender || '—' }}</small>
                 </div>
-            </td>
-            <td data-label="Date of Birth">{{patient.patient_DOB}}</td>
-            <td data-label="Age / Sex">
-                <div class="patient-info">
-                    <strong>{{ getDisplayAge(patient.patient_Age) }}</strong>
-                    <small>{{ patient.patient_Gender }}</small>
-                </div>
-            </td>
-            <td data-label="Urg Rep">
-              <span [ngClass]="getUrgentClass(patient.isUrgent)">
-                <span class="urgent-dot"></span>
-                {{ patient.isUrgent === 'Yes' ? 'Urgent' : 'Normal' }}
-              </span>
             </td>
             <!-- <td></td> -->
             <!-- <td class="amount">₹{{patient.net_Amount}}</td> -->
@@ -199,6 +179,10 @@
               <span class="status-badge" [ngClass]="getStatusClass(patient.status)">
                 <span class="status-dot"></span>
                 {{ patient.status || '—' }}
+              </span>
+              <!-- Only flag the exception; "Normal" is noise when scanning. -->
+              <span *ngIf="patient.isUrgent === 'Yes'" [ngClass]="getUrgentClass(patient.isUrgent)" class="urgent-flag">
+                <span class="urgent-dot"></span> Urgent
               </span>
             </td>
             <td data-label="Actions" class="col-actions">
@@ -231,7 +215,7 @@
             Showing {{startIndex + 1}} to {{endIndex}} of {{totalItems}} patients
         </div>
         <div class="pagination-controls">
-            <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="form-select" style="width: auto;">
+            <select aria-label="Rows per page" [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="dc-select" style="width: auto;">
                 <option value="10">10 per page</option>
                 <option value="25">25 per page</option>
                 <option value="50">50 per page</option>
@@ -279,7 +263,7 @@
             <dt><i class="fa fa-map-marker-alt"></i> Address</dt>
             <dd>
                 <ng-container *ngIf="p.patient_Address; else pdNone">
-                    {{ p.patient_Address }}
+                    <span class="pd-address">{{ p.patient_Address }}</span>
                     <a *ngIf="mapHref(p) as map" class="pd-action" [href]="map" target="_blank" rel="noopener"><i class="fa fa-directions"></i> Directions</a>
                 </ng-container>
             </dd>

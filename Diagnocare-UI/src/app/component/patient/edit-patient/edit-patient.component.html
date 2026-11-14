@@ -9,7 +9,7 @@
       <p class="subtitle">{{componentTitle}}</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-back" (click)="clickBack()">
+      <button class="dc-btn dc-btn--back" (click)="clickBack()">
         <i class="fa fa-arrow-left"></i> Back
       </button>
     </div>
@@ -25,20 +25,20 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Name</label>
+              <label for="edit-patient-patient_Salutation" class="form-label required">Name</label>
               <div class="input-group" [class.is-invalid]="isFieldInvalid('patient_Name')">
-                <select formControlName="patient_Salutation" class="form-select" style="max-width: 80px;" [attr.tabindex]="getTabIndex('patient_Salutation')">
+                <select id="edit-patient-patient_Salutation" formControlName="patient_Salutation" class="form-select" style="max-width: 80px;" [attr.tabindex]="getTabIndex('patient_Salutation')">
                   <option *ngFor="let entry of salutation" [value]="entry">{{ entry }}</option>
                 </select>
-                <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Name')"
+                <input aria-label="Patient name" type="text" class="form-control" appCapitalizedName [class.is-invalid]="isFieldInvalid('patient_Name')"
                        formControlName="patient_Name" [attr.tabindex]="getTabIndex('patient_Name')">
               </div>
               <app-field-error [control]="editPatientForm.get('patient_Name')" label="Patient Name" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label required">Date Of Birth</label>
+              <label for="edit-patient-patient_DOB" class="form-label required">Date Of Birth</label>
               <div class="dob-input-wrap" [class.is-invalid]="isFieldInvalid('patient_DOB')">
-                <input type="text"
+                <input id="edit-patient-patient_DOB" type="text"
                        class="form-control"
                        [class.is-invalid]="isFieldInvalid('patient_DOB')"
                        formControlName="patient_DOB"
@@ -65,14 +65,14 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label required">Age</label>
-              <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Age')"
+              <label for="edit-patient-patient_Age" class="form-label required">Age</label>
+              <input id="edit-patient-patient_Age" type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Age')"
                      formControlName="patient_Age" [attr.tabindex]="getTabIndex('patient_Age')">
               <app-field-error [control]="editPatientForm.get('patient_Age')" label="Age" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Age Group</label>
-              <input type="text" class="form-control" formControlName="patient_Age_Group"
+              <label for="edit-patient-patient_Age_Group" class="form-label">Age Group</label>
+              <input id="edit-patient-patient_Age_Group" type="text" class="form-control" formControlName="patient_Age_Group"
                      placeholder="Auto-calculated from Age" readonly [attr.tabindex]="getTabIndex('patient_Age_Group')" />
             </div>
           </div>
@@ -100,8 +100,8 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Relation</label>
-              <select formControlName="relation" class="form-select" [class.is-invalid]="isFieldInvalid('relation')"
+              <label for="edit-patient-relation" class="form-label">Relation</label>
+              <select id="edit-patient-relation" formControlName="relation" class="form-select" [class.is-invalid]="isFieldInvalid('relation')"
                       [attr.tabindex]="getTabIndex('relation')">
                 <option *ngFor="let relation of relations" [value]="relation">{{ relation }}</option>
               </select>
@@ -109,7 +109,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Relative Name</label>
-              <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('relative_Name')"
+              <input aria-label="Relative name" type="text" class="form-control" [class.is-invalid]="isFieldInvalid('relative_Name')"
                      formControlName="relative_Name" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('relative_Name')">
               <app-field-error [control]="editPatientForm.get('relative_Name')" label="Relative Name" [forceShow]="formSubmitted"></app-field-error>
             </div>
@@ -117,29 +117,30 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Contact</label>
+              <label for="edit-patient-country_Code" class="form-label">Contact</label>
               <div style="display: flex; gap: 6px; align-items: center;">
-                <select class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
+                <select id="edit-patient-country_Code" class="form-select" formControlName="country_Code" style="max-width: 110px;" [attr.tabindex]="getTabIndex('country_Code')">
                   <option *ngFor="let c of countryCodes" [value]="c.code">{{ c.label }}</option>
                 </select>
-                <input type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
+                <input aria-label="Patient contact number" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national"
                        appNumericOnly class="form-control" [class.is-invalid]="isFieldInvalid('patient_Contact')"
                        formControlName="patient_Contact" [attr.tabindex]="getTabIndex('patient_Contact')" style="flex:1;">
               </div>
               <app-field-error [control]="editPatientForm.get('patient_Contact')" label="Mobile Number" [forceShow]="formSubmitted"></app-field-error>
             </div>
             <div class="form-group">
-              <label class="form-label">Email ID</label>
-              <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Email')"
+              <label for="edit-patient-patient_Email" class="form-label">Email ID</label>
+              <input id="edit-patient-patient_Email" type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Email')"
                      formControlName="patient_Email" [attr.tabindex]="getTabIndex('patient_Email')">
               <app-field-error [control]="editPatientForm.get('patient_Email')" label="Email" [forceShow]="formSubmitted"></app-field-error>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Address</label>
-            <input type="text" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Address')"
-                   formControlName="patient_Address" autocorrect="off" spellcheck="false" [attr.tabindex]="getTabIndex('patient_Address')">
+            <label for="edit-patient-patient_Address" class="form-label">Address</label>
+            <textarea id="edit-patient-patient_Address" rows="4" class="form-control" [class.is-invalid]="isFieldInvalid('patient_Address')"
+                   formControlName="patient_Address" placeholder="Enter complete address" autocomplete="street-address"
+                   [attr.tabindex]="getTabIndex('patient_Address')"></textarea>
             <app-field-error [control]="editPatientForm.get('patient_Address')" label="Address" [forceShow]="formSubmitted"></app-field-error>
           </div>
 

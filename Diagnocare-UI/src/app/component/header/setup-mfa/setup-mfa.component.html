@@ -161,7 +161,7 @@
 
       <div class="otp-wrapper">
         <div class="otp-input-group">
-          <input
+          <input aria-label="000000"
             class="otp-input"
             type="text"
             [appMasked]="!otpVisible"
@@ -260,7 +260,7 @@
 
       <div class="otp-wrapper">
         <div class="otp-input-group">
-          <input
+          <input aria-label="000000"
             class="otp-input"
             type="text"
             [appMasked]="!otpVisible"
@@ -282,11 +282,11 @@
 
       <!-- Device name (optional) -->
       <div class="device-name-block">
-        <label class="device-label">
+        <label for="setup-mfa-field1" class="device-label">
           <i class="fa fa-mobile-alt"></i> Device name
           <span class="optional-badge">optional</span>
         </label>
-        <input
+        <input id="setup-mfa-field1"
           class="device-input"
           type="text"
           placeholder="e.g. My iPhone, Work Phone"
@@ -303,7 +303,7 @@
           <i class="fa" [class.fa-check]="!verifying" [class.fa-spinner]="verifying" [class.fa-spin]="verifying"></i>
           {{ verifying ? 'Verifying…' : 'Verify & Activate' }}
         </button>
-        <button class="dc-btn dc-btn--cancel" (click)="goBack()">
+        <button class="dc-btn dc-btn--back" (click)="goBack()">
           <i class="fa fa-arrow-left"></i> Back
         </button>
       </div>

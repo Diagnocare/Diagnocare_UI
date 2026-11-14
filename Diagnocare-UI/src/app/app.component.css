@@ -11,7 +11,7 @@
 }
 
 .se-card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 1.25rem;
   padding: 2.75rem 3rem 2.25rem;
   text-align: center;
@@ -29,26 +29,26 @@
 .se-icon {
   width: 4.5rem;
   height: 4.5rem;
-  background: #fee2e2;
+  background: var(--color-error-bg);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.25rem;
   font-size: 1.7rem;
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .se-title {
   margin: 0 0 0.75rem;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
 
 .se-body {
   margin: 0 0 1.5rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   line-height: 1.65;
   font-size: 0.9rem;
 }
@@ -64,7 +64,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #1E5BA8;
+  background: var(--color-primary-ink);
   animation: se-bounce 1.2s infinite ease-in-out;
 }
 
