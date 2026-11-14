@@ -1,16 +1,18 @@
-<div class="page-container">
+<div class="page-container mtl-page">
   <div class="page-header">
     <div class="header-left">
       <h1>Master Test List</h1>
       <p class="subtitle">Manage groups, subgroups, and test rates</p>
     </div>
     <div class="header-actions">
-      <button class="dc-btn dc-btn--save" (click)="add()"><i class="fa fa-plus"></i> Add</button>
-      <button class="dc-btn dc-btn--save" (click)="importFromExcel()"><i class="fa fa-upload"></i> Import from Excel</button>
-      <button class="dc-btn dc-btn--save" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
-      <button class="dc-btn dc-btn--save" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
-      <button class="dc-btn dc-btn--save" (click)="manageTestProtocol()"><i class="fa fa-flask"></i> Manage Protocol</button>
-      <button class="dc-btn dc-btn--delete" (click)="drop()"><i class="fa fa-trash"></i> Drop</button>
+      <!-- Each button is shown only to the roles its API endpoint accepts. For anyone else
+           the API answers 403 and the error interceptor bounces them to /access-denied. -->
+      <button *ngIf="canManageCatalogue" class="dc-btn dc-btn--save" (click)="add()"><i class="fa fa-plus"></i> Add</button>
+      <button *ngIf="canManageCatalogue" class="dc-btn dc-btn--save" (click)="importFromExcel()"><i class="fa fa-upload"></i> Import from Excel</button>
+      <button *ngIf="canManageCatalogue" class="dc-btn dc-btn--save" (click)="edit()"><i class="fa fa-pencil"></i> Edit</button>
+      <button *ngIf="canManageParameters" class="dc-btn dc-btn--save" (click)="manageTestParameter()"><i class="fa fa-sliders"></i> Manage Parameter</button>
+      <button *ngIf="canManageCatalogue" class="dc-btn dc-btn--save" (click)="manageTestProtocol()"><i class="fa fa-flask"></i> Manage Protocol</button>
+      <button *ngIf="canDrop" class="dc-btn dc-btn--delete" (click)="drop()"><i class="fa fa-trash"></i> Drop</button>
     </div>
   </div>
 
