@@ -4,7 +4,8 @@ export const environment: AppEnvironment = {
   production: false,
   diagnocareApiURL: 'https://diagnocare-uat.runasp.net/',
   // Tenant subdomains hang off this domain; TenantService parses against it (§19).
-  baseDomain: 'diagnocare-staging.com',
+  // UAT labs live one level down: zenome.uat.dignocare.link -> 'zenome'.
+  baseDomain: 'uat.dignocare.link',
   // Hosts with no tenant subdomain (preview builds) assume this laboratory.
   devTenantKey: 'pankaj',
   loginUIUrl: 'https://diagnocare-ui.vercel.app/',

@@ -4,7 +4,7 @@ export const environment: AppEnvironment = {
   production: true,
   diagnocareApiURL: 'https://diagnocare-prod.runasp.net/',
   // Tenant subdomains hang off this domain; TenantService parses against it (§19).
-  baseDomain: 'diagnocare.com',
+  baseDomain: 'dignocare.link',
   // Local/preview hosts carry no tenant subdomain — assume this laboratory there.
   devTenantKey: null,
   loginUIUrl: 'https://diagnocare-ui.vercel.app/',

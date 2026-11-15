@@ -49,6 +49,11 @@ export class TenantService {
   private resolve(): string | null {
     const host = window.location.hostname.toLowerCase();
 
+    // A real tenant subdomain always wins. The dev override below must never shadow it:
+    // with devTenantKey set, zenome.uat.<base> would otherwise be served as that lab.
+    const fromHost = this.labelFromHost(host);
+    if (fromHost) return fromHost;
+
     // ── Non-production escape hatch ──────────────────────────────────────────
     // localhost and Vercel preview builds have no tenant subdomain, so allow an explicit
     // override via ?tenant= or environment.devTenantKey. Compiled out of production by the
@@ -62,6 +67,10 @@ export class TenantService {
       if (override) return override.trim().toLowerCase();
     }
 
+    return null;
+  }
+
+  private labelFromHost(host: string): string | null {
     if (!this.baseDomain) return null;
     if (host === this.baseDomain) return null;
     if (!host.endsWith(`.${this.baseDomain}`)) return null;
