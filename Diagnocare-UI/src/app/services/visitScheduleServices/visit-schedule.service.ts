@@ -12,7 +12,7 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class VisitScheduleService {
-  private base = getDiagnocareApiUrl() + 'api/visitSchedule/';
+  private base = getDiagnocareApiUrl() + 'api/v1/visitSchedule/';
 
   constructor(private http: HttpClient) {}
 
