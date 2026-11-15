@@ -103,6 +103,55 @@ export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
+      // ── Tenancy outcomes (§6, §10) ────────────────────────────────────────
+      // These are handled BEFORE the auth-flow exemption, because they can occur on the
+      // login call itself — a suspended laboratory's staff hit them at the login screen,
+      // which is precisely when a bare "Error" toast explains nothing.
+      if (err instanceof HttpErrorResponse) {
+        const tenantError = (err.error as { error?: string } | null)?.error;
+
+        if (err.status === 402) {
+          // Suspended or Expired. Only export endpoints remain reachable.
+          if (!router.url.startsWith('/licence-expired')) {
+            router.navigate(['/licence-expired'], { queryParams: { reason: tenantError ?? 'subscription_inactive' } });
+          }
+          return throwError(() => toAppHttpError(err));
+        }
+
+        if (err.status === 403 && tenantError === 'tenant_mismatch') {
+          // The session belongs to a different laboratory than this tab. Sending the user to
+          // /access-denied would be misleading — nothing is wrong with their role. Clear the
+          // session and send them to log in against THIS laboratory.
+          console.warn('[HTTP 403] tenant mismatch — session belongs to another laboratory.');
+          router.navigate(['/login'], { queryParams: { reason: 'tenant_mismatch' } });
+          return throwError(() => toAppHttpError(err));
+        }
+
+        if (err.status === 503 &&
+            (tenantError === 'tenant_provisioning' || tenantError === 'tenant_upgrading')) {
+          // A migration is rolling across this laboratory's database, or it is still being
+          // provisioned. Transient by construction, and Retry-After says roughly how long.
+          if (!skipToast) {
+            toastr.info(
+              'This laboratory is being updated. Please try again in a moment.',
+              'Temporarily unavailable',
+            );
+          }
+          return throwError(() => toAppHttpError(err));
+        }
+
+        if (err.status === 400 && tenantError === 'tenant_required') {
+          // The app reached the API without a tenant — an unrecognised host, or a preview
+          // build with no devTenantKey. There is nothing the user can do about it, so say so
+          // rather than toasting a generic failure.
+          console.error('[HTTP 400] no tenant on the request — check environment.baseDomain.');
+          if (!skipToast) {
+            toastr.error('This address is not linked to a laboratory.', 'Unknown laboratory');
+          }
+          return throwError(() => toAppHttpError(err));
+        }
+      }
+
       if (err instanceof HttpErrorResponse && !skipToast && !isAuthFlow) {
         if (err.status === 403) {
           // Role refused by the API. Send the user somewhere that explains why,

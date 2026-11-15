@@ -59,7 +59,7 @@ export class MemberService {
    * an empty dropdown is better than losing the form.
    */
   getCollectionBoysLookup(): Observable<MemberDto[]> {
-    const url = getDiagnocareApiUrl() + 'api/StaffLookup/CollectionBoys';
+    const url = getDiagnocareApiUrl() + 'api/v1/StaffLookup/CollectionBoys';
     return this.http
       .get<any[]>(url, { headers: new HttpHeaders({ [SKIP_ERROR_TOAST_HEADER]: '1' }) })
       .pipe(map(list => this.normalizeList(list ?? [])));

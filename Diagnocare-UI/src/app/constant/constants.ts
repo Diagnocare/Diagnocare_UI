@@ -3,69 +3,77 @@ import { ReportConfig, ReportLevelOption } from "../models/summaryReport/summary
 /** Default country dialling code used across patient forms. Update here to change globally. */
 export const DEFAULT_DIALING_CODE = '+91';
 
+/**
+ * Controller paths. Versioned under /api/v1 from day one (§24).
+ *
+ * The API mounts every existing controller under this prefix centrally
+ * (ApiVersionRoutePrefixConvention), so this is a prefix change and nothing else. The REST
+ * redesign is a separate, later migration under /api/v2, endpoint by endpoint — this file is
+ * deliberately the single place API paths are assembled, which is what makes that possible.
+ */
 export const controllerEndpoints = {
-  header: 'api/header/',
-  login: 'api/login/',
-  otp: 'api/Otp/',
-  mfa: 'api/Mfa/',
-  fingerprint: 'api/Fingerprint/',
-  address: 'api/addressManager/',
-  collectionBoy: 'api/collectionBoys/',
-  doctor: 'api/doctors/',
-  patient: 'api/patient/',
-  patientReport: 'api/PatientReport/',
-  patientTestReportGeneration: 'api/TestReportGeneration/',
-  smartReport: 'api/SmartReport/',
-  sampleLabel: 'api/SampleLabel/',
-  pathology: 'api/pathology/',
-  test: 'api/test/',
-  user: 'api/user/',
-  receipt: 'api/receipt/',
-  summaryReport:'api/summaryReport/',
-  pathologyTest:'api/pathologyTest/',
+  header: 'api/v1/header/',
+  login: 'api/v1/login/',
+  otp: 'api/v1/Otp/',
+  mfa: 'api/v1/Mfa/',
+  fingerprint: 'api/v1/Fingerprint/',
+  address: 'api/v1/addressManager/',
+  collectionBoy: 'api/v1/collectionBoys/',
+  doctor: 'api/v1/doctors/',
+  patient: 'api/v1/patient/',
+  patientReport: 'api/v1/PatientReport/',
+  patientTestReportGeneration: 'api/v1/TestReportGeneration/',
+  smartReport: 'api/v1/SmartReport/',
+  sampleLabel: 'api/v1/SampleLabel/',
+  pathology: 'api/v1/pathology/',
+  test: 'api/v1/test/',
+  user: 'api/v1/user/',
+  receipt: 'api/v1/receipt/',
+  summaryReport:'api/v1/summaryReport/',
+  pathologyTest:'api/v1/pathologyTest/',
   /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
-  testImport:    'api/TestImport/',
-  template:   'api/template/',
-  attendance: 'api/attendance/',
-  salary:     'api/salary/',
+  testImport:    'api/v1/TestImport/',
+  template:   'api/v1/template/',
+  attendance: 'api/v1/attendance/',
+  salary:     'api/v1/salary/',
   /**
    * Paid leave: accumulated balances and the year-end carry-forward. Its own controller
    * because a leave balance spans the whole year, while Attendance is per day.
    */
-  leave:      'api/Leave/',
-  holiday:       'api/holiday/',
-  visitSchedule: 'api/visitSchedule/',
-  feedback:      'api/feedback/',
+  leave:      'api/v1/Leave/',
+  holiday:       'api/v1/holiday/',
+  visitSchedule: 'api/v1/visitSchedule/',
+  feedback:      'api/v1/feedback/',
   /**
    * Repeat testing — how many times a test was run on the collected sample, and why.
    * Its own controller: this is about the conduct of the test, not its values.
    */
-  testRun:       'api/TestRun/',
+  testRun:       'api/v1/TestRun/',
   /**
    * Sample rejection — a collected sample that could not be used, and why. Its own
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
-  sampleRejection: 'api/SampleRejection/',
+  sampleRejection: 'api/v1/SampleRejection/',
   /**
    * The sample breakdown — how a booking's tests distribute across the tubes that have to
    * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
    * this one answers how many tubes there are.
    */
-  sample: 'api/Sample/',
+  sample: 'api/v1/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
   /** Promotional prices for tests, sub-groups and groups; also the price quote used by the booking screens. */
   promotion: 'api/Promotion/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
-  testReminder: 'api/TestReminder/',
-  worklist: 'api/Worklist/',
+  testReminder: 'api/v1/TestReminder/',
+  worklist: 'api/v1/Worklist/',
   /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
-  dashboard: 'api/Dashboard/',
+  dashboard: 'api/v1/Dashboard/',
   /**
    * The caller's own in-app notifications (header bell, User Panel badges).
    * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
    */
-  notification: 'api/Notification/'
+  notification: 'api/v1/Notification/'
 };
 
 export const apiEndpoints = {
