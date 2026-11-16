@@ -10,8 +10,9 @@ import { ReportConfig, PeriodCount, ChartType } from 'src/app/models/summaryRepo
 import { ChartService } from 'src/app/services/summaryServices/chart.service';
 import { SummaryReportService } from 'src/app/services/summaryServices/summary-report.service';
 import { LoadingSpinnerComponent } from 'src/app/shared/loading-spinner/loading-spinner.component';
-import { ReportFilterBarComponent, FilterChartOption } from 'src/app/shared/report-filter-bar/report-filter-bar.component';
+import { ReportFilterBarComponent } from 'src/app/shared/report-filter-bar/report-filter-bar.component';
 import { chartDisplayOptions } from 'src/app/constant/constants';
+import { FilterChartOption } from '../../../models/summaryReport/report-filter.model';
 
 @Component({
   selector: 'app-base-report',

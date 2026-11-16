@@ -16,6 +16,8 @@ import { DropRequestDTO } from 'src/app/models/path-test/drop-request.dto';
 import { GroupSubGroupModel } from 'src/app/models/path-test/group/group.model';
 import { TestItem } from 'src/app/models/path-test/test/test.model';
 import { TestProtocolModalComponent } from '../test-protocol-modal/test-protocol-modal.component';
+import { TokenService } from 'src/app/core/interceptors/token.service';
+import { Role } from 'src/app/constant/enums';
 
 /**
  * Treats a blank id as "not supplied".
@@ -77,8 +79,35 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
     private _pathTest: PathTestService,
     private toastr: ToastrService,
     private _commonService: CommonService,
-    private _confirmModal: ConfirmModalService
+    private _confirmModal: ConfirmModalService,
+    private _tokenService: TokenService
   ){}
+
+  /**
+   * Drop is shown only to the roles the API accepts on DELETE /pathologyTest/Delete
+   * (AdminOrSuperAdmin). Receptionists reach this screen too, and for them the call
+   * came back 403, which the error interceptor turns into a jump to /access-denied.
+   */
+  get canDrop(): boolean {
+    return this._tokenService.isAdmin();
+  }
+
+  /**
+   * Add, Edit, Import and Manage Protocol all write through AdminOrSuperAdmin endpoints
+   * (AddGroupWithSubgroupsAndTests, UpdateGroupDetails / UpdatePathologyTest, the import
+   * controller, SaveProtocol / SaveTestProtocolAssignments).
+   */
+  get canManageCatalogue(): boolean {
+    return this._tokenService.isAdmin();
+  }
+
+  /**
+   * Parameters are saved through TestParameterManipulation (TestResultEntry policy:
+   * Super Admin, Admin, Lab Assistant) — the same roles the addTestParameter route admits.
+   */
+  get canManageParameters(): boolean {
+    return this._tokenService.hasRole(Role.Admin.id, Role.Super_Admin.id, Role.Assistant.id);
+  }
 
   ngOnInit(): void {
     const token = this._commonService.getAccessToken();
@@ -475,8 +504,15 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
     });
   }
   
-  /** Confirms and deletes the item the user explicitly selected. */
+  /**
+   * Confirms and deletes the item the user explicitly selected.
+   *
+   * A group or sub-group is dropped only once it is empty. That is checked here against
+   * the lists already on screen so the user is told straight away, and again by the API,
+   * which also refuses a test that patient bookings still reference.
+   */
   drop() {
+    if (!this.canDrop) return;
     const request = new DropRequestDTO();
     let label = '';
     let message = '';
@@ -500,9 +536,14 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         }
         const sg = this.subGroups.find(s => s.testGroupId === this.selectedSubGroupId);
         label = `Sub-Group "${sg?.name ?? this.selectedSubGroupId}"`;
+        const childTests = this.tests.filter(t => t.subGroupId === this.selectedSubGroupId).length;
+        if (childTests > 0) {
+          this.toastr.warning(`${label} still has ${childTests} test(s). Drop them first, then drop the sub-group.`, 'Cannot Drop');
+          return;
+        }
         request.type = 'subgroup';
         request.groupSubgroupId = this.selectedSubGroupId;
-        message = `Are you sure you want to permanently delete ${label}? This will also delete all tests under it.`;
+        message = `Are you sure you want to permanently delete ${label}?`;
         break;
       }
 
@@ -513,9 +554,14 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
         }
         const g = this.groups.find(gr => gr.testGroupId === this.selectedGroupId);
         label = `Group "${g?.name ?? this.selectedGroupId}"`;
+        const childSubGroups = this.subGroups.filter(s => s.parentGroupId === this.selectedGroupId).length;
+        if (childSubGroups > 0) {
+          this.toastr.warning(`${label} still has ${childSubGroups} sub-group(s). Drop them first, then drop the group.`, 'Cannot Drop');
+          return;
+        }
         request.type = 'group';
         request.groupSubgroupId = this.selectedGroupId;
-        message = `Are you sure you want to permanently delete ${label}? This will also delete all associated sub-groups and tests.`;
+        message = `Are you sure you want to permanently delete ${label}?`;
         break;
       }
 
@@ -533,6 +579,8 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
       if (!confirmed) { this.lastUserSelection = null; return; }
 
       this._pathTest.dropTest(request).subscribe({
+        // Stay where the user is: dropping is done bottom-up (tests → sub-group → group),
+        // so jumping back to the first group after each step would lose their place.
         next: () => {
           this.selectedTest = null;
           this.selectedTestId = null;
@@ -541,12 +589,17 @@ export class ManageTestsComponent implements OnInit,OnDestroy {
             this.selectedSubGroupId = null;
             this.tests = [];
             this.subGroups = [];
+            this.lastUserSelection = null;
+            this.getAllGroupList(true);
           } else if (request.type === 'subgroup') {
             this.selectedSubGroupId = null;
             this.tests = [];
+            this.lastUserSelection = null;
+            this.getAllSubGroupList(false);
+          } else {
+            this.lastUserSelection = null;
+            this.getAllTestList();
           }
-          this.lastUserSelection = null;
-          this.getAllGroupList(true);
         },
         error: () => {
           // Message shown centrally by ErrorInterceptor.

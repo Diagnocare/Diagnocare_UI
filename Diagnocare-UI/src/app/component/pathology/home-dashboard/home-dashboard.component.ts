@@ -9,44 +9,12 @@ import { LicenceService } from 'src/app/services/licenceServices/licence.service
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { HomeSummary } from 'src/app/models/dashboard/home-summary';
 import { Role } from 'src/app/constant/enums';
-import { DEFAULT_ACCESS, ModuleAccess, resolveModuleAccess } from 'src/app/constant/module-access';
-import { WORK_QUEUE_META, WORK_QUEUE_ORDER, WorkQueue, WorkQueueTone } from 'src/app/utilities/work-queue.util';
-
-/** A big "what do you want to do" button. */
-interface TaskTile {
-  label: string;
-  hint: string;
-  icon: string;
-  route: string;
-  query?: Record<string, string>;
-  /** Items waiting. Null hides the count (unknown, or not a queue). */
-  count: number | null;
-  tone: 'primary' | 'blue' | 'amber' | 'purple' | 'green';
-}
-
-/** One stage of the pipeline strip — a read-out, so there is no route on it. */
-interface PipeStage {
-  label: string;
-  hint: string;
-  icon: string;
-  tone: WorkQueueTone;
-  count: number | null;
-}
-
-interface BookingRow {
-  name: string;
-  patientId: string;
-  label: string;
-  tone: 'ok' | 'info' | 'wait';
-}
-
-interface WeekBar {
-  label: string;
-  count: number;
-  pct: number;
-  future: boolean;
-  today: boolean;
-}
+import { DEFAULT_ACCESS, resolveModuleAccess } from 'src/app/constant/module-access';
+import { WORK_QUEUE_META, WORK_QUEUE_ORDER } from 'src/app/utilities/work-queue.util';
+import { ModuleAccess } from '../../../models/auth/module-access.model';
+import { WorkQueueTone } from '../../../models/worklist/work-queue.model';
+import { BookingRow, PipeStage, TaskTile, WeekBar } from '../../../models/dashboard/home-dashboard.model';
+import { WorkQueue } from '../../../models/worklist/work-queue.model';
 
 /**
  * HomeDashboardComponent — the task-first home page for the sidebar shell.
@@ -61,8 +29,7 @@ interface WeekBar {
  *                                   and the week's registrations.
  *
  * It reads the same two endpoints the app already has — the home summary and
- * the worklist counts — so it needs no API change. Replaces the hero home page
- * only while USE_SIDEBAR_SHELL is on (see app-routing.module.ts).
+ * the worklist counts — so it needs no API change.
  */
 @Component({
   selector: 'app-home-dashboard',
@@ -206,6 +173,11 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   /** The task buttons this role can actually use, in the order the day runs. */
   get tasks(): TaskTile[] {
     const t: TaskTile[] = [];
+    // Same destination as the sidebar's "My pickups" — the collection boy's day starts here.
+    if (this.access.myPickups) {
+      t.push({ label: 'My pickups', hint: 'Samples to collect and hand over to the lab',
+               icon: 'fa-motorcycle', route: '/my-pickups', count: null, tone: 'primary' });
+    }
     if (this.access.labOps) {
       t.push({ label: 'Register a patient', hint: 'New patient, book tests, take payment',
                icon: 'fa-user-plus', route: '/patients/add', count: null, tone: 'primary' });

@@ -3,7 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 
 import { AddressService } from 'src/app/services/addressServices/address-service';
 
-const BASE = 'http://localhost:5000/api/addressManager/';
+const BASE = 'http://localhost:5000/api/v1/addressManager/';
 
 describe('AddressService', () => {
   let service:  AddressService;

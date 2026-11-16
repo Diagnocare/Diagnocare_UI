@@ -1,5 +1,6 @@
 import { AbstractControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import { Meridiem } from '../../models/common/time-slots.model';
 
 /**
  * Time helpers for pickers that snap to a fixed interval
@@ -11,8 +12,6 @@ import { Subscription } from 'rxjs';
 
 /** Minute interval for visit scheduling. */
 export const VISIT_SLOT_MINUTES = 15;
-
-export type Meridiem = 'AM' | 'PM';
 
 export function formatTime12h(hhmm: string): string {
   if (!hhmm) return '';

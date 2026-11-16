@@ -13,10 +13,8 @@ import {
   VisitScheduleGetDto,
   VisitCalendarDayDto,
 } from 'src/app/models/visitSchedule/visit-schedule.dto';
-import {
-  VisitCompleteModalComponent,
-  VisitCompletionData,
-} from 'src/app/shared/visit-complete-modal/visit-complete-modal.component';
+import { VisitCompleteModalComponent } from 'src/app/shared/visit-complete-modal/visit-complete-modal.component';
+import { VisitCompletionData } from '../../models/visitSchedule/visit-modal.model';
 
 /**
  * My Visits — staff self-service field-visit view.

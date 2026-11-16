@@ -1,11 +1,6 @@
 import { Injectable } from '@angular/core';
 import { PathologyProfileDto } from 'src/app/models/pathology/pathology-profile.dto';
-
-interface CachedProfile {
-  data: PathologyProfileDto;
-  /** Epoch ms when this entry was written. */
-  fetchedAt: number;
-}
+import { CachedProfile } from '../../models/pathology/pathology-cache.model';
 
 /**
  * Client-side cache for the lab profile (GET Pathology/GetProfile).

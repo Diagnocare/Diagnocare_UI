@@ -90,16 +90,16 @@
             <div class="section-label"><i class="fa fa-folder-o"></i> Group Details</div>
 
             <div class="form-group">
-              <label class="form-label">Group Code</label>
+              <label for="add-edit-modal-field1" class="form-label">Group Code</label>
               <div class="auto-code-field">
-                <input type="text" class="form-control code-input" [(ngModel)]="formData.group.testGroupId" disabled>
+                <input id="add-edit-modal-field1" type="text" class="form-control code-input" [(ngModel)]="formData.group.testGroupId" disabled>
                 <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Group Name</label>
-              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
+              <label for="add-edit-modal-field2" class="form-label required">Group Name</label>
+              <input id="add-edit-modal-field2" type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
                      appNoDigits [(ngModel)]="formData.group.name" #groupName="ngModel" required>
               <div class="field-error" *ngIf="groupName.invalid && groupName.touched">
                 <i class="fa fa-exclamation-circle"></i> Group name is required
@@ -107,10 +107,10 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field3" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field3" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="formData.group.price" min="1" #addGroupPrice="ngModel">
               </div>
               <div class="field-error" *ngIf="formData.group.price <= 0 && addGroupPrice.touched">
@@ -125,16 +125,16 @@
             <div class="section-label"><i class="fa fa-folder-open-o"></i> SubGroup Details</div>
 
             <div class="form-group">
-              <label class="form-label">SubGroup Code</label>
+              <label for="add-edit-modal-field4" class="form-label">SubGroup Code</label>
               <div class="auto-code-field">
-                <input type="text" class="form-control code-input" [(ngModel)]="formData.subGroup.testGroupId" disabled>
+                <input id="add-edit-modal-field4" type="text" class="form-control code-input" [(ngModel)]="formData.subGroup.testGroupId" disabled>
                 <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label required">SubGroup Name</label>
-              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
+              <label for="add-edit-modal-field5" class="form-label required">SubGroup Name</label>
+              <input id="add-edit-modal-field5" type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
                      appNoDigits [(ngModel)]="formData.subGroup.name" #subGroupName="ngModel" required>
               <div class="field-error" *ngIf="subGroupName.invalid && subGroupName.touched">
                 <i class="fa fa-exclamation-circle"></i> SubGroup name is required
@@ -142,10 +142,10 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field6" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field6" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="formData.subGroup.price" min="1" #addSubPrice2="ngModel">
               </div>
               <div class="field-error" *ngIf="formData.subGroup.price <= 0 && addSubPrice2.touched">
@@ -160,16 +160,16 @@
             <div class="section-label"><i class="fa fa-flask"></i> Test Details</div>
 
             <div class="form-group">
-              <label class="form-label">Test Code</label>
+              <label for="add-edit-modal-field7" class="form-label">Test Code</label>
               <div class="auto-code-field">
-                <input type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
+                <input id="add-edit-modal-field7" type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
                 <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Test Name</label>
-              <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+              <label for="add-edit-modal-field8" class="form-label required">Test Name</label>
+              <input id="add-edit-modal-field8" type="text" class="form-control" placeholder="e.g., TLC DLC"
                      appNoDigits [(ngModel)]="formData.test.testName" #testName="ngModel" required>
               <div class="field-error" *ngIf="testName.invalid && testName.touched">
                 <i class="fa fa-exclamation-circle"></i> Test name is required
@@ -177,10 +177,10 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field9" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field9" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="formData.test.price" min="1" #addGroupTestPrice="ngModel">
               </div>
               <div class="field-error" *ngIf="formData.test.price <= 0 && addGroupTestPrice.touched">
@@ -192,8 +192,8 @@
                  spelt the same on every test and the lab can ask which of its tests are run
                  by PCR. "Other" is the escape hatch, not the default. -->
             <div class="form-group">
-              <label class="form-label">Method / Technique</label>
-              <select class="form-control"
+              <label for="add-edit-modal-field10" class="form-label">Method / Technique</label>
+              <select id="add-edit-modal-field10" class="form-control"
                       [(ngModel)]="formData.test.techniqueId"
                       (ngModelChange)="onTechniqueChange(formData.test)">
                 <option [ngValue]="null">Not recorded</option>
@@ -214,8 +214,8 @@
                  the catalogue existed — otherwise an old test's method would vanish from the
                  form the first time somebody opened it. -->
             <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
-              <label class="form-label">Technique name</label>
-              <input type="text" class="form-control" maxlength="200"
+              <label for="add-edit-modal-field11" class="form-label">Technique name</label>
+              <input id="add-edit-modal-field11" type="text" class="form-control" maxlength="200"
                      placeholder="e.g., GOD-POD, Jaffe kinetic"
                      [(ngModel)]="formData.test.method">
               <div class="field-hint">
@@ -226,8 +226,8 @@
             <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
                  (and can be sent a WhatsApp) shortly before this interval has passed. -->
             <div class="form-group">
-              <label class="form-label">Remind patient to repeat</label>
-              <select class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
+              <label for="add-edit-modal-field12" class="form-label">Remind patient to repeat</label>
+              <select id="add-edit-modal-field12" class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
                 <option [ngValue]="null">Don't remind</option>
                 <option *ngFor="let o of repeatOptions(formData.test)" [ngValue]="o.days">{{ o.label }}</option>
               </select>
@@ -248,8 +248,8 @@
             <div class="section-label"><i class="fa fa-folder-open-o"></i> SubGroup Details</div>
 
             <div class="form-group">
-              <label class="form-label required">Parent Group</label>
-              <select class="form-control" [(ngModel)]="formData.subGroup.parentGroupId">
+              <label for="add-edit-modal-field13" class="form-label required">Parent Group</label>
+              <select id="add-edit-modal-field13" class="form-control" [(ngModel)]="formData.subGroup.parentGroupId">
                 <option value="" disabled selected>Select a group…</option>
                 <option *ngFor="let g of groups" [value]="g.testGroupId">
                   {{ g.testGroupId }} — {{ g.name }}
@@ -260,22 +260,22 @@
             <div class="form-group">
               <label class="form-label">SubGroup Code</label>
               <div class="auto-code-field">
-                <input type="text" class="form-control code-input" [(ngModel)]="formData.subGroup.testGroupId" disabled>
+                <input aria-label="Sub-group ID" type="text" class="form-control code-input" [(ngModel)]="formData.subGroup.testGroupId" disabled>
                 <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label required">SubGroup Name</label>
-              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
+              <label for="add-edit-modal-field14" class="form-label required">SubGroup Name</label>
+              <input id="add-edit-modal-field14" type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
                      appNoDigits [(ngModel)]="formData.subGroup.name">
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field15" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field15" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="formData.subGroup.price" min="1" #addSubOnlyPrice="ngModel">
               </div>
               <div class="field-error" *ngIf="formData.subGroup.price <= 0 && addSubOnlyPrice.touched">
@@ -290,24 +290,24 @@
             <div class="section-label"><i class="fa fa-flask"></i> Test Details</div>
 
             <div class="form-group">
-              <label class="form-label">Test Code</label>
+              <label for="add-edit-modal-field16" class="form-label">Test Code</label>
               <div class="auto-code-field">
-                <input type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
+                <input id="add-edit-modal-field16" type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
                 <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Test Name</label>
-              <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+              <label for="add-edit-modal-field17" class="form-label required">Test Name</label>
+              <input id="add-edit-modal-field17" type="text" class="form-control" placeholder="e.g., TLC DLC"
                      appNoDigits [(ngModel)]="formData.test.testName">
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field18" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field18" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="formData.test.price" min="1" #addSubTestPrice="ngModel">
               </div>
               <div class="field-error" *ngIf="formData.test.price <= 0 && addSubTestPrice.touched">
@@ -319,8 +319,8 @@
                  spelt the same on every test and the lab can ask which of its tests are run
                  by PCR. "Other" is the escape hatch, not the default. -->
             <div class="form-group">
-              <label class="form-label">Method / Technique</label>
-              <select class="form-control"
+              <label for="add-edit-modal-field19" class="form-label">Method / Technique</label>
+              <select id="add-edit-modal-field19" class="form-control"
                       [(ngModel)]="formData.test.techniqueId"
                       (ngModelChange)="onTechniqueChange(formData.test)">
                 <option [ngValue]="null">Not recorded</option>
@@ -341,8 +341,8 @@
                  the catalogue existed — otherwise an old test's method would vanish from the
                  form the first time somebody opened it. -->
             <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
-              <label class="form-label">Technique name</label>
-              <input type="text" class="form-control" maxlength="200"
+              <label for="add-edit-modal-field20" class="form-label">Technique name</label>
+              <input id="add-edit-modal-field20" type="text" class="form-control" maxlength="200"
                      placeholder="e.g., GOD-POD, Jaffe kinetic"
                      [(ngModel)]="formData.test.method">
               <div class="field-hint">
@@ -353,8 +353,8 @@
             <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
                  (and can be sent a WhatsApp) shortly before this interval has passed. -->
             <div class="form-group">
-              <label class="form-label">Remind patient to repeat</label>
-              <select class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
+              <label for="add-edit-modal-field21" class="form-label">Remind patient to repeat</label>
+              <select id="add-edit-modal-field21" class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
                 <option [ngValue]="null">Don't remind</option>
                 <option *ngFor="let o of repeatOptions(formData.test)" [ngValue]="o.days">{{ o.label }}</option>
               </select>
@@ -374,8 +374,8 @@
 
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label required">Group</label>
-                <select class="form-control" [(ngModel)]="formData.group.testGroupId"
+                <label for="add-edit-modal-field22" class="form-label required">Group</label>
+                <select id="add-edit-modal-field22" class="form-control" [(ngModel)]="formData.group.testGroupId"
                         (change)="onAddGroupChangedForTest()">
                   <option value="" disabled selected>Select group…</option>
                   <option *ngFor="let g of groups" [value]="g.testGroupId">
@@ -389,7 +389,7 @@
                      group — the same source and the same states as Edit → Test.
                      It used to filter the `subGroups` @Input, which only ever
                      holds one group's subgroups. -->
-                <select class="form-control" [(ngModel)]="formData.subGroup.testGroupId"
+                <select aria-label="Sub-group" class="form-control" [(ngModel)]="formData.subGroup.testGroupId"
                         [disabled]="!formData.group.testGroupId || subGroupsLoading">
                   <option value="" disabled selected>
                     {{ !formData.group.testGroupId ? 'Select a group first…'
@@ -406,24 +406,24 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Test Code</label>
+              <label for="add-edit-modal-field23" class="form-label">Test Code</label>
               <div class="auto-code-field">
-                <input type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
+                <input id="add-edit-modal-field23" type="text" class="form-control code-input" [(ngModel)]="formData.test.testCode" disabled>
                 <span class="auto-badge"><i class="fa fa-lock"></i> Auto-generated</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Test Name</label>
-              <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+              <label for="add-edit-modal-field24" class="form-label required">Test Name</label>
+              <input id="add-edit-modal-field24" type="text" class="form-control" placeholder="e.g., TLC DLC"
                      appNoDigits [(ngModel)]="formData.test.testName">
             </div>
 
             <div class="form-group">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field25" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field25" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="formData.test.price" min="1" #addTestOnlyPrice="ngModel">
               </div>
               <div class="field-error" *ngIf="formData.test.price <= 0 && addTestOnlyPrice.touched">
@@ -435,8 +435,8 @@
                  spelt the same on every test and the lab can ask which of its tests are run
                  by PCR. "Other" is the escape hatch, not the default. -->
             <div class="form-group">
-              <label class="form-label">Method / Technique</label>
-              <select class="form-control"
+              <label for="add-edit-modal-field26" class="form-label">Method / Technique</label>
+              <select id="add-edit-modal-field26" class="form-control"
                       [(ngModel)]="formData.test.techniqueId"
                       (ngModelChange)="onTechniqueChange(formData.test)">
                 <option [ngValue]="null">Not recorded</option>
@@ -457,8 +457,8 @@
                  the catalogue existed — otherwise an old test's method would vanish from the
                  form the first time somebody opened it. -->
             <div class="form-group" *ngIf="showsCustomMethod(formData.test)">
-              <label class="form-label">Technique name</label>
-              <input type="text" class="form-control" maxlength="200"
+              <label for="add-edit-modal-field27" class="form-label">Technique name</label>
+              <input id="add-edit-modal-field27" type="text" class="form-control" maxlength="200"
                      placeholder="e.g., GOD-POD, Jaffe kinetic"
                      [(ngModel)]="formData.test.method">
               <div class="field-hint">
@@ -469,8 +469,8 @@
             <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
                  (and can be sent a WhatsApp) shortly before this interval has passed. -->
             <div class="form-group">
-              <label class="form-label">Remind patient to repeat</label>
-              <select class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
+              <label for="add-edit-modal-field28" class="form-label">Remind patient to repeat</label>
+              <select id="add-edit-modal-field28" class="form-control" [(ngModel)]="formData.test.repeatIntervalDays">
                 <option [ngValue]="null">Don't remind</option>
                 <option *ngFor="let o of repeatOptions(formData.test)" [ngValue]="o.days">{{ o.label }}</option>
               </select>
@@ -531,8 +531,8 @@
             <div class="section-label"><i class="fa fa-folder-o"></i> Edit Group</div>
 
             <div class="form-group">
-              <label class="form-label required">Select Group</label>
-              <select class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
+              <label for="add-edit-modal-field29" class="form-label required">Select Group</label>
+              <select id="add-edit-modal-field29" class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
                       (change)="onEditGroupSelect()">
                 <option value="" disabled selected>Choose a group…</option>
                 <option *ngFor="let g of groups" [value]="g.testGroupId">
@@ -548,16 +548,16 @@
             </div>
 
             <div class="form-group" *ngIf="updatedFormData.group.testGroupId">
-              <label class="form-label required">Group Name</label>
-              <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
+              <label for="add-edit-modal-field30" class="form-label required">Group Name</label>
+              <input id="add-edit-modal-field30" type="text" class="form-control" placeholder="e.g., HAEMATOLOGY"
                      appNoDigits [(ngModel)]="updatedFormData.group.name" required>
             </div>
 
             <div class="form-group" *ngIf="updatedFormData.group.testGroupId">
-              <label class="form-label required">Rate (₹)</label>
+              <label for="add-edit-modal-field31" class="form-label required">Rate (₹)</label>
               <div class="input-prefix-wrap">
                 <span class="input-prefix">₹</span>
-                <input type="number" class="form-control has-prefix" placeholder="0.00"
+                <input id="add-edit-modal-field31" type="number" class="form-control has-prefix" placeholder="0.00"
                        [(ngModel)]="updatedFormData.group.price" min="1" #editGroupPrice="ngModel">
               </div>
               <div class="field-error" *ngIf="updatedFormData.group.price <= 0 && editGroupPrice.touched">
@@ -575,8 +575,8 @@
 
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label required">Group</label>
-                <select class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
+                <label for="add-edit-modal-field32" class="form-label required">Group</label>
+                <select id="add-edit-modal-field32" class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
                         (change)="onEditGroupChangedForSub()">
                   <option value="" disabled selected>Choose a group…</option>
                   <option *ngFor="let g of groups" [value]="g.testGroupId">
@@ -586,7 +586,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
-                <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                <select aria-label="Sub-group" class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
                         [disabled]="!updatedFormData.group.testGroupId || subGroupsLoading"
                         (change)="onEditSubGroupSelect()">
                   <option value="" disabled selected>
@@ -611,16 +611,16 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">SubGroup Name</label>
-                <input type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
+                <label for="add-edit-modal-field33" class="form-label required">SubGroup Name</label>
+                <input id="add-edit-modal-field33" type="text" class="form-control" placeholder="e.g., HAEMATOLOGY PROFILE"
                        appNoDigits [(ngModel)]="updatedFormData.subGroup.name" required>
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Rate (₹)</label>
+                <label for="add-edit-modal-field34" class="form-label required">Rate (₹)</label>
                 <div class="input-prefix-wrap">
                   <span class="input-prefix">₹</span>
-                  <input type="number" class="form-control has-prefix" placeholder="0.00"
+                  <input id="add-edit-modal-field34" type="number" class="form-control has-prefix" placeholder="0.00"
                          [(ngModel)]="updatedFormData.subGroup.price" min="1" #editSubPrice="ngModel">
                 </div>
                 <div class="field-error" *ngIf="updatedFormData.subGroup.price <= 0 && editSubPrice.touched">
@@ -639,8 +639,8 @@
 
             <div class="form-row-2">
               <div class="form-group">
-                <label class="form-label required">Group</label>
-                <select class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
+                <label for="add-edit-modal-field35" class="form-label required">Group</label>
+                <select id="add-edit-modal-field35" class="form-control" [(ngModel)]="updatedFormData.group.testGroupId"
                         (change)="onEditGroupChangedForTest()">
                   <option value="" disabled selected>Choose a group…</option>
                   <option *ngFor="let g of groups" [value]="g.testGroupId">
@@ -650,7 +650,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label required">SubGroup</label>
-                <select class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
+                <select aria-label="Sub-group" class="form-control" [(ngModel)]="updatedFormData.subGroup.testGroupId"
                         [disabled]="!updatedFormData.group.testGroupId || subGroupsLoading"
                         (change)="onEditSubGroupChangedForTest()">
                   <option value="" disabled selected>
@@ -668,8 +668,8 @@
             </div>
 
             <div class="form-group" *ngIf="updatedFormData.subGroup.testGroupId">
-              <label class="form-label required">Test</label>
-              <select class="form-control" [(ngModel)]="updatedFormData.test.testCode"
+              <label for="add-edit-modal-field36" class="form-label required">Test</label>
+              <select id="add-edit-modal-field36" class="form-control" [(ngModel)]="updatedFormData.test.testCode"
                       [disabled]="editTestsLoading"
                       (change)="onEditTestSelect()">
                 <option value="" disabled selected>
@@ -692,16 +692,16 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Test Name</label>
-                <input type="text" class="form-control" placeholder="e.g., TLC DLC"
+                <label for="add-edit-modal-field37" class="form-label required">Test Name</label>
+                <input id="add-edit-modal-field37" type="text" class="form-control" placeholder="e.g., TLC DLC"
                        appNoDigits [(ngModel)]="updatedFormData.test.testName" required>
               </div>
 
               <div class="form-group">
-                <label class="form-label required">Rate (₹)</label>
+                <label for="add-edit-modal-field38" class="form-label required">Rate (₹)</label>
                 <div class="input-prefix-wrap">
                   <span class="input-prefix">₹</span>
-                  <input type="number" class="form-control has-prefix" placeholder="0.00"
+                  <input id="add-edit-modal-field38" type="number" class="form-control has-prefix" placeholder="0.00"
                          [(ngModel)]="updatedFormData.test.price" min="1" #editTestPrice="ngModel">
                 </div>
                 <div class="field-error" *ngIf="updatedFormData.test.price <= 0 && editTestPrice.touched">
@@ -713,8 +713,8 @@
                  spelt the same on every test and the lab can ask which of its tests are run
                  by PCR. "Other" is the escape hatch, not the default. -->
             <div class="form-group">
-              <label class="form-label">Method / Technique</label>
-              <select class="form-control"
+              <label for="add-edit-modal-field39" class="form-label">Method / Technique</label>
+              <select id="add-edit-modal-field39" class="form-control"
                       [(ngModel)]="updatedFormData.test.techniqueId"
                       (ngModelChange)="onTechniqueChange(updatedFormData.test)">
                 <option [ngValue]="null">Not recorded</option>
@@ -735,8 +735,8 @@
                  the catalogue existed — otherwise an old test's method would vanish from the
                  form the first time somebody opened it. -->
             <div class="form-group" *ngIf="showsCustomMethod(updatedFormData.test)">
-              <label class="form-label">Technique name</label>
-              <input type="text" class="form-control" maxlength="200"
+              <label for="add-edit-modal-field40" class="form-label">Technique name</label>
+              <input id="add-edit-modal-field40" type="text" class="form-control" maxlength="200"
                      placeholder="e.g., GOD-POD, Jaffe kinetic"
                      [(ngModel)]="updatedFormData.test.method">
               <div class="field-hint">
@@ -747,8 +747,8 @@
             <!-- Repeat-test reminder: patients who had this test are listed on Test Reminders
                  (and can be sent a WhatsApp) shortly before this interval has passed. -->
             <div class="form-group">
-              <label class="form-label">Remind patient to repeat</label>
-              <select class="form-control" [(ngModel)]="updatedFormData.test.repeatIntervalDays">
+              <label for="add-edit-modal-field41" class="form-label">Remind patient to repeat</label>
+              <select id="add-edit-modal-field41" class="form-control" [(ngModel)]="updatedFormData.test.repeatIntervalDays">
                 <option [ngValue]="null">Don't remind</option>
                 <option *ngFor="let o of repeatOptions(updatedFormData.test)" [ngValue]="o.days">{{ o.label }}</option>
               </select>
@@ -769,7 +769,7 @@
 
   <!-- ══ MODAL FOOTER ════════════════════════════════════════════════ -->
   <div class="modal-footer">
-    <button class="btn btn-cancel" (click)="close()">
+    <button class="dc-btn dc-btn--cancel" (click)="close()">
       <i class="fa fa-times"></i> Cancel
     </button>
 
@@ -782,7 +782,7 @@
           (click)="submit()">
           <i class="fa fa-check"></i> Create Group
         </button>
-        <button class="btn btn-primary"
+        <button class="dc-btn dc-btn--save"
           [disabled]="!formData.group.name || formData.group.price <= 0"
           (click)="next()">
           Add SubGroup <i class="fa fa-arrow-right"></i>
@@ -796,7 +796,7 @@
           (click)="submit()">
           <i class="fa fa-check"></i> Create SubGroup
         </button>
-        <button class="btn btn-primary"
+        <button class="dc-btn dc-btn--save"
           [disabled]="!isSubGroupStepValid"
           (click)="next()">
           Add Test <i class="fa fa-arrow-right"></i>
@@ -804,7 +804,7 @@
       </ng-container>
 
       <!-- All other last-step cases -->
-      <button class="btn btn-primary"
+      <button class="dc-btn dc-btn--save"
         *ngIf="selected && step && isLastStep && !(selected === 'group' && step === 1) && !(selected === 'subgroup' && step === 1)"
         (click)="submit()"
         [disabled]="
@@ -817,7 +817,7 @@
       </button>
 
       <!-- Next button — excluded for group/subgroup step 1 (handled above) -->
-      <button class="btn btn-primary"
+      <button class="dc-btn dc-btn--save"
         *ngIf="(!isLastStep || step === 0) && !(selected === 'group' && step === 1) && !(selected === 'subgroup' && step === 1)"
         [disabled]="
           (!selected && step === 0) ||
@@ -831,7 +831,7 @@
 
     <!-- Edit mode -->
     <ng-container *ngIf="mode === 'edit'">
-      <button class="btn btn-primary" *ngIf="isLastEditStep"
+      <button class="dc-btn dc-btn--save" *ngIf="isLastEditStep"
         [disabled]="
           !selected ||
           (selected === 'group'    && updatedFormData.group.price <= 0) ||
@@ -841,7 +841,7 @@
         (click)="submit()">
         <i class="fa fa-save"></i> Update
       </button>
-      <button class="btn btn-primary" *ngIf="!isLastEditStep"
+      <button class="dc-btn dc-btn--save" *ngIf="!isLastEditStep"
         [disabled]="!selected"
         (click)="next()">
         Next <i class="fa fa-arrow-right"></i>

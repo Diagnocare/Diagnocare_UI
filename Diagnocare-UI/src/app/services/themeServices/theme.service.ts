@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-
-export type Theme = 'light' | 'dark' | 'midnight' | 'warm' | 'system';
+import { Theme } from '../../models/common/theme.model';
 
 /**
  * ThemeService

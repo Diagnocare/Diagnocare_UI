@@ -5,9 +5,7 @@ import { environment } from 'src/environments/environment';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { NavigationHistoryService } from 'src/app/core/services/navigation-history.service';
 import { FeedbackService } from 'src/app/services/feedbackServices/feedback.service';
-
-/** Which portal screen to open. */
-export type PortalView = 'new' | 'track';
+import { PortalView } from '../../models/common/help-portal.model';
 
 /**
  * Public Help / Contact Us page.

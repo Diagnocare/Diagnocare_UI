@@ -3,13 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { controllerEndpoints } from 'src/app/constant/constants';
 import { getDiagnocareApiUrl } from 'src/app/shared/api-base-url.util';
-
-/** Short-lived token issued by GET api/Feedback/Token. */
-export interface FeedbackTokenDto {
-  token: string;
-  expiresInSeconds: number;
-  expiresAtUtc: string;
-}
+import { FeedbackTokenDto } from '../../models/feedback/feedback-token.dto';
 
 /**
  * Talks to the API endpoint that mints the token handed to the external feedback

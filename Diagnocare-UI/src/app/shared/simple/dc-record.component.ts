@@ -1,13 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** A secondary detail shown under a record's title. */
-export interface DcRecordFact {
-  /** Short caption, e.g. 'Age / Sex'. */
-  label: string;
-  /** The value. Blanks render as '—' rather than collapsing the layout. */
-  value: any;
-}
+import { DcRecordFact } from '../../models/common/dc-primitives.model';
 
 /**
  * DcRecordComponent — one row of a list, readable without a table.

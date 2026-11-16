@@ -5,7 +5,6 @@ import { of, throwError, Subject }    from 'rxjs';
 
 import { BillReceipt }         from 'src/app/component/receipt/bill-receipt';
 import { ReceiptService }      from 'src/app/services/receiptServices/receipt.service';
-import { ReceiptPdfService }   from 'src/app/services/receiptServices/receipt-pdf.service';
 import { ToastrService }       from 'ngx-toastr';
 import {
   MOCK_RECEIPTS_SAME_TEST,
@@ -23,13 +22,6 @@ function mockReceiptService() {
     getReceiptCount: jest.fn().mockReturnValue(of({})),
     getReceiptById:  jest.fn().mockReturnValue(of({})),
     addReceipt:      jest.fn().mockReturnValue(of({})),
-  };
-}
-
-function mockReceiptPdfService() {
-  return {
-    fetchReceiptData: jest.fn().mockReturnValue(of({})),
-    openReceiptPdf:   jest.fn(),
   };
 }
 
@@ -57,7 +49,6 @@ function buildActivatedRoute(patientId: string | null = null) {
 /** Set up TestBed and return the component instance */
 function createComponent(patientId: string | null = null) {
   const receiptSvc    = mockReceiptService();
-  const receiptPdfSvc = mockReceiptPdfService();
   const toastr        = mockToastr();
   const location      = mockLocation();
   const router        = mockRouter();
@@ -67,7 +58,6 @@ function createComponent(patientId: string | null = null) {
     providers: [
       BillReceipt,
       { provide: ReceiptService,    useValue: receiptSvc },
-      { provide: ReceiptPdfService, useValue: receiptPdfSvc },
       { provide: ToastrService,     useValue: toastr },
       { provide: Location,          useValue: location },
       { provide: Router,            useValue: router },
@@ -76,7 +66,7 @@ function createComponent(patientId: string | null = null) {
   });
 
   const component = TestBed.inject(BillReceipt);
-  return { component, receiptSvc, receiptPdfSvc, toastr, location, router };
+  return { component, receiptSvc, toastr, location, router };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

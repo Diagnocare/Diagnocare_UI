@@ -1,24 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-/** What the operator decided. Emitted on every change, and on confirm. */
-export interface DcPaymentDecision {
-  /** 'Full' | 'Partial' | 'No Payment' — matches the app's paymentType enum values. */
-  type: string;
-  /** Amount taken now. */
-  amountPaid: number;
-  /** Net minus paid. */
-  amountPending: number;
-  /** 'Cash' | 'Card' | 'UPI' | 'Cheque' | 'TPA' — matches the paymentMode enum. */
-  mode: string;
-  /** Cash the patient handed over, when known. Null unless paying by cash. */
-  cashGiven: number | null;
-  /** Change to hand back. 0 when not applicable. */
-  changeDue: number;
-  /** True when everything needed to save is present. */
-  complete: boolean;
-}
+import { DcPaymentDecision } from '../../models/common/dc-primitives.model';
 
 /**
  * DcPaymentPanelComponent — one screen, one question at a time, no modals.

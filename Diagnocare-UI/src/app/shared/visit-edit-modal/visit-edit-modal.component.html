@@ -31,7 +31,7 @@
                 (click)="memberTypeFilter = t.value">{{ t.label }}</button>
       </div>
 
-      <select class="vem-select" formControlName="assignedMemberId"
+      <select aria-label="Assigned team member" class="vem-select" formControlName="assignedMemberId"
               [class.is-invalid]="isInvalid('assignedMemberId')">
         <option [ngValue]="null" disabled>-- Select member --</option>
         <option *ngFor="let m of displayMembers" [ngValue]="m.id">

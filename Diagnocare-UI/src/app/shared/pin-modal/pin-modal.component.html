@@ -69,7 +69,7 @@
           <!-- PIN input -->
           <ng-container *ngIf="!isLockedOut && !isTimedOut">
             <div class="pam-input-group" [class.pam-input-group--error]="!!errorMessage">
-              <input
+              <input aria-label="Enter PIN"
                 id="pinInput"
                 class="pam-input"
                 type="text"

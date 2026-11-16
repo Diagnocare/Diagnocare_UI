@@ -30,7 +30,7 @@
         {{ showingInactive ? 'Show Active' : 'Show Inactive' }}
         <span class="toggle-count" *ngIf="!showingInactive && inactiveCount">{{ inactiveCount }}</span>
       </button>
-      <button class="btn btn-primary"
+      <button class="dc-btn dc-btn--save"
               [disabled]="!canAddStaff"
               [title]="addDisabledReason"
               (click)="add(activeSection.type)">

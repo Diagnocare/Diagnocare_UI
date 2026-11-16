@@ -1,14 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** One label/value line in a <dc-summary>. */
-export interface DcSummaryRow {
-  label: string;
-  /** Anything printable. null/undefined/'' renders as a visible "Not entered". */
-  value: any;
-  /** Optional: highlight this line (an amount, a warning). */
-  tone?: 'normal' | 'strong' | 'warn';
-}
+import { DcSummaryRow } from '../../models/common/dc-primitives.model';
 
 /**
  * DcSummaryComponent — "check this is right before we save it".

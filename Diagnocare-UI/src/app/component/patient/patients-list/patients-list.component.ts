@@ -36,6 +36,7 @@ const PATIENT_SORT_KEYS: Partial<Record<SortPatientField, string>> = {
   status: 'status',
 };
 import { ActionButtonComponent } from 'src/app/shared/action-button/action-button.component';
+import { DcEmptyComponent } from 'src/app/shared/simple';
 
 /**
  * sessionStorage key for the Status filter on the patients list.
@@ -54,28 +55,16 @@ const PATIENTS_STATUS_FILTER_KEY = 'dc.patientsList.statusFilter';
 /** Status values the dropdown offers — anything else in storage is ignored. */
 const PATIENTS_STATUS_FILTER_VALUES = ['active', 'Pending', 'Partial', 'Completed', 'deactivated'];
 
-// ── Simple UI kit ────────────────────────────────────────────────────────────
-// Labelled action buttons, one shared status vocabulary, and an empty state
-// that says what to do next. The originals stay behind *ngIf="!useNewUi".
-// import { DcActionComponent } from 'src/app/shared/simple/dc-action.component';
-// import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
-// import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
-// import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
-
-
 @Component({
   selector: 'app-patients-list',
   templateUrl: './patients-list.component.html',
   styleUrls: ['./patients-list.component.scss'],
-  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent],
+  imports: [FormsModule, CommonModule, LoadingSpinnerComponent, ConfirmModalComponent, DatePickerComponent, ActionButtonComponent, DcEmptyComponent],
   encapsulation: ViewEncapsulation.None,
   standalone: true
 })
 
 export class PatientsListComponent implements OnInit, OnDestroy {
-
-  /** Simple-UI rollout flag — see shared/simple/simple-ui.flags.ts. */
-  // readonly useNewUi = USE_NEW_UI;
 
   private destroy$ = new Subject<void>();
 
@@ -92,12 +81,6 @@ export class PatientsListComponent implements OnInit, OnDestroy {
 
   // Search and filter properties
   searchTerm: string = '';
-  /**
-   * Starts the search input as readonly so Chrome/Edge won't autofill it with
-   * the saved login userId. Readonly is lifted on focus (see template) so the
-   * user can type normally, then reinstated on blur to keep autofill suppressed.
-   */
-  searchReadonly: boolean = true;
   dateFrom: string = '';
   dateTo: string = '';
   /**
@@ -259,6 +242,22 @@ export class PatientsListComponent implements OnInit, OnDestroy {
    * present — "41y", "6m 30d", "12d" — which is enough to tell an adult from an
    * infant at a glance without wrapping the cell.
    */
+  /**
+   * Registration date as "Today" / "Yesterday" / the original dd-MM-yyyy.
+   * The API sends the date only (no time of day), so no clock time is shown.
+   */
+  getRegDateLabel(regDate: string): string {
+    const m = (regDate || '').match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (!m) return regDate || '—';
+    const reg = new Date(+m[3], +m[2] - 1, +m[1]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((today.getTime() - reg.getTime()) / 86_400_000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return regDate;
+  }
+
   getDisplayAge(age: string): string {
     if (!age) return '—';
 

@@ -12,6 +12,36 @@ default, dark, midnight, warm and system themes with no extra work.
 
 ---
 
+## The canonical vocabulary
+
+Ten words. A new screen is built from these and nothing else; an old screen
+migrates by swapping a class or a tag.
+
+| Word | Form | Replaces |
+|---|---|---|
+| dc-button | `.dc-btn` + `--save/--delete/--cancel/--search/--clear/--back` (styles.css) | `.btn`, `.btn-primary`, `.btn-back` (70 templates still use `.btn`) |
+| dc-input | `.dc-input` (`dc-primitives.css`) | `.form-control` |
+| dc-select | `.dc-select` | `.form-select` |
+| dc-table | `.dc-table-wrap > .dc-table` | `.table-container > .data-table` |
+| dc-card | `.dc-card` / `__header` / `__title` / `__body` | `.card`, `.card-header`, `.card-body` |
+| dc-dialog | `.dc-dialog-backdrop > .dc-dialog` / `__header` / `__body` / `__footer` | `.modal-overlay`, `.modal-content` |
+| dc-status | `<dc-status>` | `getStatusClass()`, `.badge-*` |
+| dc-empty | `<dc-empty>` | hand-written "No data" rows |
+| dc-search | `<dc-search>` | per-screen search boxes |
+| dc-save-bar | `<dc-save-bar>` | per-screen Save/Cancel footers |
+
+The CSS primitives live in `dc-primitives.css` and use `--color-*` tokens only
+(no hex, no `html[data-theme]` blocks), so they theme themselves. The legacy
+`.form-control` / `.data-table` still carry `#f44336` and a retired blue-purple
+`rgba()` — that is the drift the primitives exist to stop. Do not "fix" the
+legacy classes; migrate screens off them, then delete them.
+
+**Migration order** (each step is shippable alone): tables → inputs/selects →
+cards → dialogs → buttons (`.btn` → `.dc-btn`). Visually check all five themes
+per screen before deleting the screen's legacy overrides.
+
+---
+
 ## Install
 
 One line at the top of `src/styles.css`:

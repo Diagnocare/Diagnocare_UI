@@ -2,8 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableReportComponent } from '../table-report/table-report.component';
-
-interface TypeOption { label: string; value: string | null; }
+import { TypeOption } from '../../../models/summaryReport/referrer-collection.model';
 
 @Component({
   selector: 'app-referrer-collection',

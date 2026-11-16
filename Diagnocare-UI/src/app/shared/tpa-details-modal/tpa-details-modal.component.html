@@ -23,10 +23,10 @@
     <!-- Row 1: TPA Name + Policy Number -->
     <div class="tdm-row">
       <div class="tdm-field">
-        <label class="tdm-label">
+        <label for="tpa-details-modal-tpa_Name" class="tdm-label">
           TPA Name <span class="tdm-required" *ngIf="!readOnly">*</span>
         </label>
-        <input
+        <input id="tpa-details-modal-tpa_Name"
           type="text"
           class="tdm-input"
           [class.tdm-input--readonly]="readOnly"
@@ -42,10 +42,10 @@
       </div>
 
       <div class="tdm-field">
-        <label class="tdm-label">
+        <label for="tpa-details-modal-tpa_Policy_Number" class="tdm-label">
           Policy Number <span class="tdm-required" *ngIf="!readOnly">*</span>
         </label>
-        <input
+        <input id="tpa-details-modal-tpa_Policy_Number"
           type="text"
           class="tdm-input"
           [class.tdm-input--readonly]="readOnly"
@@ -64,10 +64,10 @@
     <!-- Row 2: Claim Number + Approval Code -->
     <div class="tdm-row">
       <div class="tdm-field">
-        <label class="tdm-label">
+        <label for="tpa-details-modal-tpa_Claim_Number" class="tdm-label">
           Claim Number <span class="tdm-required" *ngIf="!readOnly">*</span>
         </label>
-        <input
+        <input id="tpa-details-modal-tpa_Claim_Number"
           type="text"
           class="tdm-input"
           [class.tdm-input--readonly]="readOnly"
@@ -83,8 +83,8 @@
       </div>
 
       <div class="tdm-field">
-        <label class="tdm-label">Approval Code <span class="tdm-optional">(optional)</span></label>
-        <input
+        <label for="tpa-details-modal-tpa_Approval_Code" class="tdm-label">Approval Code <span class="tdm-optional">(optional)</span></label>
+        <input id="tpa-details-modal-tpa_Approval_Code"
           type="text"
           class="tdm-input"
           [class.tdm-input--readonly]="readOnly"
@@ -116,8 +116,8 @@
     <!-- Row 4: TPA Payment Status -->
     <div class="tdm-row tdm-row--status">
       <div class="tdm-field">
-        <label class="tdm-label">Claim / Payment Status</label>
-        <select class="tdm-input tdm-select"
+        <label for="tpa-details-modal-tpa_Payment_Status" class="tdm-label">Claim / Payment Status</label>
+        <select id="tpa-details-modal-tpa_Payment_Status" class="tdm-input tdm-select"
                 [class.tdm-input--readonly]="readOnly"
                 formControlName="tpa_Payment_Status"
                 [attr.disabled]="readOnly ? true : null">

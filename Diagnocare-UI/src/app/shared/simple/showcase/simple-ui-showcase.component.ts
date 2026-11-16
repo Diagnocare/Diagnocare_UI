@@ -2,6 +2,7 @@ import { Component, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { ActivePromotion, BookingPackageRef, PricingLine, PricingPlan } from 'src/app/models/promotion/promotion.model';
 import {
   SIMPLE_UI,
   DcChoiceOption,
@@ -192,7 +193,7 @@ import {
           until the step is valid, and says what is missing.
         </p>
 
-        <dc-wizard [steps]="steps"
+        <dc-wizard [formGroup]="form" [steps]="steps"
                    [(index)]="stepIndex"
                    [canContinue]="canContinue"
                    [blockReason]="blockReason"
@@ -290,12 +291,24 @@ import {
           reason in a tooltip.
         </p>
 
+        <p class="uikit-demo__note">
+          <strong>Checkboxes at every level.</strong> Tick a group or sub-group to take everything in it, at the offer price when there is one; a box shows a dash when only some of its tests are chosen. Try Biochemistry (offer), then untick one test to see the group break up.
+          <em>Demo only: the offers and the sum below are made up in this file. In the app both
+          come from the API (<code>/api/Promotion/Active</code> and <code>/Quote</code>), and
+          the API repeats the sum when the booking is saved.</em>
+        </p>
+
         <dc-test-picker
           [groups]="demoGroups"
           [selectedCodes]="demoSelectedCodes"
+          [promos]="demoPromos"
+          [packages]="demoPackages"
+          [plan]="demoPlan"
+          [planRequired]="true"
           (toggled)="toggleDemoTest($event)"
-          (confirmed)="say('Added ' + demoSelectedCodes.length + ' tests')"
-          (cancelled)="demoSelectedCodes = []">
+          (packageToggled)="toggleDemoPackage($event)"
+          (confirmed)="say('Added ' + (demoPlan?.totalTests ?? 0) + ' tests · ₹' + (demoPlan?.payableAfterPromotion ?? 0))"
+          (cancelled)="demoSelectedCodes = []; demoPackages = []; demoPlan = null">
         </dc-test-picker>
       </section>
 
@@ -460,6 +473,18 @@ export class SimpleUiShowcaseComponent {
   ];
   demoSelectedCodes: string[] = [];
 
+  /** Demo offers (made up). In the app these come from GET api/Promotion/Active. */
+  readonly demoPromos: ActivePromotion[] = [
+    { promotionId: 1, title: 'Monsoon health check', targetType: 'Group', targetId: 'BIO',
+      regularPrice: 2370, promoPrice: 1799, savings: 571, endDate: '2026-11-30T00:00:00' },
+    { promotionId: 2, title: 'Liver week', targetType: 'SubGroup', targetId: 'BIO-L',
+      regularPrice: 850, promoPrice: 649, savings: 201, endDate: '2026-11-30T00:00:00' },
+    { promotionId: 3, title: 'Sugar camp', targetType: 'Test', targetId: 'T-2020',
+      regularPrice: 550, promoPrice: 450, savings: 100, endDate: '2026-11-30T00:00:00' },
+  ];
+  demoPackages: BookingPackageRef[] = [];
+  demoPlan: PricingPlan | null = null;
+
   // ── Payment demo ──────────────────────────────────────────────────────────
   readonly demoModes = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'TPA'];
 
@@ -563,6 +588,89 @@ export class SimpleUiShowcaseComponent {
     this.demoSelectedCodes = at > -1
       ? this.demoSelectedCodes.filter(code => code !== test.code)
       : [...this.demoSelectedCodes, test.code];
+    this.demoPlan = this.buildDemoPlan();
+  }
+
+  toggleDemoPackage(ref: BookingPackageRef): void {
+    const at = this.demoPackages.findIndex(p => p.type === ref.type && p.id === ref.id);
+    this.demoPackages = at > -1 ? this.demoPackages.filter((_, i) => i !== at) : [...this.demoPackages, ref];
+    this.demoPlan = this.buildDemoPlan();
+  }
+
+  /**
+   * DEMO ONLY. A stand-in for POST api/Promotion/Quote so this page works without the API:
+   * one offer per item, no stacking, a test is charged once. The real rules live in the API
+   * (PromotionPricing.cs); nothing in the app calls this.
+   */
+  private buildDemoPlan(): PricingPlan | null {
+    const all = this.demoGroups.flatMap(g => g.subGroups.flatMap(sg => sg.tests.map(t => ({ ...t, g: g.id, sg: sg.id }))));
+    type Cand = { type: 'Group' | 'SubGroup' | 'Test'; id: string; name: string; tests: typeof all; promo?: ActivePromotion };
+    const cands: Cand[] = [
+      ...this.demoPackages.map(p => ({
+        type: p.type, id: p.id, name: p.name,
+        tests: all.filter(t => (p.type === 'Group' ? t.g : t.sg) === p.id),
+        promo: this.demoPromos.find(x => x.targetType === p.type && x.targetId === p.id),
+      })),
+      ...this.demoSelectedCodes.map(code => {
+        const t = all.find(x => x.code === code)!;
+        return { type: 'Test' as const, id: code, name: t.name, tests: [t],
+                 promo: this.demoPromos.find(x => x.targetType === 'Test' && x.targetId === code) };
+      }),
+    ];
+    if (!cands.length) return null;
+
+    // Cheapest disjoint set of promotions (brute force: the demo has a handful).
+    const promoted = cands.filter(c => c.promo);
+    const union = Array.from(new Set(cands.flatMap(c => c.tests.map(t => t.code))));
+    const price = (code: string) => all.find(t => t.code === code)!.price;
+    let best: Cand[] = [], bestCost = union.reduce((a, c) => a + price(c), 0);
+    for (let mask = 1; mask < (1 << promoted.length); mask++) {
+      const set = promoted.filter((_, i) => mask & (1 << i));
+      const codes = set.flatMap(c => c.tests.map(t => t.code));
+      if (new Set(codes).size !== codes.length) continue;
+      const cost = set.reduce((a, c) => a + c.promo!.promoPrice, 0) +
+                   union.filter(c => !codes.includes(c)).reduce((a, c) => a + price(c), 0);
+      if (cost < bestCost) { best = set; bestCost = cost; }
+    }
+
+    const claimed = new Map<string, Cand>();
+    best.forEach(c => c.tests.forEach(t => claimed.set(t.code, c)));
+    const lines: PricingLine[] = [];
+    const notices: string[] = [];
+    cands.forEach(c => {
+      const mine = best.includes(c) ? c.tests : c.tests.filter(t => {
+        if (claimed.has(t.code)) return false;
+        claimed.set(t.code, c);
+        return true;
+      });
+      const regular = mine.reduce((a, t) => a + t.price, 0);
+      lines.push({
+        type: c.type, id: c.id, name: c.name, alreadyIncluded: mine.length === 0,
+        tests: mine.map(t => ({ code: t.code, name: t.name, price: t.price })),
+        regularPrice: regular, chargedPrice: best.includes(c) ? c.promo!.promoPrice : regular,
+        savings: best.includes(c) ? regular - c.promo!.promoPrice : 0,
+        promotionTitle: best.includes(c) ? c.promo!.title : null,
+      });
+      const left = c.tests.filter(t => !mine.includes(t));
+      if (left.length) {
+        const owners = Array.from(new Set(left.map(t => claimed.get(t.code)!.name).filter(n => n !== c.name)));
+        notices.push(mine.length === 0
+          ? c.name + ' is already included in ' + owners.join(' and ') + ', so you are not charged for it again.'
+          : left.length + ' test' + (left.length === 1 ? ' in ' : 's in ') + c.name + ' ' + (left.length === 1 ? 'is' : 'are') +
+            ' already included in ' + owners.join(' and ') + ' and ' + (left.length === 1 ? 'is' : 'are') + ' charged only once.');
+      }
+      if (c.promo && !best.includes(c)) {
+        notices.push('The offer "' + c.promo.title + '" on ' + c.name + ' was not used because it overlaps with another selection and the other combination costs less.');
+      }
+    });
+
+    const tests = lines.flatMap(l => l.tests);
+    const regularTotal = tests.reduce((a, t) => a + t.price, 0);
+    const payable = lines.reduce((a, l) => a + l.chargedPrice, 0);
+    return {
+      success: true, lines, tests, totalTests: tests.length, notices,
+      regularTotal, promotionDiscount: regularTotal - payable, payableAfterPromotion: payable,
+    };
   }
 
   onDemoPayment(decision: DcPaymentDecision): void {

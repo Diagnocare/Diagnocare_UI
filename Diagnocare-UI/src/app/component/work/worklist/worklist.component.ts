@@ -7,20 +7,8 @@ import { ToastrService } from 'ngx-toastr';
 
 import { WorklistService } from 'src/app/services/worklistServices/worklist.service';
 import { WorklistItem, WorklistPage } from 'src/app/models/worklist/worklist.models';
-import {
-  WorkQueue,
-  WORK_QUEUE_ORDER,
-  WORK_QUEUE_META,
-  queueVerb,
-  progressLabel,
-  waitingLabel,
-  waitingTone,
-  defaultQueueForRole,
-} from 'src/app/utilities/work-queue.util';
-import {
-  DcQueueTabsComponent,
-  DcQueueTab,
-} from 'src/app/shared/simple/dc-queue-tabs.component';
+import { WORK_QUEUE_ORDER, WORK_QUEUE_META, queueVerb, progressLabel, waitingLabel, waitingTone, defaultQueueForRole } from 'src/app/utilities/work-queue.util';
+import { DcQueueTabsComponent } from 'src/app/shared/simple/dc-queue-tabs.component';
 import { DcEmptyComponent } from 'src/app/shared/simple/dc-empty.component';
 import { DcSearchComponent } from 'src/app/shared/simple/dc-search.component';
 import { MarkCollectedModalComponent } from '../mark-collected/mark-collected-modal.component';
@@ -30,6 +18,8 @@ import { AssignCollectorModalComponent } from '../assign-collector/assign-collec
 import { SampleCollectionService } from 'src/app/services/sampleCollectionServices/sample-collection.service';
 import { TokenService } from 'src/app/core/interceptors/token.service';
 import { Role } from 'src/app/constant/enums';
+import { DcQueueTab } from '../../../models/common/dc-primitives.model';
+import { WorkQueue } from '../../../models/worklist/work-queue.model';
 
 /**
  * The worklist — the lab's home screen.

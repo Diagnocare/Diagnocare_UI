@@ -17,12 +17,7 @@ import {
 } from 'src/app/models/path-test/protocol/test-protocol.model';
 import { TestProtocolPanelComponent } from 'src/app/shared/test-protocol-panel/test-protocol-panel.component';
 import { ConfirmModalService } from 'src/app/shared/confirm-modal/confirm-modal.service';
-
-/** One protocol linked to the test, as the editor holds it before saving. */
-interface LinkedRow {
-  protocol: TestProtocolSummaryDto;
-  note: string | null;
-}
+import { LinkedRow } from '../../../models/path-test/protocol/test-protocol-modal.model';
 
 /**
  * Admin screen for a test's sample-collection protocols, opened from the Master Test List.

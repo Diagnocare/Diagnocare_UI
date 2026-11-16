@@ -56,21 +56,24 @@ import {
 } from 'src/app/models/path-test/protocol/test-protocol.model';
 
 // ── Simple UI kit ────────────────────────────────────────────────────────────
-// The new test picker and payment panel render instead of the catalogue and the
-// payment step when USE_NEW_UI is on. The old markup stays in the template
-// behind *ngIf="!useNewUi" so the two can be compared with the same patient.
-import { DcTestPickerComponent, DcPickableTest, DcTestGroup } from 'src/app/shared/simple/dc-test-picker.component';
-import { DcPaymentPanelComponent, DcPaymentDecision } from 'src/app/shared/simple/dc-payment-panel.component';
+// The test picker and payment panel.
+import { DcTestPickerComponent } from 'src/app/shared/simple/dc-test-picker.component';
+import { PromotionService } from 'src/app/services/promotionServices/promotion.service';
+import { BookingSelectionState } from 'src/app/shared/booking/booking-selection.state';
+import { BookingSummaryComponent } from 'src/app/shared/booking/booking-summary.component';
+import { BookingPackageRef } from 'src/app/models/promotion/promotion.model';
+import { DcPaymentPanelComponent } from 'src/app/shared/simple/dc-payment-panel.component';
 // THE payment dialog, shared with Add New Patient, Patient Tests and
 // Bill / Receipt. This screen used to carry its own Bootstrap copy.
-import { PaymentModalComponent, PaymentModalResult } from 'src/app/shared/payment-modal/payment-modal.component';
-import { USE_NEW_UI } from 'src/app/shared/simple/simple-ui.flags';
+import { PaymentModalComponent } from 'src/app/shared/payment-modal/payment-modal.component';
 import { isWhatsAppNumber, toWhatsAppNumber } from 'src/app/utilities/whatsapp-number.util';
+import { DcPaymentDecision, DcPickableTest, DcTestGroup } from '../../models/common/dc-primitives.model';
+import { PaymentModalResult } from '../../models/receipt/payment.model';
 
 @Component({
   selector: 'app-add-test-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent, DcTestPickerComponent, DcPaymentPanelComponent, PaymentModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteInputDirective, StepperComponent, TpaDetailsModalComponent, PaymentCalculatorComponent, TestProtocolPanelComponent, DcTestPickerComponent, DcPaymentPanelComponent, PaymentModalComponent, BookingSummaryComponent],
   templateUrl: './add-test-modal.component.html',
   styleUrls: ['./add-test-modal.component.css'],
 })
@@ -102,16 +105,17 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   // ── Test catalog state ────────────────────────────────────────────────────
   showTestCatalog = false;
-  query           = '';
-  groupedTests:   GroupSubGroupModel[] = [];
-  subGroupTests:  GroupSubGroupModel[] = [];
-  pathologyTest:  any[]                = [];
-  selectedTestGroup?:  GroupSubGroupModel;
-  selectedSubGroup?:   GroupSubGroupModel;
-  selectedGroupId:    string | null = null;
-  selectedSubGroupId: string | null = null;
   selectedTestIds = new Set<string>();
   selectedTests:  TestItem[] = [];
+
+  /** Whole groups / sub-groups chosen, the offers on show, and the server's price. */
+  booking!: BookingSelectionState;
+
+  /**
+   * Rupees off from offers on the confirmed selection (set from the server's quote when the
+   * picker is confirmed). The manual discount % applies to the amount AFTER this.
+   */
+  promotionDiscount = 0;
   focusedTestId:  string | null = null;
 
   // ── Sample collection protocols ───────────────────────────────────────────
@@ -136,9 +140,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   showFocusedProtocol = false;
 
   // ── Simple UI kit ───────────────────────────────────────────────────────────
-  /** Flip in shared/simple/simple-ui.flags.ts to compare old and new. */
-  readonly useNewUi = USE_NEW_UI;
-
   /**
    * The whole catalogue, flat. The old picker loads tests one sub-group at a
    * time because that is all it can show; the new one searches everything, so
@@ -197,7 +198,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     private _token:          TokenService,
     private _sampleLabelService: SampleLabelService,
     private _memberService:  MemberService,
+    private _promotions:      PromotionService,
   ) {
+    this.booking = new BookingSelectionState(this._promotions, () => this.cdr.markForCheck());
     this.form = this.fb.group({
       test_Name:         ['', Validators.required],
       urgent_Report:     [false],
@@ -275,6 +278,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.booking?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -282,8 +286,46 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   // ── Computed helpers ──────────────────────────────────────────────────────
 
   get totalAmount(): number {
+    // Regular price of everything that will be booked, as the API worked it out.
+    if (this.booking?.plan?.success) return this.booking.plan.regularTotal;
     return this.selectedTests.reduce((s, it) => s + Number(it.price || 0), 0);
   }
+
+  /** Test amount less offers: what the manual discount % applies to. */
+  get payableBase(): number {
+    const testAmount = +this.form.get('test_Amount')?.value || 0;
+    return Math.max(0, testAmount - this.promotionDiscount);
+  }
+
+  // ── Whole groups / sub-groups and promotional pricing ─────────────────────
+  // The API prices everything: this screen shows what /api/Promotion/Quote returns and
+  // sends back what was picked. The booking is priced again, from scratch, when it is saved.
+
+  /** Codes of the individually chosen tests (not the ones inside a chosen group). */
+  get individualCodes(): string[] {
+    return this.selectedTests.map(t => t.testCode).filter(c => !!c);
+  }
+
+  /**
+   * Codes of every test that will be booked: the API's expansion of the chosen tests,
+   * groups and sub-groups, each test once. Falls back to the individual picks until the
+   * first quote arrives.
+   */
+  get bookedCodes(): string[] {
+    return this.booking.ready ? this.booking.bookedCodes : this.individualCodes;
+  }
+
+  /** Asks the API what the current choice costs, and why. */
+  refreshPrice(): void {
+    this.booking.refresh(this.individualCodes);
+  }
+
+  /** A whole group or sub-group was tapped in the picker. */
+  onPackageToggled(ref: BookingPackageRef): void {
+    this.booking.togglePackage(ref);
+    this.refreshPrice();
+  }
+
 
   // ── Simple UI kit adapters ──────────────────────────────────────────────────
   // The picker knows nothing about TestItem or the API — these two getters are
@@ -438,10 +480,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
    * the differ match what is already on screen instead of re-diffing a catalogue
    * that can run to hundreds of rows.
    */
-  trackByGroupId(_index: number, group: { testGroupId: number | string }): number | string {
-    return group.testGroupId;
-  }
-
   trackByTestCode(_index: number, test: { testCode: string }): string {
     return test.testCode;
   }
@@ -452,19 +490,6 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
 
   trackByValue(_index: number, value: string): string {
     return value;
-  }
-
-  get filteredGroups():    GroupSubGroupModel[] {
-    const q = this.query.trim().toLowerCase();
-    return q ? this.groupedTests.filter(g => `${g.testGroupId} ${g.name}`.toLowerCase().includes(q)) : this.groupedTests;
-  }
-  get filteredSubGroups(): GroupSubGroupModel[] {
-    const q = this.query.trim().toLowerCase();
-    return q ? this.subGroupTests.filter(s => `${s.testGroupId} ${s.name}`.toLowerCase().includes(q)) : this.subGroupTests;
-  }
-  get filteredTests(): any[] {
-    const q = this.query.trim().toLowerCase();
-    return q ? this.pathologyTest.filter(t => `${t.testCode} ${t.testName}`.toLowerCase().includes(q)) : this.pathologyTest;
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -491,50 +516,11 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   openTestCatalog(event: Event): void {
     event.preventDefault();
 
-    // The new picker searches the whole catalogue, so it opens immediately and
+    // The picker searches the whole catalogue, so it opens immediately and
     // fills in as the list arrives — no group has to be chosen first.
-    if (this.useNewUi) {
-      this.showTestCatalog = true;
-      this.loadAllTests();
-      return;
-    }
-
-    this._testService.getTestGroupList().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.groupedTests = res ?? [];
-        this.selectedTestGroup = this.groupedTests[0];
-        this.selectedGroupId = this.selectedTestGroup?.testGroupId;
-        this.getSubGroupList(this.selectedTestGroup!);
-        this.showTestCatalog = true;
-      },
-      // Message shown centrally by ErrorInterceptor.
-      error: () => {
-        this.groupedTests = [];
-      },
-    });
-  }
-
-  getSubGroupList(tg: GroupSubGroupModel): void {
-    this.selectedTestGroup = tg;
-    this.selectedGroupId   = tg.testGroupId;
-    this._testService.getTestSubGroupList(tg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: GroupSubGroupModel[]) => {
-        this.subGroupTests    = res ?? [];
-        this.selectedSubGroup = this.subGroupTests[0];
-        this.selectedSubGroupId = this.selectedSubGroup?.testGroupId;
-        if (this.selectedSubGroup) this.getMedicalTestList(this.selectedSubGroup);
-      },
-      error: () => { this.subGroupTests = []; },   // message shown centrally by ErrorInterceptor
-    });
-  }
-
-  getMedicalTestList(sg: GroupSubGroupModel): void {
-    this.selectedSubGroup   = sg;
-    this.selectedSubGroupId = sg.testGroupId;
-    this._testService.getMedicalTestList(sg.testGroupId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res: any[]) => { this.pathologyTest = res ?? []; },
-      error: () => { this.pathologyTest = []; },   // message shown centrally by ErrorInterceptor
-    });
+    this.showTestCatalog = true;
+    this.loadAllTests();
+    this.booking.loadPromos();
   }
 
   /**
@@ -592,7 +578,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
    * One request for the whole selection rather than one per test.
    */
   private loadSelectedProtocols(): void {
-    const codes = this.selectedTests.map(t => t.testCode).filter(c => !!c);
+    const codes = this.bookedCodes;
     if (!codes.length) {
       this.selectedTestProtocols = [];
       this.selectedProtocolsLoading = false;
@@ -664,6 +650,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       this.selectedTestIds.add(t.testCode);
       this.selectedTests = [...this.selectedTests, t];
     }
+    this.refreshPrice();
   }
 
   removeSelectedTest(testId: string): void {
@@ -672,10 +659,11 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.selectedTestIds.delete(testId);
     this.selectedTests = this.selectedTests.filter(x => x.testCode !== testId);
     this.selectedTestProtocols = this.selectedTestProtocols.filter(t => t.testCode !== testId);
+    this.refreshPrice();
   }
 
   confirmTestSelection(): void {
-    if (this.selectedTests.length === 0) {
+    if (this.selectedTests.length === 0 && !this.booking.hasPackages) {
       this.toastr.warning('Please select at least one test', 'No test selected');
       return;
     }
@@ -688,9 +676,18 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
         'Test not available');
       return;
     }
+    // The price comes from the API. Without it there is nothing safe to put on the bill.
+    if (!this.booking.ready) {
+      this.toastr.error(
+        this.booking.error ?? 'The price is still being worked out. Please wait a moment and try again.',
+        'Price not ready');
+      return;
+    }
+    const plan = this.booking.plan!;
+    this.promotionDiscount = plan.promotionDiscount;
     this.form.patchValue({
-      test_Name:   this.selectedTests.map(t => t.testName).join(', '),
-      test_Amount: this.totalAmount,
+      test_Name:   plan.tests.map(t => t.name).join(', '),
+      test_Amount: plan.regularTotal,
     });
     this.showTestCatalog = false;
     this.calculateNetAmount();
@@ -734,7 +731,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
             catchError(() => of([] as GroupSubGroupModel[])),
             switchMap((subs: GroupSubGroupModel[]) => {
               if (!subs || subs.length === 0) {
-                return of({ id: group.testGroupId, name: group.name, subGroups: [] } as DcTestGroup);
+                return of({ id: group.testGroupId, name: group.name, price: Number(group.price || 0), subGroups: [] } as DcTestGroup);
               }
               return forkJoin(subs.map(sub =>
                 this._testService.getMedicalTestList(sub.testGroupId).pipe(
@@ -742,6 +739,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
                   map((tests: any[]) => ({
                     id:    sub.testGroupId,
                     name:  sub.name,
+                    price: Number(sub.price || 0),
                     tests: (tests ?? []).map((t: any) => this.toPickable(t as TestItem, group.name)),
                     rawTests: (tests ?? []) as TestItem[],
                   })),
@@ -749,7 +747,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
               )).pipe(map(subGroups => ({
                 id:        group.testGroupId,
                 name:      group.name,
-                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, tests: sg.tests })),
+                price:     Number(group.price || 0),
+                subGroups: subGroups.map(sg => ({ id: sg.id, name: sg.name, price: sg.price, tests: sg.tests })),
                 rawTests:  ([] as TestItem[]).concat(...subGroups.map(sg => sg.rawTests)),
               })));
             }),
@@ -760,7 +759,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     ).subscribe({
       next: (groups: any[]) => {
         this.testGroups = (groups ?? []).map(g => ({
-          id: g.id, name: g.name, subGroups: g.subGroups ?? [],
+          id: g.id, name: g.name, price: g.price, subGroups: g.subGroups ?? [],
         }));
 
         // Flat view, de-duplicated: a test can appear under more than one
@@ -927,7 +926,9 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.form.get('discount')?.setErrors(null);
 
     if (testAmount > 0 && discount >= 0 && discount <= maxDiscount) {
-      const net = testAmount - (discount * testAmount / 100);
+      // Offers come off first; the discount % applies to what is left.
+      const payable = this.payableBase;
+      const net = payable - (discount * payable / 100);
       this.form.patchValue({ net_Amount: net });
     }
     const payType = this.form.get('payment_Type')?.value;
@@ -952,7 +953,7 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
   }
 
   calculateDiscount(): void {
-    const testAmount = +this.form.get('test_Amount')?.value || 0;
+    const testAmount = this.payableBase;   // net is compared with the amount after offers
     const netAmount  = +this.form.get('net_Amount')?.value  || 0;
     if (netAmount > 0 && netAmount <= testAmount && testAmount > 0) {
       this.form.patchValue({ discount: (testAmount - netAmount) * 100 / testAmount });
@@ -1102,10 +1103,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     const amtPaid     = isFullPay ? netAmt : isNoPayment ? 0 : (f.amount_Paid || 0);
     const amtPending  = isFullPay ? 0 : isNoPayment ? netAmt : +(netAmt - amtPaid).toFixed(2);
 
-    // Build test IDs string
-    let testIds = '';
-    this.selectedTestIds.forEach(id => (testIds += id + ','));
-    testIds = testIds.slice(0, -1);
+    // Every test that will be booked, once each (the API re-derives this from the selections).
+    const testIds = this.bookedCodes.join(',');
 
     // Always create receipt — even for No Payment — so test/net amounts are
     // stored and the receipt module can show the balance and allow "Pay Now" later.
@@ -1135,6 +1134,8 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
       patientId:       this.patientId,
       test: {
         test_Id:          testIds,
+        // What was actually picked: tests, sub-groups, whole groups. The API prices these.
+        selections:       this.booking.selections(this.individualCodes),
         test_Name:         f.test_Name,
         urgent_Report:     f.urgent_Report     ?? false,
         report_On_WhatsApp: !!f.report_On_WhatsApp,
@@ -1247,9 +1248,10 @@ export class AddTestModalComponent implements OnChanges, OnDestroy {
     this.amountPaidError      = '';
     this.saveError            = '';
     this.isSaving             = false;
-    this.query                = '';
     this.selectedTestIds      = new Set<string>();
     this.selectedTests        = [];
+    this.booking.clear();
+    this.promotionDiscount    = 0;
     this.focusedTestId             = null;
     this.focusedProtocols          = null;
     this.focusedProtocolTestName   = '';

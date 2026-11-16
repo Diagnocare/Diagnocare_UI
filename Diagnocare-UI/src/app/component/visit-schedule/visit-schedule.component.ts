@@ -15,14 +15,8 @@ import { VisitCalendarComponent }  from 'src/app/shared/visit-calendar/visit-cal
 import { VisitCardComponent }      from 'src/app/shared/visit-card/visit-card.component';
 import { formatTime12h, TimePartsPicker } from 'src/app/shared/time-slots/time-slots';
 
-import {
-  VisitCompleteModalComponent,
-  VisitCompletionData,
-} from 'src/app/shared/visit-complete-modal/visit-complete-modal.component';
-import {
-  VisitEditModalComponent,
-  VisitEditData,
-} from 'src/app/shared/visit-edit-modal/visit-edit-modal.component';
+import { VisitCompleteModalComponent } from 'src/app/shared/visit-complete-modal/visit-complete-modal.component';
+import { VisitEditModalComponent } from 'src/app/shared/visit-edit-modal/visit-edit-modal.component';
 
 import {
   VisitScheduleGetDto,
@@ -32,6 +26,7 @@ import {
 import { ContactAddressListDto } from 'src/app/models/contactAddress/contactAddress-list.dto';
 import { MemberDto }             from 'src/app/models/member/member.dto';
 import { InstitutionType } from 'src/app/constant/enums';
+import { VisitCompletionData, VisitEditData } from '../../models/visitSchedule/visit-modal.model';
 
 @Component({
   selector:    'app-visit-schedule',

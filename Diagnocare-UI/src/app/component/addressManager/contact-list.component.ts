@@ -28,7 +28,8 @@ export class ContactListComponent implements OnInit {
   filteredContacts: ContactAddressListDto[] = [];
 
   pageSizeOptions = [5, 10, 25];
-  pageSize = 10;
+  // Single source of truth: the dropdown is bound to this; the first option is the default.
+  pageSize = this.pageSizeOptions[0];
   currentPage = 1;
   totalPages = 1;
 

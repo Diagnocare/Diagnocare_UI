@@ -3,67 +3,77 @@ import { ReportConfig, ReportLevelOption } from "../models/summaryReport/summary
 /** Default country dialling code used across patient forms. Update here to change globally. */
 export const DEFAULT_DIALING_CODE = '+91';
 
+/**
+ * Controller paths. Versioned under /api/v1 from day one (§24).
+ *
+ * The API mounts every existing controller under this prefix centrally
+ * (ApiVersionRoutePrefixConvention), so this is a prefix change and nothing else. The REST
+ * redesign is a separate, later migration under /api/v2, endpoint by endpoint — this file is
+ * deliberately the single place API paths are assembled, which is what makes that possible.
+ */
 export const controllerEndpoints = {
-  header: 'api/header/',
-  login: 'api/login/',
-  otp: 'api/Otp/',
-  mfa: 'api/Mfa/',
-  fingerprint: 'api/Fingerprint/',
-  address: 'api/addressManager/',
-  collectionBoy: 'api/collectionBoys/',
-  doctor: 'api/doctors/',
-  patient: 'api/patient/',
-  patientReport: 'api/PatientReport/',
-  patientTestReportGeneration: 'api/TestReportGeneration/',
-  smartReport: 'api/SmartReport/',
-  sampleLabel: 'api/SampleLabel/',
-  pathology: 'api/pathology/',
-  test: 'api/test/',
-  user: 'api/user/',
-  receipt: 'api/receipt/',
-  summaryReport:'api/summaryReport/',
-  pathologyTest:'api/pathologyTest/',
+  header: 'api/v1/header/',
+  login: 'api/v1/login/',
+  otp: 'api/v1/Otp/',
+  mfa: 'api/v1/Mfa/',
+  fingerprint: 'api/v1/Fingerprint/',
+  address: 'api/v1/addressManager/',
+  collectionBoy: 'api/v1/collectionBoys/',
+  doctor: 'api/v1/doctors/',
+  patient: 'api/v1/patient/',
+  patientReport: 'api/v1/PatientReport/',
+  patientTestReportGeneration: 'api/v1/TestReportGeneration/',
+  smartReport: 'api/v1/SmartReport/',
+  sampleLabel: 'api/v1/SampleLabel/',
+  pathology: 'api/v1/pathology/',
+  test: 'api/v1/test/',
+  user: 'api/v1/user/',
+  receipt: 'api/v1/receipt/',
+  summaryReport:'api/v1/summaryReport/',
+  pathologyTest:'api/v1/pathologyTest/',
   /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
-  testImport:    'api/TestImport/',
-  template:   'api/template/',
-  attendance: 'api/attendance/',
-  salary:     'api/salary/',
+  testImport:    'api/v1/TestImport/',
+  template:   'api/v1/template/',
+  attendance: 'api/v1/attendance/',
+  salary:     'api/v1/salary/',
   /**
    * Paid leave: accumulated balances and the year-end carry-forward. Its own controller
    * because a leave balance spans the whole year, while Attendance is per day.
    */
-  leave:      'api/Leave/',
-  holiday:       'api/holiday/',
-  visitSchedule: 'api/visitSchedule/',
-  feedback:      'api/feedback/',
+  leave:      'api/v1/Leave/',
+  holiday:       'api/v1/holiday/',
+  visitSchedule: 'api/v1/visitSchedule/',
+  feedback:      'api/v1/feedback/',
   /**
    * Repeat testing — how many times a test was run on the collected sample, and why.
    * Its own controller: this is about the conduct of the test, not its values.
    */
-  testRun:       'api/TestRun/',
+  testRun:       'api/v1/TestRun/',
   /**
    * Sample rejection — a collected sample that could not be used, and why. Its own
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
-  sampleRejection: 'api/SampleRejection/',
+  sampleRejection: 'api/v1/SampleRejection/',
   /**
    * The sample breakdown — how a booking's tests distribute across the tubes that have to
    * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
    * this one answers how many tubes there are.
    */
-  sample: 'api/Sample/',
+  sample: 'api/v1/Sample/',
   /** Super Admin queue for discounts above the lab's max discount. */
   discountApproval: 'api/DiscountApproval/',
+  /** Promotional prices for tests, sub-groups and groups; also the price quote used by the booking screens. */
+  promotion: 'api/Promotion/',
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
-  testReminder: 'api/TestReminder/',
-  worklist: 'api/Worklist/',
+  testReminder: 'api/v1/TestReminder/',
+  worklist: 'api/v1/Worklist/',
   /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
-  dashboard: 'api/Dashboard/',
+  dashboard: 'api/v1/Dashboard/',
   /**
    * The caller's own in-app notifications (header bell, User Panel badges).
    * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
    */
-  notification: 'api/Notification/'
+  notification: 'api/v1/Notification/'
 };
 
 export const apiEndpoints = {
@@ -318,6 +328,7 @@ export const validationMessages = {
 
 // Tab order for Add Patient form
    export const tabOrderAdd = [
+     // Step 1 · Patient
      'patient_Salutation',
      'patient_Name',
      'patient_DOB',
@@ -326,30 +337,33 @@ export const validationMessages = {
      'patient_Gender',
      '',
      '',
+     'patient_Contact',
+     'patient_Email',
      'patient_Marital_Status',
      '',
      'relation',
      'relative_Name',
-     'patient_Contact',
-     'patient_Email',
-     'patient_Address',
+     // Step 2 · Tests
      'test_Name',
-     'urgent_Report',
-     'report_On_WhatsApp',
      'test_Amount',
      'referred_By_Type',
      'referred_By',
+     // Step 3 · Collection
      'sampling_Done',
      'collected_Outside',
      'area',
      'collected_By',
+     'patient_Address',
+     'urgent_Report',
      'remark',
+     // Step 4 · Payment & Delivery
      'discount',
      'net_Amount',
      'payment_Type',
      'payment_Mode',
      'amount_Paid',
-     'amount_Pending'
+     'amount_Pending',
+     'report_On_WhatsApp'
    ]
 
    // Tab order for Edit Patient form (customize as needed)
@@ -413,6 +427,8 @@ export const labOperationMenu = {
 export const labSetupMenu = {
     labProfile: { id: 'labProfile', label: 'Lab Profile',        route: 'lab-profile', icon: 'fa-hospital-alt', description: 'Logo, motto, legal details, report branding & more' },
     labConfig:  { id: 'labConfig',  label: 'Lab Configuration',  route: 'lab-setup',   icon: 'fa-sliders-h',    description: 'Sampling locations, areas & more' },
+    // Route guard (Admin + Super Admin) is unchanged; only the menu location moved.
+    reportTemplate: { id: 'reportTemplate', label: 'Report Template', route: 'template', icon: 'fa-file-alt', description: 'Manage report layouts' },
 }
 /**
  * Admin Panel navigation items.
@@ -432,11 +448,13 @@ export const adminOptions: Record<string, { id: string; label: string; route: st
   salary:        { id: 'salary',        label: 'Salary',             route: 'salary',          icon: 'fa-money-bill-wave', superAdminOnly: true },
   // Discounts above the lab limit wait here for the owner's decision.
   discountApprovals: { id: 'discountApprovals', label: 'Discount Approvals', route: 'discount-approvals', icon: 'fa-percent', superAdminOnly: true },
+  // Promotional prices for tests, sub-groups and whole groups.
+  promotions:    { id: 'promotions',    label: 'Offers',             route: 'promotions',      icon: 'fa-tag' },
   holidays:      { id: 'holidays',      label: 'Holiday Calendar',   route: 'holidays',        icon: 'fa-calendar-alt' },
   // doctor:        { id: 'doctor',        label: 'Doctor',             route: 'doctors',         icon: 'fa-user-md' },
   // collectionBoy: { id: 'collectionBoy', label: 'Collection Boy',     route: 'collection-boys', icon: 'fa-motorcycle' },
   visitSchedule: { id: 'visitSchedule', label: 'Visit Schedule',      route: 'visit-schedule',  icon: 'fa-calendar-check' },
-  template:      { id: 'template',      label: 'Template',           route: 'template',        icon: 'fa-file-alt' },
+  // Report Template moved to Lab Setup (see labSetupMenu).
 };
 
 /**

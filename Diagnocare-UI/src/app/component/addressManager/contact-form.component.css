@@ -39,7 +39,8 @@
   height: 1.1rem;
 }
 
-.contact-form-container .btn {
+.contact-form-container .btn,
+.contact-form-container .dc-btn {
   padding: 0.55rem 1.25rem;
 }
 

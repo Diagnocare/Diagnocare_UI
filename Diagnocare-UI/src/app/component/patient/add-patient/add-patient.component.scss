@@ -968,3 +968,9 @@ textarea.form-control {
   color: var(--dc-wait-ink, var(--color-warning));
   font-weight: 600;
 }
+
+/* The WhatsApp number appears and disappears at the foot of a tall step. Reserving its
+   room keeps the page the same height either way, so ticking the box cannot shorten the
+   document, clamp the scroll position, or make the sticky sidebar shift. */
+.wa-number-slot { min-height: 7rem; }
+.registration-card { overflow-anchor: none; }

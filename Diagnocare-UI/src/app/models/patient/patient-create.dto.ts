@@ -26,6 +26,11 @@ export interface PatientCreateDto {
 /** DTO matching backend AddPatientTestDTO. */
 export interface PatientTestCreateDto {
   test_Id:          string;
+  /**
+   * What was picked: tests, sub-groups and whole groups. The API expands these into the tests
+   * booked and prices them; `test_Id` is only a fallback for older callers.
+   */
+  selections?:      { type: string; id: string }[];
   test_Name:         string;
   urgent_Report:     boolean;
   /** Send this booking's report on WhatsApp (needs a valid patient mobile number). */

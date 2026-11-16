@@ -9,17 +9,7 @@ import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { MemberDto }                     from 'src/app/models/member/member.dto';
 import { RoleId }                        from 'src/app/constant/enums';
 import { SKIP_ERROR_TOAST_HEADER }       from 'src/app/core/interceptors/error.interceptor';
-
-/**
- * Staff head-count vs the ceiling configured on the API (`Staff:MaxStaffCount`).
- * Every role counts, Super Admin included; deactivated members do not.
- */
-export interface StaffCapacity {
-  used: number;
-  max: number;
-  remaining: number;
-  canAddMore: boolean;
-}
+import { StaffCapacity } from '../../models/member/staff-capacity.model';
 
 @Injectable({ providedIn: 'root' })
 export class MemberService {
@@ -69,7 +59,7 @@ export class MemberService {
    * an empty dropdown is better than losing the form.
    */
   getCollectionBoysLookup(): Observable<MemberDto[]> {
-    const url = getDiagnocareApiUrl() + 'api/StaffLookup/CollectionBoys';
+    const url = getDiagnocareApiUrl() + 'api/v1/StaffLookup/CollectionBoys';
     return this.http
       .get<any[]>(url, { headers: new HttpHeaders({ [SKIP_ERROR_TOAST_HEADER]: '1' }) })
       .pipe(map(list => this.normalizeList(list ?? [])));

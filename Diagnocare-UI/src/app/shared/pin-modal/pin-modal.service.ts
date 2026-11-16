@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { filter, take } from 'rxjs/operators';
-
-export type PinModalMode = 'enter-pin' | 'setup-required';
+import { PinModalMode } from '../../models/auth/pin-modal.model';
 
 /**
  * PinModalService

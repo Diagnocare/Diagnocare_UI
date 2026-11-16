@@ -1206,3 +1206,16 @@
 
 
 
+
+/* Smart Report progress / error banner */
+.ptl-sr-toast {
+  position: fixed; left: 50%; bottom: 1.5em; transform: translateX(-50%); z-index: 2000;
+  display: flex; align-items: center; gap: 0.7em; max-width: calc(100vw - 2em);
+  padding: 0.8em 1.1em; border-radius: var(--radius-lg);
+  background: var(--bg-white); color: var(--text-primary);
+  border: 1px solid var(--border-color); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.ptl-sr-toast > i { color: var(--color-info); font-size: 1.2em; }
+.ptl-sr-toast--error { border-color: var(--color-error); background: var(--color-error-bg); }
+.ptl-sr-toast--error > i { color: var(--color-error); }
+.ptl-sr-toast__close { background: none; border: 0; font-size: 1.3em; line-height: 1; cursor: pointer; color: inherit; }

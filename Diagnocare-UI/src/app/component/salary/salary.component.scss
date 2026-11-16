@@ -974,20 +974,6 @@
 }
 
 // ── Cancel button in config form ─────────────────────────────────
-.btn-cancel {
-  background: var(--color-surface-sunken);
-  color: var(--color-text-secondary);
-  border: 1.5px solid var(--color-border-strong);
-  font-weight: 600;
-
-  &:hover:not(:disabled) {
-    background: var(--color-surface-hover);
-    border-color: var(--color-text-muted);
-    color: var(--color-text-primary);
-  }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-
 // ══════════════════════════════════════════════════════════════════
 //  CONFIG TAB — user picker + config form
 // ══════════════════════════════════════════════════════════════════
@@ -2130,7 +2116,7 @@
   .pm-modal { width: calc(100vw - 1.5rem); }
   .pm-grid  { grid-template-columns: 1fr; }
   .pm-radio-group { grid-template-columns: 1fr; }
-  .pm-footer { flex-direction: column-reverse; .btn { width: 100%; justify-content: center; } }
+  .pm-footer { flex-direction: column-reverse; .btn, .dc-btn { width: 100%; justify-content: center; } }
 }
 
 

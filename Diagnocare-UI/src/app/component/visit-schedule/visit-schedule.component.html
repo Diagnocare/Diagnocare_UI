@@ -112,7 +112,7 @@
 
             <!-- Members available for the chosen role -->
             <ng-container *ngIf="displayMembers.length > 0">
-              <select class="form-select" formControlName="assignedMemberId"
+              <select aria-label="Assigned team member" class="form-select" formControlName="assignedMemberId"
                       [class.is-invalid]="isInvalid('assignedMemberId')">
                 <option [ngValue]="null" disabled>
                   Select {{ memberTypeFilter === null ? 'member' : memberFilterPlural.slice(0, -1) }}
@@ -149,8 +149,8 @@
         <!-- Contact -->
         <div class="af-grid">
           <div class="af-field">
-            <label class="af-label">Contact type <span class="af-req">*</span></label>
-            <select class="form-select" formControlName="contactType"
+            <label for="visit-schedule-contactType" class="af-label">Contact type <span class="af-req">*</span></label>
+            <select id="visit-schedule-contactType" class="form-select" formControlName="contactType"
                     [class.is-invalid]="isInvalid('contactType')"
                     (change)="onContactTypeChange()">
               <option [ngValue]="null" disabled>Select type</option>
@@ -162,10 +162,10 @@
           </div>
 
           <div class="af-field">
-            <label class="af-label">Contact to visit <span class="af-req">*</span></label>
+            <label for="visit-schedule-contactName" class="af-label">Contact to visit <span class="af-req">*</span></label>
 
             <div class="contact-autocomplete-wrap">
-              <input type="text"
+              <input id="visit-schedule-contactName" type="text"
                      class="form-control"
                      formControlName="contactName"
                      [class.is-invalid]="isInvalid('contactName')"
@@ -261,14 +261,14 @@
 
         <!-- Details -->
         <div class="af-field">
-          <label class="af-label">Purpose <span class="af-optional">Optional</span></label>
-          <input type="text" class="form-control" formControlName="purpose"
+          <label for="visit-schedule-purpose" class="af-label">Purpose <span class="af-optional">Optional</span></label>
+          <input id="visit-schedule-purpose" type="text" class="form-control" formControlName="purpose"
                  placeholder="e.g. Introduce new test packages, follow up on referrals…" />
         </div>
 
         <div class="af-field">
-          <label class="af-label">Notes <span class="af-optional">Optional</span></label>
-          <textarea class="form-control" formControlName="notes" rows="2"
+          <label for="visit-schedule-notes" class="af-label">Notes <span class="af-optional">Optional</span></label>
+          <textarea id="visit-schedule-notes" class="form-control" formControlName="notes" rows="2"
                     placeholder="Any additional instructions…"></textarea>
         </div>
 

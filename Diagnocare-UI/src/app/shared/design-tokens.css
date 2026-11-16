@@ -16,7 +16,7 @@
      3. shell-tokens.css       --sh-* — the clinical teal palette used by the
                                sidebar shell and home dashboard.
 
-   Because layer 3 ships today (USE_SIDEBAR_SHELL = true) and it neutralises
+   Because layer 3 ships today and it neutralises
    layer 1's gradient on every signed-in page, the application's *actual*
    visual identity is the clinical teal — the blue/purple survived only on the
    public pages and inside button gradients. So teal is what this file encodes,

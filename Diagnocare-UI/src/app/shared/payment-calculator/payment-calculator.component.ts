@@ -6,12 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-/** Result state of a single calculation. */
-export interface PaymentCalcResult {
-  state:      'idle' | 'balance' | 'return' | 'complete';
-  difference: number;
-}
+import { PaymentCalcResult } from '../../models/receipt/payment.model';
 
 /**
  * PaymentCalculatorComponent

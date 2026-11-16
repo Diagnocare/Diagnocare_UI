@@ -1,16 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** The actions a row or card can offer. */
-export type DcActionType =
-  | 'view' | 'edit' | 'print' | 'download' | 'add'
-  | 'delete' | 'restore' | 'cancel' | 'pay' | 'results';
-
-interface DcActionConfig {
-  icon: string;
-  label: string;
-  tone: 'normal' | 'primary' | 'danger';
-}
+import { DcActionConfig } from '../../models/common/dc-primitives.model';
+import { DcActionType } from '../../models/common/dc-primitives.model';
 
 /**
  * One place where every row action's icon, wording and colour is decided.

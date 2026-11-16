@@ -112,15 +112,6 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
 }
 
 // ── Header actions ───────────────────────────────────────────────
-.btn-danger-outline {
-  border-color: $clr-absent-bg !important;
-  color: $clr-absent-bg !important;
-
-  &:hover:not(:disabled) {
-    background: $clr-absent-bg !important;
-    color: #fff !important;
-  }
-}
 
 .dirty-badge {
   display: inline-block;
@@ -278,7 +269,6 @@ $grad-holiday : linear-gradient(160deg, var(--color-warning) 0%, var(--color-war
     }
   }
 }
-
 
 .day-header {
   display: flex;
@@ -955,12 +945,9 @@ $today-rail: var(--color-primary-ink);
 
 // ── dark ──────────────────────────────────────────────────────────────────────
 
-
 // ── midnight ───────────────────────────────────────────────────────────────────
 
-
 // ── warm ──────────────────────────────────────────────────────────────────────
-
 
 // ── system (OS dark) — mirrors dark ───────────────────────────────────────────
 

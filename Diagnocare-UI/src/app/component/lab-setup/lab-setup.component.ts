@@ -10,8 +10,7 @@ import { PathologyService }        from 'src/app/services/pathologyServices/path
 import { ConfirmModalService }     from 'src/app/shared/confirm-modal/confirm-modal.service';
 import { ConfirmModalComponent }   from 'src/app/shared/confirm-modal/confirm-modal.component';
 import { TokenService }            from 'src/app/core/interceptors/token.service';
-
-export type LabSetupTab = 'sampling' | 'areas' | 'units' | 'policies';
+import { LabSetupTab } from '../../models/pathology/lab-setup.model';
 
 @Component({
   selector: 'app-lab-setup',

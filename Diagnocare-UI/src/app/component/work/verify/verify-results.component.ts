@@ -9,25 +9,7 @@ import { TestReportService } from 'src/app/services/patientTestReportServices/te
 import { WorklistService } from 'src/app/services/worklistServices/worklist.service';
 import { DcStatusComponent } from 'src/app/shared/simple/dc-status.component';
 import { DcNoteComponent } from 'src/app/shared/simple/dc-note.component';
-
-/**
- * One row on the verification screen: a parameter, its value, and whether that
- * value sits inside the reference range.
- */
-export interface VerifyRow {
-  parameterId: number;
-  parameterName: string;
-  parameterUnit: string;
-  parameterRange: string;
-  value: string;
-
-  /** True when the value falls outside the reference range. */
-  abnormal: boolean;
-  /** 'HIGH' | 'LOW' | '' — shown beside an abnormal value. */
-  direction: string;
-  /** False when the range could not be parsed, so nothing is claimed about it. */
-  rangeUnderstood: boolean;
-}
+import { VerifyRow } from '../../../models/worklist/verify-results.model';
 
 /**
  * Verification — the sign-off step.

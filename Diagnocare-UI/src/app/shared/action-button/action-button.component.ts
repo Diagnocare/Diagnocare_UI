@@ -1,18 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/**
- * Supported action-button types.
- * Each type has a fixed icon and colour — only the click handler and optional
- * title override change per usage site.
- */
-export type ActionButtonType = 'view' | 'edit' | 'delete' | 'print' | 'download' | 'reactivate' | 'hard-delete';
-
-interface ActionConfig {
-  cssClass: string;
-  icon: string;
-  defaultTitle: string;
-}
+import { ActionConfig } from '../../models/common/action-button.model';
+import { ActionButtonType } from '../../models/common/action-button.model';
 
 const ACTION_CONFIG: Record<ActionButtonType, ActionConfig> = {
   view:   { cssClass: 'btn-view',   icon: 'fa-eye',    defaultTitle: 'View' },

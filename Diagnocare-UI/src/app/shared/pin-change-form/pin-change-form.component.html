@@ -30,13 +30,13 @@
 
   <!-- Current PIN (hidden once identity is verified via Forgot PIN) -->
   <div class="pin-field-row" *ngIf="!isResetMode">
-    <label>Current PIN</label>
+    <label for="pin-change-form-field1">Current PIN</label>
     <div class="pin-input-group">
       <!-- Masked via appMasked rather than type="password": a 4–6 digit session
            PIN is not an account credential and must never reach the browser's
            password manager. The old autocomplete="current-password" hint was
            telling it to do exactly that. -->
-      <input
+      <input id="pin-change-form-field1"
         type="text"
         [appMasked]="!showCurrentPin"
         class="form-input"
@@ -60,9 +60,9 @@
 
   <!-- New PIN -->
   <div class="pin-field-row">
-    <label>New PIN</label>
+    <label for="pin-change-form-field2">New PIN</label>
     <div class="pin-input-group">
-      <input
+      <input id="pin-change-form-field2"
         type="text"
         [appMasked]="!showNewPin"
         class="form-input"
@@ -81,9 +81,9 @@
 
   <!-- Confirm New PIN -->
   <div class="pin-field-row">
-    <label>Confirm New PIN</label>
+    <label for="pin-change-form-field3">Confirm New PIN</label>
     <div class="pin-input-group">
-      <input
+      <input id="pin-change-form-field3"
         type="text"
         [appMasked]="!showConfirmPin"
         class="form-input"

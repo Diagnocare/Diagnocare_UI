@@ -116,11 +116,11 @@
       <div class="edit-block" *ngIf="pinMode === 'set'">
         <p class="pin-form-hint"><i class="fa fa-info-circle"></i> Choose a 4–6 digit PIN you'll remember.</p>
         <div class="pin-field-row">
-          <label>New PIN</label>
+          <label for="settings-field1">New PIN</label>
           <div class="pin-input-group">
             <!-- Masked via appMasked, never type="password" — a session PIN must not
                  land in the browser's password manager. See MaskedInputDirective. -->
-            <input type="text" [appMasked]="!showNewPin" class="form-input"
+            <input id="settings-field1" type="text" [appMasked]="!showNewPin" class="form-input"
                    inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="e.g. 1234"
                    [ngModel]="newPin" (ngModelChange)="newPin = onlyDigits($event)" autocomplete="off" />
             <button type="button" class="pin-eye-btn" (click)="showNewPin = !showNewPin">
@@ -129,9 +129,9 @@
           </div>
         </div>
         <div class="pin-field-row">
-          <label>Confirm PIN</label>
+          <label for="settings-field2">Confirm PIN</label>
           <div class="pin-input-group">
-            <input type="text" [appMasked]="!showNewPin" class="form-input"
+            <input id="settings-field2" type="text" [appMasked]="!showNewPin" class="form-input"
                    inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Repeat PIN"
                    [ngModel]="confirmPin" (ngModelChange)="confirmPin = onlyDigits($event)" autocomplete="off" />
           </div>
@@ -151,9 +151,9 @@
           After removing your PIN, you will be redirected to the login page whenever your session token expires.
         </p>
         <div class="pin-field-row">
-          <label>Current PIN</label>
+          <label for="settings-field3">Current PIN</label>
           <div class="pin-input-group">
-            <input type="text" [appMasked]="!showCurrentPin" class="form-input"
+            <input id="settings-field3" type="text" [appMasked]="!showCurrentPin" class="form-input"
                    inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter to confirm removal"
                    [ngModel]="currentPin" (ngModelChange)="currentPin = onlyDigits($event)" autocomplete="off" />
             <button type="button" class="pin-eye-btn" (click)="showCurrentPin = !showCurrentPin">

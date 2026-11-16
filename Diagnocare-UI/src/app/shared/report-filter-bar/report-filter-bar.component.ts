@@ -1,17 +1,7 @@
 import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface FilterChartOption {
-  value: string;
-  label: string;
-  icon: string;
-}
-
-export interface FilterPeriodOption {
-  label: string;
-  value: string;
-}
+import { FilterChartOption, FilterPeriodOption } from '../../models/summaryReport/report-filter.model';
 
 @Component({
   selector: 'app-report-filter-bar',

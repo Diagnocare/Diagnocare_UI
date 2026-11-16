@@ -115,10 +115,10 @@
       <form [formGroup]="loginForm" (ngSubmit)="Login()" appFormKeyboard>
 
         <div class="lp-field">
-          <label class="lp-label">User Name</label>
+          <label for="login-userId" class="lp-label">User Name</label>
           <div class="lp-input-wrap">
             <span class="lp-input-icon"><i class="fa fa-user"></i></span>
-            <input
+            <input id="login-userId"
               type="text"
               class="lp-input"
               formControlName="userId"
@@ -129,10 +129,10 @@
         </div>
 
         <div class="lp-field">
-          <label class="lp-label">Password</label>
+          <label for="login-password" class="lp-label">Password</label>
           <div class="lp-input-wrap">
             <span class="lp-input-icon"><i class="fa fa-lock"></i></span>
-            <input
+            <input id="login-password"
               [type]="showPassword ? 'text' : 'password'"
               class="lp-input lp-input-pw"
               formControlName="password"

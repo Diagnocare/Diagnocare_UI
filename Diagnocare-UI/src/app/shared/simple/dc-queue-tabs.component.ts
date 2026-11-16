@@ -1,20 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** One tile: a queue, how many are in it, and what you do about them. */
-export interface DcQueueTab {
-  /** Stable key emitted on select — the WorkQueue value. */
-  key: string;
-  /** The state, in the user's words: "Awaiting results". */
-  label: string;
-  /** The action, imperative: "Enter results". Printed under the count. */
-  hint?: string;
-  /** How many items are in this queue right now. */
-  count?: number | null;
-  /** One of the five kit tones. Colours the top rule and the active state. */
-  tone?: 'ok' | 'wait' | 'info' | 'danger' | 'idle';
-  icon?: string;
-}
+import { DcQueueTab } from '../../models/common/dc-primitives.model';
 
 /**
  * DcQueueTabsComponent — the worklist's queue selector.

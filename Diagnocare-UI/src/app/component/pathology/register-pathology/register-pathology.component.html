@@ -107,19 +107,19 @@
           <div class="rp-section-label">Lab Identity</div>
           <div class="rp-row">
             <div class="rp-field rp-field-grow">
-              <label class="rp-label">Pathology Name <span class="req">*</span></label>
+              <label for="register-pathology-path_Name" class="rp-label">Pathology Name <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Name')">
                 <span class="rp-input-icon"><i class="fas fa-hospital-alt"></i></span>
-                <input type="text" class="rp-input" formControlName="path_Name"
+                <input id="register-pathology-path_Name" type="text" class="rp-input" formControlName="path_Name"
                        placeholder="e.g. City Diagnostic Centre" />
               </div>
               <app-field-error [control]="form.get('path_Name')" label="Pathology Name" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-half">
-              <label class="rp-label">Branch / Location</label>
+              <label for="register-pathology-path_Branch" class="rp-label">Branch / Location</label>
               <div class="rp-input-wrap">
                 <span class="rp-input-icon"><i class="fas fa-code-branch"></i></span>
-                <input type="text" class="rp-input" formControlName="path_Branch"
+                <input id="register-pathology-path_Branch" type="text" class="rp-input" formControlName="path_Branch"
                        placeholder="e.g. Main Branch" />
               </div>
             </div>
@@ -128,50 +128,50 @@
           <!-- ── Section: Address ── -->
           <div class="rp-section-label">Address</div>
           <div class="rp-field">
-            <label class="rp-label">Address Line 1 <span class="req">*</span></label>
+            <label for="register-pathology-path_Address1" class="rp-label">Address Line 1 <span class="req">*</span></label>
             <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Address1')">
               <span class="rp-input-icon"><i class="fas fa-map-marker-alt"></i></span>
-              <input type="text" class="rp-input" formControlName="path_Address1"
+              <input id="register-pathology-path_Address1" type="text" class="rp-input" formControlName="path_Address1"
                      placeholder="Building / Street" />
             </div>
             <app-field-error [control]="form.get('path_Address1')" label="Address Line 1" [forceShow]="submitted"></app-field-error>
           </div>
           <div class="rp-field">
-            <label class="rp-label">Address Line 2</label>
+            <label for="register-pathology-path_Address2" class="rp-label">Address Line 2</label>
             <div class="rp-input-wrap">
               <span class="rp-input-icon"><i class="fas fa-map-signs"></i></span>
-              <input type="text" class="rp-input" formControlName="path_Address2"
+              <input id="register-pathology-path_Address2" type="text" class="rp-input" formControlName="path_Address2"
                      placeholder="Landmark / Area (optional)" />
             </div>
           </div>
           <div class="rp-row">
             <div class="rp-field rp-field-third">
-              <label class="rp-label">City <span class="req">*</span></label>
+              <label for="register-pathology-path_City" class="rp-label">City <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_City')">
-                <input type="text" class="rp-input rp-input-no-icon" formControlName="path_City" placeholder="City" />
+                <input id="register-pathology-path_City" type="text" class="rp-input rp-input-no-icon" formControlName="path_City" placeholder="City" />
               </div>
               <app-field-error [control]="form.get('path_City')" label="City" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-third">
-              <label class="rp-label">State <span class="req">*</span></label>
+              <label for="register-pathology-path_State" class="rp-label">State <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_State')">
-                <input type="text" class="rp-input rp-input-no-icon" formControlName="path_State" placeholder="State" />
+                <input id="register-pathology-path_State" type="text" class="rp-input rp-input-no-icon" formControlName="path_State" placeholder="State" />
               </div>
               <app-field-error [control]="form.get('path_State')" label="State" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-third">
-              <label class="rp-label">Pincode</label>
+              <label for="register-pathology-path_Pincode" class="rp-label">Pincode</label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Pincode')">
-                <input type="text" class="rp-input rp-input-no-icon" formControlName="path_Pincode" placeholder="Pincode" />
+                <input id="register-pathology-path_Pincode" type="text" class="rp-input rp-input-no-icon" formControlName="path_Pincode" placeholder="Pincode" />
               </div>
               <app-field-error [control]="form.get('path_Pincode')" label="Pincode" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
           <div class="rp-field rp-field-half-inline">
-            <label class="rp-label">Country <span class="req">*</span></label>
+            <label for="register-pathology-path_Country" class="rp-label">Country <span class="req">*</span></label>
             <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Country')">
               <span class="rp-input-icon"><i class="fas fa-globe"></i></span>
-              <input type="text" class="rp-input" formControlName="path_Country" placeholder="Country" />
+              <input id="register-pathology-path_Country" type="text" class="rp-input" formControlName="path_Country" placeholder="Country" />
             </div>
           </div>
 
@@ -179,28 +179,28 @@
           <div class="rp-section-label">Contact Details</div>
           <div class="rp-row">
             <div class="rp-field rp-field-half">
-              <label class="rp-label">Contact Number <span class="req">*</span></label>
+              <label for="register-pathology-path_ContactNo" class="rp-label">Contact Number <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_ContactNo')">
                 <span class="rp-input-icon"><i class="fas fa-phone"></i></span>
-                <input type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" maxlength="10" inputmode="numeric" appNumericOnly />
+                <input id="register-pathology-path_ContactNo" type="tel" class="rp-input" formControlName="path_ContactNo" placeholder="Mobile / Landline" maxlength="10" inputmode="numeric" appNumericOnly />
               </div>
               <app-field-error [control]="form.get('path_ContactNo')" label="Contact Number" [forceShow]="submitted"></app-field-error>
             </div>
             <div class="rp-field rp-field-half">
-              <label class="rp-label">Email <span class="req">*</span></label>
+              <label for="register-pathology-path_Email" class="rp-label">Email <span class="req">*</span></label>
               <div class="rp-input-wrap" [class.rp-input-error]="hasError('path_Email')">
                 <span class="rp-input-icon"><i class="fas fa-envelope"></i></span>
-                <input type="email" class="rp-input" formControlName="path_Email" placeholder="lab@example.com" />
+                <input id="register-pathology-path_Email" type="email" class="rp-input" formControlName="path_Email" placeholder="lab@example.com" />
               </div>
               <app-field-error [control]="form.get('path_Email')" label="Email" [forceShow]="submitted"></app-field-error>
             </div>
           </div>
 
           <div class="rp-field">
-            <label class="rp-label">Provisioning code <span class="req">*</span></label>
+            <label for="register-pathology-provisioning_Token" class="rp-label">Provisioning code <span class="req">*</span></label>
             <div class="rp-input-wrap" [class.rp-input-error]="hasError('provisioning_Token')">
               <span class="rp-input-icon"><i class="fas fa-key"></i></span>
-              <input type="password" class="rp-input" formControlName="provisioning_Token" autocomplete="off" placeholder="Issued by your Diagnocare administrator" />
+              <input id="register-pathology-provisioning_Token" type="password" class="rp-input" formControlName="provisioning_Token" autocomplete="off" placeholder="Issued by your Diagnocare administrator" />
             </div>
             <app-field-error [control]="form.get('provisioning_Token')" label="Provisioning code" [forceShow]="submitted"></app-field-error>
           </div>

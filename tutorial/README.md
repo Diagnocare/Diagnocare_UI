@@ -241,9 +241,8 @@ like a test run.
 
 Selector rules this codebase forces — all learned by having them fail:
 
-1. **The app runs the sidebar shell, not the old header.** `USE_SIDEBAR_SHELL` is `true`
-   in `shared/simple/simple-ui.flags.ts`, so `app-header` and `.dc-nav` never render and
-   `/pathology` serves `home-dashboard`, not `pathology-home`. `d.navigate(section, label)`
+1. **The app runs the sidebar shell; the old header no longer exists.** `/pathology`
+   serves `home-dashboard`. `d.navigate(section, label)`
    drives the sidebar: it opens the section only if the link is not already showing,
    because the headings are toggles and pressing an open one closes it.
 2. **Match a nav label exactly.** "Patients" is also inside "Patient Register", "Patient

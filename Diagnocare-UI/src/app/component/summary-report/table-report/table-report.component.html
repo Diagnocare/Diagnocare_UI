@@ -134,8 +134,8 @@
           </ng-container>
 
           <ng-container *ngIf="chartableNumericCols.length > 1">
-            <label class="tr-chart-label">Chart column</label>
-            <select class="tr-chart-select" [(ngModel)]="chartValueCol" (ngModelChange)="onChartColChange()">
+            <label for="table-report-field1" class="tr-chart-label">Chart column</label>
+            <select id="table-report-field1" class="tr-chart-select" [(ngModel)]="chartValueCol" (ngModelChange)="onChartColChange()">
               <option *ngFor="let c of chartableNumericCols" [value]="c.key">{{ c.label }}</option>
             </select>
           </ng-container>

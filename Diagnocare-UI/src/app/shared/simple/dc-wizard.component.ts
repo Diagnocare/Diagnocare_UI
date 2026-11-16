@@ -1,14 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-/** One step in a <dc-wizard>. */
-export interface DcWizardStep {
-  /** Shown in the progress rail and as the heading. Name the task, not the data:
-   *  "Who is the patient?" beats "Demographics". */
-  title: string;
-  /** One line under the heading explaining what to do on this step. */
-  hint?: string;
-}
+import { DcWizardStep } from '../../models/common/dc-primitives.model';
 
 /**
  * DcWizardComponent — a long form served one step at a time.

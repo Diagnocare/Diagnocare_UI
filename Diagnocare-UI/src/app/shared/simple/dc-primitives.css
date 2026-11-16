@@ -1,0 +1,188 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGNOCARE — CANONICAL UI VOCABULARY  ·  CSS primitives
+   ──────────────────────────────────────────────────────────────────────────────
+   The ten words every screen is built from:
+
+     dc-button   → .dc-btn (+ --save --delete --cancel --search --clear --back)   [styles.css]
+     dc-input    → .dc-input        text / number / date / textarea
+     dc-select   → .dc-select       native <select>
+     dc-table    → .dc-table-wrap > .dc-table
+     dc-card     → .dc-card > .dc-card__header + .dc-card__body
+     dc-dialog   → .dc-dialog-backdrop > .dc-dialog > __header/__body/__footer
+     dc-status   → <dc-status>      component
+     dc-empty    → <dc-empty>       component
+     dc-search   → <dc-search>      component
+     dc-save-bar → <dc-save-bar>    component
+
+   RULES FOR THIS FILE
+     • Colour comes from --color-* only. No hex, no rgba() of a brand colour.
+       (The legacy .form-control / .data-table still carry #f44336 and a retired
+       blue-purple rgba(); that drift is exactly what this file exists to stop.)
+     • No html[data-theme] blocks. The tokens are theme-aware already.
+     • Sizes are rem, so a primitive is the same size inside a table cell as on
+       the page, and scales with --dc-touch in large-text mode.
+
+   Legacy → canonical map (migrate a screen by swapping the class, nothing else):
+     .form-control  → .dc-input         .form-select → .dc-select
+     .table-container + .data-table → .dc-table-wrap + .dc-table
+     .card / .card-header / .card-body → .dc-card / __header / __body
+     .modal-overlay / .modal-content   → .dc-dialog-backdrop / .dc-dialog
+     .btn .btn-primary (removed) → .dc-btn .dc-btn--save   (see styles.css)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── dc-input / dc-select ──────────────────────────────────────────────────── */
+.dc-input,
+.dc-select {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--dc-touch, 3rem);
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: var(--dc-text, 1rem);
+  color: var(--dc-ink);
+  background: var(--dc-surface);
+  border: var(--dc-border, 2px) solid var(--color-border-strong);
+  border-radius: var(--dc-radius, 0.625rem);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dc-input::placeholder { color: var(--color-text-muted); }
+.dc-input:hover:not(:disabled),
+.dc-select:hover:not(:disabled) { border-color: var(--color-primary); }
+.dc-input:focus-visible,
+.dc-select:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--dc-focus);
+}
+.dc-input:disabled,
+.dc-select:disabled {
+  background: var(--dc-surface-muted);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+textarea.dc-input { min-height: 6rem; resize: vertical; line-height: 1.4; }
+.dc-select { cursor: pointer; }
+
+/* Invalid = colour + thicker rule on the left, so it is not colour alone.
+   Works from either an explicit class or Angular's touched/invalid state. */
+.dc-input.is-invalid,
+.dc-select.is-invalid,
+.dc-input.ng-invalid.ng-touched,
+.dc-select.ng-invalid.ng-touched {
+  border-color: var(--dc-danger-ink);
+  border-left-width: 6px;
+}
+
+/* ── dc-card ───────────────────────────────────────────────────────────────── */
+.dc-card {
+  background: var(--dc-surface);
+  color: var(--dc-ink);
+  border: 1px solid var(--dc-line);
+  border-radius: var(--dc-radius-lg, 0.875rem);
+  padding: var(--dc-gap-lg, 1.5rem);
+  margin-bottom: var(--dc-gap, 1rem);
+}
+.dc-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dc-gap, 1rem);
+  margin-bottom: var(--dc-gap, 1rem);
+  padding-bottom: var(--dc-gap-sm, 0.6rem);
+  border-bottom: var(--dc-border, 2px) solid var(--dc-line);
+}
+.dc-card__title {
+  margin: 0;
+  font-size: var(--dc-text-title, 1.25rem);
+  font-weight: 600;
+  color: var(--dc-ink);
+}
+.dc-card__body { padding: 0; }
+.dc-card--flush { padding: 0; overflow: hidden; }
+
+/* ── dc-table ──────────────────────────────────────────────────────────────── */
+.dc-table-wrap {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-line);
+  border-radius: var(--dc-radius-lg, 0.875rem);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.dc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--dc-text-body, 0.875rem);
+  color: var(--dc-ink);
+}
+.dc-table th {
+  position: sticky;
+  top: 0;
+  padding: 0.8rem 0.75rem;
+  text-align: left;
+  font-size: var(--dc-text-meta, 0.8125rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--color-primary-ink);
+  color: var(--color-on-brand);
+  white-space: nowrap;
+}
+.dc-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--dc-line);
+  vertical-align: middle;
+}
+.dc-table tbody tr:nth-child(even) { background: var(--dc-surface-muted); }
+.dc-table tbody tr:hover { background: var(--color-surface-hover); }
+.dc-table tbody tr:last-child td { border-bottom: none; }
+.dc-table .dc-table__num { text-align: right; font-variant-numeric: tabular-nums; }
+.dc-table .dc-table__actions { white-space: nowrap; text-align: right; }
+
+/* ── dc-dialog ─────────────────────────────────────────────────────────────── */
+.dc-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--dc-gap, 1rem);
+  background: var(--color-overlay);
+}
+.dc-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 34rem;
+  max-height: calc(100vh - 2rem);
+  background: var(--dc-surface);
+  color: var(--dc-ink);
+  border: 1px solid var(--dc-line);
+  border-radius: var(--dc-radius-lg, 0.875rem);
+  box-shadow: 0 1.25rem 3rem var(--color-overlay);
+  overflow: hidden;
+}
+.dc-dialog--wide { max-width: 52rem; }
+.dc-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dc-gap, 1rem);
+  padding: var(--dc-gap, 1rem) var(--dc-gap-lg, 1.5rem);
+  border-bottom: var(--dc-border, 2px) solid var(--dc-line);
+}
+.dc-dialog__title { margin: 0; font-size: var(--dc-text-title, 1.25rem); font-weight: 600; }
+.dc-dialog__body { padding: var(--dc-gap-lg, 1.5rem); overflow-y: auto; }
+.dc-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--dc-gap-sm, 0.6rem);
+  padding: var(--dc-gap, 1rem) var(--dc-gap-lg, 1.5rem);
+  border-top: 1px solid var(--dc-line);
+  background: var(--dc-surface-muted);
+}
+@media (max-width: 480px) {
+  .dc-dialog__footer > .dc-btn { flex: 1 1 100%; }
+}

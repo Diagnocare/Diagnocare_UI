@@ -20,7 +20,7 @@
       </p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-outline" (click)="loadTemplates()">
+      <button class="dc-btn dc-btn--search" (click)="loadTemplates()">
         <i class="fa fa-refresh"></i> Refresh
       </button>
     </div>
@@ -117,7 +117,7 @@
         <!-- ── Card footer ─────────────────────────────────── -->
         <div class="template-footer">
           <button
-            class="btn btn-danger btn-sm footer-btn"
+            class="dc-btn dc-btn--delete dc-btn--sm footer-btn"
             [disabled]="isDownloading"
             (click)="downloadDirect(t, 'pdf', $event)"
             title="Download as PDF"
@@ -125,7 +125,7 @@
             📄 PDF
           </button>
           <button
-            class="btn btn-primary btn-sm footer-btn"
+            class="dc-btn dc-btn--save dc-btn--sm footer-btn"
             [disabled]="isDownloading"
             (click)="downloadDirect(t, 'docx', $event)"
             title="Download as Word"
@@ -154,7 +154,7 @@
 
         <!-- Download as PDF -->
         <button
-          class="btn btn-danger btn-sm"
+          class="dc-btn dc-btn--delete dc-btn--sm"
           [disabled]="previewLoading || !activeDetail || isDownloading"
           (click)="downloadFromModal('pdf')"
           title="Download as PDF"
@@ -167,7 +167,7 @@
 
         <!-- Download as Word -->
         <button
-          class="btn btn-primary btn-sm"
+          class="dc-btn dc-btn--save dc-btn--sm"
           [disabled]="previewLoading || !activeDetail || isDownloading"
           (click)="downloadFromModal('docx')"
           title="Download as Word (.docx)"

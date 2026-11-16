@@ -15,7 +15,7 @@ import { CollectionActionResponse, Pickup } from 'src/app/models/sampleCollectio
  */
 @Injectable({ providedIn: 'root' })
 export class SampleCollectionService {
-  private readonly baseUrl = getDiagnocareApiUrl() + 'api/SampleCollection/';
+  private readonly baseUrl = getDiagnocareApiUrl() + 'api/v1/SampleCollection/';
 
   /**
    * The actions carry a specific, readable refusal ("not collected yet",
