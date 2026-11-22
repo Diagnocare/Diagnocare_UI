@@ -2,6 +2,9 @@ import { Injectable, signal } from '@angular/core';
 import { environment } from 'src/environments/environment';
 import { isReservedSubdomain } from './reserved-subdomains';
 
+/** sessionStorage key holding a non-production ?tenant= override for the life of the tab. */
+const TENANT_OVERRIDE_KEY = 'devTenantOverride';
+
 /**
  * Resolves which laboratory this browser tab is for (§19).
  *
@@ -60,10 +63,19 @@ export class TenantService {
     // `production` guard, which is a build-time constant — so the branch is removed entirely
     // rather than merely unreachable.
     if (!environment.production) {
-      const override =
-        new URLSearchParams(window.location.search).get('tenant') ??
-        environment.devTenantKey;
+      // ?tenant= is remembered for this tab. The router drops the query string on the first
+      // navigation, so without this a reload silently fell back to devTenantKey while the tab
+      // still held the other lab's token — and every call failed with 403 tenant_mismatch.
+      const fromQuery = new URLSearchParams(window.location.search).get('tenant')?.trim().toLowerCase();
+      if (fromQuery) {
+        try { sessionStorage.setItem(TENANT_OVERRIDE_KEY, fromQuery); } catch { /* storage blocked */ }
+        return fromQuery;
+      }
 
+      let remembered: string | null = null;
+      try { remembered = sessionStorage.getItem(TENANT_OVERRIDE_KEY); } catch { /* storage blocked */ }
+
+      const override = remembered ?? environment.devTenantKey;
       if (override) return override.trim().toLowerCase();
     }
 

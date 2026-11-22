@@ -1,5 +1,6 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Subject } from 'rxjs';
+import { TenantService } from '../tenant/tenant.service';
 
 /**
  * Cross-tab session coordination using the BroadcastChannel API.
@@ -16,7 +17,10 @@ import { Subject } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class SessionBroadcastService implements OnDestroy {
 
-  private readonly CHANNEL_NAME = 'diagnocare_session';
+  // Scoped per laboratory: login names are only unique within a lab, so "admin" logging in to
+  // one lab must not kick "admin" of another lab open in a sibling tab on the same origin.
+  private readonly CHANNEL_NAME =
+    `diagnocare_session:${inject(TenantService).getTenantKey() ?? 'none'}`;
   private channel: BroadcastChannel;
 
   /** Emits the userId (login name) whenever another tab reports a new login. */

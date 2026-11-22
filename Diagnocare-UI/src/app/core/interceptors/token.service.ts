@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 
 import { JwtPayload } from 'src/app/models/common/jwtPayload';
 import { Role, RoleId } from 'src/app/constant/enums';
+import { TenantService } from '../tenant/tenant.service';
 
 /** Maps role label string → numeric RoleId. */
 const ROLE_LABEL_TO_ID: Record<string, RoleId> = Object.fromEntries(
@@ -47,7 +48,15 @@ export class TokenService {
 
   // ── Cross-tab communication ────────────────────────────────────────────────
 
-  private readonly channel = new BroadcastChannel('diagnocare-auth');
+  /**
+   * Scoped per laboratory. On a host with no tenant subdomain (localhost, preview builds using
+   * ?tenant= / devTenantKey) tabs for DIFFERENT labs share one origin; an unscoped channel let a
+   * `pankaj` tab adopt a `zenome` tab's token, and every call then failed with 403
+   * tenant_mismatch. On real subdomains the origin already isolates tabs, so this changes nothing.
+   */
+  private readonly channel = new BroadcastChannel(
+    `diagnocare-auth:${inject(TenantService).getTenantKey() ?? 'none'}`,
+  );
 
   /**
    * Emits when another tab responds to our `request-token` broadcast.
@@ -246,6 +255,15 @@ export class TokenService {
     localStorage.removeItem(this.CLEANUP_TOKEN_KEY);
     // Signal all sibling tabs to log out immediately
     this.channel.postMessage({ type: 'logout' });
+  }
+
+  /**
+   * Drops this tab's token WITHOUT broadcasting logout. Used when the token belongs to another
+   * laboratory (403 tenant_mismatch): sibling tabs of this lab may hold a perfectly good session.
+   */
+  discardLocalToken(): void {
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
   }
 
   /** Alias for removeToken. */

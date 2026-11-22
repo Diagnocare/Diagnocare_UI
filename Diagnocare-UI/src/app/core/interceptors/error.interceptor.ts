@@ -5,6 +5,7 @@ import { ToastrService } from 'ngx-toastr';
 import { catchError, throwError } from 'rxjs';
 import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
 import { extractErrorMessage, toAppHttpError } from 'src/app/core/errors/http-error';
+import { TokenService } from './token.service';
 
 /**
  * Header a caller can set to suppress the automatic error toast for a single
@@ -54,6 +55,7 @@ export const SKIP_ERROR_TOAST_HEADER = 'X-Skip-Error-Toast';
 export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const toastr = inject(ToastrService);
   const router = inject(Router);
+  const tokenSvc = inject(TokenService);
 
   // Honour per-request opt-out, then strip the header so it never leaves the app.
   const skipToast = req.headers.has(SKIP_ERROR_TOAST_HEADER);
@@ -123,6 +125,9 @@ export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
           // /access-denied would be misleading — nothing is wrong with their role. Clear the
           // session and send them to log in against THIS laboratory.
           console.warn('[HTTP 403] tenant mismatch — session belongs to another laboratory.');
+          // Without this the foreign token stays in storage and every request — including the
+          // login page's own tenant/config call — keeps failing the same way.
+          tokenSvc.discardLocalToken();
           router.navigate(['/login'], { queryParams: { reason: 'tenant_mismatch' } });
           return throwError(() => toAppHttpError(err));
         }
