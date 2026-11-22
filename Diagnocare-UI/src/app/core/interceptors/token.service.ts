@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import { JwtPayload } from 'src/app/models/common/jwtPayload';
 import { Role, RoleId } from 'src/app/constant/enums';
 import { TenantService } from '../tenant/tenant.service';
+import { PinModalService } from 'src/app/shared/pin-modal/pin-modal.service';
 
 /** Maps role label string → numeric RoleId. */
 const ROLE_LABEL_TO_ID: Record<string, RoleId> = Object.fromEntries(
@@ -252,6 +253,9 @@ export class TokenService {
   removeToken(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem(this.SESSION_TERMINATED_KEY);
+    // A pending PIN setup belongs to this session. Left behind, it would lock
+    // the next person to sign in on this tab onto the Settings page.
+    sessionStorage.removeItem(PinModalService.PIN_SETUP_PENDING_KEY);
     localStorage.removeItem(this.CLEANUP_TOKEN_KEY);
     // Signal all sibling tabs to log out immediately
     this.channel.postMessage({ type: 'logout' });
@@ -555,6 +559,20 @@ export class TokenService {
     if (!raw) return 30;
     const parsed = parseInt(raw, 10);
     return isNaN(parsed) || parsed < 0 ? 30 : parsed;
+  }
+
+  /**
+   * True only when the lab's Screen Lock Timeout, as loaded from the database,
+   * is above 0. Unlike getSessionLockoutMinutes() this never falls back to the
+   * 30-minute default: a value that has not been loaded yet is "not configured".
+   * While it is true, pinSetupGuard requires every user to have a PIN, because
+   * the screen lock has nothing to ask for without one.
+   */
+  isScreenLockConfigured(): boolean {
+    const raw = localStorage.getItem(this.SESSION_LOCKOUT_KEY);
+    if (raw === null) return false;
+    const parsed = parseInt(raw, 10);
+    return !isNaN(parsed) && parsed > 0;
   }
 
   /**

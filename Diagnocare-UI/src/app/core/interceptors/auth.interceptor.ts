@@ -194,20 +194,21 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
       // still succeed. The server remains the authority: it still enforces the
       // grace-buffer window and that the session id is live, so this grants no
       // extra reach. A refusal fails THIS request only, and the session stays.
+      //
+      // The flag is NOT cleared when the request comes from another page.
+      // pinSetupGuard keeps the user on Settings until a PIN is saved, so a
+      // request from elsewhere is only the moment before that redirect lands;
+      // clearing the flag there would reopen the bypass the guard closes.
       if (pinModalService.isPinSetupPending) {
-        if (isOnPinSetupPage()) {
-          return loginSvc.refreshToken().pipe(
-            // Before switchMap: covers the renewal only, so a genuine error
-            // from the retried request propagates as itself.
-            catchError(() => throwError(
-              () => new Error('Session expired and could not be renewed — PIN setup page'),
-            )),
-            switchMap(() => next(withBearer(req))),
-          );
-        }
-        // They navigated away without setting a PIN — drop the flag so the
-        // normal prompt comes back.
-        pinModalService.endPinSetup();
+        if (!isOnPinSetupPage()) router.navigate(['/settings'], { queryParams: { setupPin: '1' } });
+        return loginSvc.refreshToken().pipe(
+          // Before switchMap: covers the renewal only, so a genuine error
+          // from the retried request propagates as itself.
+          catchError(() => throwError(
+            () => new Error('Session expired and could not be renewed — PIN setup page'),
+          )),
+          switchMap(() => next(withBearer(req))),
+        );
       }
 
       return pinModalService.requestPinSetup().pipe(

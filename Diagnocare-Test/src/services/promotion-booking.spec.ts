@@ -5,7 +5,7 @@ import { PromotionService } from 'src/app/services/promotionServices/promotion.s
 import { BookingSelectionState } from 'src/app/shared/booking/booking-selection.state';
 import { PricingPlan } from 'src/app/models/promotion/promotion.model';
 
-const BASE = 'http://localhost:5000/api/Promotion/';
+const BASE = 'http://localhost:5000/api/v1/Promotion/';
 
 /** A plan as the API would return it: group LFT (4 tests, 1500) at the offer price 999. */
 function plan(over: Partial<PricingPlan> = {}): PricingPlan {

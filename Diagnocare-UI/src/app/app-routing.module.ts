@@ -9,6 +9,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { licenceGuard } from './core/guards/licence.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { pinExpiryGuard } from './core/guards/pin-expiry.guard';
+import { pinSetupGuard } from './core/guards/pin-setup.guard';
 import { Role } from './constant/enums';
 
 export const routes: Routes = [
@@ -38,7 +39,11 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./component/layout/layout.component').then(m => m.LayoutComponent),
-    canActivate: [authGuard, licenceGuard, pinExpiryGuard],
+    canActivate: [authGuard, licenceGuard, pinExpiryGuard, pinSetupGuard],
+    // The PIN guards are repeated here because a parent's canActivate runs only
+    // when the layout is first entered; navigation between its children (every
+    // menu click) would otherwise never be checked.
+    canActivateChild: [pinExpiryGuard, pinSetupGuard],
     children: [
       // Access denied — every role may open it; it is where roleGuard and the
       // 403 handler send people. Deliberately inside the authenticated layout
