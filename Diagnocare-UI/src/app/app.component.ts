@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, EnvironmentInjector, OnInit, OnDestroy, inject, runInInjectionContext } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter, Subscription } from 'rxjs';
@@ -11,6 +11,7 @@ import { SessionLockService }   from './core/services/session-lock.service';
 import { ThemeService }         from './services/themeServices/theme.service';
 import { PathologyService }     from './services/pathologyServices/pathology.service';
 import { NavigationHistoryService } from './core/services/navigation-history.service';
+import { isPinSetupRequired, isSettingsUrl } from './core/guards/pin-setup.guard';
 
 /**
  * Session model
@@ -71,8 +72,14 @@ export class AppComponent implements OnInit, OnDestroy {
   private static readonly POLL_INTERVAL_MS = 300_000;   // 5 minutes
   private sessionKickedSub: Subscription | null = null;
 
-  /** Latched once a policy GET has been attempted — see ensurePoliciesCached(). */
+  /**
+   * Latched once a policy GET has been attempted in this sign-in — see
+   * ensurePoliciesCached(). Reset when the user reaches /login, so the next
+   * sign-in reads the lab's settings afresh.
+   */
   private policiesHydrationAttempted = false;
+
+  private readonly injector = inject(EnvironmentInjector);
 
   constructor(
     private tokenService:    TokenService,
@@ -120,6 +127,7 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe((e: NavigationEnd) => {
         if (e.urlAfterRedirects.includes('/login')) {
           this.stopSessionServices();
+          this.policiesHydrationAttempted = false;
         } else if (this.tokenService.hasToken()) {
           this.startSessionServices();
           const username = this.tokenService.getUserId();
@@ -147,20 +155,39 @@ export class AppComponent implements OnInit, OnDestroy {
   /**
    * Hydrates the lab's policy settings if they are not already cached.
    *
-   * Safe to call on every authenticated navigation: it is a no-op once the cache
-   * is warm, and it attempts the GET at most once per page load. The latch
+   * Safe to call on every authenticated navigation: it attempts the GET at most
+   * once per sign-in or page load. The latch
    * matters because the fetch can legitimately fail — GetProfile answers 404
    * until registration is complete — and without it every navigation would
    * retry. A failed attempt leaves the screens on their defaults for this load
    * only; the next page load tries again.
    *
-   * The cache survives logout by design (see TokenService.removeToken), so this
-   * normally costs one GET on the first login in a given browser profile.
+   * The cache survives logout by design (see TokenService.removeToken), so the
+   * last known values apply instantly; this costs one GET per sign-in to keep
+   * them current.
    */
   private ensurePoliciesCached(): void {
-    if (this.policiesHydrationAttempted || this.tokenService.hasCachedPolicies()) return;
+    // Fetched once per sign-in (and per page load), even when a cached copy
+    // exists. The cache is still read meanwhile, so screens never wait on it.
+    // It used to be fetched only once per browser, and then a Super Admin
+    // changing the Screen Lock Timeout never reached browsers that had already
+    // cached the old value, so the lock and the PIN requirement that depends
+    // on it never switched on there.
+    if (this.policiesHydrationAttempted) return;
     this.policiesHydrationAttempted = true;
     this.fetchAndCachePathologyDetails();
+  }
+
+  /**
+   * Moves a user who now has to set a PIN (the lab's Screen Lock Timeout was
+   * just loaded as above 0) to PIN setup straight away, instead of on their
+   * next click. pinSetupGuard enforces the same rule on every navigation.
+   */
+  private enforcePinSetup(): void {
+    const required = runInInjectionContext(this.injector, () => isPinSetupRequired());
+    if (required && !isSettingsUrl(this.router.url)) {
+      this.router.navigate(['/settings'], { queryParams: { setupPin: '1' } });
+    }
   }
 
   /**
@@ -187,6 +214,7 @@ export class AppComponent implements OnInit, OnDestroy {
         if (data?.sessionLockoutMinutes !== undefined) {
           this.tokenService.setSessionLockoutMinutes(data.sessionLockoutMinutes);
         }
+        if (this.tokenService.hasToken()) this.enforcePinSetup();
       },
       error: () => { /* silently ignore — defaults apply for this page load */ },
     });

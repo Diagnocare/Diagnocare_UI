@@ -45,17 +45,24 @@ export class PinModalService {
   private modalOpen = false;
 
   /**
-   * True from the moment the user chooses "Go to Settings" on the
-   * setup-required modal until a PIN is actually saved (or they navigate away
-   * from Settings without saving one).
+   * sessionStorage key for the "PIN setup pending" flag.
    *
-   * A missing PIN is a SETUP state, not an authentication failure, so this flag
-   * exists purely to stop the setup modal re-opening in a loop: the Settings
-   * page fires its own API calls on load, and with an expired token every one
-   * of them would otherwise re-trigger the same modal.  It must never be used
-   * as a reason to clear the session.
+   * True from the moment the user chooses "Go to Settings" on the
+   * setup-required modal until a PIN is actually saved or the session ends.
+   * While it is set, pinSetupGuard keeps every authenticated route except
+   * Settings out of reach. Without that, the setup prompt (raised by the idle
+   * screen lock) could be skipped just by clicking another menu item, which
+   * unlocked the session without any verification.
+   *
+   * Kept in sessionStorage, not in memory, so a page refresh or a URL typed
+   * into the address bar cannot reset it. TokenService.removeToken() clears it
+   * with the rest of the session.
+   *
+   * It also stops the setup modal re-opening in a loop: the Settings page
+   * fires its own API calls on load. It must never be used as a reason to
+   * clear the session.
    */
-  private pinSetupPending = false;
+  static readonly PIN_SETUP_PENDING_KEY = 'pin_setup_pending';
 
   /**
    * PinModalComponent listens to this stream.
@@ -88,20 +95,24 @@ export class PinModalService {
 
   /** True while the user is on their way to / inside Settings to configure a PIN. */
   get isPinSetupPending(): boolean {
-    return this.pinSetupPending;
+    try {
+      return sessionStorage.getItem(PinModalService.PIN_SETUP_PENDING_KEY) === '1';
+    } catch {
+      return false;
+    }
   }
 
   /**
    * Marks the start of the PIN-setup journey ("Go to Settings" was clicked).
-   * Callers must keep the session intact — see the pinSetupPending docs.
+   * Callers must keep the session intact — see PIN_SETUP_PENDING_KEY.
    */
   beginPinSetup(): void {
-    this.pinSetupPending = true;
+    try { sessionStorage.setItem(PinModalService.PIN_SETUP_PENDING_KEY, '1'); } catch { /* storage blocked */ }
   }
 
-  /** Clears the setup flag — a PIN was saved, or the user left the setup page. */
+  /** Clears the setup flag — a PIN was saved, or the session ended. */
   endPinSetup(): void {
-    this.pinSetupPending = false;
+    try { sessionStorage.removeItem(PinModalService.PIN_SETUP_PENDING_KEY); } catch { /* storage blocked */ }
   }
 
   /**

@@ -98,6 +98,34 @@ describe('TokenService', () => {
 
   // ── Pathology policy cache ──────────────────────────────────────────────────
 
+  describe('isScreenLockConfigured', () => {
+    beforeEach(() => service.clearCachedPolicies());
+    afterEach(() => service.clearCachedPolicies());
+
+    it('is false until the lab setting has been loaded, despite the 30-minute display default', () => {
+      expect(service.getSessionLockoutMinutes()).toBe(30);
+      expect(service.isScreenLockConfigured()).toBeFalse();
+    });
+
+    it('is false when the lab has set 0 (disabled)', () => {
+      service.setSessionLockoutMinutes(0);
+      expect(service.isScreenLockConfigured()).toBeFalse();
+    });
+
+    it('is true when the lab has set a threshold above 0', () => {
+      service.setSessionLockoutMinutes(15);
+      expect(service.isScreenLockConfigured()).toBeTrue();
+    });
+  });
+
+  describe('removeToken and a pending PIN setup', () => {
+    it('clears the pending PIN setup with the session', () => {
+      sessionStorage.setItem('pin_setup_pending', '1');
+      service.removeToken();
+      expect(sessionStorage.getItem('pin_setup_pending')).toBeNull();
+    });
+  });
+
   describe('hasCachedPolicies', () => {
     // beforeEach clears sessionStorage only; these three live in localStorage.
     beforeEach(() => service.clearCachedPolicies());
