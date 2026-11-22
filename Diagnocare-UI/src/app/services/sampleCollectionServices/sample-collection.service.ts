@@ -1,3 +1,4 @@
+import { apiPath } from 'src/app/constant/constants';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -15,7 +16,7 @@ import { CollectionActionResponse, Pickup } from 'src/app/models/sampleCollectio
  */
 @Injectable({ providedIn: 'root' })
 export class SampleCollectionService {
-  private readonly baseUrl = getDiagnocareApiUrl() + 'api/v1/SampleCollection/';
+  private readonly baseUrl = getDiagnocareApiUrl() + apiPath('SampleCollection');
 
   /**
    * The actions carry a specific, readable refusal ("not collected yet",

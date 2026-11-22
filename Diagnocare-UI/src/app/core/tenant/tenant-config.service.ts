@@ -1,3 +1,4 @@
+import { apiPath } from 'src/app/constant/constants';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, of, tap } from 'rxjs';
@@ -71,7 +72,7 @@ export class TenantConfigService {
     }
 
     return this.http
-      .get<TenantConfig>(`${environment.diagnocareApiURL}api/v1/tenant/config`)
+      .get<TenantConfig>(`${environment.diagnocareApiURL}${apiPath('tenant')}config`)
       .pipe(
         tap(config => {
           this._config.set(config);
@@ -85,7 +86,7 @@ export class TenantConfigService {
     if (!this.tenant.hasTenant) return of(null);
 
     return this.http
-      .get<TenantStatusInfo>(`${environment.diagnocareApiURL}api/v1/tenant/status`)
+      .get<TenantStatusInfo>(`${environment.diagnocareApiURL}${apiPath('tenant')}status`)
       .pipe(catchError(() => of(null)));
   }
 

@@ -1,3 +1,4 @@
+import { apiPath } from 'src/app/constant/constants';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -12,7 +13,7 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class VisitScheduleService {
-  private base = getDiagnocareApiUrl() + 'api/v1/visitSchedule/';
+  private base = getDiagnocareApiUrl() + apiPath('visitSchedule');
 
   constructor(private http: HttpClient) {}
 

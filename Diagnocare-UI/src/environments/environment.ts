@@ -8,6 +8,8 @@ export const environment: AppEnvironment = {
   // diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   // For local development against a locally-running API, temporarily switch to:
   diagnocareApiURL: 'https://localhost:44346/',
+  // Default API version prefix (api/<version>/...). See apiPath() in constant/constants.ts.
+  apiVersion: 'v1',
   // Tenant subdomains hang off this domain; TenantService parses against it (§19).
   baseDomain: 'diagnocare.local',
   // Local/preview hosts carry no tenant subdomain — assume this laboratory there.

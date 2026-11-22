@@ -5,7 +5,7 @@ import { map, catchError } from 'rxjs/operators';
 import { AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
 
 import { getDiagnocareApiUrl }           from 'src/app/shared/api-base-url.util';
-import { apiEndpoints, controllerEndpoints } from 'src/app/constant/constants';
+import { apiEndpoints, apiPath, controllerEndpoints } from 'src/app/constant/constants';
 import { MemberDto }                     from 'src/app/models/member/member.dto';
 import { RoleId }                        from 'src/app/constant/enums';
 import { SKIP_ERROR_TOAST_HEADER }       from 'src/app/core/interceptors/error.interceptor';
@@ -59,7 +59,7 @@ export class MemberService {
    * an empty dropdown is better than losing the form.
    */
   getCollectionBoysLookup(): Observable<MemberDto[]> {
-    const url = getDiagnocareApiUrl() + 'api/v1/StaffLookup/CollectionBoys';
+    const url = getDiagnocareApiUrl() + apiPath('StaffLookup') + 'CollectionBoys';
     return this.http
       .get<any[]>(url, { headers: new HttpHeaders({ [SKIP_ERROR_TOAST_HEADER]: '1' }) })
       .pipe(map(list => this.normalizeList(list ?? [])));
