@@ -3,6 +3,8 @@ import { AppEnvironment } from './environment.model';
 export const environment: AppEnvironment = {
   production: false,
   diagnocareApiURL: 'http://diagnocare-qaapi:83/',
+  // Default API version prefix (api/<version>/...). See apiPath() in constant/constants.ts.
+  apiVersion: 'v1',
   // Tenant subdomains hang off this domain; TenantService parses against it (§19).
   baseDomain: 'diagnocare-qa.com',
   // Hosts with no tenant subdomain (preview builds) assume this laboratory.

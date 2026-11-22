@@ -3,6 +3,8 @@ import { AppEnvironment } from './environment.model';
 export const environment: AppEnvironment = {
   production: false,
   diagnocareApiURL: 'https://diagnocare-uat.runasp.net/',
+  // Default API version prefix (api/<version>/...). See apiPath() in constant/constants.ts.
+  apiVersion: 'v1',
   // Tenant subdomains hang off this domain; TenantService parses against it (§19).
   // UAT labs live one level down: zenome.uat.dignocare.link -> 'zenome'.
   baseDomain: 'uat.dignocare.link',

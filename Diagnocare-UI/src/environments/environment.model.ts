@@ -19,6 +19,15 @@ export interface AppEnvironment {
   diagnocareApiURL: string;
 
   /**
+   * Default API version segment, e.g. 'v1' → https://api…/api/v1/Patient/.
+   *
+   * Must match the version the API mounts its controllers under (ApiVersionRoutePrefixConvention).
+   * A single controller can be moved ahead of this default via apiPath('X', 'v2') in
+   * constant/constants.ts, which is how a v2 rollout is meant to happen: endpoint by endpoint.
+   */
+  apiVersion: string;
+
+  /**
    * The registrable domain tenant subdomains hang off, e.g. 'diagnocare.com'.
    *
    * TenantService parses the tenant key against THIS rather than by counting dots. Counting

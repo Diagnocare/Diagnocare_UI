@@ -6,6 +6,8 @@ export const environment: AppEnvironment = {
   // (Was 'https://localhost:44346/', which only works on a machine running the
   // API locally, so the deployed dev-server build hung on every other browser.)
   diagnocareApiURL: 'http://localhost:5000/',
+  // Default API version prefix (api/<version>/...). See apiPath() in constant/constants.ts.
+  apiVersion: 'v1',
   // For local development against a locally-running API, temporarily switch to:
   // diagnocareApiURL: 'http://diagnocareDevAPI:81/',
   // Tenant subdomains hang off this domain; TenantService parses against it (§19).

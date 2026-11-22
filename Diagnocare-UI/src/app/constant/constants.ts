@@ -1,10 +1,22 @@
 import { ReportConfig, ReportLevelOption } from "../models/summaryReport/summaryReportModel";
+import { environment } from "src/environments/environment";
 
 /** Default country dialling code used across patient forms. Update here to change globally. */
 export const DEFAULT_DIALING_CODE = '+91';
 
 /**
- * Controller paths. Versioned under /api/v1 from day one (§24).
+ * Builds a versioned controller path: apiPath('Patient') → 'api/v1/Patient/'.
+ *
+ * The version defaults to environment.apiVersion, so changing that one setting moves every
+ * controller. To move a SINGLE controller ahead while the rest stay put — the intended v2
+ * rollout — pass the version explicitly: apiPath('Patient', 'v2').
+ */
+export function apiPath(controller: string, version: string = environment.apiVersion): string {
+  return `api/${version}/${controller}/`;
+}
+
+/**
+ * Controller paths. Versioned from day one (§24); the version comes from apiPath().
  *
  * The API mounts every existing controller under this prefix centrally
  * (ApiVersionRoutePrefixConvention), so this is a prefix change and nothing else. The REST
@@ -12,68 +24,68 @@ export const DEFAULT_DIALING_CODE = '+91';
  * deliberately the single place API paths are assembled, which is what makes that possible.
  */
 export const controllerEndpoints = {
-  header: 'api/v1/header/',
-  login: 'api/v1/login/',
-  otp: 'api/v1/Otp/',
-  mfa: 'api/v1/Mfa/',
-  fingerprint: 'api/v1/Fingerprint/',
-  address: 'api/v1/addressManager/',
-  collectionBoy: 'api/v1/collectionBoys/',
-  doctor: 'api/v1/doctors/',
-  patient: 'api/v1/patient/',
-  patientReport: 'api/v1/PatientReport/',
-  patientTestReportGeneration: 'api/v1/TestReportGeneration/',
-  smartReport: 'api/v1/SmartReport/',
-  sampleLabel: 'api/v1/SampleLabel/',
-  pathology: 'api/v1/pathology/',
-  test: 'api/v1/test/',
-  user: 'api/v1/user/',
-  receipt: 'api/v1/receipt/',
-  summaryReport:'api/v1/summaryReport/',
-  pathologyTest:'api/v1/pathologyTest/',
+  header: apiPath('header'),
+  login: apiPath('login'),
+  otp: apiPath('Otp'),
+  mfa: apiPath('Mfa'),
+  fingerprint: apiPath('Fingerprint'),
+  address: apiPath('addressManager'),
+  collectionBoy: apiPath('collectionBoys'),
+  doctor: apiPath('doctors'),
+  patient: apiPath('patient'),
+  patientReport: apiPath('PatientReport'),
+  patientTestReportGeneration: apiPath('TestReportGeneration'),
+  smartReport: apiPath('SmartReport'),
+  sampleLabel: apiPath('SampleLabel'),
+  pathology: apiPath('pathology'),
+  test: apiPath('test'),
+  user: apiPath('user'),
+  receipt: apiPath('receipt'),
+  summaryReport:apiPath('summaryReport'),
+  pathologyTest:apiPath('pathologyTest'),
   /** Bulk upload of groups, subgroups, tests and parameters from .xlsx / .csv. */
-  testImport:    'api/v1/TestImport/',
-  template:   'api/v1/template/',
-  attendance: 'api/v1/attendance/',
-  salary:     'api/v1/salary/',
+  testImport:    apiPath('TestImport'),
+  template:   apiPath('template'),
+  attendance: apiPath('attendance'),
+  salary:     apiPath('salary'),
   /**
    * Paid leave: accumulated balances and the year-end carry-forward. Its own controller
    * because a leave balance spans the whole year, while Attendance is per day.
    */
-  leave:      'api/v1/Leave/',
-  holiday:       'api/v1/holiday/',
-  visitSchedule: 'api/v1/visitSchedule/',
-  feedback:      'api/v1/feedback/',
+  leave:      apiPath('Leave'),
+  holiday:       apiPath('holiday'),
+  visitSchedule: apiPath('visitSchedule'),
+  feedback:      apiPath('feedback'),
   /**
    * Repeat testing — how many times a test was run on the collected sample, and why.
    * Its own controller: this is about the conduct of the test, not its values.
    */
-  testRun:       'api/v1/TestRun/',
+  testRun:       apiPath('TestRun'),
   /**
    * Sample rejection — a collected sample that could not be used, and why. Its own
    * controller: a rejection outlives the test it stopped and is what a lab counts monthly.
    */
-  sampleRejection: 'api/v1/SampleRejection/',
+  sampleRejection: apiPath('SampleRejection'),
   /**
    * The sample breakdown — how a booking's tests distribute across the tubes that have to
    * be collected. Separate from SampleLabel, which prints the sticker that goes on a tube:
    * this one answers how many tubes there are.
    */
-  sample: 'api/v1/Sample/',
+  sample: apiPath('Sample'),
   /** Super Admin queue for discounts above the lab's max discount. */
-  discountApproval: 'api/DiscountApproval/',
+  discountApproval: apiPath('DiscountApproval'),
   /** Promotional prices for tests, sub-groups and groups; also the price quote used by the booking screens. */
-  promotion: 'api/Promotion/',
+  promotion: apiPath('Promotion'),
   /** Repeat-test reminders (HbA1c, lipid profile, sugar…) sent on WhatsApp. */
-  testReminder: 'api/v1/TestReminder/',
-  worklist: 'api/v1/Worklist/',
+  testReminder: apiPath('TestReminder'),
+  worklist: apiPath('Worklist'),
   /** The home dashboard's hero — its counts, recent bookings and week sparkline. */
-  dashboard: 'api/v1/Dashboard/',
+  dashboard: apiPath('Dashboard'),
   /**
    * The caller's own in-app notifications (header bell, User Panel badges).
    * Not NotificationTemplates — that is SMS / email / WhatsApp template admin.
    */
-  notification: 'api/v1/Notification/'
+  notification: apiPath('Notification')
 };
 
 export const apiEndpoints = {
