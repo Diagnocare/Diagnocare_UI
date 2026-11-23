@@ -1,4 +1,5 @@
 import { Component, HostListener, OnInit, ViewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { CommonModule, Location } from '@angular/common';
@@ -12,6 +13,7 @@ import { testDetail } from 'src/app/models/patientTest/testDetailModel';
 import { TestReportService } from 'src/app/services/patientTestReportServices/test-report-service';
 import { CommonService } from 'src/app/shared/common.service';
 import { TestReportGenerationServices } from 'src/app/services/patientTestReportServices/test-report-generation-services';
+import { ReportPdfShareService } from 'src/app/services/patientTestReportServices/report-pdf-share.service';
 import { PathologyService } from 'src/app/services/pathologyServices/pathology.service';
 import { PaymentModalComponent } from 'src/app/shared/payment-modal/payment-modal.component';
 import { AddTestModalComponent }  from 'src/app/shared/add-test-modal/add-test-modal.component';
@@ -208,6 +210,7 @@ export class PatientTestListComponent implements OnInit {
     private router: Router,
     private testReportService: TestReportService,
     private testReportGenerationService: TestReportGenerationServices,
+    private reportPdfShare: ReportPdfShareService,
     private pathologyService: PathologyService,
     private patientService: PatientService,
     private receiptService: ReceiptService,
@@ -1829,9 +1832,27 @@ export class PatientTestListComponent implements OnInit {
     testCode: string;
     /** What to call the report in the dialog and the toast. */
     label: string;
-    /** Number the chat was opened for, "919876543210". */
+    /** Number the chat was opened for, "919876543210". Empty when the PDF was shared to a chat or group of the person's own choosing. */
     phone: string;
+    /**
+     * How the report left this app. Absent for a link opened in a chat. 'pdf-shared':
+     * the PDF went to the device's share sheet. 'pdf-downloaded': this browser cannot
+     * share a file, so the PDF was saved and has to be attached by hand.
+     */
+    via?: 'pdf-shared' | 'pdf-downloaded';
+    /** Further reports that went in the same share (a visit's PDFs); each is recorded as sent. */
+    alsoTestCodes?: string[];
   } | null = null;
+
+  /** True while the PDF is being built (fetched and rendered) for sharing. */
+  sharingPdf = false;
+
+  /**
+   * A finished PDF waiting for a tap. Browsers only open the share sheet shortly
+   * after a click, and building the PDF can take longer than that; when the sheet
+   * is refused for it, the file is kept here and a second tap shares it at once.
+   */
+  sharePdfReady: { files: File[]; codes: string[]; names: string[]; skipped: string[] } | null = null;
 
   /** True while the confirmed send is being recorded. */
   markingWhatsAppSent = false;
@@ -1886,7 +1907,8 @@ export class PatientTestListComponent implements OnInit {
     if (id == null) return false;
     return this.savingWhatsAppPrefFor === id
         || this.sendingSmartWhatsAppFor === id
-        || this.isSendingWhatsApp;
+        || this.isSendingWhatsApp
+        || this.sharingPdf;
   }
 
   /** The report this dialog would send has already gone out at least once. */
@@ -1939,6 +1961,8 @@ export class PatientTestListComponent implements OnInit {
     // who walks away from the question has not told us the message went.
     this.whatsAppSentConfirm   = null;
     this.markingWhatsAppSent   = false;
+    this.sharePdfReady         = null;
+    this.sharingPdf            = false;
   }
 
   usePatientNumberInDialog(): void {
@@ -2018,7 +2042,7 @@ export class PatientTestListComponent implements OnInit {
   }
 
   /**
-   * Dialog "Send on WhatsApp": saves the number on the booking, then opens the chat
+   * Dialog "Send link on WhatsApp": saves the number on the booking, then opens the chat
    * for that number with the report link filled in. The operator presses send.
    *
    * The WhatsApp tab is opened synchronously inside the click, before any API call,
@@ -2066,6 +2090,154 @@ export class PatientTestListComponent implements OnInit {
     });
   }
 
+  // ── Sharing the report as a PDF ────────────────────────────────────────
+  //
+  // The alternative to the link above: the lab reports themselves go to WhatsApp as
+  // PDF documents, so nobody has to open a public link to read them.
+  //   'test'  mode — the open test's report.
+  //   'visit' mode — every test on the visit whose results are saved, one PDF each.
+  //                  (The visit's Health Insights report stays a link: it is a web page.)
+  //
+  // The device's share sheet does the sending, so staff choose the chat or group
+  // there and the number in the dialog is not needed. Browsers that cannot share a
+  // file get the PDFs saved to the device instead, to attach by hand.
+
+  /**
+   * Why "Share PDF" is not offered in the open dialog, or '' when it is. Shown as a
+   * hint so the option is never simply missing without a reason.
+   */
+  get sharePdfBlockedReason(): string {
+    const test = this.whatsAppDialogFor;
+    if (!test) return '';
+    if (this.vm(test).cancelled) return 'This visit was cancelled.';
+    // Same rule as the report buttons: a lab report is only issued once the bill is paid.
+    if (this.getPaymentStatus(test) !== 'Paid') return 'PDF reports can be shared once the bill is fully paid.';
+    if (this.whatsAppDialogMode === 'test') {
+      return this.canIssueReport ? '' : (this.reportBlockedReason || 'This report is not ready yet.');
+    }
+    return this.reportStatus(test) === 'Pending' ? 'No results have been saved on this visit yet.' : '';
+  }
+
+  /** Dialog "Share PDF". */
+  async sharePdfFromWhatsAppDialog(): Promise<void> {
+    const booking = this.whatsAppDialogFor;
+    if (!booking || this.sharingPdf || this.sharePdfBlockedReason) return;
+    this.whatsAppNumberError = '';
+
+    // Second tap, after the browser asked for a fresh one: the PDFs are already built.
+    if (this.sharePdfReady) {
+      await this.deliverPdfs(this.sharePdfReady);
+      return;
+    }
+
+    const patientTestId = Number(booking.patient_Test_Id);
+    const codes = this.whatsAppDialogMode === 'test'
+      ? [this.selectedTestDetail?.testCode ?? ''].filter(c => !!c)
+      : this.testCodes(booking);
+    const nameOf = (code: string) =>
+      (this.whatsAppDialogMode === 'test' ? this.selectedTestDetail?.testName : this.testNameByCode.get(code)) || code;
+
+    this.sharingPdf = true;
+    const ready = { files: [] as File[], codes: [] as string[], names: [] as string[], skipped: [] as string[] };
+    try {
+      // One at a time: each is rendered in this browser, and a visit rarely has many.
+      for (const code of codes) {
+        try {
+          ready.files.push(await this.reportPdfShare.preparePdf(
+            patientTestId, code, this.patientName, this.pathBranch || undefined));
+          ready.codes.push(code);
+          ready.names.push(nameOf(code));
+        } catch (err) {
+          // 400 is the API refusing a report whose results are not all saved yet.
+          if (err instanceof HttpErrorResponse && err.status === 400) {
+            ready.skipped.push(nameOf(code));
+            continue;
+          }
+          throw err;
+        }
+      }
+    } catch (err) {
+      this.sharingPdf = false;
+      this.whatsAppNumberError = 'The PDF could not be prepared. Please try again.';
+      console.error('sharePdfFromWhatsAppDialog: preparePdf failed', err);
+      return;
+    }
+    this.sharingPdf = false;
+
+    if (ready.files.length === 0) {
+      this.whatsAppNumberError = 'No report on this visit is ready to share yet: results still need to be saved.';
+      return;
+    }
+
+    await this.deliverPdfs(ready);
+  }
+
+  /** Hands finished PDFs to the share sheet, or saves them where that is not possible. */
+  private async deliverPdfs(ready: { files: File[]; codes: string[]; names: string[]; skipped: string[] }): Promise<void> {
+    // The dialog was closed while the PDFs were being built: do not open a share
+    // sheet over whatever the operator moved on to.
+    const booking = this.whatsAppDialogFor;
+    if (!booking) return;
+
+    const patientTestId = Number(booking.patient_Test_Id);
+    const what     = ready.names.length === 1 ? `${ready.names[0]} test report is` : `test reports (${ready.names.join(', ')}) are`;
+    const greeting = this.patientName ? `Dear ${this.patientName},` : 'Dear Patient,';
+    const text     = `${greeting}\n\nYour ${what} attached.\nThank you.`;
+    const label    = ready.names.length === 1 ? `${ready.names[0]} report (PDF)` : `${ready.names.length} test reports (PDF)`;
+    const [firstCode, ...otherCodes] = ready.codes;
+
+    let outcome: Awaited<ReturnType<ReportPdfShareService['share']>>;
+    try {
+      outcome = await this.reportPdfShare.share(ready.files, label, text);
+    } catch (err) {
+      this.sharePdfReady = null;
+      this.whatsAppNumberError = 'The share sheet could not be opened. Please try again.';
+      console.error('deliverPdfs: share failed', err);
+      return;
+    }
+
+    const confirm = (phone: string, via: 'pdf-shared' | 'pdf-downloaded') => {
+      this.armWhatsAppSentConfirm(patientTestId, firstCode, label, phone, via);
+      if (this.whatsAppSentConfirm) this.whatsAppSentConfirm.alsoTestCodes = otherCodes;
+      if (ready.skipped.length) {
+        this.toastr.info(`Not included, results not saved yet: ${ready.skipped.join(', ')}.`, 'WhatsApp');
+      }
+    };
+
+    switch (outcome) {
+      case 'shared':
+        this.sharePdfReady = null;
+        // The share sheet does not say which app was chosen, so ask, as for a link.
+        // The destination is unknown (it may be a group), so no number is recorded.
+        confirm('', 'pdf-shared');
+        break;
+
+      case 'cancelled':
+        this.sharePdfReady = null;       // they closed the sheet: nothing happened
+        break;
+
+      case 'needs-tap':
+        this.sharePdfReady = ready;      // built, but the browser wants a fresh tap to open the sheet
+        break;
+
+      case 'unsupported':
+        this.sharePdfReady = null;
+        this.reportPdfShare.download(ready.files);
+        confirm(toWhatsAppNumber(this.whatsAppNumberInput) ?? '', 'pdf-downloaded');
+        break;
+    }
+  }
+
+  /**
+   * "Open WhatsApp chat" on the saved-PDF step. A plain click, so no pop-up blocker
+   * is involved; the person attaches the saved PDF there.
+   */
+  openWhatsAppChatForSavedPdf(): void {
+    const phone = this.whatsAppSentConfirm?.phone;
+    if (!phone) return;
+    window.open(`https://wa.me/${phone}`, '_blank', 'noopener');
+  }
+
   // ── Confirming the send ────────────────────────────────────────────────
   //
   // Everything above ends at "the chat is open with the message typed". Whether
@@ -2080,10 +2252,13 @@ export class PatientTestListComponent implements OnInit {
    * being issued, the question is dropped rather than re-opened over whatever
    * they moved on to.
    */
-  private armWhatsAppSentConfirm(patientTestId: number, testCode: string, label: string, phone: string): void {
+  private armWhatsAppSentConfirm(
+    patientTestId: number, testCode: string, label: string, phone: string,
+    via?: 'pdf-shared' | 'pdf-downloaded',
+  ): void {
     if (!this.whatsAppDialogFor) return;
 
-    this.whatsAppSentConfirm = { patientTestId, testCode, label, phone };
+    this.whatsAppSentConfirm = { patientTestId, testCode, label, phone, via };
     this.whatsAppNumberError = '';
   }
 
@@ -2093,29 +2268,34 @@ export class PatientTestListComponent implements OnInit {
     if (!pending || this.markingWhatsAppSent) return;
 
     this.markingWhatsAppSent = true;
-    this.reportPrintStatusService.markSentOnWhatsApp({
+    // A visit's PDFs go in one share; every report in it is recorded as sent.
+    const codes = [pending.testCode, ...(pending.alsoTestCodes ?? [])];
+    forkJoin(codes.map(code => this.reportPrintStatusService.markSentOnWhatsApp({
       testRegId:      pending.patientTestId,
-      testCode:       pending.testCode,
+      testCode:       code,
       whatsAppNumber: pending.phone,
-    }).subscribe({
-      next: (status: ReportPrintStatusDto) => {
+    }))).subscribe({
+      next: (statuses: ReportPrintStatusDto[]) => {
         this.markingWhatsAppSent = false;
 
         // Straight into the map the chips read, so the badge appears without a
-        // reload. The row is also persisted, so it survives a refresh.
-        if (status) {
+        // reload. The rows are also persisted, so they survive a refresh.
+        statuses.forEach((status, i) => {
+          if (!status) return;
           this.printStatus.set(status.testCode, status);
           // The API upper-cases the code; if the catalogue stores it differently
           // the chips look it up under the original, so key it both ways.
-          if (status.testCode !== pending.testCode) {
-            this.printStatus.set(pending.testCode, status);
+          if (status.testCode !== codes[i]) {
+            this.printStatus.set(codes[i], status);
           }
-        }
+        });
+        const status = statuses[0];
 
         const repeat = (status?.whatsAppSentCount ?? 1) > 1 ? ' again' : '';
+        const to = this.formatWhatsAppNumber(pending.phone);   // empty for a share to a chat the person picked
         this.closeWhatsAppDialog();
         this.toastr.success(
-          `${pending.label} marked as sent on WhatsApp${repeat} to ${this.formatWhatsAppNumber(pending.phone)}.`,
+          `${pending.label} marked as sent on WhatsApp${repeat}${to ? ' to ' + to : ''}.`,
           'Sent on WhatsApp');
       },
       error: (err: any) => {

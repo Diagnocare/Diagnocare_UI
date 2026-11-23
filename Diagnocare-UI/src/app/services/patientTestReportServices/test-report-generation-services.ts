@@ -41,6 +41,22 @@ export class TestReportGenerationServices {
    * @param pathBranch  Optional pathology branch name passed as a query param.
    */
   /**
+   * The report in the form the browser can turn into a PDF to share: the bare page
+   * (no toolbar, no print script), or a real PDF when the test has no template.
+   * Staff-only. Not `generateTestReport`: that page carries the print toolbar, and
+   * `downloadTestReport` opens the print dialog and records the report as printed.
+   */
+  getReportForSharing(patientTestId: number, testCode: string, pathBranch?: string): Observable<Blob> {
+    let apiUrl =
+      `${this.url}${apiEndpoints.generateTestReportPDF}` +
+      `?patientTestId=${patientTestId}&testCode=${encodeURIComponent(testCode)}&format=share`;
+    if (pathBranch) {
+      apiUrl += `&pathBranch=${encodeURIComponent(pathBranch)}`;
+    }
+    return this.httpClient.get(apiUrl, { responseType: 'blob' });
+  }
+
+  /**
    * Smart Health Report for a whole booking (every test on it): health score,
    * health-area scores, personalised summary and roadmap. Returns a standalone
    * HTML page; the caller opens it in a new tab like the lab report. The page's
