@@ -616,12 +616,28 @@
          one path that records the report as sent — every other way out of this
          dialog, including closing it, leaves the report unsent. -->
     <ng-container *ngIf="whatsAppSentConfirm as pending">
-      <p class="ptl-wa-confirm__lead">
+      <p class="ptl-wa-confirm__lead" *ngIf="!pending.via">
         <i class="fa fa-external-link" aria-hidden="true"></i>
         WhatsApp is open for <strong>{{ formatWhatsAppNumber(pending.phone) }}</strong>
         with the {{ pending.label }} link already written.
       </p>
-      <p class="ptl-wa-confirm__ask">Did you send the message?</p>
+      <p class="ptl-wa-confirm__lead" *ngIf="pending.via === 'pdf-shared'">
+        <i class="fa fa-share-alt" aria-hidden="true"></i>
+        The {{ pending.label }} was handed to your share menu.
+      </p>
+      <ng-container *ngIf="pending.via === 'pdf-downloaded'">
+        <p class="ptl-wa-confirm__lead">
+          <i class="fa fa-download" aria-hidden="true"></i>
+          This browser cannot attach a file to WhatsApp itself, so the {{ pending.label }}
+          was saved to your downloads. Open WhatsApp and attach it there.
+        </p>
+        <button type="button" class="dc-btn dc-btn--clear" *ngIf="pending.phone"
+                (click)="openWhatsAppChatForSavedPdf()">
+          <i class="fa fa-whatsapp" aria-hidden="true"></i>
+          Open chat with {{ formatWhatsAppNumber(pending.phone) }}
+        </button>
+      </ng-container>
+      <p class="ptl-wa-confirm__ask">{{ pending.via === 'pdf-downloaded' ? 'Did you send the PDF?' : 'Did you send the message?' }}</p>
       <p class="ptl-wa-hint">
         Answer once you have pressed send in WhatsApp. This only records what happened —
         it sends nothing itself, and nothing is recorded unless you say the message went.
@@ -703,9 +719,26 @@
               [disabled]="whatsAppDialogBusy"
               (click)="sendFromWhatsAppDialog()">
         <i class="fa" [ngClass]="whatsAppDialogBusy ? 'fa-spinner fa-spin' : 'fa-whatsapp'"></i>
-        {{ whatsAppDialogBusy ? 'Preparing…' : (whatsAppDialogSentAlready ? 'Send again' : 'Send on WhatsApp') }}
+        {{ whatsAppDialogBusy ? 'Preparing…' : (whatsAppDialogSentAlready ? 'Send again' : 'Send link on WhatsApp') }}
+      </button>
+      <!-- The lab report(s) themselves as PDFs, sent from the device's share menu to
+           any chat or group, so nobody needs a public link to read them. From a visit:
+           one PDF per test with saved results. Always shown; when it cannot be used,
+           it is disabled and the reason is written underneath. -->
+      <button type="button" class="dc-btn dc-btn--save"
+              [disabled]="whatsAppDialogBusy || !!sharePdfBlockedReason"
+              [title]="sharePdfBlockedReason || 'Attach the report as a PDF file and pick the WhatsApp chat or group in your share menu'"
+              (click)="sharePdfFromWhatsAppDialog()">
+        <i class="fa" [ngClass]="sharingPdf ? 'fa-spinner fa-spin' : (sharePdfReady ? 'fa-share-alt' : 'fa-file-pdf-o')"></i>
+        {{ sharingPdf ? 'Preparing PDF…' : (sharePdfReady ? 'Share now' : (whatsAppDialogMode === 'visit' ? 'Share PDF reports' : 'Share PDF')) }}
       </button>
     </div>
+    <p class="ptl-wa-hint" *ngIf="sharePdfBlockedReason">
+      <i class="fa fa-info-circle" aria-hidden="true"></i> Share PDF: {{ sharePdfBlockedReason }}
+    </p>
+    <p class="ptl-wa-hint" *ngIf="sharePdfReady">
+      The PDF is ready. Tap <strong>Share now</strong> to choose the chat in your share menu.
+    </p>
     </ng-container>
   </div>
 </div>
