@@ -47,6 +47,12 @@ export const controllerEndpoints = {
   testImport:    apiPath('TestImport'),
   template:   apiPath('template'),
   attendance: apiPath('attendance'),
+  /** GPS check-in / check-out, today, history, exception requests, kiosk QR. */
+  attendanceCheckIn: apiPath('AttendanceCheckIn'),
+  /** Admin dashboard, reports, exports and the exception queue. */
+  attendanceAdmin: apiPath('AttendanceAdmin'),
+  /** Admin setup: locations, shifts, enrolled devices. */
+  attendanceSetup: apiPath('AttendanceSetup'),
   salary:     apiPath('salary'),
   /**
    * Paid leave: accumulated balances and the year-end carry-forward. Its own controller

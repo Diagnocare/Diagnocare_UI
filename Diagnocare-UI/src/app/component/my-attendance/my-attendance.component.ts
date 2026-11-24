@@ -19,6 +19,7 @@ import {
 } from 'src/app/models/attendance/attendance-record.dto';
 import { WeeklyAttendanceResponseDTO } from 'src/app/models/attendance/user-weekly-attendance.dto';
 import { AttendanceCell, AttendanceRow } from '../../models/attendance/my-attendance-grid.model';
+import { GpsCheckInComponent } from '../gps-attendance/gps-check-in.component';
 
 // ── Internal grid types ───────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ import { AttendanceCell, AttendanceRow } from '../../models/attendance/my-attend
   templateUrl: './my-attendance.component.html',
   styleUrls: ['./my-attendance.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingSpinnerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingSpinnerComponent, GpsCheckInComponent],
   providers: [DatePipe],
 })
 export class MyAttendanceComponent implements OnInit, OnDestroy {

@@ -90,6 +90,11 @@ export function buildNavSections(ctx: NavContext): NavSection[] {
 
   const mine: NavItem[] = ctx.userOptions.map(o => item(o.label, o.route, o.icon ?? 'fa-circle'));
 
+  // GPS attendance: every signed-in role checks themselves in; admins also get the
+  // dashboard, reports and the exception queue.
+  if (a.attendanceRequests) mine.push(item('Check in / out', 'check-in', 'fa-location-dot'));
+  if (a.adminPanel) team.push(item('GPS attendance', 'gps-attendance', 'fa-map-location-dot'));
+
   // Attendance requests: admins review everyone's, everyone else raises their own.
   if (a.attendanceRequests) {
     (a.adminPanel ? team : mine).push(

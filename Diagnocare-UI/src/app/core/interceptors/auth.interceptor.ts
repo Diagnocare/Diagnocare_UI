@@ -67,6 +67,14 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
     req = req.clone({ setHeaders: { 'X-Tenant-Key': tenantKey } });
   }
 
+  // ── Attendance device requests — their own credential ─────────────────────
+  // The kiosk display authenticates with an enrolled device token, never a login
+  // session. Passing it through untouched keeps a 401 from being treated as an expired
+  // login (which would refresh a token that does not exist and redirect to /login).
+  if (req.headers.has('X-Attendance-Device')) {
+    return next(req);
+  }
+
   // ── Pre-login endpoints — no Authorization header ─────────────────────────
   // Logout and ClearSession are excluded: Logout is called via rawHttp (bypasses
   // interceptors) and ClearSession validates the password itself. Fingerprint

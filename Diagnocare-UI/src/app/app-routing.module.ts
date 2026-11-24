@@ -253,6 +253,16 @@ export const routes: Routes = [
       // an Admin's own record of their attendance. Backed by GetMyWeekly /
       // GetMyMonthly, which are [Authorize(Policy = "AllStaffRoles")] and already
       // answer an Admin correctly.
+      // GPS check-in / check-out. Also the target of the kiosk QR deep link
+      // (/check-in?token=…), so the phone's own camera lands here already signed in.
+      { path: 'check-in', title: 'Check in / out',
+        loadComponent: () => import('./component/gps-attendance/gps-check-in.component').then(m => m.GpsCheckInComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
+      // GPS attendance administration: dashboard, reports, exception approvals, locations,
+      // kiosk screens. Mirrors the API's AttendanceCorrection policy (Admin + Super Admin).
+      { path: 'gps-attendance', title: 'GPS Attendance',
+        loadComponent: () => import('./component/gps-attendance/gps-attendance-admin.component').then(m => m.GpsAttendanceAdminComponent),
+        canActivate: [roleGuard(Role.Admin.id, Role.Super_Admin.id)] },
       { path: 'my-attendance', title: 'My Attendance',
         loadComponent: () => import('./component/my-attendance/my-attendance.component').then(m => m.MyAttendanceComponent),
         canActivate: [roleGuard(Role.Admin.id, Role.Receptionist.id, Role.Assistant.id, Role.Collection_Boy.id, Role.Doctor.id, Role.Super_Admin.id)] },
@@ -338,6 +348,12 @@ export const routes: Routes = [
     loadComponent: () => import('./shared/simple/showcase/simple-ui-showcase.component')
       .then(m => m.SimpleUiShowcaseComponent)
   },
+  // Attendance kiosk display + enrolment. Deliberately outside the authenticated shell:
+  // the wall screen has no signed-in user and authenticates with an enrolled device token.
+  { path: 'attendance-kiosk/enrol', title: 'Screen enrolment',
+    loadComponent: () => import('./component/gps-attendance/attendance-kiosk.component').then(m => m.KioskEnrolComponent) },
+  { path: 'attendance-kiosk', title: 'Attendance display',
+    loadComponent: () => import('./component/gps-attendance/attendance-kiosk.component').then(m => m.AttendanceKioskComponent) },
   // Fallback
   { path: '**', redirectTo: 'login' }
 ];
